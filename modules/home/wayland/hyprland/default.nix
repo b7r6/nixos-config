@@ -1,9 +1,8 @@
-{
-  flake,
-  config,
-  lib,
-  pkgs,
-  ...
+{ flake
+, config
+, lib
+, pkgs
+, ...
 }:
 let
   cfg = config.wayland.hyprland;
@@ -45,28 +44,24 @@ in
         base0F = lib.removePrefix "#" colors.base0F; # dark accent
       in
       {
-        # Monitor configuration - automatically position monitors, with external as primary
+        # Monitor configuration using description for external and name for internal
         monitor = [
-          # External monitor with higher priority (preferred)
-          "HDMI-A-1,preferred,auto,1"
-          # Laptop display as secondary
-          "eDP-1,preferred,auto,1"
-          # Fallback for all other monitors
+          # External monitor by description (works with any port/dongle)
+          "desc:AOC CU34G2XP,3440x1440@100.00,0x0,1"
+          # Built-in display with specific resolution
+          "eDP-1,3840x2400@60.00,3440x0,2.5"
+          # Fallback for any other displays
           ",preferred,auto,1"
+        ];
+
+        # Lid switch bindings for laptop display
+        bindl = [
+          ",switch:off:Lid Switch,exec,hyprctl keyword monitor eDP-1 disable"
+          ",switch:on:Lid Switch,exec,hyprctl keyword monitor eDP-1 3840x2400@60.00,3440x0,2.5"
         ];
 
         # Execute monitor detection/arrangement script on startup
         exec-once = [
-          "${pkgs.writeShellScript "monitor-config" ''
-            # Auto-arrange monitors with HDMI as primary when available
-            if hyprctl monitors | grep -q "HDMI-A-1"; then
-              hyprctl keyword monitor "HDMI-A-1,preferred,0x0,1"
-              hyprctl keyword monitor "eDP-1,preferred,3440x0,1"
-            else
-              hyprctl keyword monitor "eDP-1,preferred,0x0,1"
-            fi
-          ''}"
-          
           "blueman-applet"
           "hyprpaper"
           "mako"
@@ -74,7 +69,7 @@ in
           "tailscale-systray"
           "waybar"
         ];
-        
+
         # General settings
         general = {
           gaps_in = 5;
