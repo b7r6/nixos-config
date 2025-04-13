@@ -1,0 +1,1116 @@
+{
+  "bar" = {
+    "autoHide" = "never";
+    "battery" = {
+      "hideLabelWhenFull" = false;
+      "label" = true;
+      "middleClick" = "";
+      "rightClick" = "";
+      "scrollDown" = "";
+      "scrollUp" = "";
+    };
+    "bluetooth" = {
+      "label" = true;
+      "middleClick" = "";
+      "rightClick" = "";
+      "scrollDown" = "";
+      "scrollUp" = "";
+    };
+    "clock" = {
+      "format" = "%a %b %d  %I:%M:%S %p";
+      "icon" = "󰸗";
+      "middleClick" = "";
+      "rightClick" = "";
+      "scrollDown" = "";
+      "scrollUp" = "";
+      "showIcon" = true;
+      "showTime" = true;
+    };
+    "customModules" = {
+      "cava" = {
+        "autoSensitivity" = true;
+        "barCharacters" = [
+          "▁"
+          "▂"
+          "▃"
+          "▄"
+          "▅"
+          "▆"
+          "▇"
+          "█"
+        ];
+        "bars" = 10;
+        "channels" = 2;
+        "framerate" = 60;
+        "highCutoff" = 10000;
+        "icon" = "";
+        "leftClick" = "";
+        "lowCutoff" = 50;
+        "middleClick" = "";
+        "noiseReduction" = 0.77;
+        "rightClick" = "";
+        "samplerate" = 44100;
+        "scrollDown" = "";
+        "scrollUp" = "";
+        "showActiveOnly" = false;
+        "showIcon" = true;
+        "spaceCharacter" = " ";
+        "stereo" = false;
+      };
+      "cpu" = {
+        "icon" = "";
+        "label" = true;
+        "leftClick" = "";
+        "middleClick" = "";
+        "pollingInterval" = 2000;
+        "rightClick" = "";
+        "round" = true;
+        "scrollDown" = "";
+        "scrollUp" = "";
+      };
+      "cpuTemp" = {
+        "icon" = "";
+        "label" = true;
+        "leftClick" = "";
+        "middleClick" = "";
+        "pollingInterval" = 2000;
+        "rightClick" = "";
+        "round" = true;
+        "scrollDown" = "";
+        "scrollUp" = "";
+        "sensor" = "";
+        "showUnit" = true;
+        "unit" = "metric";
+      };
+      "hypridle" = {
+        "label" = true;
+        "middleClick" = "";
+        "offIcon" = "";
+        "offLabel" = "Off";
+        "onIcon" = "";
+        "onLabel" = "On";
+        "pollingInterval" = 2000;
+        "rightClick" = "";
+        "scrollDown" = "";
+        "scrollUp" = "";
+      };
+      "hyprsunset" = {
+        "label" = true;
+        "middleClick" = "";
+        "offIcon" = "󰛨";
+        "offLabel" = "Off";
+        "onIcon" = "󱩌";
+        "onLabel" = "On";
+        "pollingInterval" = 2000;
+        "rightClick" = "";
+        "scrollDown" = "";
+        "scrollUp" = "";
+        "temperature" = "6000k";
+      };
+      "kbLayout" = {
+        "icon" = "󰌌";
+        "label" = true;
+        "labelType" = "code";
+        "leftClick" = "";
+        "middleClick" = "";
+        "rightClick" = "";
+        "scrollDown" = "";
+        "scrollUp" = "";
+      };
+      "microphone" = {
+        "label" = true;
+        "leftClick" = "menu:audio";
+        "middleClick" = "";
+        "mutedIcon" = "󰍭";
+        "rightClick" = "";
+        "scrollDown" = "";
+        "scrollUp" = "";
+        "unmutedIcon" = "󰍬";
+      };
+      "netstat" = {
+        "dynamicIcon" = false;
+        "icon" = "󰖟";
+        "label" = true;
+        "labelType" = "full";
+        "leftClick" = "";
+        "middleClick" = "";
+        "networkInLabel" = "↓";
+        "networkInterface" = "";
+        "networkOutLabel" = "↑";
+        "pollingInterval" = 2000;
+        "rateUnit" = "auto";
+        "rightClick" = "";
+        "round" = true;
+      };
+      "power" = {
+        "icon" = "";
+        "leftClick" = "menu:powerdropdown";
+        "middleClick" = "";
+        "rightClick" = "";
+        "scrollDown" = "";
+        "scrollUp" = "";
+        "showLabel" = true;
+      };
+      "ram" = {
+        "icon" = "";
+        "label" = true;
+        "labelType" = "percentage";
+        "leftClick" = "";
+        "middleClick" = "";
+        "pollingInterval" = 2000;
+        "rightClick" = "";
+        "round" = true;
+      };
+      "scrollSpeed" = 5;
+      "storage" = {
+        "icon" = "󰋊";
+        "label" = true;
+        "labelType" = "percentage";
+        "leftClick" = "";
+        "middleClick" = "";
+        "pollingInterval" = 2000;
+        "rightClick" = "";
+        "round" = false;
+      };
+      "submap" = {
+        "disabledIcon" = "󰌌";
+        "disabledText" = "Submap off";
+        "enabledIcon" = "󰌐";
+        "enabledText" = "Submap On";
+        "label" = true;
+        "leftClick" = "";
+        "middleClick" = "";
+        "rightClick" = "";
+        "scrollDown" = "";
+        "scrollUp" = "";
+        "showSubmapName" = true;
+      };
+      "updates" = {
+        "autoHide" = false;
+        "icon" = {
+          "pending" = "󰏗";
+          "updated" = "󰏖";
+        };
+        "label" = true;
+        "leftClick" = "";
+        "middleClick" = "";
+        "padZero" = true;
+        "pollingInterval" = 1440000;
+        "rightClick" = "";
+        "scrollDown" = "";
+        "scrollUp" = "";
+        "updateCommand" = "";
+      };
+      "weather" = {
+        "label" = true;
+        "leftClick" = "";
+        "middleClick" = "";
+        "rightClick" = "";
+        "scrollDown" = "";
+        "scrollUp" = "";
+        "unit" = "imperial";
+      };
+    };
+    "launcher" = {
+      "autoDetectIcon" = false;
+      "icon" = "󰣇";
+      "middleClick" = "";
+      "rightClick" = "";
+      "scrollDown" = "";
+      "scrollUp" = "";
+    };
+    "media" = {
+      "format" = "{artist: - }{title}";
+      "middleClick" = "";
+      "rightClick" = "";
+      "scrollDown" = "";
+      "scrollUp" = "";
+      "show_active_only" = false;
+      "show_label" = true;
+      "truncation" = true;
+      "truncation_size" = 30;
+    };
+    "network" = {
+      "label" = true;
+      "middleClick" = "";
+      "rightClick" = "";
+      "scrollDown" = "";
+      "scrollUp" = "";
+      "showWifiInfo" = false;
+      "truncation" = true;
+      "truncation_size" = 7;
+    };
+    "notifications" = {
+      "hideCountWhenZero" = false;
+      "middleClick" = "";
+      "rightClick" = "";
+      "scrollDown" = "";
+      "scrollUp" = "";
+      "show_total" = false;
+    };
+    "scrollSpeed" = 5;
+    "systray" = {
+      "ignore" = [ ];
+    };
+    "volume" = {
+      "label" = true;
+      "middleClick" = "";
+      "rightClick" = "";
+      "scrollDown" = "/nix/store/zsqv8h2g9j7pxrxfxrhxirvhycrkvh8k-hyprpanel/bin/hyprpanel 'vol -5'";
+      "scrollUp" = "/nix/store/zsqv8h2g9j7pxrxfxrhxirvhycrkvh8k-hyprpanel/bin/hyprpanel 'vol +5'";
+    };
+    "windowtitle" = {
+      "class_name" = true;
+      "custom_title" = true;
+      "icon" = true;
+      "label" = true;
+      "leftClick" = "";
+      "middleClick" = "";
+      "rightClick" = "";
+      "scrollDown" = "";
+      "scrollUp" = "";
+      "truncation" = true;
+      "truncation_size" = 50;
+    };
+    "workspaces" = {
+      "applicationIconEmptyWorkspace" = "";
+      "applicationIconFallback" = "󰣆";
+      "applicationIconOncePerWorkspace" = true;
+      "icons" = {
+        "active" = "";
+        "available" = "";
+        "occupied" = "";
+      };
+      "ignored" = "";
+      "monitorSpecific" = true;
+      "numbered_active_indicator" = "underline";
+      "reverse_scroll" = false;
+      "scroll_speed" = 5;
+      "showAllActive" = true;
+      "showApplicationIcons" = false;
+      "showWsIcons" = false;
+      "show_icons" = false;
+      "show_numbered" = false;
+      "spacing" = 1;
+      "workspaceIconMap" = null;
+      "workspaceMask" = false;
+      "workspaces" = 5;
+    };
+  };
+  "dummy" = true;
+  "hyprpanel" = {
+    "restartAgs" = true;
+    "restartCommand" =
+      "/nix/store/zsqv8h2g9j7pxrxfxrhxirvhycrkvh8k-hyprpanel/bin/hyprpanel q; /nix/store/zsqv8h2g9j7pxrxfxrhxirvhycrkvh8k-hyprpanel/bin/hyprpanel";
+  };
+  "layout" = null;
+  "menus" = {
+    "clock" = {
+      "time" = {
+        "hideSeconds" = false;
+        "military" = false;
+      };
+      "weather" = {
+        "enabled" = true;
+        "interval" = 60000;
+        "key" = "";
+        "location" = "Los Angeles";
+        "unit" = "imperial";
+      };
+    };
+    "dashboard" = {
+      "controls" = {
+        "enabled" = true;
+      };
+      "directories" = {
+        "enabled" = true;
+        "left" = {
+          "directory1" = {
+            "command" = "bash -c \"xdg-open $HOME/Downloads/\"";
+            "label" = "󰉍 Downloads";
+          };
+          "directory2" = {
+            "command" = "bash -c \"xdg-open $HOME/Videos/\"";
+            "label" = "󰉏 Videos";
+          };
+          "directory3" = {
+            "command" = "bash -c \"xdg-open $HOME/Projects/\"";
+            "label" = "󰚝 Projects";
+          };
+        };
+        "right" = {
+          "directory1" = {
+            "command" = "bash -c \"xdg-open $HOME/Documents/\"";
+            "label" = "󱧶 Documents";
+          };
+          "directory2" = {
+            "command" = "bash -c \"xdg-open $HOME/Pictures/\"";
+            "label" = "󰉏 Pictures";
+          };
+          "directory3" = {
+            "command" = "bash -c \"xdg-open $HOME/\"";
+            "label" = "󱂵 Home";
+          };
+        };
+      };
+      "powermenu" = {
+        "avatar" = {
+          "image" = "$HOME/.face.icon";
+          "name" = "system";
+        };
+        "confirmation" = true;
+        "logout" = "hyprctl dispatch exit";
+        "reboot" = "systemctl reboot";
+        "shutdown" = "systemctl poweroff";
+        "sleep" = "systemctl suspend";
+      };
+      "recording" = {
+        "path" = "$HOME/Videos/Screencasts";
+      };
+      "shortcuts" = {
+        "enabled" = true;
+        "left" = {
+          "shortcut1" = {
+            "command" = "microsoft-edge-stable";
+            "icon" = "󰇩";
+            "tooltip" = "Microsoft Edge";
+          };
+          "shortcut2" = {
+            "command" = "spotify-launcher";
+            "icon" = "";
+            "tooltip" = "Spotify";
+          };
+          "shortcut3" = {
+            "command" = "discord";
+            "icon" = "";
+            "tooltip" = "Discord";
+          };
+          "shortcut4" = {
+            "command" = "rofi -show drun";
+            "icon" = "";
+            "tooltip" = "Search Apps";
+          };
+        };
+        "right" = {
+          "shortcut1" = {
+            "command" = "sleep 0.5 && hyprpicker -a";
+            "icon" = "";
+            "tooltip" = "Color Picker";
+          };
+          "shortcut3" = {
+            "command" = "bash -c \"/nix/store/l3s52iggy014p38vi1ri5mi4rjb4qggb-snapshot.sh\"";
+            "icon" = "󰄀";
+            "tooltip" = "Screenshot";
+          };
+        };
+      };
+      "stats" = {
+        "enable_gpu" = false;
+        "enabled" = true;
+        "interval" = 2000;
+      };
+    };
+    "media" = {
+      "displayTime" = false;
+      "displayTimeTooltip" = false;
+      "hideAlbum" = false;
+      "hideAuthor" = false;
+      "noMediaText" = "No Media Currently Playing";
+    };
+    "power" = {
+      "confirmation" = true;
+      "logout" = "hyprctl dispatch exit";
+      "lowBatteryNotification" = false;
+      "lowBatteryNotificationText" =
+        "Your battery is running low ($POWER_LEVEL %).\\n\\nPlease plug in your charger.";
+      "lowBatteryNotificationTitle" = "Warning: Low battery";
+      "lowBatteryThreshold" = 20;
+      "reboot" = "systemctl reboot";
+      "showLabel" = true;
+      "shutdown" = "systemctl poweroff";
+      "sleep" = "systemctl suspend";
+    };
+    "transition" = "crossfade";
+    "transitionTime" = 200;
+    "volume" = {
+      "raiseMaximumVolume" = false;
+    };
+  };
+  "menus.clock.weather.location" = "San Juan";
+  "notifications" = {
+    "active_monitor" = true;
+    "cache_actions" = true;
+    "clearDelay" = 100;
+    "displayedTotal" = 10;
+    "ignore" = [ ];
+    "monitor" = 0;
+    "position" = "top right";
+    "showActionsOnHover" = false;
+    "timeout" = 7000;
+  };
+  "scalingPriority" = "hyprland";
+  "tear" = false;
+  "terminal" = "$TERM";
+  "theme" = {
+    "bar" = {
+      "border" = {
+        "location" = "none";
+        "width" = "0.15em";
+      };
+      "border_radius" = "0.4em";
+      "buttons" = {
+        "background_hover_opacity" = 100;
+        "background_opacity" = 100;
+        "battery" = {
+          "enableBorder" = false;
+          "spacing" = "0.5em";
+        };
+        "bluetooth" = {
+          "enableBorder" = false;
+          "spacing" = "0.5em";
+        };
+        "borderSize" = "0.1em";
+        "clock" = {
+          "enableBorder" = false;
+          "spacing" = "0.5em";
+        };
+        "dashboard" = {
+          "enableBorder" = false;
+          "spacing" = "0.5em";
+        };
+        "enableBorders" = false;
+        "innerRadiusMultiplier" = "0.4";
+        "media" = {
+          "enableBorder" = false;
+          "spacing" = "0.5em";
+        };
+        "modules" = {
+          "cpu" = {
+            "enableBorder" = false;
+            "spacing" = "0.5em";
+          };
+          "cpuTemp" = {
+            "enableBorder" = false;
+            "spacing" = "0.5em";
+          };
+          "hypridle" = {
+            "enableBorder" = false;
+            "spacing" = "0.45em";
+          };
+          "hyprsunset" = {
+            "enableBorder" = false;
+            "spacing" = "0.45em";
+          };
+          "kbLayout" = {
+            "enableBorder" = false;
+            "spacing" = "0.45em";
+          };
+          "microphone" = {
+            "enableBorder" = false;
+            "spacing" = "0.45em";
+          };
+          "netstat" = {
+            "enableBorder" = false;
+            "spacing" = "0.45em";
+          };
+          "power" = {
+            "enableBorder" = false;
+            "spacing" = "0.45em";
+          };
+          "ram" = {
+            "enableBorder" = false;
+            "spacing" = "0.45em";
+          };
+          "storage" = {
+            "enableBorder" = false;
+            "spacing" = "0.45em";
+          };
+          "submap" = {
+            "enableBorder" = false;
+            "spacing" = "0.45em";
+          };
+          "updates" = {
+            "enableBorder" = false;
+            "spacing" = "0.45em";
+          };
+          "weather" = {
+            "enableBorder" = false;
+            "spacing" = "0.45em";
+          };
+        };
+        "monochrome" = false;
+        "network" = {
+          "enableBorder" = false;
+          "spacing" = "0.5em";
+        };
+        "notifications" = {
+          "enableBorder" = false;
+          "spacing" = "0.5em";
+        };
+        "opacity" = 100;
+        "padding_x" = "0.7rem";
+        "padding_y" = "0.2rem";
+        "radius" = "0.3em";
+        "spacing" = "0.25em";
+        "style" = "default";
+        "systray" = {
+          "enableBorder" = false;
+          "spacing" = "0.5em";
+        };
+        "volume" = {
+          "enableBorder" = false;
+          "spacing" = "0.5em";
+        };
+        "windowtitle" = {
+          "enableBorder" = false;
+          "spacing" = "0.5em";
+        };
+        "workspaces" = {
+          "enableBorder" = false;
+          "fontSize" = "1.2em";
+          "numbered_active_highlight_border" = "0.2em";
+          "numbered_active_highlight_padding" = "0.2em";
+          "numbered_inactive_padding" = "0.2em";
+          "pill" = {
+            "active_width" = "12em";
+            "height" = "4em";
+            "radius" = "1.9rem * 0.6";
+            "width" = "4em";
+          };
+          "smartHighlight" = true;
+          "spacing" = "0.5em";
+        };
+        "y_margins" = "0.4em";
+      };
+      "dropdownGap" = "2.9em";
+      "enableShadow" = false;
+      "floating" = false;
+      "label_spacing" = "0.5em";
+      "layer" = "top";
+      "location" = "top";
+      "margin_bottom" = "0em";
+      "margin_sides" = "0.5em";
+      "margin_top" = "0.5em";
+      "menus" = {
+        "border" = {
+          "radius" = "0.7em";
+          "size" = "0.13em";
+        };
+        "buttons" = {
+          "radius" = "0.4em";
+        };
+        "card_radius" = "0.4em";
+        "enableShadow" = false;
+        "menu" = {
+          "battery" = {
+            "scaling" = 100;
+          };
+          "bluetooth" = {
+            "scaling" = 100;
+          };
+          "clock" = {
+            "scaling" = 100;
+          };
+          "dashboard" = {
+            "confirmation_scaling" = 100;
+            "profile" = {
+              "radius" = "0.4em";
+              "size" = "8.5em";
+            };
+            "scaling" = 100;
+          };
+          "media" = {
+            "card" = {
+              "tint" = 85;
+            };
+            "scaling" = 100;
+          };
+          "network" = {
+            "scaling" = 100;
+          };
+          "notifications" = {
+            "height" = "58em";
+            "pager" = {
+              "show" = true;
+            };
+            "scaling" = 100;
+            "scrollbar" = {
+              "radius" = "0.2em";
+              "width" = "0.35em";
+            };
+          };
+          "power" = {
+            "radius" = "0.4em";
+            "scaling" = 90;
+          };
+          "volume" = {
+            "scaling" = 100;
+          };
+        };
+        "monochrome" = false;
+        "opacity" = 100;
+        "popover" = {
+          "radius" = "0.4em";
+          "scaling" = 100;
+        };
+        "progressbar" = {
+          "radius" = "0.3rem";
+        };
+        "scroller" = {
+          "radius" = "0.7em";
+          "width" = "0.25em";
+        };
+        "shadow" = "0px 0px 3px 1px #16161e";
+        "shadowMargins" = "5px 5px";
+        "slider" = {
+          "progress_radius" = "0.3rem";
+          "slider_radius" = "0.3rem";
+        };
+        "switch" = {
+          "radius" = "0.2em";
+          "slider_radius" = "0.2em";
+        };
+        "tooltip" = {
+          "radius" = "0.3em";
+        };
+      };
+      "opacity" = 100;
+      "outer_spacing" = "1.6em";
+      "scaling" = 100;
+      "shadow" = "0px 1px 2px 1px #16161e";
+      "shadowMargins" = "0px 0px 4px 0px";
+      "transparent" = false;
+    };
+    "font" = {
+      "name" = "Ubuntu Nerd Font";
+      "size" = "1.2rem";
+      "weight" = 600;
+    };
+    "matugen" = false;
+    "matugen_settings" = {
+      "contrast" = 0;
+      "mode" = "dark";
+      "scheme_type" = "tonal-spot";
+      "variation" = "standard_1";
+    };
+    "name" = "";
+    "notification" = {
+      "border_radius" = "0.6em";
+      "enableShadow" = false;
+      "opacity" = 100;
+      "scaling" = 100;
+      "shadow" = "0px 1px 2px 1px #16161e";
+      "shadowMargins" = "4px 4px";
+    };
+    "osd" = {
+      "active_monitor" = true;
+      "border" = {
+        "size" = "0em";
+      };
+      "duration" = 2500;
+      "enable" = true;
+      "enableShadow" = false;
+      "location" = "right";
+      "margins" = "0px 5px 0px 0px";
+      "monitor" = 0;
+      "muted_zero" = false;
+      "opacity" = 100;
+      "orientation" = "vertical";
+      "radius" = "0.4em";
+      "scaling" = 100;
+      "shadow" = "0px 0px 3px 2px #16161e";
+    };
+    "tooltip" = {
+      "scaling" = 100;
+    };
+  };
+  "theme.bar.background" = "#0a0a0b";
+  "theme.bar.border.color" = "#FFFFFF";
+  "theme.bar.buttons.background" = "#1A1A1A";
+  "theme.bar.buttons.battery.background" = "#090909";
+  "theme.bar.buttons.battery.border" = "#FFFFFF";
+  "theme.bar.buttons.battery.icon" = "#FFFFFF";
+  "theme.bar.buttons.battery.icon_background" = "#ffffff";
+  "theme.bar.buttons.battery.text" = "#FFFFFF";
+  "theme.bar.buttons.bluetooth.background" = "#090909";
+  "theme.bar.buttons.bluetooth.border" = "#FFFFFF";
+  "theme.bar.buttons.bluetooth.icon" = "#FFFFFF";
+  "theme.bar.buttons.bluetooth.icon_background" = "#89dbeb";
+  "theme.bar.buttons.bluetooth.text" = "#FFFFFF";
+  "theme.bar.buttons.borderColor" = "#FFFFFF";
+  "theme.bar.buttons.clock.background" = "#090909";
+  "theme.bar.buttons.clock.border" = "#FFFFFF";
+  "theme.bar.buttons.clock.icon" = "#FFFFFF";
+  "theme.bar.buttons.clock.icon_background" = "#FFFFFF";
+  "theme.bar.buttons.clock.text" = "#FFFFFF";
+  "theme.bar.buttons.dashboard.background" = "#090909";
+  "theme.bar.buttons.dashboard.border" = "#FFFFFF";
+  "theme.bar.buttons.dashboard.icon" = "#FFFFFF";
+  "theme.bar.buttons.enableBorders" = false;
+  "theme.bar.buttons.hover" = "#333333";
+  "theme.bar.buttons.icon" = "#FFFFFF";
+  "theme.bar.buttons.icon_background" = "#090909";
+  "theme.bar.buttons.media.background" = "#090909";
+  "theme.bar.buttons.media.border" = "#FFFFFF";
+  "theme.bar.buttons.media.icon" = "#FFFFFF";
+  "theme.bar.buttons.media.icon_background" = "#FFFFFF";
+  "theme.bar.buttons.media.text" = "#FFFFFF";
+  "theme.bar.buttons.modules.cava.background" = "#090909";
+  "theme.bar.buttons.modules.cava.border" = "#FFFFFF";
+  "theme.bar.buttons.modules.cava.icon" = "#FFFFFF";
+  "theme.bar.buttons.modules.cava.icon_background" = "#090909";
+  "theme.bar.buttons.modules.cava.text" = "#FFFFFF";
+  "theme.bar.buttons.modules.cpu.background" = "#090909";
+  "theme.bar.buttons.modules.cpu.border" = "#ffffff";
+  "theme.bar.buttons.modules.cpu.icon" = "#ffffff";
+  "theme.bar.buttons.modules.cpu.icon_background" = "#ffffff";
+  "theme.bar.buttons.modules.cpu.text" = "#ffffff";
+  "theme.bar.buttons.modules.hypridle.background" = "#090909";
+  "theme.bar.buttons.modules.hypridle.border" = "#ffffff";
+  "theme.bar.buttons.modules.hypridle.icon" = "#ffffff";
+  "theme.bar.buttons.modules.hypridle.icon_background" = "#ffffff";
+  "theme.bar.buttons.modules.hypridle.text" = "#ffffff";
+  "theme.bar.buttons.modules.hyprsunset.background" = "#090909";
+  "theme.bar.buttons.modules.hyprsunset.border" = "#ffffff";
+  "theme.bar.buttons.modules.hyprsunset.icon" = "#ffffff";
+  "theme.bar.buttons.modules.hyprsunset.icon_background" = "#ffffff";
+  "theme.bar.buttons.modules.hyprsunset.text" = "#ffffff";
+  "theme.bar.buttons.modules.kbLayout.background" = "#090909";
+  "theme.bar.buttons.modules.kbLayout.border" = "#ffffff";
+  "theme.bar.buttons.modules.kbLayout.icon" = "#ffffff";
+  "theme.bar.buttons.modules.kbLayout.icon_background" = "#ffffff";
+  "theme.bar.buttons.modules.kbLayout.text" = "#ffffff";
+  "theme.bar.buttons.modules.microphone.background" = "#090909";
+  "theme.bar.buttons.modules.microphone.border" = "#ffffff";
+  "theme.bar.buttons.modules.microphone.icon" = "#ffffff";
+  "theme.bar.buttons.modules.microphone.icon_background" = "#090909";
+  "theme.bar.buttons.modules.microphone.text" = "#ffffff";
+  "theme.bar.buttons.modules.netstat.background" = "#090909";
+  "theme.bar.buttons.modules.netstat.border" = "#ffffff";
+  "theme.bar.buttons.modules.netstat.icon" = "#ffffff";
+  "theme.bar.buttons.modules.netstat.icon_background" = "#ffffff";
+  "theme.bar.buttons.modules.netstat.text" = "#ffffff";
+  "theme.bar.buttons.modules.power.background" = "#090909";
+  "theme.bar.buttons.modules.power.border" = "#ffffff";
+  "theme.bar.buttons.modules.power.icon" = "#ffffff";
+  "theme.bar.buttons.modules.power.icon_background" = "#ffffff";
+  "theme.bar.buttons.modules.ram.background" = "#090909";
+  "theme.bar.buttons.modules.ram.border" = "#ffffff";
+  "theme.bar.buttons.modules.ram.icon" = "#ffffff";
+  "theme.bar.buttons.modules.ram.icon_background" = "#ffffff";
+  "theme.bar.buttons.modules.ram.text" = "#ffffff";
+  "theme.bar.buttons.modules.storage.background" = "#090909";
+  "theme.bar.buttons.modules.storage.border" = "#ffffff";
+  "theme.bar.buttons.modules.storage.icon" = "#ffffff";
+  "theme.bar.buttons.modules.storage.icon_background" = "#ffffff";
+  "theme.bar.buttons.modules.storage.text" = "#ffffff";
+  "theme.bar.buttons.modules.submap.background" = "#090909";
+  "theme.bar.buttons.modules.submap.border" = "#FFFFFF";
+  "theme.bar.buttons.modules.submap.icon" = "#FFFFFF";
+  "theme.bar.buttons.modules.submap.icon_background" = "#090909";
+  "theme.bar.buttons.modules.submap.text" = "#FFFFFF";
+  "theme.bar.buttons.modules.updates.background" = "#090909";
+  "theme.bar.buttons.modules.updates.border" = "#FFFFFF";
+  "theme.bar.buttons.modules.updates.icon" = "#FFFFFF";
+  "theme.bar.buttons.modules.updates.icon_background" = "#FFFFFF";
+  "theme.bar.buttons.modules.updates.text" = "#FFFFFF";
+  "theme.bar.buttons.modules.weather.background" = "#090909";
+  "theme.bar.buttons.modules.weather.border" = "#FFFFFF";
+  "theme.bar.buttons.modules.weather.icon" = "#FFFFFF";
+  "theme.bar.buttons.modules.weather.icon_background" = "#FFFFFF";
+  "theme.bar.buttons.modules.weather.text" = "#FFFFFF";
+  "theme.bar.buttons.network.background" = "#090909";
+  "theme.bar.buttons.network.border" = "#FFFFFF";
+  "theme.bar.buttons.network.icon" = "#FFFFFF";
+  "theme.bar.buttons.network.icon_background" = "#caa6f7";
+  "theme.bar.buttons.network.text" = "#FFFFFF";
+  "theme.bar.buttons.notifications.background" = "#090909";
+  "theme.bar.buttons.notifications.border" = "#FFFFFF";
+  "theme.bar.buttons.notifications.icon" = "#FFFFFF";
+  "theme.bar.buttons.notifications.icon_background" = "#FFFFFF";
+  "theme.bar.buttons.notifications.total" = "#FFFFFF";
+  "theme.bar.buttons.style" = "default";
+  "theme.bar.buttons.systray.background" = "#090909";
+  "theme.bar.buttons.systray.border" = "#444444";
+  "theme.bar.buttons.systray.customIcon" = "#FFFFFF";
+  "theme.bar.buttons.text" = "#FFFFFF";
+  "theme.bar.buttons.volume.background" = "#090909";
+  "theme.bar.buttons.volume.border" = "#FFFFFF";
+  "theme.bar.buttons.volume.icon" = "#FFFFFF";
+  "theme.bar.buttons.volume.icon_background" = "#ffffff";
+  "theme.bar.buttons.volume.text" = "#FFFFFF";
+  "theme.bar.buttons.windowtitle.background" = "#090909";
+  "theme.bar.buttons.windowtitle.border" = "#FFFFFF";
+  "theme.bar.buttons.windowtitle.icon" = "#FFFFFF";
+  "theme.bar.buttons.windowtitle.icon_background" = "#FFFFFF";
+  "theme.bar.buttons.windowtitle.text" = "#FFFFFF";
+  "theme.bar.buttons.workspaces.active" = "#FFFFFF";
+  "theme.bar.buttons.workspaces.available" = "#FFFFFF";
+  "theme.bar.buttons.workspaces.background" = "#090909";
+  "theme.bar.buttons.workspaces.border" = "#FFFFFF";
+  "theme.bar.buttons.workspaces.hover" = "#444444";
+  "theme.bar.buttons.workspaces.numbered_active_highlighted_text_color" = "#21252b";
+  "theme.bar.buttons.workspaces.numbered_active_underline_color" = "#ffffff";
+  "theme.bar.buttons.workspaces.occupied" = "#FFFFFF";
+  "theme.bar.location" = "bottom";
+  "theme.bar.menus.background" = "#000000";
+  "theme.bar.menus.border.color" = "#333333";
+  "theme.bar.menus.border.radius" = "0.0em";
+  "theme.bar.menus.buttons.active" = "#FFFFFF";
+  "theme.bar.menus.buttons.default" = "#FFFFFF";
+  "theme.bar.menus.buttons.disabled" = "#CCCCCC";
+  "theme.bar.menus.buttons.text" = "#000000";
+  "theme.bar.menus.card_radius" = "0.0em";
+  "theme.bar.menus.cards" = "#111111";
+  "theme.bar.menus.check_radio_button.active" = "#ffffff";
+  "theme.bar.menus.check_radio_button.background" = "#000000";
+  "theme.bar.menus.dimtext" = "#CCCCCC";
+  "theme.bar.menus.dropdownmenu.background" = "#000000";
+  "theme.bar.menus.dropdownmenu.divider" = "#111111";
+  "theme.bar.menus.dropdownmenu.text" = "#FFFFFF";
+  "theme.bar.menus.feinttext" = "#444444";
+  "theme.bar.menus.iconbuttons.active" = "#FFFFFF";
+  "theme.bar.menus.iconbuttons.passive" = "#FFFFFF";
+  "theme.bar.menus.icons.active" = "#FFFFFF";
+  "theme.bar.menus.icons.passive" = "#CCCCCC";
+  "theme.bar.menus.label" = "#FFFFFF";
+  "theme.bar.menus.listitems.active" = "#FFFFFF";
+  "theme.bar.menus.listitems.passive" = "#FFFFFF";
+  "theme.bar.menus.menu.battery.background.color" = "#000000";
+  "theme.bar.menus.menu.battery.border.color" = "#333333";
+  "theme.bar.menus.menu.battery.card.color" = "#111111";
+  "theme.bar.menus.menu.battery.icons.active" = "#ffffff";
+  "theme.bar.menus.menu.battery.icons.passive" = "#9a9996";
+  "theme.bar.menus.menu.battery.label.color" = "#ffffff";
+  "theme.bar.menus.menu.battery.listitems.active" = "#ffffff";
+  "theme.bar.menus.menu.battery.listitems.passive" = "#9a9996";
+  "theme.bar.menus.menu.battery.slider.background" = "#5e5c64";
+  "theme.bar.menus.menu.battery.slider.backgroundhover" = "#5e5c64";
+  "theme.bar.menus.menu.battery.slider.primary" = "#cccccc";
+  "theme.bar.menus.menu.battery.slider.puck" = "#5e5c64";
+  "theme.bar.menus.menu.battery.text" = "#CCCCCC";
+  "theme.bar.menus.menu.bluetooth.background.color" = "#000000";
+  "theme.bar.menus.menu.bluetooth.border.color" = "#444444";
+  "theme.bar.menus.menu.bluetooth.card.color" = "#111111";
+  "theme.bar.menus.menu.bluetooth.iconbutton.active" = "#ffffff";
+  "theme.bar.menus.menu.bluetooth.iconbutton.passive" = "#9a9996";
+  "theme.bar.menus.menu.bluetooth.icons.active" = "#ffffff";
+  "theme.bar.menus.menu.bluetooth.icons.passive" = "#77767b";
+  "theme.bar.menus.menu.bluetooth.label.color" = "#FFFFFF";
+  "theme.bar.menus.menu.bluetooth.listitems.active" = "#FFFFFF";
+  "theme.bar.menus.menu.bluetooth.listitems.passive" = "#77767b";
+  "theme.bar.menus.menu.bluetooth.scroller.color" = "#ffffff";
+  "theme.bar.menus.menu.bluetooth.status" = "#CCCCCC";
+  "theme.bar.menus.menu.bluetooth.switch.disabled" = "#444444";
+  "theme.bar.menus.menu.bluetooth.switch.enabled" = "#FFFFFF";
+  "theme.bar.menus.menu.bluetooth.switch.puck" = "#9a9996";
+  "theme.bar.menus.menu.bluetooth.switch_divider" = "#444444";
+  "theme.bar.menus.menu.bluetooth.text" = "#FFFFFF";
+  "theme.bar.menus.menu.clock.background.color" = "#000000";
+  "theme.bar.menus.menu.clock.border.color" = "#333333";
+  "theme.bar.menus.menu.clock.calendar.contextdays" = "#333333";
+  "theme.bar.menus.menu.clock.calendar.currentday" = "#FFFFFF";
+  "theme.bar.menus.menu.clock.calendar.days" = "#CCCCCC";
+  "theme.bar.menus.menu.clock.calendar.paginator" = "#FFFFFF";
+  "theme.bar.menus.menu.clock.calendar.weekdays" = "#FFFFFF";
+  "theme.bar.menus.menu.clock.calendar.yearmonth" = "#ffffff";
+  "theme.bar.menus.menu.clock.card.color" = "#1A1A1A";
+  "theme.bar.menus.menu.clock.text" = "#CCCCCC";
+  "theme.bar.menus.menu.clock.time.time" = "#FFFFFF";
+  "theme.bar.menus.menu.clock.time.timeperiod" = "#ffffff";
+  "theme.bar.menus.menu.clock.weather.hourly.icon" = "#FFFFFF";
+  "theme.bar.menus.menu.clock.weather.hourly.temperature" = "#FFFFFF";
+  "theme.bar.menus.menu.clock.weather.hourly.time" = "#FFFFFF";
+  "theme.bar.menus.menu.clock.weather.icon" = "#FFFFFF";
+  "theme.bar.menus.menu.clock.weather.stats" = "#FFFFFF";
+  "theme.bar.menus.menu.clock.weather.status" = "#FFFFFF";
+  "theme.bar.menus.menu.clock.weather.temperature" = "#CCCCCC";
+  "theme.bar.menus.menu.clock.weather.thermometer.cold" = "#ffffff";
+  "theme.bar.menus.menu.clock.weather.thermometer.extremelycold" = "#ffffff";
+  "theme.bar.menus.menu.clock.weather.thermometer.extremelyhot" = "#ffffff";
+  "theme.bar.menus.menu.clock.weather.thermometer.hot" = "#ffffff";
+  "theme.bar.menus.menu.clock.weather.thermometer.moderate" = "#FFFFFF";
+  "theme.bar.menus.menu.dashboard.background.color" = "#000000";
+  "theme.bar.menus.menu.dashboard.border.color" = "#333333";
+  "theme.bar.menus.menu.dashboard.card.color" = "#1A1A1A";
+  "theme.bar.menus.menu.dashboard.controls.bluetooth.background" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.controls.bluetooth.text" = "#000000";
+  "theme.bar.menus.menu.dashboard.controls.disabled" = "#333333";
+  "theme.bar.menus.menu.dashboard.controls.input.background" = "#FFFFFF";
+  "theme.bar.menus.menu.dashboard.controls.input.text" = "#000000";
+  "theme.bar.menus.menu.dashboard.controls.notifications.background" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.controls.notifications.text" = "#000000";
+  "theme.bar.menus.menu.dashboard.controls.volume.background" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.controls.volume.text" = "#000000";
+  "theme.bar.menus.menu.dashboard.controls.wifi.background" = "#FFFFFF";
+  "theme.bar.menus.menu.dashboard.controls.wifi.text" = "#000000";
+  "theme.bar.menus.menu.dashboard.directories.left.bottom.color" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.directories.left.middle.color" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.directories.left.top.color" = "#FFFFFF";
+  "theme.bar.menus.menu.dashboard.directories.right.bottom.color" = "#FFFFFF";
+  "theme.bar.menus.menu.dashboard.directories.right.middle.color" = "#FFFFFF";
+  "theme.bar.menus.menu.dashboard.directories.right.top.color" = "#FFFFFF";
+  "theme.bar.menus.menu.dashboard.monitors.bar_background" = "#333333";
+  "theme.bar.menus.menu.dashboard.monitors.cpu.bar" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.monitors.cpu.icon" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.monitors.cpu.label" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.monitors.disk.bar" = "#FFFFFF";
+  "theme.bar.menus.menu.dashboard.monitors.disk.icon" = "#FFFFFF";
+  "theme.bar.menus.menu.dashboard.monitors.disk.label" = "#FFFFFF";
+  "theme.bar.menus.menu.dashboard.monitors.gpu.bar" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.monitors.gpu.icon" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.monitors.gpu.label" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.monitors.ram.bar" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.monitors.ram.icon" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.monitors.ram.label" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.powermenu.confirmation.background" = "#000000";
+  "theme.bar.menus.menu.dashboard.powermenu.confirmation.body" = "#CCCCCC";
+  "theme.bar.menus.menu.dashboard.powermenu.confirmation.border" = "#333333";
+  "theme.bar.menus.menu.dashboard.powermenu.confirmation.button_text" = "#000000";
+  "theme.bar.menus.menu.dashboard.powermenu.confirmation.card" = "#1A1A1A";
+  "theme.bar.menus.menu.dashboard.powermenu.confirmation.confirm" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.powermenu.confirmation.deny" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.powermenu.confirmation.label" = "#FFFFFF";
+  "theme.bar.menus.menu.dashboard.powermenu.logout" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.powermenu.restart" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.powermenu.shutdown" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.powermenu.sleep" = "#ffffff";
+  "theme.bar.menus.menu.dashboard.profile.name" = "#FFFFFF";
+  "theme.bar.menus.menu.dashboard.shortcuts.background" = "#FFFFFF";
+  "theme.bar.menus.menu.dashboard.shortcuts.recording" = "#5CFF5C";
+  "theme.bar.menus.menu.dashboard.shortcuts.text" = "#000000";
+  "theme.bar.menus.menu.media.album" = "#FFFFFF";
+  "theme.bar.menus.menu.media.artist" = "#FFFFFF";
+  "theme.bar.menus.menu.media.background.color" = "#000000";
+  "theme.bar.menus.menu.media.border.color" = "#444444";
+  "theme.bar.menus.menu.media.buttons.background" = "#FFFFFF";
+  "theme.bar.menus.menu.media.buttons.enabled" = "#FFFFFF";
+  "theme.bar.menus.menu.media.buttons.inactive" = "#5e5c64";
+  "theme.bar.menus.menu.media.buttons.text" = "#000000";
+  "theme.bar.menus.menu.media.card.color" = "#1A1A1A";
+  "theme.bar.menus.menu.media.slider.background" = "#77767b";
+  "theme.bar.menus.menu.media.slider.backgroundhover" = "#444444";
+  "theme.bar.menus.menu.media.slider.primary" = "#FFFFFF";
+  "theme.bar.menus.menu.media.slider.puck" = "#CCCCCC";
+  "theme.bar.menus.menu.media.song" = "#FFFFFF";
+  "theme.bar.menus.menu.media.timestamp" = "#FFFFFF";
+  "theme.bar.menus.menu.network.background.color" = "#000000";
+  "theme.bar.menus.menu.network.border.color" = "#444444";
+  "theme.bar.menus.menu.network.card.color" = "#111111";
+  "theme.bar.menus.menu.network.iconbuttons.active" = "#FFFFFF";
+  "theme.bar.menus.menu.network.iconbuttons.passive" = "#77767b";
+  "theme.bar.menus.menu.network.icons.active" = "#FFFFFF";
+  "theme.bar.menus.menu.network.icons.passive" = "#77767b";
+  "theme.bar.menus.menu.network.label.color" = "#FFFFFF";
+  "theme.bar.menus.menu.network.listitems.active" = "#FFFFFF";
+  "theme.bar.menus.menu.network.listitems.passive" = "#77767b";
+  "theme.bar.menus.menu.network.scroller.color" = "#FFFFFF";
+  "theme.bar.menus.menu.network.status.color" = "#CCCCCC";
+  "theme.bar.menus.menu.network.switch.disabled" = "#444444";
+  "theme.bar.menus.menu.network.switch.enabled" = "#FFFFFF";
+  "theme.bar.menus.menu.network.switch.puck" = "#333333";
+  "theme.bar.menus.menu.network.text" = "#FFFFFF";
+  "theme.bar.menus.menu.notifications.background" = "#000000";
+  "theme.bar.menus.menu.notifications.border" = "#333333";
+  "theme.bar.menus.menu.notifications.card" = "#1A1A1A";
+  "theme.bar.menus.menu.notifications.clear" = "#ffffff";
+  "theme.bar.menus.menu.notifications.label" = "#FFFFFF";
+  "theme.bar.menus.menu.notifications.no_notifications_label" = "#333333";
+  "theme.bar.menus.menu.notifications.pager.background" = "#000000";
+  "theme.bar.menus.menu.notifications.pager.button" = "#FFFFFF";
+  "theme.bar.menus.menu.notifications.pager.label" = "#9a9996";
+  "theme.bar.menus.menu.notifications.scrollbar.color" = "#FFFFFF";
+  "theme.bar.menus.menu.notifications.switch.disabled" = "#333333";
+  "theme.bar.menus.menu.notifications.switch.enabled" = "#FFFFFF";
+  "theme.bar.menus.menu.notifications.switch.puck" = "#333333";
+  "theme.bar.menus.menu.notifications.switch_divider" = "#333333";
+  "theme.bar.menus.menu.power.background.color" = "#000000";
+  "theme.bar.menus.menu.power.border.color" = "#333333";
+  "theme.bar.menus.menu.power.buttons.logout.background" = "#1A1A1A";
+  "theme.bar.menus.menu.power.buttons.logout.icon" = "#000000";
+  "theme.bar.menus.menu.power.buttons.logout.icon_background" = "#ffffff";
+  "theme.bar.menus.menu.power.buttons.logout.text" = "#ffffff";
+  "theme.bar.menus.menu.power.buttons.restart.background" = "#1A1A1A";
+  "theme.bar.menus.menu.power.buttons.restart.icon" = "#000000";
+  "theme.bar.menus.menu.power.buttons.restart.icon_background" = "#ffffff";
+  "theme.bar.menus.menu.power.buttons.restart.text" = "#ffffff";
+  "theme.bar.menus.menu.power.buttons.shutdown.background" = "#1A1A1A";
+  "theme.bar.menus.menu.power.buttons.shutdown.icon" = "#000000";
+  "theme.bar.menus.menu.power.buttons.shutdown.icon_background" = "#FFFFFF";
+  "theme.bar.menus.menu.power.buttons.shutdown.text" = "#ffffff";
+  "theme.bar.menus.menu.power.buttons.sleep.background" = "#1A1A1A";
+  "theme.bar.menus.menu.power.buttons.sleep.icon" = "#000000";
+  "theme.bar.menus.menu.power.buttons.sleep.icon_background" = "#ffffff";
+  "theme.bar.menus.menu.power.buttons.sleep.text" = "#ffffff";
+  "theme.bar.menus.menu.systray.dropdownmenu.background" = "#000000";
+  "theme.bar.menus.menu.systray.dropdownmenu.divider" = "#1A1A1A";
+  "theme.bar.menus.menu.systray.dropdownmenu.text" = "#CCCCCC";
+  "theme.bar.menus.menu.volume.audio_slider.background" = "#77767b";
+  "theme.bar.menus.menu.volume.audio_slider.backgroundhover" = "#444444";
+  "theme.bar.menus.menu.volume.audio_slider.primary" = "#FFFFFF";
+  "theme.bar.menus.menu.volume.audio_slider.puck" = "#CCCCCC";
+  "theme.bar.menus.menu.volume.background.color" = "#000000";
+  "theme.bar.menus.menu.volume.border.color" = "#444444";
+  "theme.bar.menus.menu.volume.card.color" = "#1A1A1A";
+  "theme.bar.menus.menu.volume.iconbutton.active" = "#FFFFFF";
+  "theme.bar.menus.menu.volume.iconbutton.passive" = "#77767b";
+  "theme.bar.menus.menu.volume.icons.active" = "#FFFFFF";
+  "theme.bar.menus.menu.volume.icons.passive" = "#77767b";
+  "theme.bar.menus.menu.volume.input_slider.background" = "#77767b";
+  "theme.bar.menus.menu.volume.input_slider.backgroundhover" = "#444444";
+  "theme.bar.menus.menu.volume.input_slider.primary" = "#FFFFFF";
+  "theme.bar.menus.menu.volume.input_slider.puck" = "#CCCCCC";
+  "theme.bar.menus.menu.volume.label.color" = "#FFFFFF";
+  "theme.bar.menus.menu.volume.listitems.active" = "#FFFFFF";
+  "theme.bar.menus.menu.volume.listitems.passive" = "#77767b";
+  "theme.bar.menus.menu.volume.text" = "#CCCCCC";
+  "theme.bar.menus.monochrome" = false;
+  "theme.bar.menus.popover.background" = "#000000";
+  "theme.bar.menus.popover.border" = "#000000";
+  "theme.bar.menus.popover.radius" = "0.0em";
+  "theme.bar.menus.popover.text" = "#FFFFFF";
+  "theme.bar.menus.progressbar.background" = "#444444";
+  "theme.bar.menus.progressbar.foreground" = "#FFFFFF";
+  "theme.bar.menus.slider.background" = "#CCCCCC";
+  "theme.bar.menus.slider.backgroundhover" = "#444444";
+  "theme.bar.menus.slider.primary" = "#FFFFFF";
+  "theme.bar.menus.slider.puck" = "#CCCCCC";
+  "theme.bar.menus.switch.disabled" = "#444444";
+  "theme.bar.menus.switch.enabled" = "#FFFFFF";
+  "theme.bar.menus.switch.puck" = "#CCCCCC";
+  "theme.bar.menus.text" = "#CCCCCC";
+  "theme.bar.menus.tooltip.background" = "#000000";
+  "theme.bar.menus.tooltip.text" = "#FFFFFF";
+  "theme.bar.transparent" = false;
+  "theme.font.label" = "Berkeley Mono Semi-Bold";
+  "theme.font.name" = "Berkeley Mono";
+  "theme.font.size" = "0.75rem";
+  "theme.font.weight" = 600;
+  "theme.notification.actions.background" = "#FFFFFF";
+  "theme.notification.actions.text" = "#000000";
+  "theme.notification.background" = "#1a1a1a";
+  "theme.notification.border" = "#444444";
+  "theme.notification.border_radius" = "0.0em";
+  "theme.notification.close_button.background" = "#FFFFFF";
+  "theme.notification.close_button.label" = "#000000";
+  "theme.notification.enableShadow" = true;
+  "theme.notification.label" = "#FFFFFF";
+  "theme.notification.labelicon" = "#FFFFFF";
+  "theme.notification.text" = "#FFFFFF";
+  "theme.notification.time" = "#CCCCCC";
+  "theme.osd.bar_color" = "#FFFFFF";
+  "theme.osd.bar_container" = "#000000";
+  "theme.osd.bar_empty_color" = "#444444";
+  "theme.osd.bar_overflow_color" = "#FFFFFF";
+  "theme.osd.icon" = "#000000";
+  "theme.osd.icon_container" = "#FFFFFF";
+  "theme.osd.label" = "#FFFFFF";
+  "theme.osd.radius" = "0.4em";
+  "wallpaper" = {
+    "enable" = true;
+    "image" = "";
+    "pywal" = false;
+  };
+  "wallpaper.image" =
+    "/home/b7r6/src/ps-v4/experimental-v4/b7r6/dev-v4/modules/home/themes/nix-glow-black.png";
+}
