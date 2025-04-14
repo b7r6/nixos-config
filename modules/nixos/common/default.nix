@@ -17,6 +17,7 @@ in
     ./vpn.nix
   ];
 
+
   # `home-manager` setup for nixos targets
   # this is potentially a top-level configuration opportunity...
 
@@ -31,5 +32,19 @@ in
 
   home-manager.useUserPackages = true;
   home-manager.useGlobalPkgs = true;
-  home-manager.backupFileExtension = "dev-v4-hm-backup";
+  home-manager.backupFileExtension = "hm-backup";
+
+  # Enable the network module with custom settings
+  services.my-network = {
+    enable = true;
+
+    # Specify your Tailscale network domain
+    tailnet.domain = "risk-nunki.ts.net";
+
+    # Enable firewall with Tailscale-aware rules
+    firewall.enable = false;
+
+    # Optionally use backup DNS resolvers
+    useBackupResolver = true;
+  };
 }
