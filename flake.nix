@@ -81,11 +81,12 @@
       inputs.flake-parts.follows = "flake-parts";
     };
 
+
     hyprpanel = {
       url = "github:jas-singhfsu/hyprpanel";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
+    
     devenv = {
       url = "github:cachix/devenv/latest";
     };

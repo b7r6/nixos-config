@@ -1,8 +1,9 @@
-{ flake
-, config
-, lib
-, pkgs
-, ...
+{
+  flake,
+  config,
+  lib,
+  pkgs,
+  ...
 }:
 let
   cfg = config.wayland.hyprland;
@@ -11,6 +12,7 @@ in
 {
   imports = [
     inputs.hyprland.homeManagerModules.default
+    ./hyprpanel.nix
   ];
 
   wayland.windowManager.hyprland = {
@@ -44,30 +46,10 @@ in
         base0F = lib.removePrefix "#" colors.base0F; # dark accent
       in
       {
-        # Monitor configuration using description for external and name for internal
+        # Monitor configuration
         monitor = [
-          # External monitor by description (works with any port/dongle)
-          "desc:AOC CU34G2XP,3440x1440@100.00,0x0,1"
-          # Built-in display with specific resolution
-          "eDP-1,3840x2400@60.00,3440x0,2.5"
-          # Fallback for any other displays
-          ",preferred,auto,1"
-        ];
-
-        # Lid switch bindings for laptop display
-        bindl = [
-          ",switch:off:Lid Switch,exec,hyprctl keyword monitor eDP-1 disable"
-          ",switch:on:Lid Switch,exec,hyprctl keyword monitor eDP-1 3840x2400@60.00,3440x0,2.5"
-        ];
-
-        # Execute monitor detection/arrangement script on startup
-        exec-once = [
-          "blueman-applet"
-          "hyprpaper"
-          "mako"
-          "nm-tray"
-          "tailscale-systray"
-          "waybar"
+          "DP-5,3440x1440@100,0x0,1"
+          "eDP-1,3840x2400@100@100,0x0,2.5"
         ];
 
         # General settings
@@ -188,7 +170,7 @@ in
           "$mod, 6, workspace, 6"
           "$mod, 7, workspace, 7"
           "$mod, 8, workspace, 8"
-
+          
           # Move active window to workspace
           "$mod SHIFT, 1, movetoworkspace, 1"
           "$mod SHIFT, 2, movetoworkspace, 2"
@@ -208,6 +190,14 @@ in
         bindm = [
           "$mod, mouse:272, movewindow"
           "$mod, mouse:273, resizewindow"
+        ];
+
+        # Startup applications
+        exec-once = [
+          "blueman-applet"
+          "hyprpaper"
+          "tailscale-systray"
+          "waybar"
         ];
       };
   };

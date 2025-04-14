@@ -73,8 +73,5 @@
     ./shell-development.nix
     ./systems-development.nix
     ./typescript-development.nix
-
-    # Temporarily disabled until flake modules are fixed
-    # ./flake-bridge.nix
   ];
 }

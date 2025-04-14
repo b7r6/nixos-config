@@ -20,10 +20,7 @@
 
   boot.kernelPackages = pkgs.linuxPackages_testing;
 
-  boot.blacklistedKernelModules = [
-    "ucsi_acpi"
-    "nouveau"
-  ];
+  boot.blacklistedKernelModules = [ "ucsi_acpi" "nouveau" ];
 
   services.supergfxd.enable = true;
   systemd.services.supergfxd.path = [ pkgs.pciutils ];
@@ -46,7 +43,7 @@
   environment.systemPackages = with pkgs; [
     cudatoolkit
     linuxPackages.nvidia_x11
-    nvidia-docker # if you need Docker support
+    nvidia-docker    # if you need Docker support
   ];
 
   # Load NVIDIA driver kernel module
@@ -66,7 +63,7 @@
     CUDA_PATH = "${pkgs.cudatoolkit}";
     LD_LIBRARY_PATH = "${pkgs.linuxPackages.nvidia_x11}/lib:${pkgs.cudatoolkit}/lib";
   };
-
+  
   hardware.nvidia = {
     modesetting.enable = true;
     powerManagement.enable = false;

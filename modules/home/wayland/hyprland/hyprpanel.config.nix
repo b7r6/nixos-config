@@ -29,16 +29,7 @@
     "customModules" = {
       "cava" = {
         "autoSensitivity" = true;
-        "barCharacters" = [
-          "▁"
-          "▂"
-          "▃"
-          "▄"
-          "▅"
-          "▆"
-          "▇"
-          "█"
-        ];
+        "barCharacters" = [ "▁" "▂" "▃" "▄" "▅" "▆" "▇" "█" ];
         "bars" = 10;
         "channels" = 2;
         "framerate" = 60;
@@ -187,10 +178,7 @@
       };
       "updates" = {
         "autoHide" = false;
-        "icon" = {
-          "pending" = "󰏗";
-          "updated" = "󰏖";
-        };
+        "icon" = { "pending" = "󰏗"; "updated" = "󰏖"; };
         "label" = true;
         "leftClick" = "";
         "middleClick" = "";
@@ -249,9 +237,7 @@
       "show_total" = false;
     };
     "scrollSpeed" = 5;
-    "systray" = {
-      "ignore" = [ ];
-    };
+    "systray" = { "ignore" = []; };
     "volume" = {
       "label" = true;
       "middleClick" = "";
@@ -276,11 +262,7 @@
       "applicationIconEmptyWorkspace" = "";
       "applicationIconFallback" = "󰣆";
       "applicationIconOncePerWorkspace" = true;
-      "icons" = {
-        "active" = "";
-        "available" = "";
-        "occupied" = "";
-      };
+      "icons" = { "active" = ""; "available" = ""; "occupied" = ""; };
       "ignored" = "";
       "monitorSpecific" = true;
       "numbered_active_indicator" = "underline";
@@ -300,16 +282,12 @@
   "dummy" = true;
   "hyprpanel" = {
     "restartAgs" = true;
-    "restartCommand" =
-      "/nix/store/zsqv8h2g9j7pxrxfxrhxirvhycrkvh8k-hyprpanel/bin/hyprpanel q; /nix/store/zsqv8h2g9j7pxrxfxrhxirvhycrkvh8k-hyprpanel/bin/hyprpanel";
+    "restartCommand" = "/nix/store/zsqv8h2g9j7pxrxfxrhxirvhycrkvh8k-hyprpanel/bin/hyprpanel q; /nix/store/zsqv8h2g9j7pxrxfxrhxirvhycrkvh8k-hyprpanel/bin/hyprpanel";
   };
   "layout" = null;
   "menus" = {
     "clock" = {
-      "time" = {
-        "hideSeconds" = false;
-        "military" = false;
-      };
+      "time" = { "hideSeconds" = false; "military" = false; };
       "weather" = {
         "enabled" = true;
         "interval" = 60000;
@@ -319,9 +297,7 @@
       };
     };
     "dashboard" = {
-      "controls" = {
-        "enabled" = true;
-      };
+      "controls" = { "enabled" = true; };
       "directories" = {
         "enabled" = true;
         "left" = {
@@ -354,19 +330,14 @@
         };
       };
       "powermenu" = {
-        "avatar" = {
-          "image" = "$HOME/.face.icon";
-          "name" = "system";
-        };
+        "avatar" = { "image" = "$HOME/.face.icon"; "name" = "system"; };
         "confirmation" = true;
         "logout" = "hyprctl dispatch exit";
         "reboot" = "systemctl reboot";
         "shutdown" = "systemctl poweroff";
         "sleep" = "systemctl suspend";
       };
-      "recording" = {
-        "path" = "$HOME/Videos/Screencasts";
-      };
+      "recording" = { "path" = "$HOME/Videos/Screencasts"; };
       "shortcuts" = {
         "enabled" = true;
         "left" = {
@@ -404,11 +375,7 @@
           };
         };
       };
-      "stats" = {
-        "enable_gpu" = false;
-        "enabled" = true;
-        "interval" = 2000;
-      };
+      "stats" = { "enable_gpu" = false; "enabled" = true; "interval" = 2000; };
     };
     "media" = {
       "displayTime" = false;
@@ -421,8 +388,7 @@
       "confirmation" = true;
       "logout" = "hyprctl dispatch exit";
       "lowBatteryNotification" = false;
-      "lowBatteryNotificationText" =
-        "Your battery is running low ($POWER_LEVEL %).\\n\\nPlease plug in your charger.";
+      "lowBatteryNotificationText" = "Your battery is running low ($POWER_LEVEL %).\\n\\nPlease plug in your charger.";
       "lowBatteryNotificationTitle" = "Warning: Low battery";
       "lowBatteryThreshold" = 20;
       "reboot" = "systemctl reboot";
@@ -432,9 +398,7 @@
     };
     "transition" = "crossfade";
     "transitionTime" = 200;
-    "volume" = {
-      "raiseMaximumVolume" = false;
-    };
+    "volume" = { "raiseMaximumVolume" = false; };
   };
   "menus.clock.weather.location" = "San Juan";
   "notifications" = {
@@ -442,7 +406,7 @@
     "cache_actions" = true;
     "clearDelay" = 100;
     "displayedTotal" = 10;
-    "ignore" = [ ];
+    "ignore" = [];
     "monitor" = 0;
     "position" = "top right";
     "showActionsOnHover" = false;
@@ -453,118 +417,46 @@
   "terminal" = "$TERM";
   "theme" = {
     "bar" = {
-      "border" = {
-        "location" = "none";
-        "width" = "0.15em";
-      };
+      "border" = { "location" = "none"; "width" = "0.15em"; };
       "border_radius" = "0.4em";
       "buttons" = {
         "background_hover_opacity" = 100;
         "background_opacity" = 100;
-        "battery" = {
-          "enableBorder" = false;
-          "spacing" = "0.5em";
-        };
-        "bluetooth" = {
-          "enableBorder" = false;
-          "spacing" = "0.5em";
-        };
+        "battery" = { "enableBorder" = false; "spacing" = "0.5em"; };
+        "bluetooth" = { "enableBorder" = false; "spacing" = "0.5em"; };
         "borderSize" = "0.1em";
-        "clock" = {
-          "enableBorder" = false;
-          "spacing" = "0.5em";
-        };
-        "dashboard" = {
-          "enableBorder" = false;
-          "spacing" = "0.5em";
-        };
+        "clock" = { "enableBorder" = false; "spacing" = "0.5em"; };
+        "dashboard" = { "enableBorder" = false; "spacing" = "0.5em"; };
         "enableBorders" = false;
         "innerRadiusMultiplier" = "0.4";
-        "media" = {
-          "enableBorder" = false;
-          "spacing" = "0.5em";
-        };
+        "media" = { "enableBorder" = false; "spacing" = "0.5em"; };
         "modules" = {
-          "cpu" = {
-            "enableBorder" = false;
-            "spacing" = "0.5em";
-          };
-          "cpuTemp" = {
-            "enableBorder" = false;
-            "spacing" = "0.5em";
-          };
-          "hypridle" = {
-            "enableBorder" = false;
-            "spacing" = "0.45em";
-          };
-          "hyprsunset" = {
-            "enableBorder" = false;
-            "spacing" = "0.45em";
-          };
-          "kbLayout" = {
-            "enableBorder" = false;
-            "spacing" = "0.45em";
-          };
-          "microphone" = {
-            "enableBorder" = false;
-            "spacing" = "0.45em";
-          };
-          "netstat" = {
-            "enableBorder" = false;
-            "spacing" = "0.45em";
-          };
-          "power" = {
-            "enableBorder" = false;
-            "spacing" = "0.45em";
-          };
-          "ram" = {
-            "enableBorder" = false;
-            "spacing" = "0.45em";
-          };
-          "storage" = {
-            "enableBorder" = false;
-            "spacing" = "0.45em";
-          };
-          "submap" = {
-            "enableBorder" = false;
-            "spacing" = "0.45em";
-          };
-          "updates" = {
-            "enableBorder" = false;
-            "spacing" = "0.45em";
-          };
-          "weather" = {
-            "enableBorder" = false;
-            "spacing" = "0.45em";
-          };
+          "cpu" = { "enableBorder" = false; "spacing" = "0.5em"; };
+          "cpuTemp" = { "enableBorder" = false; "spacing" = "0.5em"; };
+          "hypridle" = { "enableBorder" = false; "spacing" = "0.45em"; };
+          "hyprsunset" = { "enableBorder" = false; "spacing" = "0.45em"; };
+          "kbLayout" = { "enableBorder" = false; "spacing" = "0.45em"; };
+          "microphone" = { "enableBorder" = false; "spacing" = "0.45em"; };
+          "netstat" = { "enableBorder" = false; "spacing" = "0.45em"; };
+          "power" = { "enableBorder" = false; "spacing" = "0.45em"; };
+          "ram" = { "enableBorder" = false; "spacing" = "0.45em"; };
+          "storage" = { "enableBorder" = false; "spacing" = "0.45em"; };
+          "submap" = { "enableBorder" = false; "spacing" = "0.45em"; };
+          "updates" = { "enableBorder" = false; "spacing" = "0.45em"; };
+          "weather" = { "enableBorder" = false; "spacing" = "0.45em"; };
         };
         "monochrome" = false;
-        "network" = {
-          "enableBorder" = false;
-          "spacing" = "0.5em";
-        };
-        "notifications" = {
-          "enableBorder" = false;
-          "spacing" = "0.5em";
-        };
+        "network" = { "enableBorder" = false; "spacing" = "0.5em"; };
+        "notifications" = { "enableBorder" = false; "spacing" = "0.5em"; };
         "opacity" = 100;
         "padding_x" = "0.7rem";
         "padding_y" = "0.2rem";
         "radius" = "0.3em";
         "spacing" = "0.25em";
         "style" = "default";
-        "systray" = {
-          "enableBorder" = false;
-          "spacing" = "0.5em";
-        };
-        "volume" = {
-          "enableBorder" = false;
-          "spacing" = "0.5em";
-        };
-        "windowtitle" = {
-          "enableBorder" = false;
-          "spacing" = "0.5em";
-        };
+        "systray" = { "enableBorder" = false; "spacing" = "0.5em"; };
+        "volume" = { "enableBorder" = false; "spacing" = "0.5em"; };
+        "windowtitle" = { "enableBorder" = false; "spacing" = "0.5em"; };
         "workspaces" = {
           "enableBorder" = false;
           "fontSize" = "1.2em";
@@ -592,87 +484,43 @@
       "margin_sides" = "0.5em";
       "margin_top" = "0.5em";
       "menus" = {
-        "border" = {
-          "radius" = "0.7em";
-          "size" = "0.13em";
-        };
-        "buttons" = {
-          "radius" = "0.4em";
-        };
+        "border" = { "radius" = "0.7em"; "size" = "0.13em"; };
+        "buttons" = { "radius" = "0.4em"; };
         "card_radius" = "0.4em";
         "enableShadow" = false;
         "menu" = {
-          "battery" = {
-            "scaling" = 100;
-          };
-          "bluetooth" = {
-            "scaling" = 100;
-          };
-          "clock" = {
-            "scaling" = 100;
-          };
+          "battery" = { "scaling" = 100; };
+          "bluetooth" = { "scaling" = 100; };
+          "clock" = { "scaling" = 100; };
           "dashboard" = {
             "confirmation_scaling" = 100;
-            "profile" = {
-              "radius" = "0.4em";
-              "size" = "8.5em";
-            };
+            "profile" = { "radius" = "0.4em"; "size" = "8.5em"; };
             "scaling" = 100;
           };
-          "media" = {
-            "card" = {
-              "tint" = 85;
-            };
-            "scaling" = 100;
-          };
-          "network" = {
-            "scaling" = 100;
-          };
+          "media" = { "card" = { "tint" = 85; }; "scaling" = 100; };
+          "network" = { "scaling" = 100; };
           "notifications" = {
             "height" = "58em";
-            "pager" = {
-              "show" = true;
-            };
+            "pager" = { "show" = true; };
             "scaling" = 100;
-            "scrollbar" = {
-              "radius" = "0.2em";
-              "width" = "0.35em";
-            };
+            "scrollbar" = { "radius" = "0.2em"; "width" = "0.35em"; };
           };
-          "power" = {
-            "radius" = "0.4em";
-            "scaling" = 90;
-          };
-          "volume" = {
-            "scaling" = 100;
-          };
+          "power" = { "radius" = "0.4em"; "scaling" = 90; };
+          "volume" = { "scaling" = 100; };
         };
         "monochrome" = false;
         "opacity" = 100;
-        "popover" = {
-          "radius" = "0.4em";
-          "scaling" = 100;
-        };
-        "progressbar" = {
-          "radius" = "0.3rem";
-        };
-        "scroller" = {
-          "radius" = "0.7em";
-          "width" = "0.25em";
-        };
+        "popover" = { "radius" = "0.4em"; "scaling" = 100; };
+        "progressbar" = { "radius" = "0.3rem"; };
+        "scroller" = { "radius" = "0.7em"; "width" = "0.25em"; };
         "shadow" = "0px 0px 3px 1px #16161e";
         "shadowMargins" = "5px 5px";
         "slider" = {
           "progress_radius" = "0.3rem";
           "slider_radius" = "0.3rem";
         };
-        "switch" = {
-          "radius" = "0.2em";
-          "slider_radius" = "0.2em";
-        };
-        "tooltip" = {
-          "radius" = "0.3em";
-        };
+        "switch" = { "radius" = "0.2em"; "slider_radius" = "0.2em"; };
+        "tooltip" = { "radius" = "0.3em"; };
       };
       "opacity" = 100;
       "outer_spacing" = "1.6em";
@@ -704,9 +552,7 @@
     };
     "osd" = {
       "active_monitor" = true;
-      "border" = {
-        "size" = "0em";
-      };
+      "border" = { "size" = "0em"; };
       "duration" = 2500;
       "enable" = true;
       "enableShadow" = false;
@@ -720,9 +566,7 @@
       "scaling" = 100;
       "shadow" = "0px 0px 3px 2px #16161e";
     };
-    "tooltip" = {
-      "scaling" = 100;
-    };
+    "tooltip" = { "scaling" = 100; };
   };
   "theme.bar.background" = "#0a0a0b";
   "theme.bar.border.color" = "#FFFFFF";
@@ -1106,11 +950,6 @@
   "theme.osd.icon_container" = "#FFFFFF";
   "theme.osd.label" = "#FFFFFF";
   "theme.osd.radius" = "0.4em";
-  "wallpaper" = {
-    "enable" = true;
-    "image" = "";
-    "pywal" = false;
-  };
-  "wallpaper.image" =
-    "/home/b7r6/src/ps-v4/experimental-v4/b7r6/dev-v4/modules/home/themes/nix-glow-black.png";
+  "wallpaper" = { "enable" = true; "image" = ""; "pywal" = false; };
+  "wallpaper.image" = "/home/b7r6/src/ps-v4/experimental-v4/b7r6/dev-v4/modules/home/themes/nix-glow-black.png";
 }
