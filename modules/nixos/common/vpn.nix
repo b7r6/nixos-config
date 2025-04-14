@@ -20,14 +20,14 @@ in
     firewall = {
       enable = mkOption {
         type = types.bool;
-        default = true;
+        default = false;
         description = "Whether to enable the firewall with Tailscale-aware rules";
       };
     };
 
     useBackupResolver = mkOption {
       type = types.bool;
-      default = false;
+      default = true;
       description = "Use backup DNS resolvers in addition to Tailscale DNS";
     };
   };
@@ -47,7 +47,6 @@ in
     # Enable Mullvad VPN
     services.mullvad-vpn = {
       enable = true;
-      package = pkgs.mullvad-vpn;
     };
 
     # Firewall configuration
@@ -59,12 +58,8 @@ in
       allowedTCPPorts = mkIf cfg.firewall.enable [ 22 3000 ];
       allowedUDPPorts = mkIf cfg.firewall.enable [ 41641 ];
       checkReversePath = mkIf cfg.firewall.enable "loose";
-
-      # Allow all traffic on Tailscale interface
-      interfaces = mkIf cfg.firewall.enable {
-        tailscale0.allowAll = true;
-      };
     };
+
 
     # DNS Configuration
     networking = {
@@ -84,28 +79,14 @@ in
 
     # Network emergency tools
     environment.systemPackages = with pkgs; [
-      tailscale
+      curl
+      dig
+      inetutils
+      iptables
       mullvad-vpn
-
-      # Emergency firewall toggle scripts
-      (writeScriptBin "firewall-off" ''
-        #!${bash}/bin/bash
-        echo "Disabling firewall..."
-        ${systemd}/bin/systemctl stop firewall
-        ${iptables}/bin/iptables -F
-        ${iptables}/bin/iptables -X
-        ${iptables}/bin/iptables -P INPUT ACCEPT
-        ${iptables}/bin/iptables -P FORWARD ACCEPT
-        ${iptables}/bin/iptables -P OUTPUT ACCEPT
-        echo "Firewall disabled. Run 'firewall-on' to re-enable."
-      '')
-
-      (writeScriptBin "firewall-on" ''
-        #!${bash}/bin/bash
-        echo "Enabling firewall..."
-        ${systemd}/bin/systemctl start firewall
-        echo "Firewall enabled."
-      '')
+      nmap
+      tailscale
+      traceroute
 
       # Emergency DNS toggle scripts
       (writeScriptBin "resolver-backup-on" ''
@@ -128,12 +109,6 @@ in
         echo "Now using Tailscale DNS only."
       '')
 
-      # Network diagnostic tools
-      inetutils
-      dig
-      traceroute
-      nmap
-      curl
     ];
 
     # Keep more generations for easier rollback

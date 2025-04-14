@@ -27,6 +27,9 @@
   home-manager.useGlobalPkgs = true;
   home-manager.backupFileExtension = "hm-backup";
 
+  # TODO[b7r6]: make a script for this:
+  # sudo tailscale up --accept-dns --accept-routes --exit-node=mx-qro-wg-001.mullvad.ts.net --exit-node-allow-lan-access --ssh
+  
   # Enable the network module with custom settings
   services.my-network = {
     enable = true;

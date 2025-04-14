@@ -2,42 +2,39 @@
 { pkgs, lib, ... }:
 {
   imports = [
-    ./gnome.nix
     ./hyprland.nix
   ];
 
-  # Configure display manager (login screen)
-  services.displayManager = {
-    # Enable SDDM
-    sddm = {
-      enable = true;
-      # Wayland support
-      wayland.enable = true;
-
-      # Theme settings
-      theme = "breeze";
-
-      # Configure to properly handle Wayland sessions including Hyprland
-      settings = {
-        General = {
-          DisplayServer = "wayland";
-          InputMethod = "";
-        };
-        Wayland = {
-          CompositorCommand = "kwin_wayland --drm --no-lockscreen";
-          SessionDir = "/run/current-system/sw/share/wayland-sessions";
-        };
+  # Enable greetd as the display manager
+  services.greetd = {
+    enable = true;
+    settings = {
+      default_session = {
+        command = "${pkgs.greetd.tuigreet}/bin/tuigreet --time --cmd Hyprland";
+        user = "greeter";
       };
     };
-
-    # Default to Hyprland session if available
-    defaultSession = lib.mkForce "hyprland";
   };
+  
+  # Create the greeter user and group
+  users.users.greeter = {
+    isSystemUser = true;
+    group = "greeter";
+    description = "TUI Greeter user";
+  };
+  
+  users.groups.greeter = {};
+  
+  # Disable SDDM
+  services.displayManager.sddm.enable = lib.mkForce false;
 
   environment.sessionVariables.NIXOS_OZONE_WL = "1";
 
   # Common packages for GUI environments
   environment.systemPackages = with pkgs; [
+    # Display manager
+    greetd.tuigreet
+    
     # Essential GUI utilities
     xdg-utils
     libsForQt5.qt5.qtwayland
@@ -63,3 +60,4 @@
     enable32Bit = true;
   };
 }
+
