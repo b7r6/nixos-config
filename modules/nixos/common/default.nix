@@ -10,6 +10,7 @@
     ./secrets.nix
     ./ssh.nix
     ./usb.nix
+    ./vpn.nix
   ];
 
   # `home-manager` setup for nixos targets
