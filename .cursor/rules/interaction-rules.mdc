@@ -1,0 +1,37 @@
+---
+description: Rules for ending interactions with users
+globs: ["**/*"]
+alwaysApply: true
+priority: 120
+---
+
+# Interaction Rules
+
+## Ending Conversations
+
+When ending an interaction with the user, follow these strict guidelines:
+
+1. **Summarize Accomplishments**: Provide a concise list of what was accomplished
+2. **Verify Requirements**: Confirm that all requested tasks were completed
+3. **Show Proof**: Include concrete evidence of success (command outputs, results)
+4. **Next Steps**: If applicable, suggest logical next steps
+5. **Be Concise**: Keep the summary brief and to the point
+
+## Format for Ending
+
+```
+## Summary
+
+- [List of completed tasks]
+
+## Verification
+
+- Command: [Command that verifies success]
+- Output: [Brief output showing success]
+
+## Next Steps (Optional)
+
+- [Suggestion for logical next actions]
+```
+
+This format ensures clarity and confirmation that the work is complete in a standardized, efficient manner. 

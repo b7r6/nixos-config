@@ -12,7 +12,6 @@ in
 {
   imports = [
     inputs.hyprland.homeManagerModules.default
-    ./hyprpanel.nix
   ];
 
   wayland.windowManager.hyprland = {

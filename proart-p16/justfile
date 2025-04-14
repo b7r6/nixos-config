@@ -1,0 +1,42 @@
+# Just file for ProArt P16 configuration
+# https://just.systems/
+
+# Default command shows available commands
+default:
+  just --list
+
+# Update flake lock file
+update:
+  nix flake update
+
+# Check configuration
+check:
+  nix flake check
+
+# Format nix files
+fmt:
+  nix fmt
+
+# Build the system
+build:
+  nixos-rebuild build --flake .#proart
+
+# Activate the configuration
+switch:
+  sudo nixos-rebuild switch --flake .#proart
+
+# Enter a development shell
+dev:
+  nix develop
+
+# Boot to new configuration
+boot:
+  sudo nixos-rebuild boot --flake .#proart
+
+# Clean old generations
+gc:
+  sudo nix-collect-garbage -d
+
+# List system generations
+generations:
+  sudo nix-env --list-generations --profile /nix/var/nix/profiles/system 

@@ -1,5 +1,5 @@
 {
-  description = "DEV // v4";
+  description = "NixOS configuration with modular components";
 
   # https://nixos-unified.org/autowiring.html
   outputs =
@@ -10,7 +10,7 @@
     };
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
 
     # srid
@@ -59,12 +59,6 @@
       inputs.hyprland.follows = "hyprland";
     };
 
-    plasma-manager = {
-      url = "github:nix-community/plasma-manager";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.home-manager.follows = "home-manager";
-    };
-
     sops-nix = {
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -81,14 +75,13 @@
       inputs.flake-parts.follows = "flake-parts";
     };
 
-
-    hyprpanel = {
-      url = "github:jas-singhfsu/hyprpanel";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    
     devenv = {
       url = "github:cachix/devenv/latest";
+    };
+
+    hyprpanel = {
+      url = "github:Jas-SinghFSU/HyprPanel";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 }

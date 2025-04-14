@@ -1,0 +1,50 @@
+---
+description: Rules for working with Protocol Buffers in this repository
+globs: ["proto/**/*.proto", "buf.yaml", "buf.gen.yaml"]
+alwaysApply: true
+priority: 90
+---
+
+# Protocol Buffers Rules
+
+## Directory Structure
+
+- All proto files must be stored in the `proto/` directory
+- Follow proper namespace/package organization
+- Version APIs properly in directory structure (v1, v2, etc.)
+- Use meaningful file names that reflect the content
+
+## Encoding Requirements
+
+- Use UTF-8 encoding for all proto files
+- Remove UTF-8 BOM if present
+- Use Unix (LF) line endings, not Windows (CRLF)
+- Begin files with `syntax = "proto3";` declaration
+
+## Naming Conventions
+
+- Use `snake_case` for field names
+- Use `PascalCase` for message and service names
+- Use `SCREAMING_SNAKE_CASE` for enum values
+- Prefix enum values with the enum name to avoid collisions
+
+## Code Generation
+
+- Use `buf` for validation and code generation
+- Configure output directories explicitly
+- Set proper languages and options
+- Never modify generated code manually
+
+## Buffer Structure
+
+- Split different resources into separate proto files
+- Group related messages in the same file
+- Keep dependencies between proto files minimal
+- Use imports judiciously
+
+## API Design
+
+- Define service interfaces clearly
+- Use explicit request/response messages
+- Implement pagination for list operations
+- Document all fields with clear comments 

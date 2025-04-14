@@ -4,7 +4,6 @@ let
 in
 {
   imports = [
-    inputs.hyprpanel.homeManagerModules.hyprpanel
   ];
 
   programs.hyprpanel = {

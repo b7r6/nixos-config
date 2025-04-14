@@ -1,0 +1,283 @@
+---
+description: Detailed guide for working with Nix flakes
+globs: ["flake.nix", "flake.lock"]
+alwaysApply: true
+---
+# Nix Flakes: A Practical Guide
+
+This guide provides practical advice for working with Nix flakes effectively.
+
+## Flakes: The Better Way
+
+Flakes provide reproducible, composable, and discoverable Nix packages and modules. They eliminate many problems with traditional Nix by:
+
+1. **Pinning Dependencies**: Precise version locking via `flake.lock`
+2. **Standard Interface**: Consistent outputs structure
+3. **Composability**: Easy reuse of other flakes
+4. **Discoverability**: Self-documenting with `nix flake show`
+
+## Core Commands
+
+```bash
+# Show flake outputs
+nix flake show
+
+# Update all inputs
+nix flake update
+
+# Update specific input
+nix flake update --update-input nixpkgs
+
+# Build default package
+nix build
+
+# Build specific output
+nix build .#packageName
+
+# Run checks
+nix flake check
+
+# Enter development shell
+nix develop
+
+# Run without installing
+nix run .#packageName
+
+# Search packages
+nix search nixpkgs python
+```
+
+## Flake Structure
+
+Every flake consists of:
+
+1. **flake.nix**: The main configuration file
+2. **flake.lock**: Pinned dependencies (auto-generated)
+
+### Minimal flake.nix
+
+```nix
+{
+  description = "A basic flake";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { self, nixpkgs, flake-utils, ... }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = nixpkgs.legacyPackages.${system};
+      in {
+        packages.default = pkgs.hello;
+        
+        devShells.default = pkgs.mkShell {
+          buildInputs = with pkgs; [ hello ];
+        };
+      }
+    );
+}
+```
+
+## Best Practices
+
+### Using flake-parts
+
+For complex projects, use [flake-parts](mdc:https:/flake.parts) to modularize:
+
+```nix
+{
+  description = "A modular flake";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+  };
+
+  outputs = inputs@{ flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = ["x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin"];
+      
+      perSystem = { system, pkgs, ... }: {
+        # Per-system outputs
+        packages.default = pkgs.hello;
+      };
+      
+      flake = {
+        # Flake-wide outputs
+        nixosModules.default = { ... }: { };
+      };
+    };
+}
+```
+
+### Reusing Other Flakes
+
+```nix
+# As input
+inputs.other-flake.url = "github:user/other-flake";
+
+# Using packages
+packages.myPackage = inputs.other-flake.packages.${system}.somePackage;
+
+# Using modules
+nixosModules.default = { imports = [ inputs.other-flake.nixosModules.default ]; };
+
+# Following inputs (deduplication)
+inputs.nixpkgs.follows = "other-flake/nixpkgs";
+```
+
+### Registry Management
+
+```bash
+# Add a flake to registry
+nix registry add my-flake /path/to/flake
+
+# Add GitHub repository
+nix registry add my-flake github:user/repo
+
+# Using registered flakes
+nix run my-flake#command
+```
+
+## Debugging
+
+### Missing Outputs
+
+If `nix build` can't find an output:
+
+1. Verify it exists: `nix flake show`
+2. Check for system-specific outputs
+3. Use fully qualified path: `.#packages.x86_64-linux.name`
+
+### Flake Evaluation Errors
+
+For error `cannot find flake.nix` or `attribute x missing`:
+
+1. Run with `--show-trace` to see full error
+2. Check for typos in attribute paths
+3. Verify inputs are properly referenced
+
+### Dirty Working Tree
+
+For warning `Git tree is dirty`:
+
+1. Commit changes for clean evaluation
+2. Use `--impure` flag (only for testing)
+3. Use `--no-write-lock-file` (for debugging)
+
+### Input Issues
+
+For errors with inputs:
+
+1. Check `flake.lock` for correct revisions
+2. Use `builtins.trace` to debug input values
+3. Try `nix flake lock --update-input input-name`
+
+## Advanced Patterns
+
+### Output Types
+
+Standard outputs to consider providing:
+
+```nix
+outputs = { self, nixpkgs, ... }: {
+  packages.${system}.default = /* ... */;
+  devShells.${system}.default = /* ... */;
+  nixosModules.default = /* ... */;
+  nixosConfigurations.mySystem = /* ... */;
+  homeManagerModules.default = /* ... */;
+  checks.${system}.default = /* ... */;
+  apps.${system}.default = /* ... */;
+  lib = /* ... */;
+  templates.default = /* ... */;
+  formatter.${system} = /* ... */;
+};
+```
+
+### Overlay Pattern
+
+```nix
+outputs = { self, nixpkgs, ... }: {
+  overlays.default = final: prev: {
+    myPackage = final.callPackage ./package.nix {};
+  };
+  
+  packages.${system}.default = 
+    nixpkgs.legacyPackages.${system}.extend self.overlays.default
+    .myPackage;
+};
+```
+
+### Development Shell with Dependencies
+
+```nix
+devShells.${system}.default = pkgs.mkShell {
+  buildInputs = with pkgs; [
+    # Development tools
+    nixpkgs-fmt
+    rnix-lsp
+    
+    # Project dependencies
+    python3
+    python3Packages.pytest
+  ];
+  
+  shellHook = ''
+    echo "Welcome to the development environment!"
+    export PROJECT_ROOT=$PWD
+  '';
+};
+```
+
+## Project Templates
+
+### Simple Package
+
+```bash
+# Create new flake from template
+mkdir my-project
+cd my-project
+nix flake init -t github:NixOS/templates#simple
+```
+
+### NixOS Configuration
+
+```bash
+nix flake init -t github:NixOS/templates#nixos-configuration
+```
+
+## CI Integration
+
+### GitHub Actions
+
+```yaml
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: cachix/install-nix-action@v18
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+    - run: nix flake check
+    - run: nix build
+```
+
+## Learning Resources
+
+- [Nix Flakes Documentation](mdc:https:/nixos.wiki/wiki/Flakes)
+- [Zero to Nix](mdc:https:/zero-to-nix.com)
+- [Flake-Parts Manual](mdc:https:/flake.parts)
+- [Example Flakes Collection](mdc:https:/github.com/nix-community/awesome-nix#flakes) 

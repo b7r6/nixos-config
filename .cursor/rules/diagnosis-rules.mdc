@@ -1,0 +1,66 @@
+---
+description: Rules for diagnosing issues - prohibiting premature workarounds
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Diagnosis Before Workarounds
+
+## Core Principle
+
+NEVER resort to workarounds or alternative approaches without fully diagnosing the root cause of a problem.
+
+## Mandatory Process
+
+1. **Thorough Investigation**: Investigate ALL errors and unexpected behaviors to their root cause
+2. **Evidence Collection**: Gather specific error messages, logs, and context
+3. **Component Isolation**: Identify which specific component is failing and why
+4. **Detailed Analysis**: Document your reasoning process, hypotheses, and conclusions
+5. **Full Transparency**: Present the detailed diagnosis to the user
+
+## Prohibited Behaviors
+
+- ❌ PROHIBITED: "Let's try another way" without explaining why the first way failed
+- ❌ PROHIBITED: Switching approaches without diagnosing the root cause
+- ❌ PROHIBITED: Vague explanations like "This isn't working, let's do something else"
+- ❌ PROHIBITED: Hiding error details or simplifying complexity
+- ❌ PROHIBITED: Moving forward without clear understanding
+
+## Required Behaviors 
+
+- ✅ REQUIRED: Diagnose each issue to its fundamental cause
+- ✅ REQUIRED: Explicitly state when you've reached a knowledge or tooling limitation
+- ✅ REQUIRED: Present detailed evidence of the diagnosis
+- ✅ REQUIRED: Clearly articulate the specific reason for each failure
+- ✅ REQUIRED: Detail the causal chain that led to the problem
+
+## Knowledge Boundaries
+
+When reaching the limit of your knowledge or available tools:
+
+1. Explicitly acknowledge the limitation
+2. Present all evidence collected so far
+3. Outline the specific questions that need answering
+4. Explain exactly what additional information or tools would help
+5. Never pretend to understand something you don't
+
+## Format for Presenting Issues
+
+```
+## Issue Diagnosis
+
+- Original Goal: [What we were trying to accomplish]
+- Exact Error: [The specific error message or unexpected behavior]
+- Components Involved: [Which parts of the system are relevant]
+- Root Cause Analysis: [Detailed explanation of what's happening]
+- Evidence: [Log outputs, error messages, command results]
+- Knowledge Boundary: [If applicable, what specific information you're missing]
+
+## Options
+
+1. [Option with clear reasoning]
+2. [Option with clear reasoning]
+3. Ask user for additional information: [Specific questions]
+```
+
+Remember: Understanding why something fails is MORE IMPORTANT than making it work through trial and error.

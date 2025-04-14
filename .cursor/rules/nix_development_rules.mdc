@@ -1,0 +1,281 @@
+---
+description: Authoritative guidelines for Nix development
+globs: ["*.nix", "nix/**/*"]
+alwaysApply: true
+---
+# Authoritative Nix Development Rules
+
+This document defines strict rules for AI assistants when working with Nix codebases. Follow these rules without exception.
+
+## Core Principles and Prohibitions
+
+### Absolute Prohibitions
+
+1. **NEVER MODIFY REPOSITORY CONTENT IN-PLACE**
+   - ❌ PROHIBITED: Modifying source files directly in their original location
+   - ✅ REQUIRED: Copy files to a build directory first, then modify the copies
+
+2. **NO THROWAWAY SCRIPTS**
+   - ❌ PROHIBITED: Creating one-off shell scripts outside the proper Nix structure
+   - ✅ REQUIRED: Implement proper derivations, even for simple operations
+
+3. **NO IMPURE BUILDS**
+   - ❌ PROHIBITED: Network access during build (`__noChroot = true;` is forbidden)
+   - ❌ PROHIBITED: Using timestamps, random values, or host-specific data
+   - ✅ REQUIRED: All inputs must be explicitly declared and deterministic
+
+4. **NO SYSTEM DEPENDENCIES**
+   - ❌ PROHIBITED: Assuming tools exist on the host system outside Nix
+   - ✅ REQUIRED: Declare every dependency explicitly in `buildInputs`/`nativeBuildInputs`
+
+### Mandatory Environment Handling
+
+1. **HOME DIRECTORY**
+   - ❌ PROHIBITED: Setting HOME to anything except `$TMPDIR` or a subdirectory
+   - ❌ PROHIBITED: Using `/homeless-shelter` or other system directories
+   - ✅ REQUIRED: `export HOME=$TMPDIR` in all build phases
+
+2. **OUTPUT PATHS**
+   - ❌ PROHIBITED: Writing to any location except `$out` and its subdirectories
+   - ❌ PROHIBITED: Hardcoding `/nix/store` paths
+   - ✅ REQUIRED: All build outputs must go to `$out/<appropriate-subdir>`
+
+## Tool Usage Guidelines
+
+### Nix CLI Tools
+
+1. **BUILDING PACKAGES**
+   - ❌ PROHIBITED: `nix-build` without specifying exact attribute path
+   - ✅ REQUIRED: `nix build .#checks.x86_64-linux.package-name`
+   - 📝 DOCUMENT: Always explain what the built package contains
+
+2. **DEVELOPMENT SHELLS**
+   - ❌ PROHIBITED: Using `nix-shell` without proper isolation
+   - ✅ REQUIRED: `nix develop .#dev-shell` with explicit shell definition
+   - 📝 DOCUMENT: List available tools in the shell
+
+3. **FLAKE OPERATIONS**
+   - ❌ PROHIBITED: Modifying `flake.lock` manually
+   - ✅ REQUIRED: `nix flake update` for updating dependencies
+   - ✅ REQUIRED: `nix flake check` to verify correctness
+
+### MCP Tool Integration
+
+1. **REPOSITORY ANALYSIS**
+   - ✅ USE: `codebase_search` to find patterns across the codebase
+   - ✅ COMMAND: `codebase_search "query text" --target_directories="./nix"`
+   - 📝 NOTE: Use semantic search, not grep, for concept-based queries
+
+2. **CODE READING**
+   - ✅ USE: `read_file` to examine code before suggesting changes
+   - ✅ COMMAND: Read entire files when possible: `read_file "target_file" --should_read_entire_file=true`
+   - 📝 NOTE: Always read configuration files completely
+
+3. **CODE EDITING**
+   - ✅ USE: `edit_file` with minimal context around changes
+   - ❌ PROHIBITED: Editing without first reading and understanding the file
+   - 📝 NOTE: Clearly state what changes are being made and why
+
+4. **TERMINAL COMMANDS**
+   - ✅ USE: `run_terminal_cmd` for Nix operations
+   - ❌ PROHIBITED: Running destructive commands without confirmation
+   - ❌ PROHIBITED: Creating temporary files outside of `$TMPDIR`
+
+## Nix Pattern Standards
+
+### Derivation Structure
+
+```nix
+# CORRECT STRUCTURE
+{ lib, stdenv, fetchFromGitHub, ... }:
+
+stdenv.mkDerivation {
+  pname = "package-name";
+  version = "1.0.0";
+  
+  src = fetchFromGitHub {
+    owner = "user";
+    repo = "repo";
+    rev = "v${version}";
+    sha256 = "sha256-...";
+  };
+  
+  buildInputs = [ /* runtime dependencies */ ];
+  nativeBuildInputs = [ /* build-time dependencies */ ];
+  
+  # CORRECT: Set HOME properly
+  configurePhase = ''
+    export HOME=$TMPDIR
+    runHook preConfigure
+    # configure commands
+    runHook postConfigure
+  '';
+  
+  buildPhase = ''
+    export HOME=$TMPDIR
+    runHook preBuild
+    # build commands
+    runHook postBuild
+  '';
+  
+  installPhase = ''
+    export HOME=$TMPDIR
+    runHook preInstall
+    mkdir -p $out/bin
+    cp -r result/* $out/
+    runHook postInstall
+  '';
+  
+  # NEVER skip the check phase entirely
+  doCheck = true;
+  checkPhase = ''
+    export HOME=$TMPDIR
+    runHook preCheck
+    # test commands
+    runHook postCheck
+  '';
+  
+  meta = with lib; {
+    description = "Clear, concise description";
+    homepage = "https://example.com";
+    license = licenses.mit;
+    platforms = platforms.unix;
+    maintainers = with maintainers; [ username ];
+  };
+}
+```
+
+### Flake Structure
+
+```nix
+# CORRECT FLAKE STRUCTURE
+{
+  description = "Concise description";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    # Additional inputs, ALWAYS with comments explaining their purpose
+  };
+
+  outputs = inputs@{ self, nixpkgs, flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+      
+      perSystem = { system, pkgs, ... }: {
+        packages = {
+          default = /* default package */;
+          # Additional packages
+        };
+        
+        checks = {
+          # Test packages
+        };
+        
+        devShells.default = pkgs.mkShell {
+          buildInputs = [ /* development dependencies */ ];
+          shellHook = ''
+            export PS1="\n\[\033[1;32m\][nix-shell:\w]\$\[\033[0m\] "
+          '';
+        };
+      };
+    };
+}
+```
+
+## Documentation Reference
+
+### Official Documentation
+
+1. **Nix Manual**
+   - [Nix Manual](mdc:https:/nixos.org/manual/nix/stable)
+   - [Nix Reference](mdc:https:/nixos.org/manual/nix/stable/language/index.html)
+   - [Derivation Guide](mdc:https:/nixos.org/guides/nix-pills/basics-of-derivation.html)
+
+2. **Nixpkgs**
+   - [Nixpkgs Manual](mdc:https:/nixos.org/manual/nixpkgs/stable)
+   - [Nixpkgs Repository](mdc:https:/github.com/NixOS/nixpkgs)
+   - [Contributing Guide](mdc:https:/github.com/NixOS/nixpkgs/blob/master/CONTRIBUTING.md)
+
+3. **Flakes**
+   - [Flakes Documentation](mdc:https:/nixos.wiki/wiki/Flakes)
+   - [Flake Parts](mdc:https:/flake.parts)
+   - [Flake Utils](mdc:https:/github.com/numtide/flake-utils)
+
+### Community Resources
+
+1. **Wiki & Guides**
+   - [NixOS Wiki](mdc:https:/nixos.wiki)
+   - [Zero to Nix](mdc:https:/zero-to-nix.com)
+   - [Nix.dev](mdc:https:/nix.dev)
+
+2. **Tool Documentation**
+   - [Buf Documentation](mdc:https:/buf.build/docs)
+   - [Protocol Buffers](mdc:https:/developers.google.com/protocol-buffers/docs/overview)
+
+## Workflow Patterns
+
+### Issue Diagnosis
+
+1. First, use `nix flake check` to identify issues
+2. Check logs with `--show-trace` flag
+3. For permission errors, verify HOME is set correctly
+4. For missing dependencies, check buildInputs
+5. For sandbox violations, fix resource access patterns
+
+### Code Generation Workflow
+
+1. Define clean inputs in protocol buffers
+2. Configure buf.yaml with clear module definition
+3. Configure buf.gen.yaml with explicit output paths
+4. Use Nix to create reproducible generation process
+5. Store generated code in standard output locations
+
+### Best Practices Enforcement
+
+1. Run `buf lint` to verify protocol buffer quality
+2. Use `statix check` for Nix code linting
+3. Verify reproducibility with `nix-diff`
+4. Validate derivations with `nix-store --verify`
+5. Test portable builds across systems
+
+## Required Environment Variables
+
+In Nix derivations, ALWAYS set these environment variables correctly:
+
+```nix
+buildPhase = ''
+  # 1. Set HOME to TMPDIR
+  export HOME=$TMPDIR
+  
+  # 2. Set TMPDIR to a subdirectory to avoid collisions
+  export TMPDIR=$(mktemp -d $TMPDIR/build-XXXXXX)
+  
+  # 3. Never use absolute paths, use relative paths
+  mkdir -p build
+  cd build
+  
+  # 4. Set locale if needed
+  export LANG=C.UTF-8
+  
+  # 5. Run build commands
+  make
+'';
+```
+
+## Protocol Buffers Best Practices
+
+1. **Directory Structure**
+   - ✅ REQUIRED: Store proto files in `proto/` directory
+   - ✅ REQUIRED: Use proper namespace/package paths
+   - ✅ REQUIRED: Version APIs in directory structure (`v1`, `v2`, etc.)
+
+2. **Generation**
+   - ✅ REQUIRED: Use `buf` for generation
+   - ✅ REQUIRED: Configure output directories explicitly
+   - ✅ REQUIRED: Set proper languages and options
+
+3. **Encoding**
+   - ✅ REQUIRED: Use UTF-8 encoding for all proto files
+   - ✅ REQUIRED: Remove BOM markers if present
+   - ✅ REQUIRED: Convert CRLF to LF line endings 

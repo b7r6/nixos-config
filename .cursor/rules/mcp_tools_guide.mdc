@@ -1,0 +1,252 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# MCP Tools for Nix Development
+
+This guide explains how to use AI assistant tools effectively when working with Nix projects.
+
+## Codebase Analysis
+
+### Semantic Search (First-Choice Tool)
+
+Always prefer semantic search for concept-based queries or finding patterns across the codebase:
+
+```
+codebase_search
+  query="how to set HOME in derivation"
+  target_directories=["./nix"]
+```
+
+**Use semantic search for:**
+- Understanding design patterns
+- Finding examples of specific techniques
+- Discovering related functionality
+- High-level concept searches
+
+### Grep Search (For Exact Matches)
+
+Use grep search when you need exact text matches or need to search for specific identifiers:
+
+```
+grep_search
+  query="export HOME=\\$TMPDIR"
+  include_pattern="*.nix"
+```
+
+**Use grep search for:**
+- Finding exact function names or variables
+- Locating specific error messages
+- Searching for imports or packages
+- Regular expressions patterns
+
+### File Search
+
+Use file search to quickly locate files by name:
+
+```
+file_search
+  query="proto-generator"
+  explanation="Finding the proto-generator module"
+```
+
+## Reading and Understanding Code
+
+### Reading Files
+
+Always read files before suggesting changes:
+
+```
+read_file
+  target_file="nix/modules/proto-generator.nix"
+  should_read_entire_file=true
+```
+
+For larger files, read specific sections:
+
+```
+read_file
+  target_file="flake.nix"
+  offset=20
+  limit=50
+```
+
+**Reading Strategy for Nix Files:**
+1. Read the entire file for small/medium files
+2. For larger files, first understand the general structure
+3. Then focus on specific sections as needed
+4. Pay special attention to mkDerivation attributes and phases
+
+## Making Changes
+
+### Editing Files
+
+When editing files, follow these rules:
+
+1. **Always read first** before editing
+2. Provide clear context in your edit
+3. Use minimal changes with proper context
+
+```
+edit_file
+  target_file="nix/modules/proto-generator.nix"
+  instructions="I'll fix the HOME directory setting in the buildPhase"
+  code_edit="# A reusable flake-parts module for generating code from protobuf definitions
+{ lib, flake-parts-lib, ... }:
+// ... existing code ...
+
+        # Set HOME to prevent permission errors
+        preBuildPhase = ''
+          export HOME=$TMPDIR
+        '';
+        
+// ... rest of file ..."
+```
+
+### Running Terminal Commands
+
+Use terminal commands for Nix operations:
+
+```
+run_terminal_cmd
+  command="nix flake check"
+  is_background=false
+```
+
+**Common Nix commands:**
+- `nix flake check`: Verify flake integrity
+- `nix build .#package`: Build specific output
+- `nix develop`: Enter development shell
+- `nix run .#app`: Run application
+- `nix-shell -p package`: Start shell with package
+
+## Directory Operations
+
+### List Directory
+
+Use list_dir to explore the structure:
+
+```
+list_dir
+  relative_workspace_path="nix"
+  explanation="Exploring the Nix configuration directory"
+```
+
+## Workflow Patterns
+
+### Debugging Build Issues
+
+1. Read error messages first
+2. Check the derivation for environment variables
+3. Examine build phases
+4. Fix HOME directory issues
+5. Run nix build with fixed derivation
+
+### Adding New Dependencies
+
+1. Search for similar dependencies in the codebase
+2. Read package configuration
+3. Add the dependency to buildInputs/nativeBuildInputs
+4. Test the build
+5. Document the changes
+
+### Modifying Flake Outputs
+
+1. Read the flake.nix file
+2. Understand the outputs structure
+3. Make minimal changes preserving existing patterns
+4. Test with nix flake check
+5. Verify outputs with nix flake show
+
+## MCP-Specific Best Practices for Nix
+
+### Do:
+- Use semantic search for concept understanding
+- Read before editing
+- Run nix flake check after changes
+- Verify working directory structure
+- Check for existing patterns before adding new ones
+- Set HOME=$TMPDIR in every build phase
+- Use explicit dependencies
+- Follow established file naming patterns
+- Read the proto-generator-rules.md file before modifying the proto module
+- Consult flake_parts_rules.md before modifying flake-parts modules
+
+### Don't:
+- Edit without reading first
+- Assume file structure without verifying
+- Use grep for concept searches
+- Run destructive commands without confirmation
+- Create unnecessary directories or files
+- Set HOME to anything other than $TMPDIR
+- Create scripts outside the module structure
+- Bypass Nix sandboxing
+- Introduce dependencies without declaring them
+- Write to system directories
+
+## Nix-Specific MCP Tool Usage Patterns
+
+### For Permission Denied /homeless-shelter Issues:
+
+1. Use semantic search to find relevant build phases:
+```
+codebase_search
+  query="buildPhase HOME setting"
+  target_directories=["./nix"]
+```
+
+2. Read the file to understand context:
+```
+read_file
+  target_file="nix/modules/proto-generator.nix"
+  should_read_entire_file=true
+```
+
+3. Edit to add HOME=$TMPDIR to all phases:
+```
+edit_file
+  target_file="nix/modules/proto-generator.nix"
+  instructions="Adding HOME=$TMPDIR to build phases"
+  code_edit="..."
+```
+
+4. Test the fix:
+```
+run_terminal_cmd
+  command="nix build .#checks.x86_64-linux.proto"
+  is_background=false
+```
+
+### For Adding a New Input to Flake:
+
+1. Read current flake:
+```
+read_file
+  target_file="flake.nix"
+  should_read_entire_file=true
+```
+
+2. Edit flake to add input:
+```
+edit_file
+  target_file="flake.nix"
+  instructions="Adding new input"
+  code_edit="..."
+```
+
+3. Update lock file:
+```
+run_terminal_cmd
+  command="nix flake update --update-input new-input"
+  is_background=false
+```
+
+## Integration with Project Rules
+
+Always consult these project-specific rule files:
+- `.cursor/rules/nix_development_rules.md` for general Nix development
+- `.cursor/rules/proto_generator_rules.md` for proto generator module
+- `.cursor/rules/flake_parts_rules.md` for flake-parts modules
+
+These provide authoritative guidance for this specific project. 

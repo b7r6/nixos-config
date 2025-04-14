@@ -1,0 +1,206 @@
+---
+description: Protocol buffer generator implementation rules
+globs: ["proto/**/*.proto", "buf.yaml", "buf.gen.yaml"]
+alwaysApply: true
+priority: 90
+---
+# Proto Generator Rules
+
+This document establishes strict rules for working with the protocol buffer generation module in this project.
+
+## Implementation Requirements
+
+### Environment Configuration
+
+1. **HOME Directory Settings**
+   - ✅ MANDATORY: Set `HOME=$TMPDIR` in every build phase
+   - ✅ MANDATORY: Set this before any other commands
+   - ❌ PROHIBITED: Using `mkdir -p /homeless-shelter` or similar workarounds
+   - ❌ PROHIBITED: Setting HOME to a fixed path like `/tmp`
+
+   ```nix
+   # CORRECT IMPLEMENTATION
+   buildPhase = ''
+     # Set HOME before any commands
+     export HOME=$TMPDIR
+     
+     # Then proceed with build commands
+     buf generate --template ${bufGenYaml} --output workspace
+   '';
+   ```
+
+2. **Temporary Directory Management**
+   - ✅ MANDATORY: Use `$TMPDIR` for temporary storage
+   - ✅ PREFERRED: Create subdirectories with `mktemp -d $TMPDIR/prefix-XXXXXX`
+   - ❌ PROHIBITED: Creating temporary directories outside of `$TMPDIR`
+
+### Build Inputs Configuration
+
+1. **Required Build Inputs**
+   - ✅ MANDATORY: Include `buf`, `protobuf`, `dos2unix`, and `util-linux`
+   - ✅ MANDATORY: Add `gnugrep` for checking operations
+   - ❌ PROHIBITED: Using system commands without declaring as build inputs
+
+   ```nix
+   buildInputs = with pkgs; [
+     buf
+     protobuf
+     dos2unix
+     util-linux
+     gnugrep
+   ];
+   ```
+
+### File Handling
+
+1. **Proto File Encoding**
+   - ✅ MANDATORY: Convert all files to UTF-8 without BOM
+   - ✅ MANDATORY: Convert Windows line endings to Unix (LF)
+   - ✅ MANDATORY: Handle malformed UTF-8 sequences
+   
+   ```nix
+   # CORRECT IMPLEMENTATION
+   fixEncodingPhase = ''
+     export HOME=$TMPDIR
+     
+     # 1. Convert Windows line endings to Unix
+     find . -name "*.proto" -type f -exec dos2unix {} \;
+     
+     # 2. Remove UTF-8 BOM if present
+     find . -name "*.proto" -type f -exec sed -i '1s/^\xEF\xBB\xBF//' {} \;
+     
+     # 3. Handle malformed UTF-8 sequences
+     find . -name "*.proto" -type f | while read file; do
+       if hexdump -C -n 6 "$file" | grep -q "c3 af c2 bb c2 bf"; then
+         sed -i '1s/^......//g' "$file"
+         # Make sure the syntax line is correct
+         if ! grep -q "^syntax = \"proto3\"" "$file"; then
+           sed -i '1s/^/syntax = "proto3";\n/' "$file"
+         fi
+       fi
+     done
+   '';
+   ```
+
+2. **Output Structure**
+   - ✅ MANDATORY: Use consistent output directory structure
+   - ✅ MANDATORY: Copy configuration files into build directory, don't reference directly
+   - ❌ PROHIBITED: Writing to source directory
+
+## Tool Integration
+
+### Buf Configuration
+
+1. **Required Configuration**
+   - ✅ MANDATORY: Always copy `buf.yaml` and `buf.gen.yaml` to the build directory
+   - ✅ MANDATORY: Configure output paths explicitly in `buf.gen.yaml`
+   - ❌ PROHIBITED: Hardcoding plugin versions in the Nix file
+
+   ```nix
+   # CORRECT IMPLEMENTATION
+   buildPhase = ''
+     export HOME=$TMPDIR
+     
+     # Copy configuration files to current directory
+     cp ${bufYaml} buf.yaml
+     cp ${bufGenYaml} buf.gen.yaml
+     
+     # Generate code
+     buf generate --template buf.gen.yaml --output workspace
+   '';
+   ```
+
+### Language Support
+
+1. **Languages Configuration**
+   - ✅ MANDATORY: Make languages configurable through module options
+   - ✅ MANDATORY: Verify output for each language in the check phase
+   - ✅ MANDATORY: Separate outputs for each language
+
+## Module Interface
+
+### Options Schema
+
+1. **Required Options**
+   - `enable`: boolean (default: false)
+   - `protoSourceDir`: path
+   - `bufYaml`: path
+   - `bufGenYaml`: path
+   - `languages`: list of strings
+   - `fixEncodings`: boolean (default: true)
+   - `doCheck`: boolean (default: true)
+
+2. **Option Documentation**
+   - ✅ MANDATORY: Document each option with description, type, default and example
+   - ✅ MANDATORY: Provide examples for common configurations
+
+### Output Structure
+
+1. **Standard Outputs**
+   - ✅ MANDATORY: Expose both packages and checks
+   - ✅ MANDATORY: Use consistent naming scheme (`gen-<language>`)
+   - ✅ MANDATORY: Provide a `proto` output for cleaned proto files
+
+## Diagnostics and Testing
+
+### Check Phase Implementation
+
+1. **Required Checks**
+   - ✅ MANDATORY: Verify each language's output files exist
+   - ✅ MANDATORY: Check for encoding issues
+   - ✅ MANDATORY: Verify syntax declarations in proto files
+   - ✅ MANDATORY: Run `buf lint` when available
+
+   ```nix
+   # CORRECT IMPLEMENTATION
+   checkPhase = ''
+     export HOME=$TMPDIR
+     
+     # Check that files were generated
+     if [ ! -d workspace ]; then
+       echo "No 'workspace' directory was created"
+       exit 1
+     fi
+     
+     # Check for encoding issues
+     echo "Checking for encoding issues..."
+     # (encoding check commands)
+     
+     # Run buf lint if available
+     if command -v buf >/dev/null 2>&1; then
+       echo "Running buf lint..."
+       cp ${bufYaml} buf.yaml
+       buf lint || {
+         echo "buf lint failed"
+         exit 1
+       }
+     fi
+   '';
+   ```
+
+### Error Handling
+
+1. **Common Errors**
+   - HOME directory not set correctly
+   - Missing dependencies
+   - Malformed proto files
+   - Sandbox violations
+
+2. **Debugging Guidance**
+   - ✅ MANDATORY: Add clear error messages
+   - ✅ MANDATORY: Document common errors and solutions
+   - ✅ RECOMMENDED: Provide diagnostic commands
+
+## Implementation Checklist
+
+Before submitting changes to the proto-generator module, verify:
+
+1. ✓ HOME is set to `$TMPDIR` in ALL build phases
+2. ✓ All file operations use relative paths
+3. ✓ All dependencies are explicitly declared
+4. ✓ Encoding fixes are properly implemented
+5. ✓ Check phase verifies all outputs
+6. ✓ Error messages are clear and actionable
+7. ✓ No sandbox violations occur
+8. ✓ Options are well-documented
+9. ✓ Output structure is consistent 

@@ -1,0 +1,377 @@
+---
+description: Comprehensive rules for working with flake-parts modules
+globs: ["nix/modules/**/*.nix", "nix/flake-module.nix"]
+alwaysApply: true
+---
+# Flake-Parts: Authoritative Rules
+
+This document establishes strict rules for using [flake-parts](mdc:https:/flake.parts) in Nix projects.
+
+## Core Principles
+
+1. **Modularity**: Break down functionality into reusable modules
+2. **Clarity**: Each module should have a clear, well-defined purpose
+3. **Composability**: Modules should be easily combined with minimal conflicts
+4. **Configuration**: Use the NixOS module system for option handling
+5. **Documentation**: Every module option must be documented
+
+## Module Structure
+
+### Basic Structure
+
+```nix
+# CORRECT: Properly structured flake-parts module
+{ lib, flake-parts-lib, ... }:
+let
+  inherit (flake-parts-lib) mkPerSystemOption;
+  inherit (lib) types mkOption;
+in
+{
+  options = {
+    perSystem = mkPerSystemOption ({ pkgs, ... }: {
+      options.my-module = {
+        enable = lib.mkEnableOption "Enable my module";
+        
+        # Additional options
+        inputFile = mkOption {
+          type = types.path;
+          description = "Path to the input file";
+          example = ./input.txt;
+        };
+      };
+    });
+  };
+  
+  config = {
+    perSystem = { config, pkgs, ... }:
+    let
+      cfg = config.my-module;
+    in lib.mkIf cfg.enable {
+      # Conditional activation based on enable option
+      packages.default = /* ... */;
+      checks.default = /* ... */;
+    };
+  };
+}
+```
+
+## Options Definition
+
+### Required Patterns
+
+1. **Enable Option**
+   - ✅ MANDATORY: Every module must have an `enable` option
+   - ✅ MANDATORY: Wrap all module functionality in `lib.mkIf cfg.enable { ... }`
+   - ❌ PROHIBITED: Enabling functionality without explicit user opt-in
+
+2. **Option Types**
+   - ✅ MANDATORY: Use appropriate types from `lib.types`
+   - ✅ MANDATORY: Document every option with description, example, and default
+   - ❌ PROHIBITED: Using `types.anything` or overly permissive types
+
+3. **Defaults**
+   - ✅ MANDATORY: Provide sensible defaults when possible
+   - ✅ MANDATORY: Document default values
+   - ❌ PROHIBITED: Requiring many mandatory options
+
+## Configuration Patterns
+
+### Per-System Configuration
+
+```nix
+# CORRECT: Per-system configuration
+perSystem = mkPerSystemOption ({ system, pkgs, ... }: {
+  options.my-module = {
+    # Module options
+  };
+});
+
+# CORRECT: Per-system implementation
+perSystem = { config, system, pkgs, ... }:
+let
+  cfg = config.my-module;
+in lib.mkIf cfg.enable {
+  # Implementation
+};
+```
+
+### Global Configuration
+
+```nix
+# CORRECT: Global options
+options.my-module = {
+  globalSetting = mkOption {
+    type = types.str;
+    description = "Global setting for all systems";
+    default = "default";
+  };
+};
+
+# CORRECT: Global configuration
+config = {
+  # Global configuration
+};
+```
+
+## Dependency Management
+
+### Input Dependencies
+
+1. **Flake Inputs**
+   - ✅ MANDATORY: Pass all necessary inputs to modules that need them
+   - ✅ MANDATORY: Use `inputs` parameter in module functions
+   - ❌ PROHIBITED: Hardcoding input URLs within modules
+
+```nix
+# CORRECT: Module accepting inputs
+{ lib, flake-parts-lib, inputs, ... }:
+
+# CORRECT: Using inputs in module
+inputs.dependency.method
+```
+
+### Package Dependencies
+
+1. **Explicit Dependencies**
+   - ✅ MANDATORY: List all dependencies explicitly in `buildInputs`/`nativeBuildInputs`
+   - ✅ MANDATORY: Use `pkgs` from the function parameters, not global
+   - ❌ PROHIBITED: Assuming packages exist without declaring them
+
+## Output Handling
+
+### Standard Outputs
+
+1. **Required Outputs**
+   - ✅ RECOMMENDED: Expose both `packages` and `checks` for module functionality
+   - ✅ RECOMMENDED: Use consistent naming schemes for outputs
+   - ✅ RECOMMENDED: Provide a `default` output when appropriate
+
+```nix
+# CORRECT: Standard outputs
+perSystem = { config, pkgs, ... }:
+let
+  cfg = config.my-module;
+in lib.mkIf cfg.enable {
+  # Packages
+  packages.my-package = /* ... */;
+  packages.default = packages.my-package;
+  
+  # Checks
+  checks.my-check = /* ... */;
+  
+  # Dev shells
+  devShells.my-module = /* ... */;
+};
+```
+
+## Modularization Techniques
+
+### Module Organization
+
+1. **File Structure**
+   - ✅ MANDATORY: Place modules in `./nix/modules/` directory
+   - ✅ MANDATORY: Name files descriptively: `my-feature.nix`
+   - ✅ MANDATORY: Create a main flake module at `./nix/flake-module.nix`
+
+2. **Module Composition**
+   - ✅ MANDATORY: Use `imports = [ ./modules/a.nix ./modules/b.nix ];`
+   - ✅ MANDATORY: Avoid circular dependencies
+   - ❌ PROHIBITED: Importing modules with side effects
+
+## Main Flake Integration
+
+### Root Flake.nix
+
+```nix
+# CORRECT: Main flake.nix using flake-parts
+{
+  description = "My flake with modular design";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    # Other inputs
+  };
+
+  outputs = inputs@{ flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [
+        # Import your modular functionality
+        ./nix/flake-module.nix
+      ];
+      
+      systems = ["x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin"];
+      
+      # Per-system configuration
+      perSystem = { pkgs, ... }: {
+        # Enable and configure modules
+        my-module = {
+          enable = true;
+          # Module options
+        };
+      };
+      
+      # Flake-wide configuration
+      flake = {
+        # Flake-wide outputs
+      };
+    };
+}
+```
+
+## Testing and Debugging
+
+### Module Testing
+
+1. **Testing Strategy**
+   - ✅ MANDATORY: Provide checks for modules when possible
+   - ✅ MANDATORY: Test modules both enabled and disabled
+   - ✅ RECOMMENDED: Test with different option combinations
+
+2. **Debugging**
+   - ✅ USE: `builtins.trace` for debugging evaluation
+   - ✅ USE: `--show-trace` flag with nix commands
+   - ✅ USE: `lib.debug.traceSeq` for complex data structures
+
+## Error Handling
+
+### Option Validation
+
+1. **Validation Functions**
+   - ✅ MANDATORY: Use `lib.assertMsg` for runtime assertions
+   - ✅ MANDATORY: Provide helpful error messages
+   - ✅ MANDATORY: Check for incompatible option combinations
+
+```nix
+# CORRECT: Option validation
+options.my-module.setting = mkOption {
+  type = types.str;
+  description = "A setting";
+  default = "default";
+  apply = value:
+    let
+      valid = /* validation logic */;
+    in
+    lib.throwIf (!valid) "Invalid setting: ${value}" value;
+};
+```
+
+## Reusable Module Template
+
+```nix
+# MODULE TEMPLATE
+{ lib, flake-parts-lib, ... }:
+let
+  inherit (flake-parts-lib) mkPerSystemOption;
+  inherit (lib) types mkOption;
+in
+{
+  options = {
+    perSystem = mkPerSystemOption ({ pkgs, ... }: {
+      options.module-name = {
+        enable = lib.mkEnableOption "Enable this module";
+        
+        # Additional options with documentation
+        inputPath = mkOption {
+          type = types.path;
+          description = "Path to input files";
+          example = ./input;
+          default = ./default-input;
+        };
+        
+        outputName = mkOption {
+          type = types.str;
+          description = "Name for output artifacts";
+          default = "default";
+        };
+        
+        extraArgs = mkOption {
+          type = types.listOf types.str;
+          description = "Additional arguments";
+          default = [];
+          example = [ "--verbose" "--debug" ];
+        };
+        
+        doCheck = mkOption {
+          type = types.bool;
+          description = "Whether to run tests";
+          default = true;
+        };
+      };
+    });
+  };
+  
+  config = {
+    perSystem = { config, pkgs, ... }:
+    let
+      cfg = config.module-name;
+      
+      # Helper functions or intermediate derivations
+      helper = args: /* ... */;
+      
+      # Main derivation
+      mainDerivation = pkgs.stdenv.mkDerivation {
+        name = "${cfg.outputName}";
+        src = cfg.inputPath;
+        
+        buildInputs = with pkgs; [
+          # Dependencies
+        ];
+        
+        configurePhase = ''
+          export HOME=$TMPDIR
+          # Configure commands
+        '';
+        
+        buildPhase = ''
+          export HOME=$TMPDIR
+          # Build commands with ${lib.escapeShellArgs cfg.extraArgs}
+        '';
+        
+        checkPhase = ''
+          export HOME=$TMPDIR
+          # Test commands
+        '';
+        
+        # Enable/disable check phase based on configuration
+        doCheck = cfg.doCheck;
+        
+        installPhase = ''
+          export HOME=$TMPDIR
+          mkdir -p $out
+          # Install commands
+        '';
+      };
+      
+    in lib.mkIf cfg.enable {
+      # Expose packages
+      packages.${cfg.outputName} = mainDerivation;
+      
+      # Expose checks
+      checks.${cfg.outputName} = mainDerivation;
+    };
+  };
+}
+```
+
+## Real-World Example: Proto Generator Module
+
+The protocol buffer code generator in this project demonstrates these principles:
+
+1. **Clear Interface**: Well-defined options with documentation
+2. **Conditional Activation**: Uses `lib.mkIf cfg.enable`
+3. **Error Handling**: Validates inputs and provides clear error messages
+4. **HOME Handling**: Sets `HOME=$TMPDIR` in all phases
+5. **Reusable Structure**: Modular design that could be used in other projects
+
+## Documentation and Resources
+
+1. **Official Documentation**
+   - [Flake Parts Manual](mdc:https:/flake.parts)
+   - [NixOS Module System](mdc:https:/nixos.org/manual/nixos/stable/index.html#sec-writing-modules)
+   - [Nix Types Reference](mdc:https:/nixos.org/manual/nixos/stable/index.html#sec-option-types)
+
+2. **Examples and Patterns**
+   - [Flake-Parts Examples](mdc:https:/flake.parts/getting-started.html)
+   - [nixos-generators](mdc:https:/github.com/nix-community/nixos-generators) - Good module example
+   - [flake-utils-plus](mdc:https:/github.com/gytis-ivaskevicius/flake-utils-plus) - Additional flake utilities 

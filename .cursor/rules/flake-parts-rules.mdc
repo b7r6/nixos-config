@@ -1,0 +1,57 @@
+---
+description: Rules for working with flake-parts modules in this repository
+globs: ["nix/modules/**/*.nix", "nix/flake-module.nix"]
+alwaysApply: true
+priority: 95
+---
+
+# Flake-Parts Rules
+
+## Module Structure
+
+- Use the established module pattern with `options` and `config` attributes
+- Properly import `flake-parts-lib` and `lib` with `inherit`
+- Use `mkPerSystemOption` for per-system configuration
+- Always wrap functionality in `lib.mkIf cfg.enable { ... }`
+
+## Option Definitions
+
+- Every module must have an `enable` option
+- Document every option with description, type, default and example
+- Use appropriate types from `lib.types`
+- Provide sensible defaults when possible
+- Use validation functions for runtime assertions
+
+## Configuration and Dependencies
+
+- Pass all necessary inputs to modules that need them
+- List all dependencies explicitly in `buildInputs`/`nativeBuildInputs`
+- Never hardcode input URLs within modules
+- Use `pkgs` from function parameters, not from global context
+
+## File Structure
+
+- Place modules in `./nix/modules/` directory
+- Name files descriptively (e.g., `proto-generator.nix`)
+- Create a main flake module at `./nix/flake-module.nix`
+- Import submodules with `imports = [ ./modules/a.nix ./modules/b.nix ];`
+
+## Environment Variables
+
+- Set `HOME=$TMPDIR` in every build phase:
+```nix
+buildPhase = ''
+  export HOME=$TMPDIR
+  # Build commands
+'';
+```
+- Use `mktemp -d $TMPDIR/prefix-XXXXXX` for creating temporary directories
+- Never set HOME to a fixed path like `/tmp`
+- Never use system directories outside the sandbox
+
+## Output Handling
+
+- Expose both `packages` and `checks` for module functionality
+- Use consistent naming schemes for outputs
+- Provide a `default` output when appropriate
+- Write outputs only to `$out` and its subdirectories 

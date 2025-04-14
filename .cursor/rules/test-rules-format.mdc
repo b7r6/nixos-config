@@ -1,0 +1,14 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Rule Template
+
+This is a template for creating new cursor rules. Each rule should:
+
+1. Have a clear description
+2. Define specific globs to match files
+3. Specify when to apply the rule
+4. Include well-structured content with clear guidance

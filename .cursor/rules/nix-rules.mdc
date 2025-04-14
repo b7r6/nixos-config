@@ -1,0 +1,39 @@
+---
+description: Core rules for working with Nix in this repository
+globs: ["*.nix", "flake.lock", "nix/**/*"]
+alwaysApply: true
+---
+
+# Agiti Protocol Buffers - Nix Rules
+
+## Core Principles
+
+1. **Declarative over Imperative**: Define what you want, not how to get it.
+2. **Reproducibility First**: All builds should be reproducible across environments.
+3. **Isolation by Default**: Every build should be isolated from the system.
+4. **Composability**: Build small, reusable pieces that work well together.
+5. **Immutability**: Never modify inputs in-place.
+
+## Mandatory Rules
+
+- Set `HOME=$TMPDIR` in every build phase
+- Never modify source files in-place
+- Use fixed-output derivations for downloads
+- Declare all dependencies explicitly
+- Write outputs only to `$out` directory
+- Use `lib.mkIf cfg.enable { ... }` for conditional modules
+- Document all options with description, type, default and example
+
+## Proto Files
+
+- Store all proto files in `proto/` directory
+- Use `buf` for validation and generation
+- Version APIs properly in directory structure (v1, v2, etc.)
+- Ensure UTF-8 encoding without BOM for all proto files
+
+## Workflow Requirements
+
+1. Follow the flake-parts module pattern for all new features
+2. Always run `nix flake check` before committing changes
+3. Set HOME to $TMPDIR in all build phases to avoid sandbox issues
+4. Never create throwaway scripts - use proper Nix modules instead 
