@@ -13,8 +13,8 @@ in
     ./secrets.nix
     ./ssh.nix
     ./usb.nix
-
     ./docker.nix
+    ./vpn.nix
   ];
 
   # `home-manager` setup for nixos targets
