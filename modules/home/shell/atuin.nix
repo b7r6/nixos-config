@@ -3,11 +3,9 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   colors = config.themes.palette;
-in
-{
+in {
   programs.atuin = {
     enable = true;
     enableBashIntegration = true;

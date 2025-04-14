@@ -1,10 +1,6 @@
 { flake, ... }:
-let
-  inherit (flake) inputs;
-in
 {
   imports = [
-    inputs.self.nixosModules.common
-    ./gui
+    flake.inputs.self.nixosModules.common
   ];
 }

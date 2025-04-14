@@ -1,61 +1,65 @@
-# Minimalist Wayland-first GUI module
-{ pkgs, lib, config, ... }:
-
-with lib;
-let
-  cfg = config.services.gui;
-in
+# GUI module for NixOS
+{ pkgs, lib, ... }:
 {
-  # No default imports - explicitly choose what you need
-  imports = [ ];
+  imports = [
+    ./gnome.nix
+    ./hyprland.nix
+  ];
 
-  options.services.gui = {
-    enable = mkEnableOption "GUI environment";
+  # Configure display manager (login screen)
+  services.displayManager = {
+    # Enable SDDM
+    sddm = {
+      enable = true;
+      # Wayland support
+      wayland.enable = true;
+
+      # Theme settings
+      theme = "breeze";
+
+      # Configure to properly handle Wayland sessions including Hyprland
+      settings = {
+        General = {
+          DisplayServer = "wayland";
+          InputMethod = "";
+        };
+        Wayland = {
+          CompositorCommand = "kwin_wayland --drm --no-lockscreen";
+          SessionDir = "/run/current-system/sw/share/wayland-sessions";
+        };
+      };
+    };
+
+    # Default to Hyprland session if available
+    defaultSession = lib.mkForce "hyprland";
   };
 
-  config = mkIf cfg.enable {
-    # Wayland-first minimal configuration
-    
-    # Common packages for Wayland
-    environment.systemPackages = with pkgs; [
-      # Essential GUI utilities
-      xdg-utils
-      
-      # Wayland toolkit support
-      qt6.qtwayland
-      
-      # Basic utilities
-      wl-clipboard # Clipboard manager
-      
-      # Default icon themes for better app appearance
-      hicolor-icon-theme
-      adwaita-icon-theme
-    ];
+  environment.sessionVariables.NIXOS_OZONE_WL = "1";
 
-    # Wayland environment variables
-    environment.sessionVariables = {
-      # For electron apps and other Ozone-based apps
-      NIXOS_OZONE_WL = "1";
-      
-      # For Firefox
-      MOZ_ENABLE_WAYLAND = "1";
-      
-      # For Java applications
-      _JAVA_AWT_WM_NONREPARENTING = "1";
-    };
+  # Common packages for GUI environments
+  environment.systemPackages = with pkgs; [
+    # Essential GUI utilities
+    xdg-utils
+    libsForQt5.qt5.qtwayland
+    qt6.qtwayland
 
-    # Basic fonts that most systems need
-    fonts.packages = with pkgs; [
-      noto-fonts
-      noto-fonts-emoji
-      liberation_ttf
-      fira-code
-    ];
-    
-    # Enable graphics drivers with hardware acceleration
-    hardware.graphics = {
-      enable = true;
-      enable32Bit = true;
-    };
+    # Default icon themes for better app appearance
+    hicolor-icon-theme
+    adwaita-icon-theme
+  ];
+
+  # Enable fonts
+  fonts.packages = with pkgs; [
+    noto-fonts
+    noto-fonts-emoji
+    liberation_ttf
+    fira-code
+    fira-code-symbols
+  ];
+
+  # Enable graphics drivers for better Wayland support
+  hardware.graphics = {
+    enable = true;
+    enable32Bit = true;
   };
 }

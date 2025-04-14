@@ -1,7 +1,4 @@
 { flake, pkgs, ... }:
-let
-  inherit (flake) inputs;
-in
 {
   imports = [
     ./cachix.nix
@@ -13,21 +10,16 @@ in
     ./secrets.nix
     ./ssh.nix
     ./usb.nix
-
-    ./docker.nix
   ];
 
   # `home-manager` setup for nixos targets
   # this is potentially a top-level configuration opportunity...
 
-  nix.nixPath = [ "nixpkgs=${inputs.nixpkgs}" ];
+  nix.nixPath = [ "nixpkgs=${flake.inputs.nixpkgs}" ];
   nixpkgs.config = {
     allowBroken = false;
     allowUnfree = true;
   };
-
-  security.sudo.wheelNeedsPassword = false;
-  programs.nh.enable = true;
 
   home-manager.useUserPackages = true;
   home-manager.useGlobalPkgs = true;

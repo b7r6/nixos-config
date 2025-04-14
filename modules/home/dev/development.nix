@@ -39,7 +39,6 @@ in
     sysz
     dos2unix
     wget
-    yazi
 
     # we're going to try out dhall...
     dhall
@@ -53,9 +52,6 @@ in
     # TODO[b7r6]: this is a whole thing...
     dotnet-sdk_8
 
-    # TODO[b7r6]: this is a whole thing...
-    dotnet-sdk_8
-    
     # TODO[b7r6]: this is a whole thing....
     inputs.devenv.packages."${pkgs.system}".devenv
   ];

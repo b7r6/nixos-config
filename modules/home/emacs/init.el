@@ -40,7 +40,6 @@
 ;; ============================================================
 ;; package management
 ;; ============================================================
-
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 (package-initialize)
@@ -56,9 +55,7 @@
 ;; ============================================================
 ;; ui // reinit
 ;; ============================================================
-
 (setq inhibit-startup-screen t)
-
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
@@ -187,10 +184,8 @@ Can be called independently or by hyper-modern/reinit-vertical-divider."
 
 (use-package doom-modeline
   :ensure t
-
   :init
   (doom-modeline-mode 1)
-
   :config
   (when (fboundp 'nerd-icons)
     (setq doom-modeline-icon t)
@@ -203,7 +198,6 @@ Can be called independently or by hyper-modern/reinit-vertical-divider."
 (use-package gptel
   :ensure t
   :config
-
   (setq gptel-max-tokens 200000        ;Maximum input tokens (200K)
         gptel-response-length 4096)    ;Maximum output tokens (4K)
 

@@ -20,8 +20,6 @@
 
   boot.kernelPackages = pkgs.linuxPackages_testing;
 
-  boot.blacklistedKernelModules = [ "ucsi_acpi" "nouveau" ];
-
   services.supergfxd.enable = true;
   systemd.services.supergfxd.path = [ pkgs.pciutils ];
   services = {
@@ -30,27 +28,52 @@
       enableUserService = true;
     };
   };
-
-  # environment.variables = {
-  #   KWIN_DRM_DEVICES = "/dev/dri/card1:/dev/dri/card0";
-  # };
+  environment.variables = {
+    KWIN_DRM_DEVICES = "/dev/dri/card1:/dev/dri/card0";
+  };
 
   hardware.graphics = {
     enable = true;
   };
 
-  # Install CUDA toolkit and drivers
-  environment.systemPackages = with pkgs; [
-    cudatoolkit
-    linuxPackages.nvidia_x11
-    nvidia-docker    # if you need Docker support
-  ];
+  hardware.nvidia = {
 
-  # Load NVIDIA driver kernel module
-  boot.kernelModules = [ "kvm-amd" ];
-  boot.extraModulePackages = [ config.boot.kernelPackages.nvidia_x11 ];
+    # Modesetting is required.
+    modesetting.enable = true;
 
-  boot.initrd.kernelModules = [ ];
+    # Nvidia power management. Experimental, and can cause sleep/suspend to fail.
+    # Enable this if you have graphical corruption issues or application crashes after waking
+    # up from sleep. This fixes it by saving the entire VRAM memory to /tmp/ instead
+    # of just the bare essentials.
+    powerManagement.enable = false;
+
+    # Fine-grained power management. Turns off GPU when not in use.
+    # Experimental and only works on modern Nvidia GPUs (Turing or newer).
+    powerManagement.finegrained = false;
+
+    # Use the NVidia open source kernel module (not to be confused with the
+    # independent third-party "nouveau" open source driver).
+    # Support is limited to the Turing and later architectures. Full list of
+    # supported GPUs is at:
+    # https://github.com/NVIDIA/open-gpu-kernel-modules#compatible-gpus
+    # Only available from driver 515.43.04+
+    open = false;
+
+    # Enable the Nvidia settings menu,
+    # accessible via `nvidia-settings`.
+    nvidiaSettings = true;
+
+    # Optionally, you may need to select the appropriate driver version for your specific GPU.
+    package = config.boot.kernelPackages.nvidiaPackages.stable;
+  };
+
+  services.xserver.videoDrivers = [ "nvidia" "amdgpu" ];
+  
+  security.sudo.wheelNeedsPassword = false;
+
+  # TODO[b7r6]: doesn't belong here...
+  programs.nh.enable = true;
+
   boot.initrd.availableKernelModules = [
     "nvme"
     "xhci_pci"
@@ -59,21 +82,9 @@
     "sdhci_pci"
   ];
 
-  environment.sessionVariables = {
-    CUDA_PATH = "${pkgs.cudatoolkit}";
-    LD_LIBRARY_PATH = "${pkgs.linuxPackages.nvidia_x11}/lib:${pkgs.cudatoolkit}/lib";
-  };
-  
-  hardware.nvidia = {
-    modesetting.enable = true;
-    powerManagement.enable = false;
-    powerManagement.finegrained = false;
-    open = false;
-    nvidiaSettings = true;
-    package = config.boot.kernelPackages.nvidiaPackages.stable;
-  };
-
-  services.xserver.videoDrivers = [ "nvidia" ];
+  boot.initrd.kernelModules = [ ];
+  boot.kernelModules = [ "kvm-amd" ];
+  boot.extraModulePackages = [ ];
 
   fileSystems."/" = {
     device = "/dev/disk/by-uuid/b391c9e7-40ae-48b4-8bae-78e65c9dc935";
@@ -90,7 +101,15 @@
   };
 
   swapDevices = [ ];
+
+  # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
+  # (the default) this is the recommended approach. When using systemd-networkd it's
+  # still possible to use this option, but it's recommended to use it in conjunction
+  # with explicit per-interface declarations with `networking.interfaces.<interface>.useDHCP`.
   networking.useDHCP = lib.mkDefault true;
+  # networking.interfaces.enp103s0f4u1u4.useDHCP = lib.mkDefault true;
+  # networking.interfaces.tailscale0.useDHCP = lib.mkDefault true;
+  # networking.interfaces.wlp99s0.useDHCP = lib.mkDefault true;
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;

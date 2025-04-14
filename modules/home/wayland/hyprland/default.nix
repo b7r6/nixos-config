@@ -10,9 +10,7 @@ let
   inherit (flake) inputs;
 in
 {
-  imports = [
-    inputs.hyprland.homeManagerModules.default
-  ];
+  imports = [ inputs.hyprland.homeManagerModules.default ];
 
   wayland.windowManager.hyprland = {
     enable = cfg.enable;
@@ -165,20 +163,12 @@ in
           "$mod, 2, workspace, 2"
           "$mod, 3, workspace, 3"
           "$mod, 4, workspace, 4"
-          "$mod, 5, workspace, 5"
-          "$mod, 6, workspace, 6"
-          "$mod, 7, workspace, 7"
-          "$mod, 8, workspace, 8"
-          
+
           # Move active window to workspace
           "$mod SHIFT, 1, movetoworkspace, 1"
           "$mod SHIFT, 2, movetoworkspace, 2"
           "$mod SHIFT, 3, movetoworkspace, 3"
           "$mod SHIFT, 4, movetoworkspace, 4"
-          "$mod SHIFT, 5, movetoworkspace, 5"
-          "$mod SHIFT, 6, movetoworkspace, 6"
-          "$mod SHIFT, 7, movetoworkspace, 7"
-          "$mod SHIFT, 8, movetoworkspace, 8"
 
           # Cycle through workspaces
           "$mod, Tab, exec, hyprctl dispatch cyclenext"
@@ -193,10 +183,10 @@ in
 
         # Startup applications
         exec-once = [
-          "blueman-applet"
+          "waybar"
+          "mako"
           "hyprpaper"
           "tailscale-systray"
-          "waybar"
         ];
       };
   };
@@ -223,12 +213,12 @@ in
           modules-center = [ "clock" ];
 
           modules-right = [
-            "battery"
+            "pulseaudio"
+            "network"
             "cpu"
             "memory"
-            "network"
-            "pulseaudio"
             "temperature"
+            "battery"
             "tray"
           ];
 
@@ -241,9 +231,6 @@ in
               "3" = [ ]; # Always show workspace 3
               "4" = [ ]; # Always show workspace 4
               "5" = [ ]; # Always show workspace 5
-              "6" = [ ]; # Always show workspace 6
-              "7" = [ ]; # Always show workspace 7
-              "8" = [ ]; # Always show workspace 8
             };
 
             sort-by-number = true;
@@ -303,8 +290,6 @@ in
             format-linked = "⌁ {ifname} (No IP)";
             format-disconnected = "✗ Disconnected";
             format-alt = "⌁ {ifname}: {ipaddr}/{cidr}";
-
-            on-click = "nm-applet";
           };
 
           "pulseaudio" = {
@@ -448,23 +433,17 @@ in
   services.mako.enable = true;
 
   home.packages = with pkgs; [
-    blueman
     grim
     hyprpaper
     mako
-    nm-tray
     pavucontrol
-    playerctl
     slurp
     swappy
     tailscale-systray
     waybar
     wl-clipboard
-    wl-color-picker
-    wl-gammactl
-    wl-kbptr
-    wlsunset
     wofi
+    playerctl
   ];
 
   home.file.".config/wofi/style.css".text =
