@@ -78,6 +78,12 @@
 
   services.xserver.videoDrivers = [ "nvidia" ];
 
+  services.logind = {
+    lidSwitch = "lock";
+    lidSwitchExternalPower = "lock";
+    lidSwitchDocked = "lock";
+  };
+  
   fileSystems."/" = {
     device = "/dev/disk/by-uuid/b391c9e7-40ae-48b4-8bae-78e65c9dc935";
     fsType = "ext4";
