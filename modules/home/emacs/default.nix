@@ -71,6 +71,7 @@ in
         cmake-mode
         company
         consult
+        corfu
         csv-mode
         dashboard
         direnv

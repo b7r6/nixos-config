@@ -532,23 +532,26 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
 ;; ============================================================
 ;; Format, TreeSit, and Apheleia
 ;; ============================================================
+
 (use-package apheleia
   :ensure t
   :config
   (apheleia-global-mode +1)
   
-  ;; Custom formatters
+  ;; Modify existing and add custom formatters
   (setq apheleia-formatters
-        (append apheleia-formatters
-                '((clang-format "clang-format")
-                  (csharpier "dotnet" "csharpier" filepath)
-                  (fantomas "dotnet" "fantomas" filepath)
-                  (shfmt "shfmt" "-i" "2" "-ci" filepath)
-                  (nixfmt "nixfmt" filepath)
-                  (biome "biome" "format" "--write" filepath)
-                  (ruff "ruff" "format" filepath))))
+        (append 
+         (map-delete (map-copy apheleia-formatters) 'clang-format) ;; Remove existing definition
+         '((clang-format "clang-format")
+           (csharpier "dotnet" "csharpier" file)
+           (fantomas "dotnet" "fantomas" file)
+           (shfmt "shfmt" "-i" "2" "-ci" file)
+           (nixfmt "nixfmt" file)
+           (biome "biome" "format" "--write" file)
+           (ruff "ruff" "format" file)
+           (fourmolu "fourmolu" file))))
 
-  ;; Mode associations
+  ;; Mode associations 
   (setq apheleia-mode-alist
         (append apheleia-mode-alist
                 '((csharp-mode . clang-format)
@@ -563,7 +566,12 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
                   (js-ts-mode . biome)
                   (jsx-ts-mode . biome)
                   (python-mode . ruff)
-                  (python-ts-mode . ruff)))))
+                  (python-ts-mode . ruff)
+                  (haskell-mode . fourmolu)
+                  (haskell-ts-mode . fourmolu))))
+  
+  ;; For debugging
+  (setq apheleia-log-debug-info t))
 
 (use-package treesit
   :config
@@ -592,88 +600,178 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
 ;; LSP Configuration
 ;; ============================================================
 
-(use-package lsp-mode
+(use-package eglot
   :ensure t
-  :commands lsp lsp-deferred
-  :hook ((csharp-ts-mode . lsp-deferred)
-         (fsharp-mode . lsp-deferred)
-         (bash-ts-mode . lsp-deferred)
-         (sh-mode . lsp-deferred)
-         (nix-mode . lsp-deferred)
-         (nix-ts-mode . lsp-deferred)
-         (typescript-ts-mode . lsp-deferred)
-         (tsx-ts-mode . lsp-deferred)
-         (js-ts-mode . lsp-deferred)
-         (jsx-ts-mode . lsp-deferred)
-         (python-ts-mode . lsp-deferred)
-         (python-mode . lsp-deferred))
-  :init
-  (setq lsp-keymap-prefix "C-c l")
+  :hook ((csharp-ts-mode . eglot-ensure)
+         (fsharp-mode . eglot-ensure)
+         (bash-ts-mode . eglot-ensure)
+         (sh-mode . eglot-ensure)
+         (nix-mode . eglot-ensure)
+         (nix-ts-mode . eglot-ensure)
+         (typescript-ts-mode . eglot-ensure)
+         (tsx-ts-mode . eglot-ensure)
+         (js-ts-mode . eglot-ensure)
+         (jsx-ts-mode . eglot-ensure)
+         (python-ts-mode . eglot-ensure)
+         (python-mode . eglot-ensure)
+         (haskell-mode . eglot-ensure)
+         (haskell-ts-mode . eglot-ensure))
   :config
-
-  ;; LSP UI customizations
-  (custom-set-faces
-   '(lsp-headerline-breadcrumb-path-error-face ((t (:inherit lsp-headerline-breadcrumb-path-face))))
-   '(lsp-headerline-breadcrumb-path-hint-face ((t (:inherit lsp-headerline-breadcrumb-path-face))))
-   '(lsp-headerline-breadcrumb-path-warning-face ((t (:inherit lsp-headerline-breadcrumb-path-face))))
-   '(lsp-headerline-breadcrumb-symbols-error-face ((t (:inherit lsp-headerline-breadcrumb-symbols-face))))
-   '(lsp-headerline-breadcrumb-symbols-warning-face ((t (:inherit lsp-headerline-breadcrumb-symbols-face))))
-   '(lsp-treemacs-file-warn ((t nil)))
-   '(lsp-treemacs-project-root-error ((t nil)))
-   '(lsp-ui-sideline-code-action ((t (:foreground "dark orange")))))
+  ;; Default server programs
+  (add-to-list 'eglot-server-programs
+               '((csharp-ts-mode csharp-mode) . ("csharp-ls")))
+  (add-to-list 'eglot-server-programs
+               '(fsharp-mode . ("dotnet" "fsautocomplete" "--background-service-enabled")))
+  (add-to-list 'eglot-server-programs
+               '((bash-ts-mode sh-mode) . ("bash-language-server" "start")))
+  (add-to-list 'eglot-server-programs
+               '((nix-ts-mode nix-mode) . ("nixd")))
+  (add-to-list 'eglot-server-programs
+               '((typescript-ts-mode tsx-ts-mode js-ts-mode jsx-ts-mode) . ("typescript-language-server" "--stdio")))
   
-  ;; LSP Server Configurations
-  ;; Configure csharp-ls to use dotnet
-  ;; (setq lsp-csharp-server-path "dotnet")
-  ;; (setq lsp-csharp-server-args '("csharp-ls"))
-  ;; (setq lsp-csharp-server-path "csharp-ls")
-  ;; (setq csharp-server-path "dotnet csharp-ls")
-
-  (setq lsp-csharp-csharpls-use-dotnet-tool t)
-  (setq lsp-csharp-csharpls-use-local-tool t)
-
-
-  (setq lsp-fsharp-server-path "dotnet fsautocomplete")
-  (setq lsp-bash-lsp-server-command '("bash-language-server" "start"))
-  (setq lsp-typescript-server-path "typescript-language-server")
-
-  ;; Python LSP server configuration
-  (setq lsp-pyright-use-library-code-for-types t)
-  (setq lsp-pyright-auto-search-paths t)
-  (setq lsp-pyright-typechecking-mode "basic")
-  
-  ;; If basedpyright is found, use it, otherwise fall back to pyright
+  ;; Handle either pyright or basedpyright
   (if (executable-find "basedpyright-langserver")
-      (setq lsp-pyright-langserver-command-args 
-            '("--stdio" "--watcherType" "polling"))
-    (setq lsp-pyright-langserver-command-args 
-          '("--stdio")))
+      (add-to-list 'eglot-server-programs
+                   '((python-ts-mode python-mode) . ("basedpyright-langserver" "--stdio" "--watcherType" "polling")))
+    (add-to-list 'eglot-server-programs
+                 '((python-ts-mode python-mode) . ("pyright-langserver" "--stdio"))))
   
-  ;; Disable nix-nil and rnix-lsp to prefer nixd
-  (add-to-list 'lsp-disabled-clients '(nix-mode . nix-nil))
-  (add-to-list 'lsp-disabled-clients '(nix-ts-mode . nix-nil))
-  (add-to-list 'lsp-disabled-clients '(nix-mode . rnix-lsp))
-  (add-to-list 'lsp-disabled-clients '(nix-ts-mode . rnix-lsp))
-  (add-to-list 'lsp-disabled-clients '(csharp-ts-mode . omnisharp))
-  (add-to-list 'lsp-disabled-clients '(csharp-mode . omnisharp))
+  ;; Add Haskell support
+  (add-to-list 'eglot-server-programs
+               '((haskell-mode haskell-ts-mode) . ("haskell-language-server-wrapper" "--lsp")))
   
-  ;; Register nixd
-  (lsp-register-client
-   (make-lsp-client :new-connection (lsp-stdio-connection "nixd")
-                    :major-modes '(nix-mode nix-ts-mode)
-                    :priority 1
-                    :server-id 'nixd)))
+  ;; Performance optimizations
+  (setq eglot-events-buffer-size 0)  ; Disable events buffer for better performance
+  (setq eglot-extend-to-xref t)      ; Improve cross-references
+  
+  ;; Configure events to format on
+  (add-hook 'eglot-managed-mode-hook
+            (lambda ()
+              ;; Show flymake diagnostics first
+              (setq eldoc-documentation-functions
+                    (cons #'flymake-eldoc-function
+                          (remove #'flymake-eldoc-function eldoc-documentation-functions)))
+              ;; Format on save
+              (add-hook 'before-save-hook #'eglot-format-buffer nil t))))
 
-(use-package lsp-ui
+;; Enhanced documentation popup with eldoc-box
+(use-package eldoc-box
   :ensure t
-  :commands lsp-ui-mode
+  :hook (eglot-managed-mode . eldoc-box-hover-mode)
   :config
-  (setq lsp-ui-doc-enable t)
-  (setq lsp-ui-doc-position 'at-point)
-  (setq lsp-ui-sideline-enable t)
-  (setq lsp-ui-sideline-show-diagnostics t)
-  (setq lsp-ui-sideline-show-hover t)
-  (setq lsp-ui-sideline-show-code-actions t))
+  (setq eldoc-box-max-pixel-width 700)
+  (setq eldoc-box-max-pixel-height 400)
+  (set-face-attribute 'eldoc-box-border nil :background "dark blue"))
+
+;; Breadcrumb navigation in header line
+(use-package breadcrumb
+  :ensure t
+  :hook (eglot-managed-mode . breadcrumb-mode)
+  :config
+  (setq breadcrumb-imenu-max-length 70))
+
+;; Enhanced completion with Corfu
+(use-package corfu
+  :ensure t
+  :init
+  (global-corfu-mode)
+  :config
+  (setq corfu-auto t
+        corfu-auto-delay 0.2
+        corfu-auto-prefix 2
+        corfu-cycle t
+        corfu-preselect 'prompt)
+  ;; Add visual enhancement with corfu popups
+  ;; (add-to-list 'corfu-margin-formatters #'corfu-doc-terminal)
+  (set-face-attribute 'corfu-current nil :background "dark blue")
+  )
+
+;; Documentation sidebar with corfu-doc
+;; (use-package corfu-doc
+;;   :ensure t
+;;   :after corfu
+;;   :hook (corfu-mode . corfu-doc-mode)
+;;   :config
+;;   (setq corfu-doc-delay 0.5)
+;;   (setq corfu-doc-max-width 70)
+;;   (setq corfu-doc-max-height 20))
+
+;; Fast inline diagnostics with sideline
+(use-package sideline
+  :ensure t
+  :hook (eglot-managed-mode . sideline-mode)
+  :config
+  (setq sideline-delay 0.3)
+  (setq sideline-priority-over-overlays t))
+
+;; Specifically add sideline diagnostics and code actions
+(use-package sideline-flymake
+  :ensure t
+  :after sideline
+  :hook (sideline-mode . sideline-flymake-setup)
+  :config
+  (setq sideline-flymake-display-errors-whole-line t))
+
+;; Code action lightbulbs
+(use-package sideline-lsp
+  :ensure t
+  :after (sideline eglot)
+  :hook (eglot-managed-mode . sideline-lsp-setup))
+
+;; Show colors for hex color codes and other color formats
+(use-package rainbow-mode
+  :ensure t
+  :hook (prog-mode . rainbow-mode))
+
+;; Highlight color strings with their actual colors
+(use-package rainbow-delimiters
+  :ensure t
+  :hook (prog-mode . rainbow-delimiters-mode))
+
+;; Add clickable information in the modeline
+;; (use-package modeline-posn
+;;   :ensure t
+;;   :config
+;;   (line-number-mode t)
+;;   (column-number-mode t)
+;;   (size-indication-mode t))
+
+;; Enhanced code folding/outlining  
+;; (use-package outshine
+;;   :ensure t
+;;   :hook (prog-mode . outshine-mode)
+;;   :config
+;;   (setq outshine-use-speed-commands t))
+
+;; Nice symbol outlines for navigation
+(use-package consult-eglot
+  :ensure t
+  :after (consult eglot)
+  :bind (:map eglot-mode-map
+              ("C-c c s" . consult-eglot-symbols)))
+
+;; Improved code actions menu
+(use-package consult
+  :ensure t
+  :bind (("C-c c a" . eglot-code-actions)
+         ("C-c c r" . eglot-rename)
+         ("C-c c f" . eglot-format)
+         ("C-c c d" . eldoc)
+         ("C-c c i" . eglot-find-implementation)
+         ("C-c c t" . eglot-find-typeDefinition)
+         ("C-c c h" . eglot-inlay-hints-mode)))
+
+;; Enhanced error navigation 
+(use-package flymake-diagnostic-at-point
+  :ensure t
+  :after flymake
+  :hook (flymake-mode . flymake-diagnostic-at-point-mode)
+  :config
+  (setq flymake-diagnostic-at-point-display-diagnostic-function
+        'flymake-diagnostic-at-point-display-popup)
+  (setq flymake-diagnostic-at-point-error-prefix "✗ ")
+  (setq flymake-diagnostic-at-point-warning-prefix "⚠ ")
+  (setq flymake-diagnostic-at-point-note-prefix "ℹ "))
 
 ;; ============================================================
 ;; Language-specific configurations
@@ -701,13 +799,7 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
 ;; ============================================================
 (use-package nix-mode
   :ensure t
-  :mode "\\.nix\\'"
-  :config
-  (setq lsp-nix-nixd-server-path "nixd")
-  (setq lsp-nix-nixd-formatting-command [ "nixfmt" ])
-  (setq lsp-nix-nixd-nixpkgs-expr "import <nixpkgs> { }")
-  (setq lsp-nix-nixd-nixos-options-expr "(let pkgs = import \"${inputs.nixpkgs}\" { }; in (pkgs.lib.evalModules { modules =  (import \"${inputs.nixpkgs}/nixos/modules/module-list.nix\") ++ [ ({...}: { nixpkgs.hostPlatform = builtins.currentSystem;} ) ] ; })).options")
-  (setq lsp-nix-nixd-home-manager-options-expr "(let pkgs = import \"${inputs.nixpkgs}\" { }; lib = import \"${inputs.home-manager}/modules/lib/stdlib-extended.nix\" pkgs.lib; in (lib.evalModules { modules =  (import \"${inputs.home-manager}/modules/modules.nix\") { inherit lib pkgs; check = false; }; })).options"))
+  :mode "\\.nix\\'")
 
 ;; TypeScript/JavaScript Mode
 ;; ============================================================
@@ -766,6 +858,9 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
   (let ((config-file (find-treefmt-config)))
     (when config-file
       (message "Using treefmt configuration from %s" config-file)
+      ;; Remove eglot's formatter to avoid double formatting
+      (when (and (boundp 'eglot--managed-mode) eglot--managed-mode)
+        (remove-hook 'before-save-hook #'eglot-format-buffer t))
       (setq-local apheleia-formatter 'treefmt))
     (add-to-list 'apheleia-formatters
                  '(treefmt "treefmt" "--config" config-file "--stdin" filepath))))
@@ -799,7 +894,9 @@ If DOTNET-TOOL is non-nil, suggest installing as a dotnet tool."
   (ensure-command-or-suggest-install "biome" "biome")
   (ensure-command-or-suggest-install "typescript-language-server" "typescript-language-server")
   (ensure-command-or-suggest-install "ruff" "ruff")
-  (ensure-command-or-suggest-install "basedpyright-langserver" "basedpyright" nil))
+  (ensure-command-or-suggest-install "basedpyright-langserver" "basedpyright" nil)
+  (ensure-command-or-suggest-install "haskell-language-server-wrapper" "haskell-language-server" nil)
+  (ensure-command-or-suggest-install "fourmolu" "fourmolu" nil))
 
 ;; Run check on startup
 (add-hook 'after-init-hook #'check-required-tools)
