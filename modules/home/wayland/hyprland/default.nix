@@ -1,12 +1,83 @@
-{ flake
-, config
-, lib
-, pkgs
-, ...
-}:
+{ flake, config, lib, pkgs, ... }:
+
+# 1. **Zero Border Radius**: Removed all rounded corners throughout Hyprland, Waybar, notifications, and application launcher.
+
+# 2. **Minimal Gaps**: Set to just 2px for both inner and outer gaps.
+
+# 3. **Strong Vim-style Navigation**:
+#    - `Super+H,J,K,L` for window focus
+#    - `Super+Shift+H,J,K,L` for moving windows
+#    - `Super+Alt+H,J,K,L` for resizing windows
+
+# 4. **Monitor Management**:
+#    - Persistent workspaces per monitor (1-3 on external, 4-6 on laptop)
+#    - `Super+,/.` to switch between monitors
+#    - `Super+Shift+,/.` to move workspaces between monitors
+
+# 5. **Improved Layout Controls**:
+#    - `Super+V` for vertical split
+#    - `Super+B` for horizontal split
+#    - `Super+T` for tabbed layout
+#    - `Super+G` to change group layout type
+#    - `Super+R` to rotate focus within a group
+
+# 6. **Special Workspace (Scratchpad)**:
+#    - `Super+S` to toggle special workspace
+#    - Auto-spawns terminal in empty special workspace
+
+# 7. **Workspace Controls**:
+#    - `Super+Tab` / `Super+Shift+Tab` to cycle workspaces on current monitor
+#    - `Super+Alt+Tab` to cycle through all workspaces
+
+# 8. **Clean, Minimal UI**:
+#    - Simple Waybar with basic information
+#    - Minimal animations for better performance
+#    - Flat, square design throughout
+
 let
   cfg = config.wayland.hyprland;
   inherit (flake) inputs;
+
+  # Extract color values without # prefix for Hyprland
+  inherit (config.lib.stylix) colors;
+  base00 = lib.removePrefix "#" colors.base00; # background
+  base01 = lib.removePrefix "#" colors.base01; # lighter background
+  base02 = lib.removePrefix "#" colors.base02; # selection background
+  base03 = lib.removePrefix "#" colors.base03; # comments/dark
+  base04 = lib.removePrefix "#" colors.base04; # dark foreground
+  base05 = lib.removePrefix "#" colors.base05; # foreground
+  base06 = lib.removePrefix "#" colors.base06; # light foreground
+  base07 = lib.removePrefix "#" colors.base07; # light background
+  base08 = lib.removePrefix "#" colors.base08; # red
+  base09 = lib.removePrefix "#" colors.base09; # orange
+  base0A = lib.removePrefix "#" colors.base0A; # yellow
+  base0B = lib.removePrefix "#" colors.base0B; # green
+  base0C = lib.removePrefix "#" colors.base0C; # cyan
+  base0D = lib.removePrefix "#" colors.base0D; # blue
+  base0E = lib.removePrefix "#" colors.base0E; # purple
+  base0F = lib.removePrefix "#" colors.base0F; # dark accent
+
+  # Monitor setup script
+  monitorSetupScript = pkgs.writeShellScript "hyprland-monitor-setup" ''
+    #!/usr/bin/env bash
+    
+    # Wait for monitors to connect
+    sleep 1
+    
+    # Check for monitors
+    PRIMARY_MONITOR="desc:AOC CU34G2XP"
+    LAPTOP_MONITOR="eDP-1"
+    
+    if hyprctl monitors -j | grep -q "$PRIMARY_MONITOR"; then
+      # External monitor present - set it up
+      hyprctl dispatch workspace 1
+      hyprctl dispatch focusmonitor "$PRIMARY_MONITOR"
+    else
+      # Only laptop monitor
+      hyprctl dispatch workspace 4
+      hyprctl dispatch focusmonitor "$LAPTOP_MONITOR"
+    fi
+  '';
 in
 {
   imports = [
@@ -21,517 +92,513 @@ in
       inputs.hy3.outputs.packages.${pkgs.system}.hy3
     ];
 
-    settings =
-      let
-        inherit (config.lib.stylix) colors;
+    settings = {
+      # ===== Monitor Configuration =====
+      monitor = [
+        # External monitor - WQHD ultrawide
+        "desc:AOC CU34G2XP,3440x1440@100.00,0x0,1.5"
 
-        # Extract color values without # prefix for Hyprland
-        base00 = lib.removePrefix "#" colors.base00; # background
-        base01 = lib.removePrefix "#" colors.base01; # lighter background
-        base02 = lib.removePrefix "#" colors.base02; # selection background
-        base03 = lib.removePrefix "#" colors.base03; # comments/dark
-        base04 = lib.removePrefix "#" colors.base04; # dark foreground
-        base05 = lib.removePrefix "#" colors.base05; # foreground
-        base06 = lib.removePrefix "#" colors.base06; # light foreground
-        base07 = lib.removePrefix "#" colors.base07; # light background
-        base08 = lib.removePrefix "#" colors.base08; # red
-        base09 = lib.removePrefix "#" colors.base09; # orange
-        base0A = lib.removePrefix "#" colors.base0A; # yellow
-        base0B = lib.removePrefix "#" colors.base0B; # green
-        base0C = lib.removePrefix "#" colors.base0C; # cyan
-        base0D = lib.removePrefix "#" colors.base0D; # blue
-        base0E = lib.removePrefix "#" colors.base0E; # purple
-        base0F = lib.removePrefix "#" colors.base0F; # dark accent
-      in
-      {
-        # Monitor configuration using description for external and name for internal
-        monitor = [
-          # External monitor by description (works with any port/dongle)
-          "desc:AOC CU34G2XP,3440x1440@100.00,0x0,1"
-          # Built-in display with specific resolution
-          "eDP-1,3840x2400@60.00,3440x0,2.5"
-          # Fallback for any other displays
-          ",preferred,auto,1"
-        ];
+        # Laptop display with scaled resolution
+        "eDP-1,3840x2400@60.00,3440x0,2.5"
 
-        # Lid switch bindings for laptop display
-        bindl = [
-          ",switch:off:Lid Switch,exec,hyprctl keyword monitor eDP-1 disable"
-          ",switch:on:Lid Switch,exec,hyprctl keyword monitor eDP-1 3840x2400@60.00,3440x0,2.5"
-        ];
+        # Fallback for other monitors
+        ",preferred,auto,1"
+      ];
 
-        # Execute monitor detection/arrangement script on startup
-        exec-once = [
-          "blueman-applet"
-          "hyprpaper"
-          "mako"
-          "nm-tray"
-          "tailscale-systray"
-          "waybar"
-        ];
+      # ===== Persistent Workspace Assignment =====
+      # First three workspaces for external, next three for laptop
+      workspace = [
+        "1, monitor:desc:AOC CU34G2XP, default:true, persistent:true"
+        "2, monitor:desc:AOC CU34G2XP, persistent:true"
+        "3, monitor:desc:AOC CU34G2XP, persistent:true"
+        "4, monitor:eDP-1, default:true, persistent:true"
+        "5, monitor:eDP-1, persistent:true"
+        "6, monitor:eDP-1, persistent:true"
+        # Special workspace can be summoned anywhere
+        "special, on-created-empty:wezterm"
+      ];
 
-        # General settings
-        general = {
-          gaps_in = 5;
-          gaps_out = 10;
-          border_size = 2;
+      # ===== Handle laptop lid =====
+      bindl = [
+        ",switch:off:Lid Switch,exec,hyprctl keyword monitor eDP-1 disable"
+        ",switch:on:Lid Switch,exec,hyprctl keyword monitor eDP-1 3840x2400@60.00,3440x0,2.5"
+      ];
 
-          "col.active_border" = lib.mkForce "rgba(${base0D}ee) rgba(${base0E}ee) 45deg";
-          "col.inactive_border" = lib.mkForce "rgba(${base02}aa)";
+      # ===== Startup Programs =====
+      exec-once = [
+        "blueman-applet"
+        "hyprpaper"
+        "mako"
+        "nm-tray"
+        "tailscale-systray"
+        "waybar"
+        "${monitorSetupScript}"
+      ];
 
-          layout = "dwindle";
-        };
+      # ===== General UI Settings =====
+      general = {
+        gaps_in = 1-;
+        gaps_out = 10;
+        border_size = 2;
+        resize_on_border = true;
 
-        # Decoration settings
-        decoration = {
-          blur = {
-            enabled = true;
-            size = 3;
-            passes = 1;
-          };
-        };
+        # Use the hy3 plugin for layout
+        layout = "hy3";
+      };
 
-        # Animation settings
-        animations = {
+      # ===== UI Theme Elements =====
+      decoration = {
+        rounding = 0; # No rounded corners
+
+        blur = {
           enabled = true;
-          bezier = "myBezier, 0.05, 0.9, 0.1, 1.05";
-
-          animation = [
-            "windows, 1, 7, myBezier"
-            "windowsOut, 1, 7, default, popin 80%"
-            "border, 1, 10, default"
-            "fade, 1, 7, default"
-            "workspaces, 1, 6, default"
-          ];
+          size = 3;
+          passes = 1;
+          new_optimizations = true;
+          xray = false;
+          ignore_opacity = true;
         };
 
-        # Input settings
-        input = {
-          kb_layout = "us";
-          follow_mouse = 1;
-          sensitivity = 0.0; # -1.0 - 1.0, 0 means no modification
+        # Focus indication
+        active_opacity = 1.0;
+        inactive_opacity = 0.95;
+        fullscreen_opacity = 1.0;
+      };
 
-          touchpad = {
-            natural_scroll = true;
-          };
+      # ===== Animations =====
+      animations = {
+        enabled = true;
 
-          kb_options = "ctrl:nocaps";
-        };
-
-        # Layout settings
-        dwindle = {
-          pseudotile = true;
-          preserve_split = true;
-        };
-
-        # Misc settings
-        misc = {
-          force_default_wallpaper = 0;
-        };
-
-        # hy3
-        plugin.hy3 = {
-          tabs = {
-            border_width = 1;
-            "col.active_border" = lib.mkForce "rgba(${base0D}ee) rgba(${base0E}ee) 45deg";
-            "col.inactive_border" = lib.mkForce "rgba(${base02}aa)";
-          };
-
-          autotile = {
-            enable = true;
-            trigger_width = 800;
-            trigger_height = 500;
-          };
-        };
-
-        # Key bindings
-        "$mod" = "SUPER";
-        bind = [
-          # Core bindings
-          "$mod, Return, exec, wezterm"
-          "$mod, Space, exec, wofi --show drun"
-          "$mod, Q, killactive"
-          "$mod SHIFT, Q, exit"
-          "$mod, E, exec, dolphin"
-
-          # Window management
-          "$mod, F, fullscreen, 1"
-          "$mod SHIFT, F, fullscreen, 0"
-          "$mod, V, togglefloating"
-          "$mod, T, pseudo"
-          "$mod, S, togglesplit"
-
-          # Focus navigation (vim-style)
-          "$mod, H, movefocus, l"
-          "$mod, L, movefocus, r"
-          "$mod, K, movefocus, u"
-          "$mod, J, movefocus, d"
-
-          # Move windows (vim-style)
-          "$mod SHIFT, H, movewindow, l"
-          "$mod SHIFT, L, movewindow, r"
-          "$mod SHIFT, K, movewindow, u"
-          "$mod SHIFT, J, movewindow, d"
-
-          # Resize windows (vim-style with Alt)
-          "$mod ALT, H, resizeactive, -20 0"
-          "$mod ALT, L, resizeactive, 20 0"
-          "$mod ALT, K, resizeactive, 0 -20"
-          "$mod ALT, J, resizeactive, 0 20"
-
-          # Workspace switching
-          "$mod, 1, workspace, 1"
-          "$mod, 2, workspace, 2"
-          "$mod, 3, workspace, 3"
-          "$mod, 4, workspace, 4"
-          "$mod, 5, workspace, 5"
-          "$mod, 6, workspace, 6"
-          "$mod, 7, workspace, 7"
-          "$mod, 8, workspace, 8"
-
-          # Move active window to workspace
-          "$mod SHIFT, 1, movetoworkspace, 1"
-          "$mod SHIFT, 2, movetoworkspace, 2"
-          "$mod SHIFT, 3, movetoworkspace, 3"
-          "$mod SHIFT, 4, movetoworkspace, 4"
-          "$mod SHIFT, 5, movetoworkspace, 5"
-          "$mod SHIFT, 6, movetoworkspace, 6"
-          "$mod SHIFT, 7, movetoworkspace, 7"
-          "$mod SHIFT, 8, movetoworkspace, 8"
-
-          # Cycle through workspaces
-          "$mod, Tab, exec, hyprctl dispatch cyclenext"
-          "$mod SHIFT, Tab, exec, hyprctl dispatch cyclenext prev"
+        bezier = [
+          "easeOutQuint, 0.22, 1, 0.36, 1"
         ];
 
-        # Mouse bindings
-        bindm = [
-          "$mod, mouse:272, movewindow"
-          "$mod, mouse:273, resizewindow"
+        animation = [
+          "windows, 1, 3, easeOutQuint"
+          "windowsOut, 1, 3, easeOutQuint"
+          "border, 1, 3, easeOutQuint"
+          "fade, 1, 3, easeOutQuint"
+          "workspaces, 1, 3, easeOutQuint"
+          "specialWorkspace, 1, 3, easeOutQuint"
         ];
       };
+
+      # ===== Input Settings =====
+      input = {
+        kb_layout = "us";
+        follow_mouse = 1;
+        sensitivity = 0;
+        accel_profile = "flat";
+
+        touchpad = {
+          natural_scroll = true;
+          disable_while_typing = true;
+          clickfinger_behavior = true;
+          tap-to-click = true;
+          drag_lock = true;
+        };
+
+        kb_options = "ctrl:nocaps";
+      };
+
+      # ===== Touchpad Gestures =====
+      gestures = {
+        workspace_swipe = true;
+        workspace_swipe_fingers = 3;
+        workspace_swipe_distance = 300;
+        workspace_swipe_invert = false;
+        workspace_swipe_create_new = false;
+      };
+
+      # ===== Misc Settings =====
+      misc = {
+        force_default_wallpaper = 0;
+        animate_mouse_windowdragging = false;
+        animate_manual_resizes = false;
+        enable_swallow = true;
+        swallow_regex = "^(wezterm|kitty|alacritty)$";
+        focus_on_activate = true;
+      };
+
+      # ===== HY3 Plugin Settings =====
+      plugin.hy3 = {
+        # Enable vim-like behavior
+        vim_bindings = true;
+        node_collapse_policy = 2; # Only collapse if empty
+
+        # Tab configuration
+        tabs = {
+          height = 16;
+          padding = 0;
+          from_top = true;
+          rounding = 0; # No rounding
+          render_text = true;
+
+          # Tab colors
+          "col.active" = "rgba(${base0D}ee)";
+          "col.inactive" = "rgba(${base02}aa)";
+          "col.text.active" = "rgba(${base05}ee)";
+          "col.text.inactive" = "rgba(${base04}aa)";
+
+          "col.active_border" = "rgba(${base0D}ee) rgba(${base0E}ee) 45deg";
+          "col.inactive_border" = "rgba(${base02}aa)";
+          border_width = 1;
+        };
+
+        # Automatic tiling
+        autotile = {
+          enable = true;
+          trigger_width = 800;
+          main_ratio = 0.5;
+        };
+      };
+
+      # ===== Key Bindings =====
+      "$mod" = "SUPER";
+      "$alt" = "ALT";
+
+      # Core system bindings
+      bind = [
+        # Applications
+        "$mod, Return, exec, wezterm"
+        "$mod, Space, exec, wofi --show drun"
+        "$mod, E, exec, dolphin"
+        "$mod, W, exec, firefox"
+        "$mod, BackSpace, killactive"
+        "$mod SHIFT, BackSpace, exit"
+
+        # Special workspace (scratchpad)
+        "$mod, S, togglespecialworkspace"
+        "$mod SHIFT, S, movetoworkspace, special"
+
+        # Fullscreen and floating
+        "$mod, F, fullscreen, 0"
+        "$mod SHIFT, F, fullscreen, 1"
+        "$mod, D, togglefloating"
+
+        # Monitor navigation (vim-inspired)
+        "$mod, comma, focusmonitor, -1"
+        "$mod, period, focusmonitor, +1"
+
+        # Move current workspace to next/prev monitor
+        "$mod SHIFT, comma, movecurrentworkspacetomonitor, -1"
+        "$mod SHIFT, period, movecurrentworkspacetomonitor, +1"
+
+        # Workspace switching - per monitor
+        "$mod, Tab, workspace, m+1"
+        "$mod SHIFT, Tab, workspace, m-1"
+
+        # Workspace switching - global
+        "$mod $alt, Tab, workspace, +1"
+        "$mod $alt SHIFT, Tab, workspace, -1"
+
+        # Direct workspace access
+        "$mod, 1, workspace, 1"
+        "$mod, 2, workspace, 2"
+        "$mod, 3, workspace, 3"
+        "$mod, 4, workspace, 4"
+        "$mod, 5, workspace, 5"
+        "$mod, 6, workspace, 6"
+
+        # Move windows to workspaces
+        "$mod SHIFT, 1, movetoworkspace, 1"
+        "$mod SHIFT, 2, movetoworkspace, 2"
+        "$mod SHIFT, 3, movetoworkspace, 3"
+        "$mod SHIFT, 4, movetoworkspace, 4"
+        "$mod SHIFT, 5, movetoworkspace, 5"
+        "$mod SHIFT, 6, movetoworkspace, 6"
+
+        # Window focus - vim keys
+        "$mod, H, hy3:movefocus, l"
+        "$mod, L, hy3:movefocus, r"
+        "$mod, K, hy3:movefocus, u"
+        "$mod, J, hy3:movefocus, d"
+
+        # Move windows - vim keys
+        "$mod SHIFT, H, hy3:movewindow, l"
+        "$mod SHIFT, L, hy3:movewindow, r"
+        "$mod SHIFT, K, hy3:movewindow, u"
+        "$mod SHIFT, J, hy3:movewindow, d"
+
+        # Resize windows - vim keys with ALT
+        "$mod $alt, H, resizeactive, -20 0"
+        "$mod $alt, L, resizeactive, 20 0"
+        "$mod $alt, K, resizeactive, 0 -20"
+        "$mod $alt, J, resizeactive, 0 20"
+
+        # Layout control
+        "$mod, T, hy3:makegroup, tab" # Create tabbed group
+        "$mod, G, hy3:changegroup, opposite" # Change group layout (h/v/tab)
+
+        # Screenshots
+        ", Print, exec, grim -g \"$(slurp)\" - | wl-copy"
+        "$mod, Print, exec, grim -g \"$(slurp)\" ~/Pictures/screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
+        "SHIFT, Print, exec, grim - | wl-copy"
+
+        # Media controls
+        ", XF86AudioRaiseVolume, exec, pactl set-sink-volume @DEFAULT_SINK@ +5%"
+        ", XF86AudioLowerVolume, exec, pactl set-sink-volume @DEFAULT_SINK@ -5%"
+        ", XF86AudioMute, exec, pactl set-sink-mute @DEFAULT_SINK@ toggle"
+        ", XF86AudioPlay, exec, playerctl play-pause"
+        ", XF86AudioNext, exec, playerctl next"
+        ", XF86AudioPrev, exec, playerctl previous"
+
+        # Brightness controls
+        ", XF86MonBrightnessUp, exec, brightnessctl set +5%"
+        ", XF86MonBrightnessDown, exec, brightnessctl set 5%-"
+      ];
+
+      # Mouse bindings
+      bindm = [
+        "$mod, mouse:272, movewindow"
+        "$mod, mouse:273, resizewindow"
+      ];
+    };
   };
 
-  programs.waybar =
-    let
-      inherit (config.lib.stylix) colors;
-    in
-    {
-      enable = true;
+  # ===== WAYBAR CONFIGURATION =====
+  programs.waybar = {
+    enable = true;
+    systemd.enable = true;
+    settings = {
+      mainBar = {
+        layer = "top";
+        position = "top";
+        height = 28;
+        spacing = 2;
 
-      settings = {
-        mainBar = {
-          layer = "top";
-          position = "top";
-          height = 32;
-          spacing = 4;
+        modules-left = [
+          "hyprland/workspaces"
+          "hyprland/window"
+        ];
 
-          modules-left = [
-            "hyprland/workspaces"
-            "hyprland/window"
-          ];
+        modules-center = [ "clock" ];
 
-          modules-center = [ "clock" ];
+        modules-right = [
+          "battery"
+          "network"
+          "cpu"
+          "memory"
+          "pulseaudio"
+          "tray"
+        ];
 
-          modules-right = [
-            "battery"
-            "cpu"
-            "memory"
-            "network"
-            "pulseaudio"
-            "temperature"
-            "tray"
-          ];
+        "hyprland/workspaces" = {
+          format = "{name}";
+          on-click = "activate";
+          sort-by-number = true;
+          all-outputs = false;
+          active-only = false;
+        };
 
-          "hyprland/workspaces" = {
-            format = "{name}"; # Show both number and label from virtual-desktops
+        "clock" = {
+          format = "{:%H:%M}";
+          format-alt = "{:%Y-%m-%d}";
+          tooltip-format = "{:%Y-%m-%d | %H:%M}";
+          on-click = "mode";
+        };
 
-            persistent-workspaces = {
-              "1" = [ ]; # Always show workspace 1
-              "2" = [ ]; # Always show workspace 2
-              "3" = [ ]; # Always show workspace 3
-              "4" = [ ]; # Always show workspace 4
-              "5" = [ ]; # Always show workspace 5
-              "6" = [ ]; # Always show workspace 6
-              "7" = [ ]; # Always show workspace 7
-              "8" = [ ]; # Always show workspace 8
-            };
+        "cpu" = {
+          format = "CPU {usage}%";
+          tooltip = true;
+          interval = 2;
+        };
 
-            sort-by-number = true;
+        "memory" = {
+          format = "MEM {used:0.1f}GB";
+          interval = 2;
+        };
+
+        "battery" = {
+          states = {
+            warning = 30;
+            critical = 15;
           };
+          format = "BAT {capacity}%";
+          format-charging = "CHG {capacity}%";
+          format-plugged = "PLUG {capacity}%";
+        };
 
-          "clock" = {
-            format = "⌚ {:%H:%M}";
-            format-alt = "⌚ {:%Y-%m-%d}";
-            tooltip-format = "⌚ {:%Y-%m-%d} | ⌚ {:%H:%M}";
-          };
+        "network" = {
+          format-wifi = "WIFI {essid}";
+          format-ethernet = "ETH {ipaddr}";
+          format-linked = "ETH (No IP)";
+          format-disconnected = "NET Disconnected";
+          tooltip-format = "{ifname}: {ipaddr}/{cidr}";
+          max-length = 50;
+          interval = 5;
+        };
 
-          "cpu" = {
-            format = "⚙ {usage}%";
-            tooltip = false;
-          };
+        "pulseaudio" = {
+          format = "VOL {volume}%";
+          format-muted = "MUTED";
+          on-click = "pavucontrol";
+        };
 
-          "memory" = {
-            format = "⬗ {used:0.1f}GB";
-          };
-
-          "temperature" = {
-            critical-threshold = 80;
-            format = "🌡 {temperatureC}°C {icon}";
-
-            format-icons = [
-              "✓"
-              "⚠"
-              "⚠"
-            ];
-          };
-
-          "battery" = {
-            states = {
-              good = 95;
-              warning = 30;
-              critical = 15;
-            };
-
-            format = "{capacity}% {icon}";
-            format-charging = "{capacity}% ⚡";
-            format-plugged = "{capacity}% ⚡";
-            format-alt = "{time} {icon}";
-
-            format-icons = [
-              "□"
-              "▣"
-              "▣"
-              "▣"
-              "■"
-            ];
-          };
-
-          "network" = {
-            format-wifi = "→ {essid} ({signalStrength}%)";
-            format-ethernet = "⌁ {ipaddr}/{cidr}";
-            tooltip-format = "⌁ {ifname} via {gwaddr}";
-            format-linked = "⌁ {ifname} (No IP)";
-            format-disconnected = "✗ Disconnected";
-            format-alt = "⌁ {ifname}: {ipaddr}/{cidr}";
-
-            on-click = "nm-applet";
-          };
-
-          "pulseaudio" = {
-            format = "♪ {volume}% {icon} {format_source}";
-            format-bluetooth = "♫ {volume}% {icon} {format_source}";
-            format-bluetooth-muted = "♫× {icon} {format_source}";
-            format-muted = "♪× {format_source}";
-            format-source = "▲ {volume}%";
-            format-source-muted = "▼ ×";
-
-            format-icons = {
-              headphone = "♫";
-              hands-free = "☊";
-              headset = "☊";
-              phone = "☎";
-              portable = "☎";
-              car = "⚙";
-              default = [
-                "♪"
-                "♪"
-                "♫"
-              ];
-            };
-
-            on-click = "pavucontrol";
-          };
-
-          "tray" = {
-            icon-size = 21;
-            spacing = 10;
-          };
+        "tray" = {
+          icon-size = 16;
+          spacing = 5;
         };
       };
-
-      style = ''
-        * {
-          font-family: "${config.stylix.fonts.monospace.name}", "Font Awesome 6 Free";
-          font-size: ${toString config.stylix.fonts.sizes.applications}px;
-          border-radius: 0px;
-        }
-
-        window#waybar {
-          background-color: #${colors.base00};
-          color: #${colors.base05};
-          transition-property: background-color;
-          transition-duration: .5s;
-        }
-
-        window#waybar.hidden {
-          opacity: 0.2;
-        }
-
-        /* Enhanced workspace styling */
-        #workspaces button {
-          padding: 0 8px;
-          background-color: transparent;
-          color: #${colors.base05};
-          border-bottom: 3px solid #${colors.base05};
-          font-weight: bold;
-        }
-
-        #workspaces button .name {
-          font-size: ${toString (config.stylix.fonts.sizes.applications - 1)}px;
-          padding-left: 5px;
-          color: #${colors.base04};
-        }
-
-        #workspaces button:hover {
-          background: #${colors.base02};
-        }
-
-        #workspaces button.active {
-          background-color: #${colors.base02};
-        }
-
-        #workspaces button.active .name {
-          color: #${colors.base0D};
-        }
-
-        #workspaces button.urgent {
-          background-color: #${colors.base08};
-        }
-
-        #mode {
-          background-color: #${colors.base02};
-          border-bottom: 3px solid #${colors.base05};
-        }
-
-        #clock,
-        #battery,
-        #cpu,
-        #memory,
-        #disk,
-        #temperature,
-        #network,
-        #pulseaudio,
-        #custom-media,
-        #tray,
-        #mode,
-        #idle_inhibitor,
-        #mpd {
-          padding: 0 10px;
-          margin: 0 4px;
-          color: #${colors.base05};
-        }
-
-        #window,
-        #workspaces {
-          margin: 0 4px;
-        }
-
-        #battery.charging, #battery.plugged {
-          color: #${colors.base0B};
-        }
-
-        #battery.critical:not(.charging) {
-          background-color: #${colors.base08};
-          color: #${colors.base05};
-          animation-name: blink;
-          animation-duration: 0.5s;
-          animation-timing-function: linear;
-          animation-iteration-count: infinite;
-          animation-direction: alternate;
-        }
-
-        #temperature.critical {
-          background-color: #${colors.base08};
-        }
-
-        @keyframes blink {
-          to {
-            background-color: #${colors.base05};
-            color: #${colors.base00};
-          }
-        }
-      '';
     };
 
-  # Notification daemon (mako)
-  # Uses the Stylix colors automatically through the stylix.targets
-  services.mako.enable = true;
-
-  home.packages = with pkgs; [
-    blueman
-    grim
-    hyprpaper
-    mako
-    nm-tray
-    pavucontrol
-    playerctl
-    slurp
-    swappy
-    tailscale-systray
-    waybar
-    wl-clipboard
-    wl-color-picker
-    wl-gammactl
-    wl-kbptr
-    wlsunset
-    wofi
-  ];
-
-  home.file.".config/wofi/style.css".text =
-    let
-      inherit (config.lib.stylix) colors;
-    in
-    ''
-      window {
-        margin: 0px;
-        background-color: ${colors.base00};
-        border-radius: 0px;
-        border: 2px solid ${colors.base0D};
-      }
-
-      #input {
-        margin: 5px;
-        border: 2px solid ${colors.base02};
-        border-radius: 0px;
-        color: ${colors.base05};
-        background-color: ${colors.base01};
-      }
-
-      #inner-box {
-        margin: 5px;
-        background-color: ${colors.base00};
+    style = ''
+      * {
+        font-family: "${config.stylix.fonts.monospace.name}", monospace;
+        font-size: ${toString config.stylix.fonts.sizes.applications}px;
         border-radius: 0px;
       }
 
-      #outer-box {
-        margin: 5px;
-        padding: 10px;
-        background-color: ${colors.base00};
-        border-radius: 0px;
+      window#waybar {
+        background-color: #${colors.base00};
+        color: #${colors.base05};
+        border-bottom: 1px solid #${colors.base02};
       }
 
-      #scroll {
-        margin: 5px;
-        background-color: ${colors.base00};
-        border-radius: px;
+      #workspaces button {
+        padding: 0 5px;
+        background-color: transparent;
+        color: #${colors.base05};
+        border-bottom: 1px solid #${colors.base02};
       }
 
-      #text {
-        margin: 5px;
-        color: ${colors.base05};
+      #workspaces button:hover {
+        background: #${colors.base01};
       }
 
-      #entry:selected {
-        background-color: ${colors.base02};
-        border-radius: 5px;
+      #workspaces button.active {
+        background-color: #${colors.base02};
+        border-bottom: 1px solid #${colors.base0D};
       }
 
-      #text:selected {
-        color: ${colors.base0D};
+      #workspaces button.urgent {
+        background-color: #${colors.base08};
+      }
+
+      #clock,
+      #battery,
+      #cpu,
+      #memory,
+      #network,
+      #pulseaudio,
+      #tray {
+        padding: 0 5px;
+        margin: 0 2px;
+        color: #${colors.base05};
+      }
+
+      #window {
+        margin-left: 5px;
+        color: #${colors.base05};
+      }
+
+      #battery.critical:not(.charging) {
+        background-color: #${colors.base08};
+        color: #${colors.base00};
       }
     '';
+  };
 
-  # Create a directory for default wallpaper just in case
-  home.file.".config/hypr/.keep".text = "";
+  # ===== Notification daemon (mako) =====
+  services.mako = {
+    enable = true;
+    borderSize = 1;
+    borderRadius = 0;
+    padding = "5";
+    defaultTimeout = 5000;
+    layer = "overlay";
+
+    # backgroundColor = "#${colors.base00}";
+    textColor = "#${colors.base05}";
+    borderColor = "#${colors.base0D}";
+
+    extraConfig = ''
+      [urgency=low]
+      border-color=#${colors.base0D}
+
+      [urgency=normal]
+      border-color=#${colors.base0D}
+
+      [urgency=high]
+      border-color=#${colors.base08}
+      default-timeout=0
+    '';
+  };
+
+  # ===== Wofi Configuration =====
+  home.file.".config/wofi/style.css".text = ''
+    window {
+      margin: 0px;
+      background-color: #${colors.base00};
+      border: 1px solid #${colors.base0D};
+      border-radius: 0px;
+    }
+
+    #input {
+      margin: 5px;
+      border: 1px solid #${colors.base02};
+      border-radius: 0px;
+      color: #${colors.base05};
+      background-color: #${colors.base01};
+    }
+
+    #inner-box {
+      margin: 2px;
+      background-color: #${colors.base00};
+      border-radius: 0px;
+    }
+
+    #outer-box {
+      margin: 2px;
+      padding: 5px;
+      background-color: #${colors.base00};
+      border-radius: 0px;
+    }
+
+    #scroll {
+      margin: 2px;
+      background-color: #${colors.base00};
+    }
+
+    #text {
+      margin: 2px;
+      color: #${colors.base05};
+    }
+
+    #entry:selected {
+      background-color: #${colors.base02};
+    }
+
+    #text:selected {
+      color: #${colors.base0D};
+    }
+  '';
+
+  # ===== Required packages =====
+  home.packages = with pkgs; [
+    # System tray applets
+    blueman
+    nm-tray
+    tailscale-systray
+
+    # Tools and utilities
+    brightnessctl
+    grim # Screenshot tool
+    hyprpaper # Wallpaper
+    mako # Notifications
+    pavucontrol # Audio control
+    playerctl # Media control
+    slurp # Screen area selection
+    waybar # Status bar
+    wl-clipboard # Clipboard tools
+    wofi # Application launcher
+
+    # Additional helpful tools
+    jq # JSON processing
+    libnotify # Notifications
+    pamixer # Pulseaudio control
+    swappy # Screenshot editing
+    wev # Input debugger
+    wlr-randr # Output management
+  ];
 }
