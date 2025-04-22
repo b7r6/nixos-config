@@ -1,20 +1,20 @@
-{ config, pkgs, ... }:
 {
-  imports = [
-    # Include the results of the hardware scan.
-    ./hardware-configuration.nix
-  ];
+  modulesPath,
+  config,
+  pkgs,
+  lib,
+  ...
+}:
+{
+  imports = [ "${modulesPath}/virtualisation/amazon-image.nix" ];
 
-  # Bootloader.
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-
-  networking.hostName = "watchtower"; # Define your hostname.
-  networking.networkmanager.enable = true;
-
-  services.tailscale.enable = true;
-  services.openssh.enable = true;
-  programs.ssh.startAgent = true;
+  # Enable IP forwarding for Tailscale subnet routing and exit node
+  boot.kernel.sysctl = {
+    "net.core.gro_normal_batch" = 8;
+    "net.core.gro_flush_timeout" = 200000;
+    "net.ipv4.ip_forward" = 1;
+    "net.ipv6.conf.all.forwarding" = 1;
+  };
 
   nix = {
     package = pkgs.nixVersions.stable;
@@ -38,53 +38,74 @@
     };
   };
 
-  security.sudo.wheelNeedsPassword = false;
-
   # TODO[b7r6]: doesn't belong here...
   programs.nh.enable = true;
 
+  networking = {
+    hostName = "watchtower";
+
+    firewall = {
+      enable = true;
+
+      # Tailscale needs these ports
+      allowedUDPPorts = [ config.services.tailscale.port ];
+      checkReversePath = "loose";
+    };
+  };
+
+  services.tailscale = {
+    enable = true;
+
+    extraUpFlags = [
+      "--accept-dns"
+      "--accept-routes"
+      "--ssh"
+    ];
+  };
+
+  # SSH configuration
+  services.openssh = {
+    enable = true;
+  };
+
+  services.prometheus.exporters.node = {
+    enable = true;
+    enabledCollectors = [ "systemd" ];
+  };
+
+  # Enable SSH agent
+  programs.ssh.startAgent = true;
+
+  # TODO[mechanyx]: when you packer this, add more admin keys...
+  users.users.b7r6 = {
+    isNormalUser = true;
+    extraGroups = [ "wheel" ]; # Enable sudo
+
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ1ptqyz5C3YCcMgh3LUbXtjeS1rIZ5/6RHnH7D93Nqf b7r6@b7r6.net"
+    ];
+  };
+
+  security.sudo.wheelNeedsPassword = false;
+
+  # Set your time zone
+  time.timeZone = "UTC";
+
+  # Basic system packages
   environment.systemPackages = with pkgs; [
     alacritty
+    btop
     cacert
     curl
+    gh
     git
     home-manager
     neovim
     ripgrep
+    tmux
+    wget
   ];
 
-  # Set your time zone.
-  time.timeZone = "America/New_York";
-
-  i18n.extraLocaleSettings = {
-    LC_ADDRESS = "en_US.UTF-8";
-    LC_IDENTIFICATION = "en_US.UTF-8";
-    LC_MEASUREMENT = "en_US.UTF-8";
-    LC_MONETARY = "en_US.UTF-8";
-    LC_NAME = "en_US.UTF-8";
-    LC_NUMERIC = "en_US.UTF-8";
-    LC_PAPER = "en_US.UTF-8";
-    LC_TELEPHONE = "en_US.UTF-8";
-    LC_TIME = "en_US.UTF-8";
-  };
-
-  services.printing.enable = true;
-
-  services.pulseaudio.enable = false;
-  security.rtkit.enable = true;
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-    # If you want to use JACK applications, uncomment this
-    #jack.enable = true;
-
-    # use the example session manager (no others are packaged yet so this is enabled by default,
-    # no need to redefine it in your config for now)
-    #media-session.enable = true;
-  };
-
-  programs.firefox.enable = true;
-  system.stateVersion = "24.11"; # Did you read the comment?
+  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+  system.stateVersion = "25.05";
 }
