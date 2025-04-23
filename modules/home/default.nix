@@ -13,7 +13,7 @@
     ./emacs
     ./neovim
     ./shell
-    ./terminal
+    # ./terminal
     ./themes
 
     # session management

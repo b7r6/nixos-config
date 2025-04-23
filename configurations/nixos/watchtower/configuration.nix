@@ -86,6 +86,15 @@
     ];
   };
 
+  users.users.gedanziger = {
+    isNormalUser = true;
+    extraGroups = [ "wheel" ]; # Enable sudo
+
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICRg8xosQAO96/OOFWKuNbxEX3TnaFuacr9BQwYT7Bdp luthadel"
+    ];
+  };
+
   security.sudo.wheelNeedsPassword = false;
 
   # Set your time zone
@@ -97,12 +106,14 @@
     btop
     cacert
     curl
+    dbus
     gh
     git
     home-manager
     neovim
     ripgrep
     tmux
+    wemux
     wget
   ];
 
