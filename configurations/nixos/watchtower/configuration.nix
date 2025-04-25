@@ -6,7 +6,9 @@
   ...
 }:
 {
-  imports = [ "${modulesPath}/virtualisation/amazon-image.nix" ];
+  imports = [
+    "${modulesPath}/virtualisation/amazon-image.nix"
+  ];
 
   # Enable IP forwarding for Tailscale subnet routing and exit node
   boot.kernel.sysctl = {
@@ -66,6 +68,9 @@
   # SSH configuration
   services.openssh = {
     enable = true;
+    settings = {
+      AllowAgentForwarding = true;
+    };
   };
 
   services.prometheus.exporters.node = {
@@ -115,6 +120,7 @@
     tmux
     wemux
     wget
+    omnix
   ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
