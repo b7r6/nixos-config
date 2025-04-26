@@ -84,19 +84,16 @@
     lidSwitchDocked = "lock";
   };
   
-  fileSystems."/" = {
-    device = "/dev/disk/by-uuid/b391c9e7-40ae-48b4-8bae-78e65c9dc935";
-    fsType = "ext4";
-  };
+    fileSystems."/" =
+    { device = "/dev/disk/by-uuid/e0cab5b4-040d-47a9-8b87-9575d275aa17";
+      fsType = "ext4";
+    };
 
-  fileSystems."/boot" = {
-    device = "/dev/disk/by-uuid/D494-5606";
-    fsType = "vfat";
-    options = [
-      "fmask=0077"
-      "dmask=0077"
-    ];
-  };
+  fileSystems."/boot" =
+    { device = "/dev/disk/by-uuid/4C1D-B8D4";
+      fsType = "vfat";
+      options = [ "fmask=0077" "dmask=0077" ];
+    };
 
   swapDevices = [ ];
   networking.useDHCP = lib.mkDefault true;

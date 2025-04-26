@@ -5,6 +5,5 @@ in
 {
   imports = [
     inputs.self.nixosModules.common
-    ./gui
   ];
 }

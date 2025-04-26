@@ -96,7 +96,7 @@ in
       # ===== Monitor Configuration =====
       monitor = [
         # External monitor - WQHD ultrawide
-        "desc:AOC CU34G2XP,3440x1440@100.00,0x0,1.5"
+        "desc:AOC CU34G2XP,3440x1440@100.00,0x0,1"
 
         # Laptop display with scaled resolution
         "eDP-1,3840x2400@60.00,3440x0,2.5"
@@ -111,9 +111,11 @@ in
         "1, monitor:desc:AOC CU34G2XP, default:true, persistent:true"
         "2, monitor:desc:AOC CU34G2XP, persistent:true"
         "3, monitor:desc:AOC CU34G2XP, persistent:true"
-        "4, monitor:eDP-1, default:true, persistent:true"
-        "5, monitor:eDP-1, persistent:true"
+        "4, monitor:desc:AOC CU34G2XP, persistent:true"
+        "5, monitor:eDP-1, default:true, persistent:true"
         "6, monitor:eDP-1, persistent:true"
+        "7, monitor:eDP-1, persistent:true"
+        "8, monitor:eDP-1, persistent:true"
         # Special workspace can be summoned anywhere
         "special, on-created-empty:wezterm"
       ];
@@ -131,13 +133,11 @@ in
         "mako"
         "nm-tray"
         "tailscale-systray"
-        "waybar"
         "${monitorSetupScript}"
       ];
-
       # ===== General UI Settings =====
       general = {
-        gaps_in = 1-;
+        gaps_in = 10;
         gaps_out = 10;
         border_size = 2;
         resize_on_border = true;
@@ -589,7 +589,6 @@ in
     pavucontrol # Audio control
     playerctl # Media control
     slurp # Screen area selection
-    waybar # Status bar
     wl-clipboard # Clipboard tools
     wofi # Application launcher
 
