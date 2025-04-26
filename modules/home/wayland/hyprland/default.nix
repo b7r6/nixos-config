@@ -56,28 +56,6 @@ let
   base0D = lib.removePrefix "#" colors.base0D; # blue
   base0E = lib.removePrefix "#" colors.base0E; # purple
   base0F = lib.removePrefix "#" colors.base0F; # dark accent
-
-  # Monitor setup script
-  monitorSetupScript = pkgs.writeShellScript "hyprland-monitor-setup" ''
-    #!/usr/bin/env bash
-    
-    # Wait for monitors to connect
-    sleep 1
-    
-    # Check for monitors
-    PRIMARY_MONITOR="desc:AOC CU34G2XP"
-    LAPTOP_MONITOR="eDP-1"
-    
-    if hyprctl monitors -j | grep -q "$PRIMARY_MONITOR"; then
-      # External monitor present - set it up
-      hyprctl dispatch workspace 1
-      hyprctl dispatch focusmonitor "$PRIMARY_MONITOR"
-    else
-      # Only laptop monitor
-      hyprctl dispatch workspace 4
-      hyprctl dispatch focusmonitor "$LAPTOP_MONITOR"
-    fi
-  '';
 in
 {
   imports = [
@@ -93,15 +71,14 @@ in
     ];
 
     settings = {
-      # ===== Monitor Configuration =====
       monitor = [
         # External monitor - WQHD ultrawide
-        "desc:AOC CU34G2XP,3440x1440@100.00,0x0,1"
+        "desc:AOC CU34G2XP,3440x1440@100.00,0x0,1.0"
 
-        # Laptop display with scaled resolution
-        "eDP-1,3840x2400@60.00,3440x0,2.5"
+        # Laptop display - simply positioned to the left
+        "eDP-1,3840x2400@60.00,-1536x0,2.5"
 
-        # Fallback for other monitors
+        # Fallback
         ",preferred,auto,1"
       ];
 
@@ -116,6 +93,7 @@ in
         "6, monitor:eDP-1, persistent:true"
         "7, monitor:eDP-1, persistent:true"
         "8, monitor:eDP-1, persistent:true"
+
         # Special workspace can be summoned anywhere
         "special, on-created-empty:wezterm"
       ];
@@ -133,8 +111,8 @@ in
         "mako"
         "nm-tray"
         "tailscale-systray"
-        "${monitorSetupScript}"
       ];
+      
       # ===== General UI Settings =====
       general = {
         gaps_in = 10;
@@ -216,7 +194,7 @@ in
         animate_mouse_windowdragging = false;
         animate_manual_resizes = false;
         enable_swallow = true;
-        swallow_regex = "^(wezterm|kitty|alacritty)$";
+        swallow_regex = "^(wezterm|ghostty|alacritty)$";
         focus_on_activate = true;
       };
 
@@ -299,6 +277,8 @@ in
         "$mod, 4, workspace, 4"
         "$mod, 5, workspace, 5"
         "$mod, 6, workspace, 6"
+        "$mod, 7, workspace, 7"
+        "$mod, 8, workspace, 8"
 
         # Move windows to workspaces
         "$mod SHIFT, 1, movetoworkspace, 1"
@@ -307,6 +287,8 @@ in
         "$mod SHIFT, 4, movetoworkspace, 4"
         "$mod SHIFT, 5, movetoworkspace, 5"
         "$mod SHIFT, 6, movetoworkspace, 6"
+        "$mod SHIFT, 7, movetoworkspace, 7"
+        "$mod SHIFT, 8, movetoworkspace, 8"
 
         # Window focus - vim keys
         "$mod, H, hy3:movefocus, l"

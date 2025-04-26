@@ -10,10 +10,6 @@ in
     ./configuration.nix
   ];
   
-  # Enable minimal GUI base
-  services.gui.enable = true;
-  
-  # Use greetd for a minimal TUI login directly to Hyprland
   services.greetd = {
     enable = true;
     settings = {
