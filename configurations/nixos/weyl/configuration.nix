@@ -1,8 +1,15 @@
-{ config, pkgs, ... }:
 {
+  flake,
+  config,
+  pkgs,
+  ...
+}: let
+  inherit (flake) inputs;
+in {
   imports = [
-    # Include the results of the hardware scan.
     ./hardware-configuration.nix
+    inputs.agenix.nixosModules.default
+    inputs.ps-v4.nixosModules.secrets
   ];
 
   # Bootloader.
@@ -11,6 +18,10 @@
 
   networking.hostName = "weyl"; # Define your hostname.
   networking.networkmanager.enable = true;
+
+  networking.hosts = {
+    "192.168.50.12" = ["files01.rhosts.net"];
+  };
 
   services.tailscale.enable = true;
   services.openssh.enable = true;
@@ -39,6 +50,24 @@
   };
 
   security.sudo.wheelNeedsPassword = false;
+
+  ps-v4.nixos.secrets.devKeys.enable = true;
+  ps-v4.nixos.secrets.devKeys.group = "ps-v4";
+  ps-v4.nixos.secrets.devKeys.mode = "400";
+
+  users.groups."ps-v4" = {
+    members = [
+      "b7r6"
+      "gedanziger"
+    ];
+  };
+
+  # TODO[b7r6]: need to do this via nixos module import...
+  age.secrets."keys/dev.toml" = {
+    file = "/home/b7r6/src/straylight-eval/ps-v4/secrets/keys/dev.toml.age";
+    group = "ps-v4";
+    mode = "400";
+  };
 
   # TODO[b7r6]: doesn't belong here...
   programs.nh.enable = true;

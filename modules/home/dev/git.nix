@@ -22,8 +22,6 @@
       push.autoSetupRemote = true;
 
       core = {
-        # autocrlf = true;
-        # safecrlf = false;
       };
 
       diff = {
@@ -65,16 +63,6 @@
       "result"
       "result-*"
     ];
-
-    delta = {
-      enable = true;
-      options = {
-        navigate = true;
-        light = false;
-        line-numbers = true;
-        side-by-side = true;
-      };
-    };
   };
 
   # Install additional git-related tools

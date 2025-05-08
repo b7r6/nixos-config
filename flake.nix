@@ -2,8 +2,7 @@
   description = "DEV // v4";
 
   # https://nixos-unified.org/autowiring.html
-  outputs =
-    inputs:
+  outputs = inputs:
     inputs.nixos-unified.lib.mkFlake {
       inherit inputs;
       root = ./.;
@@ -70,6 +69,16 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    agenix-shell = {
+      url = "github:aciceri/agenix-shell";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nix-index-database = {
       url = "github:nix-community/nix-index-database";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -88,6 +97,11 @@
 
     devenv = {
       url = "github:cachix/devenv/latest";
+    };
+
+    ps-v4 = {
+      url = "git+ssh://git@github.com/straylight-evaluation/ps-v4.git?ref=b7r6/new-okx-secrets";
+      # url = "path:/home/b7r6/src/straylight-eval/ps-v4";
     };
   };
 }
