@@ -2,6 +2,7 @@
 {
   # Enable virtualization
   virtualisation.libvirtd.enable = true;
+
   # Install required packages
   environment.systemPackages = with pkgs; [
     virt-manager

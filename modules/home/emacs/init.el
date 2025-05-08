@@ -41,6 +41,8 @@
 ;; package management
 ;; ============================================================
 
+(setq native-comp-async-report-warnings-errors nil)
+
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 (package-initialize)
@@ -58,7 +60,6 @@
 ;; ============================================================
 
 (setq inhibit-startup-screen t)
-
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
@@ -127,7 +128,6 @@
 ;; hyper // modern // interactive
 ;; ============================================================
 
-
 (defun hyper-modern/reinit-vertical-divider (&optional sync-with-mode-line)
   "Set up clean modern window dividers for both GUI and terminal Emacs.
 When SYNC-WITH-MODE-LINE is non-nil, attempt to match the divider color
@@ -136,16 +136,16 @@ with the mode-line background color."
   ;; Remove custom face settings to inherit from theme
   (custom-set-faces
    '(vertical-border nil))
-  
+
   ;; Clean up fringe indicators
   (setq-default fringe-indicator-alist '())
   (fringe-mode '(0 . 0))
-  
+
   ;; Remove potential interference from mode-line positioning
   (setq-default
    mode-line-format
    (remove 'mode-line-position mode-line-format))
-  
+
   ;; Set up unicode divider character for terminal Emacs
   (when (boundp 'standard-display-table)
     (unless standard-display-table
@@ -153,7 +153,7 @@ with the mode-line background color."
     (set-display-table-slot
      standard-display-table 'vertical-border
      (make-glyph-code ?│)))
-  
+
   ;; Optional mode-line syncing
   (when sync-with-mode-line
     (hyper-modern/sync-divider-with-mode-line)))
@@ -256,7 +256,7 @@ Can be called independently or by hyper-modern/reinit-vertical-divider."
 
   :init
   (vertico-mode)
-  ;; (vertico-reverse-mode)
+  (vertico-reverse-mode)
   )
 
 (use-package orderless
@@ -280,6 +280,7 @@ Can be called independently or by hyper-modern/reinit-vertical-divider."
 ;; ============================================================
 ;; directories // projects // ripgrep
 ;; ============================================================
+
 (use-package rg
   :ensure t
   :config
@@ -303,7 +304,7 @@ Can be called independently or by hyper-modern/reinit-vertical-divider."
 
   (defun my-rg-project-prompt ()
     (interactive)
-    (let ((current-prefix-arg '(4))) ; Force prompt behavior
+    (let ((current-prefix-arg '(4)))    ; Force prompt behavior
       (call-interactively 'rg-project)))
 
   ;; Unbind M-N and M-P from rg-mode-map
@@ -420,8 +421,8 @@ Can be called independently or by hyper-modern/reinit-vertical-divider."
 
 (use-package vterm
   :ensure t
-  :config  
-  
+  :config
+
   :hook
   (vterm-mode . (lambda ()
                   (setq-local global-hl-line-mode nil)
@@ -467,6 +468,7 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
 ;; ============================================================
 ;; general // key // bind
 ;; ============================================================
+
 (use-package which-key
   :ensure t
   :custom
@@ -485,21 +487,21 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
     (let ((face (or (get-char-property (point) 'read-face-name)
                     (get-char-property (point) 'face))))
       (if face (message "Face: %s" face) (message "No face at %d" pos))))
-  
+
   (defun hyper-modern/show-current-file ()
     "Print the current buffer filename to the minibuffer."
     (interactive)
     (message (buffer-file-name)))
-  
+
   (defun hyper-modern/kill-current-buffer ()
     "Kill the current buffer."
     (interactive)
     (kill-buffer (current-buffer)))
-  
+
   (defun hyper-modern/visit-init-file ()
     (interactive)
     (find-file user-init-file))
-  
+
   (general-define-key
    ;; standard movement
    "C-c q"   'join-line
@@ -519,7 +521,7 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
    "M-N"     'windmove-right
    "M-P"     'windmove-left
    "M-i"     'hyper-modern/visit-init-file
-   "M-z"     'apheleia-format-buffer
+   "M-z"     'format-all-buffer
 
    ;; `hyper-modern` overrides
    "C-M-r"   'consult-ripgrep
@@ -530,49 +532,72 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
    "C-x k"   'hyper-modern/kill-current-buffer))
 
 ;; ============================================================
-;; Format, TreeSit, and Apheleia
+;; FORMATTING CONFIGURATION
 ;; ============================================================
 
-(use-package apheleia
+;; Disable native-comp warnings for undefined functions
+(setq native-comp-async-report-warnings-errors nil)
+
+;; Function to disable LSP formatters to avoid conflicts
+(defun disable-lsp-formatters ()
+  "Disable formatting from LSP/eglot to avoid conflicts."
+  (when (and (boundp 'eglot--managed-mode) eglot--managed-mode)
+    (remove-hook 'before-save-hook #'eglot-format-buffer t)))
+
+;; Function to check if a command exists in PATH
+(defun command-exists-p (command)
+  "Check if COMMAND exists and is executable."
+  (and command
+       (not (string-empty-p command))
+       (eq 0 (call-process-shell-command (concat "command -v " (shell-quote-argument command)) nil nil nil))))
+
+;; Base formatter
+(use-package format-all
   :ensure t
+  :bind ("M-z" . format-all-buffer)
   :config
-  (apheleia-global-mode +1)
-  
-  ;; Modify existing and add custom formatters
-  (setq apheleia-formatters
-        (append 
-         (map-delete (map-copy apheleia-formatters) 'clang-format) ;; Remove existing definition
-         '((clang-format "clang-format")
-           (csharpier "dotnet" "csharpier" file)
-           (fantomas "dotnet" "fantomas" file)
-           (shfmt "shfmt" "-i" "2" "-ci" file)
-           (nixfmt "nixfmt" file)
-           (biome "biome" "format" "--write" file)
-           (ruff "ruff" "format" file)
-           (fourmolu "fourmolu" file))))
+  ;; Configure available formatters with NixOS-friendly commands
+  (setq format-all-formatters
+        '(("C"            . (clang-format))
+          ("C++"          . (clang-format))
+          ("C#"           . (clang-format))
+          ("CSS"          . (prettier))
+          ("F#"           . (fantomas))
+          ("HTML"         . (prettier))
+          ("JavaScript"   . (biome))
+          ("JSON"         . (biome))
+          ("Markdown"     . (mdformat))
+          ("Nix"          . (nixfmt))
+          ("Python"       . (ruff))
+          ("Ruby"         . (rubocop))
+          ("Shell"        . (shfmt "-i" "2" "-s"))
+          ("TypeScript"   . (biome))
+          ("TSX"          . (biome))
+          ("YAML"         . (yamlfmt))
+          ("TOML"         . (taplo))
+          ("Terraform"    . (terraform "fmt"))
+          ("HCL"          . (hclfmt))
+          ("Zig"          . (zig "fmt"))))
 
-  ;; Mode associations 
-  (setq apheleia-mode-alist
-        (append apheleia-mode-alist
-                '((csharp-mode . clang-format)
-                  (csharp-ts-mode . clang-format)
-                  (fsharp-mode . fantomas)
-                  (sh-mode . shfmt)
-                  (bash-ts-mode . shfmt)
-                  (nix-mode . nixfmt)
-                  (nix-ts-mode . nixfmt)
-                  (typescript-ts-mode . biome)
-                  (tsx-ts-mode . biome)
-                  (js-ts-mode . biome)
-                  (jsx-ts-mode . biome)
-                  (python-mode . ruff)
-                  (python-ts-mode . ruff)
-                  (haskell-mode . fourmolu)
-                  (haskell-ts-mode . fourmolu))))
-  
-  ;; For debugging
-  (setq apheleia-log-debug-info t))
+  ;; Function to find treefmt.toml in project or parent dirs
+  (defun find-treefmt-config-dir ()
+    "Find directory containing treefmt.toml in project or parent directories."
+    (locate-dominating-file default-directory "treefmt.toml"))
 
+  ;; Function to safely handle treefmt output buffer
+  (defun setup-treefmt-buffer ()
+    "Set up a clean buffer for treefmt output."
+    (let ((buf (get-buffer-create "*treefmt*")))
+      (with-current-buffer buf
+        (erase-buffer)
+        (special-mode) ; Make it read-only with convenient navigation
+        (setq buffer-read-only nil)) ; Temporarily allow writing
+      buf))
+
+  ;; Add hook to disable LSP formatters when format-all is active
+  (add-hook 'format-all-mode-hook #'disable-lsp-formatters))
+
+;; TreeSit configuration
 (use-package treesit
   :config
   (setq treesit-language-source-alist
@@ -589,7 +614,10 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
           (python "https://github.com/tree-sitter/tree-sitter-python")
           (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
           (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
-          (yaml "https://github.com/ikatyang/tree-sitter-yaml"))))
+          (yaml "https://github.com/ikatyang/tree-sitter-yaml")
+          (ruby "https://github.com/tree-sitter/tree-sitter-ruby")
+          (toml "https://github.com/tree-sitter/tree-sitter-toml")
+          (zig "https://github.com/maxxnino/tree-sitter-zig"))))
 
 (use-package treesit-auto
   :ensure t
@@ -600,14 +628,19 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
 ;; LSP Configuration
 ;; ============================================================
 
+;; Common configuration for both language server frameworks
+(use-package rainbow-mode
+  :ensure t
+  :hook (prog-mode . rainbow-mode))
+
+;; Eglot configuration for most languages
 (use-package eglot
   :ensure t
   :hook ((csharp-ts-mode . eglot-ensure)
          (fsharp-mode . eglot-ensure)
          (bash-ts-mode . eglot-ensure)
          (sh-mode . eglot-ensure)
-         (nix-mode . eglot-ensure)
-         (nix-ts-mode . eglot-ensure)
+         ;; Note: Nix modes are NOT included here
          (typescript-ts-mode . eglot-ensure)
          (tsx-ts-mode . eglot-ensure)
          (js-ts-mode . eglot-ensure)
@@ -615,62 +648,91 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
          (python-ts-mode . eglot-ensure)
          (python-mode . eglot-ensure)
          (haskell-mode . eglot-ensure)
-         (haskell-ts-mode . eglot-ensure))
+         (haskell-ts-mode . eglot-ensure)
+         (c-mode . eglot-ensure)
+         (c++-mode . eglot-ensure)
+         (c-ts-mode . eglot-ensure)
+         (c++-ts-mode . eglot-ensure))
   :config
-  ;; Default server programs
-  (add-to-list 'eglot-server-programs
-               '((csharp-ts-mode csharp-mode) . ("csharp-ls")))
-  (add-to-list 'eglot-server-programs
-               '(fsharp-mode . ("dotnet" "fsautocomplete" "--background-service-enabled")))
-  (add-to-list 'eglot-server-programs
-               '((bash-ts-mode sh-mode) . ("bash-language-server" "start")))
-  (add-to-list 'eglot-server-programs
-               '((nix-ts-mode nix-mode) . ("nixd")))
-  (add-to-list 'eglot-server-programs
-               '((typescript-ts-mode tsx-ts-mode js-ts-mode jsx-ts-mode) . ("typescript-language-server" "--stdio")))
+  (setq eglot-autoshutdown t)
+  (setq eglot-sync-connect nil)
+  (setq eglot-events-buffer-size 0)
+  (setq eglot-extend-to-xref t)
   
-  ;; Handle either pyright or basedpyright
-  (if (executable-find "basedpyright-langserver")
-      (add-to-list 'eglot-server-programs
-                   '((python-ts-mode python-mode) . ("basedpyright-langserver" "--stdio" "--watcherType" "polling")))
-    (add-to-list 'eglot-server-programs
-                 '((python-ts-mode python-mode) . ("pyright-langserver" "--stdio"))))
+  ;; Turn off inlay hints by default
+  (setq eglot-inlay-hints-mode nil)
   
-  ;; Add Haskell support
-  (add-to-list 'eglot-server-programs
-               '((haskell-mode haskell-ts-mode) . ("haskell-language-server-wrapper" "--lsp")))
+  ;; Require flymake to avoid autoload messages
+  (require 'flymake)
   
-  ;; Performance optimizations
-  (setq eglot-events-buffer-size 0)  ; Disable events buffer for better performance
-  (setq eglot-extend-to-xref t)      ; Improve cross-references
-  
-  ;; Configure events to format on
+  ;; Configure hooks
   (add-hook 'eglot-managed-mode-hook
             (lambda ()
-              ;; Show flymake diagnostics first
-              (setq eldoc-documentation-functions
-                    (cons #'flymake-eldoc-function
-                          (remove #'flymake-eldoc-function eldoc-documentation-functions)))
-              ;; Format on save
-              (add-hook 'before-save-hook #'eglot-format-buffer nil t))))
+              (eglot-inlay-hints-mode -1)
+              (flymake-mode 1))))
 
-;; Enhanced documentation popup with eldoc-box
-(use-package eldoc-box
+(use-package sideline
   :ensure t
-  :hook (eglot-managed-mode . eldoc-box-hover-mode)
+  :after flymake
+  :hook (eglot-managed-mode . sideline-mode)
+  :custom
+  (sideline-display-backend-name t)
   :config
-  (setq eldoc-box-max-pixel-width 700)
-  (setq eldoc-box-max-pixel-height 400)
-  (set-face-attribute 'eldoc-box-border nil :background "dark blue"))
+  ;; Configure sideline to use flymake as a backend
+  (setq sideline-backends-right '(sideline-flymake)))
 
-;; Breadcrumb navigation in header line
+(use-package sideline-flymake
+  :ensure t
+  :after (sideline flymake))
+
 (use-package breadcrumb
   :ensure t
   :hook (eglot-managed-mode . breadcrumb-mode)
   :config
   (setq breadcrumb-imenu-max-length 70))
 
-;; Enhanced completion with Corfu
+(use-package consult-eglot
+  :ensure t
+  :after (consult eglot)
+  :bind (:map eglot-mode-map
+              ("C-c c s" . consult-eglot-symbols)))
+
+(use-package lsp-mode
+  :ensure t
+  :commands lsp lsp-deferred
+  :hook ((nix-mode . lsp-deferred)
+         (nix-ts-mode . lsp-deferred))
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  :config
+  ;; Disable nix-nil and rnix-lsp to prefer nixd
+  (add-to-list 'lsp-disabled-clients '(nix-mode . nix-nil))
+  (add-to-list 'lsp-disabled-clients '(nix-ts-mode . nix-nil))
+  (add-to-list 'lsp-disabled-clients '(nix-mode . rnix-lsp))
+  (add-to-list 'lsp-disabled-clients '(nix-ts-mode . rnix-lsp))
+  
+  ;; Register nixd
+  (lsp-register-client
+   (make-lsp-client :new-connection (lsp-stdio-connection "nixd")
+                    :major-modes '(nix-mode nix-ts-mode)
+                    :priority 1
+                    :server-id 'nixd)))
+
+;; LSP UI for Nix modes
+(use-package lsp-ui
+  :ensure t
+  :commands lsp-ui-mode
+  :hook ((nix-mode . lsp-ui-mode)
+         (nix-ts-mode . lsp-ui-mode))
+  :config
+  (setq lsp-ui-doc-enable t)
+  (setq lsp-ui-doc-position 'at-point)
+  (setq lsp-ui-sideline-enable t)
+  (setq lsp-ui-sideline-show-diagnostics t)
+  (setq lsp-ui-sideline-show-hover t)
+  (setq lsp-ui-sideline-show-code-actions t))
+
+;; Enhanced completion with Corfu - works with both
 (use-package corfu
   :ensure t
   :init
@@ -681,128 +743,93 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
         corfu-auto-prefix 2
         corfu-cycle t
         corfu-preselect 'prompt)
-  ;; Add visual enhancement with corfu popups
-  ;; (add-to-list 'corfu-margin-formatters #'corfu-doc-terminal)
-  (set-face-attribute 'corfu-current nil :background "dark blue")
-  )
+  (set-face-attribute 'corfu-current nil :background "dark blue"))
 
-;; Documentation sidebar with corfu-doc
-;; (use-package corfu-doc
-;;   :ensure t
-;;   :after corfu
-;;   :hook (corfu-mode . corfu-doc-mode)
-;;   :config
-;;   (setq corfu-doc-delay 0.5)
-;;   (setq corfu-doc-max-width 70)
-;;   (setq corfu-doc-max-height 20))
-
-;; Fast inline diagnostics with sideline
-(use-package sideline
-  :ensure t
-  :hook (eglot-managed-mode . sideline-mode)
-  :config
-  (setq sideline-delay 0.3)
-  (setq sideline-priority-over-overlays t))
-
-;; Specifically add sideline diagnostics and code actions
-(use-package sideline-flymake
-  :ensure t
-  :after sideline
-  :hook (sideline-mode . sideline-flymake-setup)
-  :config
-  (setq sideline-flymake-display-errors-whole-line t))
-
-;; Code action lightbulbs
-(use-package sideline-lsp
-  :ensure t
-  :after (sideline eglot)
-  :hook (eglot-managed-mode . sideline-lsp-setup))
-
-;; Show colors for hex color codes and other color formats
-(use-package rainbow-mode
-  :ensure t
-  :hook (prog-mode . rainbow-mode))
-
-;; Highlight color strings with their actual colors
-(use-package rainbow-delimiters
-  :ensure t
-  :hook (prog-mode . rainbow-delimiters-mode))
-
-;; Add clickable information in the modeline
-;; (use-package modeline-posn
-;;   :ensure t
-;;   :config
-;;   (line-number-mode t)
-;;   (column-number-mode t)
-;;   (size-indication-mode t))
-
-;; Enhanced code folding/outlining  
-;; (use-package outshine
-;;   :ensure t
-;;   :hook (prog-mode . outshine-mode)
-;;   :config
-;;   (setq outshine-use-speed-commands t))
-
-;; Nice symbol outlines for navigation
-(use-package consult-eglot
-  :ensure t
-  :after (consult eglot)
-  :bind (:map eglot-mode-map
-              ("C-c c s" . consult-eglot-symbols)))
-
-;; Improved code actions menu
+;; Shared key bindings for both frameworks
 (use-package consult
   :ensure t
-  :bind (("C-c c a" . eglot-code-actions)
-         ("C-c c r" . eglot-rename)
-         ("C-c c f" . eglot-format)
-         ("C-c c d" . eldoc)
-         ("C-c c i" . eglot-find-implementation)
-         ("C-c c t" . eglot-find-typeDefinition)
-         ("C-c c h" . eglot-inlay-hints-mode)))
+  :bind (("C-c c a" . #'(lambda () 
+                          (interactive)
+                          (if (bound-and-true-p lsp-mode)
+                              (call-interactively #'lsp-execute-code-action)
+                            (call-interactively #'eglot-code-actions))))
+         ("C-c c r" . #'(lambda () 
+                          (interactive)
+                          (if (bound-and-true-p lsp-mode)
+                              (call-interactively #'lsp-rename)
+                            (call-interactively #'eglot-rename))))
+         ("C-c c f" . #'(lambda () 
+                          (interactive)
+                          (if (bound-and-true-p lsp-mode)
+                              (call-interactively #'lsp-format-buffer)
+                            (call-interactively #'eglot-format))))
+         ("C-c c d" . eldoc)))
 
-;; Enhanced error navigation 
-(use-package flymake-diagnostic-at-point
+;; ============================================================
+;; Snippets with YASnippet
+;; ============================================================
+
+(use-package yasnippet
   :ensure t
-  :after flymake
-  :hook (flymake-mode . flymake-diagnostic-at-point-mode)
   :config
-  (setq flymake-diagnostic-at-point-display-diagnostic-function
-        'flymake-diagnostic-at-point-display-popup)
-  (setq flymake-diagnostic-at-point-error-prefix "✗ ")
-  (setq flymake-diagnostic-at-point-warning-prefix "⚠ ")
-  (setq flymake-diagnostic-at-point-note-prefix "ℹ "))
+  (yas-global-mode 1))
 
 ;; ============================================================
 ;; Language-specific configurations
 ;; ============================================================
 
+;; ============================================================
+;; C/C++ specific configuration
+;; ============================================================
+
+;; (use-package cc-mode
+;;   :ensure nil
+;;   :config
+;;   (setq-local tab-width 2)
+;;   (setq-local c-basic-offset 2)
+;;   (setq-local indent-tabs-mode nil)
+;;   (electric-indent-local-mode 1)
+;;   )
+
 ;; C# Mode
 ;; ============================================================
+
 (use-package csharp-mode
   :ensure t
   :mode ("\\.cs\\'" . csharp-ts-mode))
 
 ;; F# Mode
 ;; ============================================================
+
 (use-package fsharp-mode
   :ensure t
   :mode ("\\.fs[ix]?\\'" . fsharp-mode))
 
 ;; Bash/Shell Mode
 ;; ============================================================
+
 (use-package sh-script
   :mode (("\\.sh\\'" . bash-ts-mode)
          ("\\.bash\\'" . bash-ts-mode)))
 
 ;; Nix Mode
 ;; ============================================================
+
 (use-package nix-mode
   :ensure t
-  :mode "\\.nix\\'")
+  :mode "\\.nix\\'"
+  :config
+
+  (setq lsp-nix-nixd-server-path "nixd")
+  (setq lsp-nix-nixd-formatting-command [ "nixfmt" ])
+  (setq lsp-nix-nixd-nixpkgs-expr "import <nixpkgs> { }")
+  (setq lsp-nix-nixd-nixos-options-expr "(let pkgs = import \"${inputs.nixpkgs}\" { }; in (pkgs.lib.evalModules { modules =  (import \"${inputs.nixpkgs}/nixos/modules/module-list.nix\") ++ [ ({...}: { nixpkgs.hostPlatform = builtins.currentSystem;} ) ] ; })).options")
+  (setq lsp-nix-nixd-home-manager-options-expr "(let pkgs = import \"${inputs.nixpkgs}\" { }; lib = import \"${inputs.home-manager}/modules/lib/stdlib-extended.nix\" pkgs.lib; in (lib.evalModules { modules =  (import \"${inputs.home-manager}/modules/modules.nix\") { inherit lib pkgs; check = false; }; })).options"))
+
 
 ;; TypeScript/JavaScript Mode
 ;; ============================================================
+
 (use-package typescript-ts-mode
   :ensure nil
   :mode (("\\.ts\\'" . typescript-ts-mode)
@@ -815,6 +842,7 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
 
 ;; Python Mode
 ;; ============================================================
+
 (use-package python-ts-mode
   :ensure nil
   :mode (("\\.py\\'" . python-ts-mode)
@@ -823,11 +851,14 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
 ;; ============================================================
 ;; Completion with Company
 ;; ============================================================
+
 (use-package company
   :ensure t
-  :bind (("M-TAB" . company-complete)
+  :bind (("M-TAB" . company-complete-common-or-cycle)
          ("C-M-i" . company-complete-common-or-cycle))
+
   :hook (after-init . global-company-mode)
+
   :config
   (setq company-idle-delay 0.25)
   (setq company-minimum-prefix-length 1)
@@ -844,62 +875,6 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
   (setq company-tooltip-idle-delay 0.1)
   (setq company-require-match nil))
 
-;; ============================================================
-;; Treefmt Integration
-;; ============================================================
-(defun find-treefmt-config ()
-  "Find treefmt config file in project or parent directories."
-  (let ((config-file (locate-dominating-file default-directory "treefmt.toml")))
-    (when config-file
-      (expand-file-name "treefmt.toml" config-file))))
-
-(defun use-treefmt-if-available ()
-  "Use treefmt if available in the project."
-  (let ((config-file (find-treefmt-config)))
-    (when config-file
-      (message "Using treefmt configuration from %s" config-file)
-      ;; Remove eglot's formatter to avoid double formatting
-      (when (and (boundp 'eglot--managed-mode) eglot--managed-mode)
-        (remove-hook 'before-save-hook #'eglot-format-buffer t))
-      (setq-local apheleia-formatter 'treefmt))
-    (add-to-list 'apheleia-formatters
-                 '(treefmt "treefmt" "--config" config-file "--stdin" filepath))))
-
-;; Add hook to check for treefmt when opening files
-(add-hook 'find-file-hook #'use-treefmt-if-available)
-
-;; ============================================================
-;; Utility Functions for Tool Installation
-;; ============================================================
-(defun ensure-command-or-suggest-install (command pkg-name &optional dotnet-tool)
-  "Check if COMMAND is available, suggest install from PKG-NAME if not.
-If DOTNET-TOOL is non-nil, suggest installing as a dotnet tool."
-  (unless (executable-find command)
-    (if dotnet-tool
-        (message "Command '%s' not found. Install with: dotnet tool install -g %s" command pkg-name)
-      (message "Command '%s' not found. Install package: %s" command pkg-name))))
-
-;; Check for required tools
-(defun check-required-tools ()
-  "Check if all required formatting and LSP tools are installed."
-  (interactive)
-  (ensure-command-or-suggest-install "clang-format" "clang-format")
-  (ensure-command-or-suggest-install "csharp-ls" "csharp-language-server")
-  (ensure-command-or-suggest-install "fantomas" "fantomas-tool" t)
-  (ensure-command-or-suggest-install "fsautocomplete" "fsautocomplete" t)
-  (ensure-command-or-suggest-install "shfmt" "shfmt")
-  (ensure-command-or-suggest-install "bash-language-server" "bash-language-server")
-  (ensure-command-or-suggest-install "nixfmt" "nixfmt")
-  (ensure-command-or-suggest-install "nixd" "nixd")
-  (ensure-command-or-suggest-install "biome" "biome")
-  (ensure-command-or-suggest-install "typescript-language-server" "typescript-language-server")
-  (ensure-command-or-suggest-install "ruff" "ruff")
-  (ensure-command-or-suggest-install "basedpyright-langserver" "basedpyright" nil)
-  (ensure-command-or-suggest-install "haskell-language-server-wrapper" "haskell-language-server" nil)
-  (ensure-command-or-suggest-install "fourmolu" "fourmolu" nil))
-
-;; Run check on startup
-(add-hook 'after-init-hook #'check-required-tools)
 
 (provide 'init)
 ;;; init.el ends here

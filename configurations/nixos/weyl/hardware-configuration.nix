@@ -7,9 +7,7 @@
   pkgs,
   modulesPath,
   ...
-}:
-
-{
+}: {
   imports = [
     (modulesPath + "/installer/scan/not-detected.nix")
   ];
@@ -20,20 +18,25 @@
 
   boot.kernelPackages = pkgs.linuxPackages_testing;
 
+  boot.kernelParams = [ "mem_sleep_default=deep" ];
+
   boot.blacklistedKernelModules = [
     "ucsi_acpi"
     "nouveau"
   ];
 
   services.supergfxd.enable = true;
-  systemd.services.supergfxd.path = [ pkgs.pciutils ];
+  systemd.services.supergfxd.path = [pkgs.pciutils];
+
+  hardware.cpu.amd.updateMicrocode = true;
+  powerManagement.cpuFreqGovernor = "performance";
+  
   services = {
     asusd = {
       enable = true;
       enableUserService = true;
     };
   };
-
   # environment.variables = {
   #   KWIN_DRM_DEVICES = "/dev/dri/card1:/dev/dri/card0";
   # };
@@ -47,13 +50,15 @@
     cudatoolkit
     linuxPackages.nvidia_x11
     nvidia-docker # if you need Docker support
+    ryzenadj
   ];
 
   # Load NVIDIA driver kernel module
-  boot.kernelModules = [ "kvm-amd" ];
-  boot.extraModulePackages = [ config.boot.kernelPackages.nvidia_x11 ];
+  boot.kernelModules = ["kvm-amd"];
+  boot.extraModulePackages = [config.boot.kernelPackages.nvidia_x11];
 
-  boot.initrd.kernelModules = [ ];
+  boot.initrd.kernelModules = [];
+
   boot.initrd.availableKernelModules = [
     "nvme"
     "xhci_pci"
@@ -76,28 +81,27 @@
     package = config.boot.kernelPackages.nvidiaPackages.stable;
   };
 
-  services.xserver.videoDrivers = [ "nvidia" ];
+  services.xserver.videoDrivers = ["nvidia"];
 
   services.logind = {
     lidSwitch = "lock";
     lidSwitchExternalPower = "lock";
     lidSwitchDocked = "lock";
   };
-  
-    fileSystems."/" =
-    { device = "/dev/disk/by-uuid/e0cab5b4-040d-47a9-8b87-9575d275aa17";
-      fsType = "ext4";
-    };
 
-  fileSystems."/boot" =
-    { device = "/dev/disk/by-uuid/4C1D-B8D4";
-      fsType = "vfat";
-      options = [ "fmask=0077" "dmask=0077" ];
-    };
+  fileSystems."/" = {
+    device = "/dev/disk/by-uuid/e0cab5b4-040d-47a9-8b87-9575d275aa17";
+    fsType = "ext4";
+  };
 
-  swapDevices = [ ];
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-uuid/4C1D-B8D4";
+    fsType = "vfat";
+    options = ["fmask=0077" "dmask=0077"];
+  };
+
+  swapDevices = [];
   networking.useDHCP = lib.mkDefault true;
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-  hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 }

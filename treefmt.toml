@@ -11,7 +11,7 @@ excludes = [".gitignore", "*.el", "*.gif", "*.lock", "*.otf", ".keep"]
 # Exit with error if any changes were made during execution
 # Useful for CI
 # Env $TREEFMT_FAIL_ON_CHANGE
-fail-on-change = true
+fail-on-change = false
 
 # Log paths that did not match any formatters at the specified log level
 # Possible values are <debug|info|warn|error|fatal>
@@ -39,7 +39,7 @@ walk = "git"
 
 # n.b. `nixfmt-rfc-style`
 [formatter.nixfmt]
-command = "nixfmt"
+command = "alejandra"
 includes = ["*.nix"]
 
 [formatter.biome]

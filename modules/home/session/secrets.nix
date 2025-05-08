@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-{
+{pkgs, ...}: {
   home.packages = with pkgs; [
     age-plugin-yubikey
     fido2-manage
@@ -8,5 +7,6 @@
     yubikey-manager
     yubikey-personalization
     yubioath-flutter
+    _1password-cli
   ];
 }
