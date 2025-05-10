@@ -51,17 +51,6 @@ in {
 
   security.sudo.wheelNeedsPassword = false;
 
-  ps-v4.nixos.secrets.devKeys.enable = true;
-  ps-v4.nixos.secrets.devKeys.group = "ps-v4";
-  ps-v4.nixos.secrets.devKeys.mode = "400";
-
-  users.groups."ps-v4" = {
-    members = [
-      "b7r6"
-      "gedanziger"
-    ];
-  };
-
   # TODO[b7r6]: need to do this via nixos module import...
   age.secrets."keys/dev.toml" = {
     file = "/home/b7r6/src/straylight-eval/ps-v4/secrets/keys/dev.toml.age";

@@ -540,7 +540,6 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
 
 ;; Function to disable LSP formatters to avoid conflicts
 (defun disable-lsp-formatters ()
-  "Disable formatting from LSP/eglot to avoid conflicts."
   (when (and (boundp 'eglot--managed-mode) eglot--managed-mode)
     (remove-hook 'before-save-hook #'eglot-format-buffer t)))
 
@@ -556,45 +555,35 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
   :ensure t
   :bind ("M-z" . format-all-buffer)
   :config
+
+  :hook (prog-mode . format-all-mode)  ;; Enable format-all in all programming modes
+
   ;; Configure available formatters with NixOS-friendly commands
-  (setq format-all-formatters
-        '(("C"            . (clang-format))
-          ("C++"          . (clang-format))
-          ("C#"           . (clang-format))
-          ("CSS"          . (prettier))
-          ("F#"           . (fantomas))
-          ("HTML"         . (prettier))
-          ("JavaScript"   . (biome))
-          ("JSON"         . (biome))
-          ("Markdown"     . (mdformat))
-          ("Nix"          . (nixfmt))
-          ("Python"       . (ruff))
-          ("Ruby"         . (rubocop))
-          ("Shell"        . (shfmt "-i" "2" "-s"))
-          ("TypeScript"   . (biome))
-          ("TSX"          . (biome))
-          ("YAML"         . (yamlfmt))
-          ("TOML"         . (taplo))
-          ("Terraform"    . (terraform "fmt"))
-          ("HCL"          . (hclfmt))
-          ("Zig"          . (zig "fmt"))))
+  (setq format-all-default-formatters
+        '(("C"            . clang-format)
+          ("C++"          . clang-format)
+          ("C#"           . clang-format)
+          ("CSS"          . prettier)
+          ("F#"           . fantomas)
+          ("Go"           . gofmt)
+          ("HTML"         . prettier)
+          ("Haskell"      . brittany)
+          ("JavaScript"   . biome)
+          ("JSON"         . biome)
+          ("Markdown"     . mdformat)
+          ("Nix"          . nixfmt)
+          ("Python"       . ruff)
+          ("Ruby"         . rubocop)
+          ("Rust"         . rustfmt)
+          ("Shell"        . shfmt)
+          ("TypeScript"   . biome)
+          ("TSX"          . biome)
+          ("YAML"         . yamlfmt)
+          ("TOML"         . taplo)
+          ("Terraform"    . terraform)
+          ("HCL"          . hclfmt)
+          ("Zig"          . zig)))
 
-  ;; Function to find treefmt.toml in project or parent dirs
-  (defun find-treefmt-config-dir ()
-    "Find directory containing treefmt.toml in project or parent directories."
-    (locate-dominating-file default-directory "treefmt.toml"))
-
-  ;; Function to safely handle treefmt output buffer
-  (defun setup-treefmt-buffer ()
-    "Set up a clean buffer for treefmt output."
-    (let ((buf (get-buffer-create "*treefmt*")))
-      (with-current-buffer buf
-        (erase-buffer)
-        (special-mode) ; Make it read-only with convenient navigation
-        (setq buffer-read-only nil)) ; Temporarily allow writing
-      buf))
-
-  ;; Add hook to disable LSP formatters when format-all is active
   (add-hook 'format-all-mode-hook #'disable-lsp-formatters))
 
 ;; TreeSit configuration
@@ -624,6 +613,24 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
   :config
   (global-treesit-auto-mode))
 
+(setq auto-mode-alist
+      (append '(("\\.c\\'" . c-ts-mode)
+                ("\\.h\\'" . c-ts-mode)
+                ("\\.cpp\\'" . c++-ts-mode)
+                ("\\.hpp\\'" . c++-ts-mode)
+                ("\\.cs\\'" . csharp-ts-mode)
+                ("\\.fs[ix]?\\'" . fsharp-mode)
+                ("\\.hs\\'" . haskell-mode)
+                ("\\.py\\'" . python-ts-mode)
+                ("\\.js\\'" . js-ts-mode)
+                ("\\.jsx\\'" . jsx-ts-mode)
+                ("\\.ts\\'" . typescript-ts-mode)
+                ("\\.tsx\\'" . tsx-ts-mode)
+                ("\\.json\\'" . json-ts-mode)
+                ("\\.nix\\'" . nix-mode)
+                ("\\.sh\\'" . bash-ts-mode))
+              auto-mode-alist))
+
 ;; ============================================================
 ;; LSP Configuration
 ;; ============================================================
@@ -633,84 +640,45 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
   :ensure t
   :hook (prog-mode . rainbow-mode))
 
-;; Eglot configuration for most languages
-(use-package eglot
-  :ensure t
-  :hook ((csharp-ts-mode . eglot-ensure)
-         (fsharp-mode . eglot-ensure)
-         (bash-ts-mode . eglot-ensure)
-         (sh-mode . eglot-ensure)
-         ;; Note: Nix modes are NOT included here
-         (typescript-ts-mode . eglot-ensure)
-         (tsx-ts-mode . eglot-ensure)
-         (js-ts-mode . eglot-ensure)
-         (jsx-ts-mode . eglot-ensure)
-         (python-ts-mode . eglot-ensure)
-         (python-mode . eglot-ensure)
-         (haskell-mode . eglot-ensure)
-         (haskell-ts-mode . eglot-ensure)
-         (c-mode . eglot-ensure)
-         (c++-mode . eglot-ensure)
-         (c-ts-mode . eglot-ensure)
-         (c++-ts-mode . eglot-ensure))
-  :config
-  (setq eglot-autoshutdown t)
-  (setq eglot-sync-connect nil)
-  (setq eglot-events-buffer-size 0)
-  (setq eglot-extend-to-xref t)
-  
-  ;; Turn off inlay hints by default
-  (setq eglot-inlay-hints-mode nil)
-  
-  ;; Require flymake to avoid autoload messages
-  (require 'flymake)
-  
-  ;; Configure hooks
-  (add-hook 'eglot-managed-mode-hook
-            (lambda ()
-              (eglot-inlay-hints-mode -1)
-              (flymake-mode 1))))
-
-(use-package sideline
-  :ensure t
-  :after flymake
-  :hook (eglot-managed-mode . sideline-mode)
-  :custom
-  (sideline-display-backend-name t)
-  :config
-  ;; Configure sideline to use flymake as a backend
-  (setq sideline-backends-right '(sideline-flymake)))
-
-(use-package sideline-flymake
-  :ensure t
-  :after (sideline flymake))
-
-(use-package breadcrumb
-  :ensure t
-  :hook (eglot-managed-mode . breadcrumb-mode)
-  :config
-  (setq breadcrumb-imenu-max-length 70))
-
-(use-package consult-eglot
-  :ensure t
-  :after (consult eglot)
-  :bind (:map eglot-mode-map
-              ("C-c c s" . consult-eglot-symbols)))
-
 (use-package lsp-mode
   :ensure t
   :commands lsp lsp-deferred
-  :hook ((nix-mode . lsp-deferred)
+  :hook ((c-mode . lsp-deferred)
+         (c++-mode . lsp-deferred)
+         (c-ts-mode . lsp-deferred)
+         (c++-ts-mode . lsp-deferred)
+         (csharp-ts-mode . lsp-deferred)
+         (fsharp-mode . lsp-deferred)
+         (haskell-mode . lsp-deferred)
+         (haskell-ts-mode . lsp-deferred)
+         (python-mode . lsp-deferred)
+         (python-ts-mode . lsp-deferred)
+         (js-ts-mode . lsp-deferred)
+         (tsx-ts-mode . lsp-deferred)
+         (typescript-ts-mode . lsp-deferred)
+         (nix-mode . lsp-deferred)
          (nix-ts-mode . lsp-deferred))
+
   :init
   (setq lsp-keymap-prefix "C-c l")
+
   :config
-  ;; Disable nix-nil and rnix-lsp to prefer nixd
+  ;; LSP performance adjustments
+  (setq lsp-idle-delay 0.5)
+  (setq lsp-completion-provider :capf)
+  (setq lsp-enable-symbol-highlighting t)
+  (setq lsp-enable-snippet nil)
+  (setq lsp-headerline-breadcrumb-enable t)
+  (setq lsp-modeline-code-actions-enable t)
+  (setq lsp-modeline-diagnostics-enable t)
+  (setq lsp-log-io nil)
+
+  ;; Nix LSP settings
   (add-to-list 'lsp-disabled-clients '(nix-mode . nix-nil))
   (add-to-list 'lsp-disabled-clients '(nix-ts-mode . nix-nil))
   (add-to-list 'lsp-disabled-clients '(nix-mode . rnix-lsp))
   (add-to-list 'lsp-disabled-clients '(nix-ts-mode . rnix-lsp))
-  
+
   ;; Register nixd
   (lsp-register-client
    (make-lsp-client :new-connection (lsp-stdio-connection "nixd")
@@ -724,6 +692,7 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
   :commands lsp-ui-mode
   :hook ((nix-mode . lsp-ui-mode)
          (nix-ts-mode . lsp-ui-mode))
+
   :config
   (setq lsp-ui-doc-enable t)
   (setq lsp-ui-doc-position 'at-point)
@@ -735,35 +704,61 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
 ;; Enhanced completion with Corfu - works with both
 (use-package corfu
   :ensure t
+
   :init
   (global-corfu-mode)
+
   :config
   (setq corfu-auto t
         corfu-auto-delay 0.2
         corfu-auto-prefix 2
         corfu-cycle t
-        corfu-preselect 'prompt)
-  (set-face-attribute 'corfu-current nil :background "dark blue"))
+        corfu-preselect 'prompt))
 
 ;; Shared key bindings for both frameworks
 (use-package consult
   :ensure t
-  :bind (("C-c c a" . #'(lambda () 
+  :bind (("C-c c a" . #'(lambda ()
                           (interactive)
                           (if (bound-and-true-p lsp-mode)
                               (call-interactively #'lsp-execute-code-action)
                             (call-interactively #'eglot-code-actions))))
-         ("C-c c r" . #'(lambda () 
+
+         ("C-c c r" . #'(lambda ()
                           (interactive)
                           (if (bound-and-true-p lsp-mode)
                               (call-interactively #'lsp-rename)
                             (call-interactively #'eglot-rename))))
-         ("C-c c f" . #'(lambda () 
+
+         ("C-c c f" . #'(lambda ()
                           (interactive)
                           (if (bound-and-true-p lsp-mode)
                               (call-interactively #'lsp-format-buffer)
                             (call-interactively #'eglot-format))))
+
          ("C-c c d" . eldoc)))
+
+(defun setup-language-tooling (mode)
+  "Set up formatting and LSP for a specific mode."
+  (add-hook mode
+            (lambda ()
+              (lsp-deferred)
+              (format-all-mode)
+              (add-hook 'before-save-hook #'format-all-buffer nil t))))
+
+;; Apply to all modes you want both LSP and format-all
+(mapc #'setup-language-tooling
+      '(c-mode-hook
+        c++-mode-hook
+        c-ts-mode-hook
+        c++-ts-mode-hook
+        csharp-ts-mode-hook
+        fsharp-mode-hook
+        haskell-mode-hook
+        python-ts-mode-hook
+        js-ts-mode-hook
+        typescript-ts-mode-hook
+        nix-mode-hook))
 
 ;; ============================================================
 ;; Snippets with YASnippet
@@ -781,15 +776,6 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
 ;; ============================================================
 ;; C/C++ specific configuration
 ;; ============================================================
-
-;; (use-package cc-mode
-;;   :ensure nil
-;;   :config
-;;   (setq-local tab-width 2)
-;;   (setq-local c-basic-offset 2)
-;;   (setq-local indent-tabs-mode nil)
-;;   (electric-indent-local-mode 1)
-;;   )
 
 ;; C# Mode
 ;; ============================================================
@@ -869,6 +855,7 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
           company-yasnippet
           company-dabbrev-code
           company-dabbrev))
+
   (setq company-dabbrev-ignore-case t)
   (setq company-dabbrev-downcase nil)
   (setq company-show-quick-access t)
