@@ -2,9 +2,11 @@
   flake,
   pkgs,
   ...
-}: let
+}:
+let
   inherit (flake) inputs;
-in {
+in
+{
   imports = [
     ./cachix.nix
     ./bluetooth.nix
@@ -21,7 +23,7 @@ in {
 
   # `home-manager` setup for nixos targets
   # this is potentially a top-level configuration opportunity...
-  nix.nixPath = ["nixpkgs=${inputs.nixpkgs}"];
+  nix.nixPath = [ "nixpkgs=${inputs.nixpkgs}" ];
 
   nixpkgs.config = {
     allowBroken = false;

@@ -615,7 +615,7 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
 
 (setq auto-mode-alist
       (append '(("\\.c\\'" . c-ts-mode)
-                ("\\.h\\'" . c-ts-mode)
+                ("\\.h\\'" . c++-ts-mode)
                 ("\\.cpp\\'" . c++-ts-mode)
                 ("\\.hpp\\'" . c++-ts-mode)
                 ("\\.cs\\'" . csharp-ts-mode)

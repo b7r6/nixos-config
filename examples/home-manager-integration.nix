@@ -2,7 +2,13 @@
 #
 # This example shows how to import and use development environments
 # in a home-manager configuration.
-{ config, lib, pkgs, inputs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 
 {
   # Method 1: Import the entire suite of development environments
@@ -10,14 +16,14 @@
     # This imports all development environments at once
     inputs.dev-v4.homeManagerModules.dev-environments
   ];
-  
+
   # Method 2: Selectively import specific environments
   # Uncomment these lines to use specific environments instead
   # imports = [
   #   inputs.dev-v4.homeManagerModules.python-dev
   #   inputs.dev-v4.homeManagerModules.rust-dev
   # ];
-  
+
   # Configuration for dev environments
   programs = {
     # VSCode configuration that leverages the dev environment extensions
@@ -30,11 +36,11 @@
         ms-vscode-remote.remote-ssh
       ];
     };
-    
+
     # Neovim configuration that leverages the dev environments
     neovim = {
       enable = true;
-      
+
       # Configure LSP for the languages in the imported dev environments
       plugins = with pkgs.vimPlugins; [
         nvim-lspconfig
@@ -42,7 +48,7 @@
       ];
     };
   };
-  
+
   # Additional home-manager configuration
   home = {
     # Base packages needed regardless of dev environments
@@ -51,15 +57,15 @@
       direnv
       ripgrep
     ];
-    
+
     # Set up .envrc template that uses the dev environments from flakes
     file.".config/direnv/templates/flake-dev.envrc".text = ''
       # Template for using dev-v4 environments in project directories
       # Usage: cp ~/.config/direnv/templates/flake-dev.envrc .envrc
-      
+
       # Use flake-based development environment
       use flake
-      
+
       # Additional project-specific environment setup
       # export PROJECT_ROOT=$PWD
     '';

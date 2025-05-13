@@ -1,7 +1,6 @@
-{
-  flake,
-  pkgs,
-  ...
+{ flake
+, pkgs
+, ...
 }:
 let
   inherit (flake) inputs;
@@ -35,6 +34,8 @@ in
     yamlfmt
     yq-go
 
+    graphite-cli
+
     # sorted/categorized
     sysz
     dos2unix
@@ -55,7 +56,7 @@ in
 
     # TODO[b7r6]: this is a whole thing...
     dotnet-sdk_8
-    
+
     # TODO[b7r6]: this is a whole thing....
     inputs.devenv.packages."${pkgs.system}".devenv
   ];

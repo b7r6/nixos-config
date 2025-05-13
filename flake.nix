@@ -2,7 +2,8 @@
   description = "DEV // v4";
 
   # https://nixos-unified.org/autowiring.html
-  outputs = inputs:
+  outputs =
+    inputs:
     inputs.nixos-unified.lib.mkFlake {
       inherit inputs;
       root = ./.;
