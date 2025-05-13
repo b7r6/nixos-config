@@ -35,8 +35,7 @@ in
   };
 
   config = {
-    # For home-manager to work.
-    # https://github.com/nix-community/home-manager/issues/4026#issuecomment-1565487545
+
     users.users = mapListToAttrs config.myusers (
       name:
       lib.optionalAttrs pkgs.stdenv.isDarwin { home = "/Users/${name}"; }
@@ -52,7 +51,6 @@ in
       }
     );
 
-    # Enable home-manager for our user
     home-manager.users = mapListToAttrs config.myusers (name: {
       imports = [ (self + /configurations/home/${name}.nix) ];
     });

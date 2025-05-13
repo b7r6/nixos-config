@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 with lib;
 let
   cfg = config.services.my-network;
@@ -52,7 +57,10 @@ in
       enable = cfg.firewall.enable;
 
       trustedInterfaces = mkIf cfg.firewall.enable [ "tailscale0" ];
-      allowedTCPPorts = mkIf cfg.firewall.enable [ 22 3000 ];
+      allowedTCPPorts = mkIf cfg.firewall.enable [
+        22
+        3000
+      ];
       allowedUDPPorts = mkIf cfg.firewall.enable [ 41641 ];
       checkReversePath = mkIf cfg.firewall.enable "loose";
 
@@ -63,9 +71,14 @@ in
 
     networking = {
       nameservers =
-        if cfg.useBackupResolver
-        then [ "100.100.100.100" "1.1.1.1" "8.8.8.8" ]
-        else [ "100.100.100.100" ];
+        if cfg.useBackupResolver then
+          [
+            "100.100.100.100"
+            "1.1.1.1"
+            "8.8.8.8"
+          ]
+        else
+          [ "100.100.100.100" ];
 
       search = [ cfg.tailnet.domain ];
       networkmanager.dns = "none"; # Let the OS handle DNS configuration

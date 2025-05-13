@@ -2,10 +2,13 @@
   flake,
   config,
   pkgs,
+  lib,
   ...
-}: let
+}:
+let
   inherit (flake) inputs;
-in {
+in
+{
   imports = [
     ./hardware-configuration.nix
     inputs.agenix.nixosModules.default
@@ -20,7 +23,7 @@ in {
   networking.networkmanager.enable = true;
 
   networking.hosts = {
-    "192.168.50.12" = ["files01.rhosts.net"];
+    "192.168.50.12" = [ "files01.rhosts.net" ];
   };
 
   services.tailscale.enable = true;
@@ -47,6 +50,19 @@ in {
       dates = "weekly";
       options = "--delete-older-than 30d";
     };
+  };
+
+  users.users.gedanziger = {
+    isNormalUser = true;
+
+    extraGroups = [
+      "wheel"
+      "ps-v4"
+    ];
+
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEU8Z7JibxxeULoRcIhTS2uaKfr6SWRMJJCWpldFRnZ2 grandpa-mac"
+    ];
   };
 
   security.sudo.wheelNeedsPassword = false;

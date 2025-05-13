@@ -1,4 +1,10 @@
-{ flake, config, lib, pkgs, ... }:
+{
+  flake,
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 # 1. **Zero Border Radius**: Removed all rounded corners throughout Hyprland, Waybar, notifications, and application launcher.
 
@@ -112,7 +118,7 @@ in
         "nm-tray"
         "tailscale-systray"
       ];
-      
+
       # ===== General UI Settings =====
       general = {
         gaps_in = 10;

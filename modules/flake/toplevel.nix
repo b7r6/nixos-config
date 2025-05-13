@@ -1,4 +1,5 @@
-{inputs, ...}: {
+{ inputs, ... }:
+{
   debug = true;
 
   imports = [
@@ -10,24 +11,26 @@
     # ./devshell.nix
   ];
 
-  perSystem = {
-    self',
-    pkgs,
-    system,
-    ...
-  }: {
-    _module.args.pkgs = import inputs.nixpkgs {
-      inherit system;
+  perSystem =
+    {
+      self',
+      pkgs,
+      system,
+      ...
+    }:
+    {
+      _module.args.pkgs = import inputs.nixpkgs {
+        inherit system;
 
-      overlays = [];
+        overlays = [ ];
 
-      config = {
-        allowUnfree = true;
-        allowUnfreePredicate = _: true;
+        config = {
+          allowUnfree = true;
+          allowUnfreePredicate = _: true;
+        };
       };
-    };
 
-    formatter = pkgs.nixfmt-rfc-style;
-    packages.default = self'.packages.activate;
-  };
+      formatter = pkgs.nixfmt-rfc-style;
+      packages.default = self'.packages.activate;
+    };
 }

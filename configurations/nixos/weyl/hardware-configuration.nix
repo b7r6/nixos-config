@@ -7,7 +7,8 @@
   pkgs,
   modulesPath,
   ...
-}: {
+}:
+{
   imports = [
     (modulesPath + "/installer/scan/not-detected.nix")
   ];
@@ -26,17 +27,19 @@
   ];
 
   services.supergfxd.enable = true;
-  systemd.services.supergfxd.path = [pkgs.pciutils];
+  systemd.services.supergfxd.path = [ pkgs.pciutils ];
 
   hardware.cpu.amd.updateMicrocode = true;
   powerManagement.cpuFreqGovernor = "performance";
-  
+
   services = {
     asusd = {
       enable = true;
       enableUserService = true;
     };
   };
+
+  # TODO[b7r6]: see if this still has any relevance...
   # environment.variables = {
   #   KWIN_DRM_DEVICES = "/dev/dri/card1:/dev/dri/card0";
   # };
@@ -54,10 +57,10 @@
   ];
 
   # Load NVIDIA driver kernel module
-  boot.kernelModules = ["kvm-amd"];
-  boot.extraModulePackages = [config.boot.kernelPackages.nvidia_x11];
+  boot.kernelModules = [ "kvm-amd" ];
+  boot.extraModulePackages = [ config.boot.kernelPackages.nvidia_x11 ];
 
-  boot.initrd.kernelModules = [];
+  boot.initrd.kernelModules = [ ];
 
   boot.initrd.availableKernelModules = [
     "nvme"
@@ -81,7 +84,9 @@
     package = config.boot.kernelPackages.nvidiaPackages.stable;
   };
 
-  services.xserver.videoDrivers = ["nvidia"];
+  services.xserver.videoDrivers = [
+    "nvidia"
+  ];
 
   services.logind = {
     lidSwitch = "lock";
@@ -97,10 +102,13 @@
   fileSystems."/boot" = {
     device = "/dev/disk/by-uuid/4C1D-B8D4";
     fsType = "vfat";
-    options = ["fmask=0077" "dmask=0077"];
+    options = [
+      "fmask=0077"
+      "dmask=0077"
+    ];
   };
 
-  swapDevices = [];
+  swapDevices = [ ];
   networking.useDHCP = lib.mkDefault true;
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";

@@ -5,11 +5,13 @@
   config,
   ...
 }:
-with lib; let
+with lib;
+let
   cfg = config.services.gui;
-in {
+in
+{
   # No default imports - explicitly choose what you need
-  imports = [];
+  imports = [ ];
 
   options.services.gui = {
     enable = mkEnableOption "GUI environment";
