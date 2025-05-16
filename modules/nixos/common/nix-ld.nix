@@ -1,31 +1,38 @@
-{ config, pkgs, ... }:
 {
-  # System-wide nix-ld configuration
-  programs.nix-ld.enable = true;
-  programs.nix-ld.libraries = with pkgs; [
-    # Common libraries for all runtimes
-    curl
-    icu
-    libunwind
-    libuuid
-    openssl
-    stdenv.cc.cc
-    zlib
+  config,
+  pkgs,
+  lib,
+  ...
+}:
+with lib;
+let
+  cfg = config.hyper-modern-nixos.nix-ld;
+in
+{
+  options.hyper-modern-nixos.nix-ld = {
+    enable = mkEnableOption "hyper-modern-nixos.nix-ld" // {
+      default = true;
+    };
+  };
 
-    # Python-specific
-    bzip2
-    gdbm
-    libffi
-    ncurses
-    readline
-    sqlite
-    xz
-
-    # Node.js-specific
-    libuv
-  ];
-
-  # Baseline system packages
-  environment.systemPackages = with pkgs; [
-  ];
+  config = mkIf cfg.enable {
+    programs.nix-ld.enable = true;
+    programs.nix-ld.libraries = with pkgs; [
+      bzip2
+      curl
+      gdbm
+      icu
+      libffi
+      libunwind
+      libuuid
+      libuv
+      ncurses
+      openssl
+      readline
+      sqlite
+      stdenv.cc.cc
+      xz
+      zlib
+    ];
+  };
 }

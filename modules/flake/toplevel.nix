@@ -5,10 +5,6 @@
   imports = [
     inputs.nixos-unified.flakeModules.default
     inputs.nixos-unified.flakeModules.autoWire
-
-    # Development environment modules - temporarily disabled
-    # ./dev-environments.nix
-    # ./devshell.nix
   ];
 
   perSystem =
@@ -21,9 +17,6 @@
     {
       _module.args.pkgs = import inputs.nixpkgs {
         inherit system;
-
-        overlays = [ ];
-
         config = {
           allowUnfree = true;
           allowUnfreePredicate = _: true;

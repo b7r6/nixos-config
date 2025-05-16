@@ -44,7 +44,6 @@ let
   cfg = config.wayland.hyprland;
   inherit (flake) inputs;
 
-  # Extract color values without # prefix for Hyprland
   inherit (config.lib.stylix) colors;
   base00 = lib.removePrefix "#" colors.base00; # background
   base01 = lib.removePrefix "#" colors.base01; # lighter background
@@ -78,23 +77,19 @@ in
 
     settings = {
       monitor = [
-        # External monitor - WQHD ultrawide
-        "desc:AOC CU34G2XP,3440x1440@100.00,0x0,1.0"
-
-        # Laptop display - simply positioned to the left
+        # "desc:AOC CU34G2XP,3440x1440@100.00,0x0,1.0"
+        "desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483,3840x2160x144,0x0,1.5"
         "eDP-1,3840x2400@60.00,-1536x0,2.5"
-
-        # Fallback
         ",preferred,auto,1"
       ];
 
       # ===== Persistent Workspace Assignment =====
       # First three workspaces for external, next three for laptop
       workspace = [
-        "1, monitor:desc:AOC CU34G2XP, default:true, persistent:true"
-        "2, monitor:desc:AOC CU34G2XP, persistent:true"
-        "3, monitor:desc:AOC CU34G2XP, persistent:true"
-        "4, monitor:desc:AOC CU34G2XP, persistent:true"
+        "1, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, default:true, persistent:true"
+        "2, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, persistent:true"
+        "3, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, persistent:true"
+        "4, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, persistent:true"
         "5, monitor:eDP-1, default:true, persistent:true"
         "6, monitor:eDP-1, persistent:true"
         "7, monitor:eDP-1, persistent:true"
@@ -105,32 +100,29 @@ in
       ];
 
       # ===== Handle laptop lid =====
-      bindl = [
-        ",switch:off:Lid Switch,exec,hyprctl keyword monitor eDP-1 disable"
-        ",switch:on:Lid Switch,exec,hyprctl keyword monitor eDP-1 3840x2400@60.00,3440x0,2.5"
-      ];
+      # bindl = [
+      #   ",switch:off:Lid Switch,exec,hyprctl keyword monitor eDP-1 disable"
+      #   ",switch:on:Lid Switch,exec,hyprctl keyword monitor eDP-1 3840x2400@60.00,3440x0,2.5"
+      # ];
 
-      # ===== Startup Programs =====
       exec-once = [
         "blueman-applet"
         "hyprpaper"
         "mako"
         "nm-tray"
         "tailscale-systray"
+        "flameshot"
       ];
 
-      # ===== General UI Settings =====
       general = {
-        gaps_in = 10;
-        gaps_out = 10;
+        gaps_in = 6;
+        gaps_out = 6;
         border_size = 2;
-        resize_on_border = true;
 
-        # Use the hy3 plugin for layout
+        resize_on_border = true;
         layout = "hy3";
       };
 
-      # ===== UI Theme Elements =====
       decoration = {
         rounding = 0; # No rounded corners
 
@@ -143,13 +135,11 @@ in
           ignore_opacity = true;
         };
 
-        # Focus indication
         active_opacity = 1.0;
         inactive_opacity = 0.95;
         fullscreen_opacity = 1.0;
       };
 
-      # ===== Animations =====
       animations = {
         enabled = true;
 
@@ -167,7 +157,6 @@ in
         ];
       };
 
-      # ===== Input Settings =====
       input = {
         kb_layout = "us";
         follow_mouse = 1;
@@ -185,7 +174,6 @@ in
         kb_options = "ctrl:nocaps";
       };
 
-      # ===== Touchpad Gestures =====
       gestures = {
         workspace_swipe = true;
         workspace_swipe_fingers = 3;
@@ -194,7 +182,6 @@ in
         workspace_swipe_create_new = false;
       };
 
-      # ===== Misc Settings =====
       misc = {
         force_default_wallpaper = 0;
         animate_mouse_windowdragging = false;
@@ -204,13 +191,10 @@ in
         focus_on_activate = true;
       };
 
-      # ===== HY3 Plugin Settings =====
       plugin.hy3 = {
-        # Enable vim-like behavior
         vim_bindings = true;
         node_collapse_policy = 2; # Only collapse if empty
 
-        # Tab configuration
         tabs = {
           height = 16;
           padding = 0;
@@ -218,18 +202,15 @@ in
           rounding = 0; # No rounding
           render_text = true;
 
-          # Tab colors
           "col.active" = "rgba(${base0D}ee)";
           "col.inactive" = "rgba(${base02}aa)";
           "col.text.active" = "rgba(${base05}ee)";
           "col.text.inactive" = "rgba(${base04}aa)";
-
           "col.active_border" = "rgba(${base0D}ee) rgba(${base0E}ee) 45deg";
           "col.inactive_border" = "rgba(${base02}aa)";
           border_width = 1;
         };
 
-        # Automatic tiling
         autotile = {
           enable = true;
           trigger_width = 800;
@@ -237,25 +218,17 @@ in
         };
       };
 
-      # ===== Key Bindings =====
       "$mod" = "SUPER";
       "$alt" = "ALT";
 
-      # Core system bindings
       bind = [
-        # Applications
         "$mod, Return, exec, wezterm"
         "$mod, Space, exec, wofi --show drun"
-        "$mod, E, exec, dolphin"
+        "$mod, E, exec, nemo"
         "$mod, W, exec, firefox"
         "$mod, BackSpace, killactive"
         "$mod SHIFT, BackSpace, exit"
 
-        # Special workspace (scratchpad)
-        "$mod, S, togglespecialworkspace"
-        "$mod SHIFT, S, movetoworkspace, special"
-
-        # Fullscreen and floating
         "$mod, F, fullscreen, 0"
         "$mod SHIFT, F, fullscreen, 1"
         "$mod, D, togglefloating"
@@ -315,13 +288,12 @@ in
         "$mod $alt, J, resizeactive, 0 20"
 
         # Layout control
-        "$mod, T, hy3:makegroup, tab" # Create tabbed group
-        "$mod, G, hy3:changegroup, opposite" # Change group layout (h/v/tab)
+        "$mod, T, hy3:makegroup, tab"
+        "$mod, G, hy3:changegroup, opposite"
 
         # Screenshots
-        ", Print, exec, grim -g \"$(slurp)\" - | wl-copy"
-        "$mod, Print, exec, grim -g \"$(slurp)\" ~/Pictures/screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
-        "SHIFT, Print, exec, grim - | wl-copy"
+        "$mod, S, exec, grimblast copy area"
+        "$mod SHIFT, S, exec, grimblast save area ~/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
 
         # Media controls
         ", XF86AudioRaiseVolume, exec, pactl set-sink-volume @DEFAULT_SINK@ +5%"
@@ -331,7 +303,6 @@ in
         ", XF86AudioNext, exec, playerctl next"
         ", XF86AudioPrev, exec, playerctl previous"
 
-        # Brightness controls
         ", XF86MonBrightnessUp, exec, brightnessctl set +5%"
         ", XF86MonBrightnessDown, exec, brightnessctl set 5%-"
       ];
@@ -344,10 +315,10 @@ in
     };
   };
 
-  # ===== WAYBAR CONFIGURATION =====
   programs.waybar = {
     enable = true;
     systemd.enable = true;
+
     settings = {
       mainBar = {
         layer = "top";
@@ -490,13 +461,13 @@ in
   # ===== Notification daemon (mako) =====
   services.mako = {
     enable = true;
+
     borderSize = 1;
     borderRadius = 0;
     padding = "5";
     defaultTimeout = 5000;
     layer = "overlay";
 
-    # backgroundColor = "#${colors.base00}";
     textColor = "#${colors.base05}";
     borderColor = "#${colors.base0D}";
 
@@ -513,7 +484,6 @@ in
     '';
   };
 
-  # ===== Wofi Configuration =====
   home.file.".config/wofi/style.css".text = ''
     window {
       margin: 0px;
@@ -562,30 +532,26 @@ in
     }
   '';
 
-  # ===== Required packages =====
   home.packages = with pkgs; [
-    # System tray applets
     blueman
-    nm-tray
-    tailscale-systray
-
-    # Tools and utilities
     brightnessctl
+    flameshot # heard good things
     grim # Screenshot tool
+    grimblast
     hyprpaper # Wallpaper
+    jq # JSON processing
+    libnotify # Notifications
     mako # Notifications
+    nm-tray
+    pamixer # Pulseaudio control
     pavucontrol # Audio control
     playerctl # Media control
     slurp # Screen area selection
-    wl-clipboard # Clipboard tools
-    wofi # Application launcher
-
-    # Additional helpful tools
-    jq # JSON processing
-    libnotify # Notifications
-    pamixer # Pulseaudio control
     swappy # Screenshot editing
+    tailscale-systray
     wev # Input debugger
+    wl-clipboard # Clipboard tools
     wlr-randr # Output management
+    wofi # Application launcher
   ];
 }

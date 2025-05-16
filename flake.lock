@@ -2273,10 +2273,10 @@
         "systems": "systems_7"
       },
       "locked": {
-        "lastModified": 1746088245,
-        "narHash": "sha256-loFbLJ6RqIkR1qJRYxguWqvKpjHwv8V4HGx6CZH9ceQ=",
+        "lastModified": 1747374917,
+        "narHash": "sha256-ZSEmBdDgQIjOjcnhsvA6d5n6NgQ5I3iuYbBnNOrWUG4=",
         "ref": "b7r6/new-okx-secrets",
-        "rev": "13519486dc6cddbf23dcdcfa45ff138090e396ac",
+        "rev": "e82fa1372fe0c0a47e6115e88c1ab4a895388a5a",
         "revCount": 10,
         "type": "git",
         "url": "ssh://git@github.com/straylight-evaluation/ps-v4.git"

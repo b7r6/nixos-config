@@ -1,7 +1,6 @@
 {
   description = "DEV // v4";
 
-  # https://nixos-unified.org/autowiring.html
   outputs =
     inputs:
     inputs.nixos-unified.lib.mkFlake {
@@ -102,7 +101,6 @@
 
     ps-v4 = {
       url = "git+ssh://git@github.com/straylight-evaluation/ps-v4.git?ref=b7r6/new-okx-secrets";
-      # url = "path:/home/b7r6/src/straylight-eval/ps-v4";
     };
   };
 }

@@ -1,4 +1,3 @@
-# List of users for darwin or nixos system and their top-level configuration.
 {
   flake,
   pkgs,
@@ -8,6 +7,7 @@
 }:
 let
   inherit (flake.inputs) self;
+
   mapListToAttrs =
     m: f:
     lib.listToAttrs (
@@ -23,6 +23,7 @@ in
       type = lib.types.listOf lib.types.str;
       description = "List of usernames";
       defaultText = "All users under ./configuration/users are included by default";
+
       default =
         let
           dirContents = builtins.readDir (self + /configurations/home);
@@ -47,6 +48,8 @@ in
           "networkmanager"
           "wheel"
           "docker"
+          "adbusers"
+          "libvirtd"
         ];
       }
     );
@@ -55,7 +58,6 @@ in
       imports = [ (self + /configurations/home/${name}.nix) ];
     });
 
-    # All users can add Nix caches.
     nix.settings.trusted-users = [ "root" ] ++ config.myusers;
   };
 }
