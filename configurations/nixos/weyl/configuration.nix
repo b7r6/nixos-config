@@ -2,7 +2,6 @@
   flake,
   config,
   pkgs,
-  lib,
   ...
 }:
 let
@@ -15,42 +14,35 @@ in
     inputs.ps-v4.nixosModules.secrets
   ];
 
-  # Bootloader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  networking.hostName = "weyl"; # Define your hostname.
+  networking.hostName = "weyl";
   networking.networkmanager.enable = true;
 
   networking.hosts = {
     "192.168.50.12" = [ "files01.rhosts.net" ];
   };
 
-  services.tailscale.enable = true;
-  services.openssh.enable = true;
-  programs.ssh.startAgent = true;
+  # TODO[b7r6]: we've got to either converge or diverge on
+  # `autowire`, this in-between isn't working out...
+  #
+  hyper-modern-nixos.nvidia.enable = true;
 
-  nix = {
-    package = pkgs.nixVersions.stable;
-
-    extraOptions = ''
-      experimental-features = nix-command flakes pipe-operators
-    '';
-
-    settings = {
-      auto-optimise-store = true;
-      trusted-users = [
-        "root"
-        "@wheel"
-      ];
-    };
-
-    gc = {
-      automatic = true;
-      dates = "weekly";
-      options = "--delete-older-than 30d";
-    };
+  programs.hyprland = {
+    enable = true;
+    package = inputs.hyprland.packages.${pkgs.system}.hyprland;
+    xwayland.enable = false;
   };
+
+  environment.variables = {
+    __GLX_VENDOR_LIBRARY_NAME = "nvidia";
+    WLR_NO_HARDWARE_CURSORS = "1";
+  };
+
+  programs.firefox.enable = true;
+
+  users.groups."ps-v4" = { };
 
   users.users.gedanziger = {
     isNormalUser = true;
@@ -65,45 +57,27 @@ in
     ];
   };
 
+  users.groups.ps-v4 = { };
+  users.users.b7r6 = {
+    extraGroups = [ "ps-v4" ];
+  };
+
   security.sudo.wheelNeedsPassword = false;
 
-  # TODO[b7r6]: need to do this via nixos module import...
+  ps-v4.nixos.secrets.devKeys = true;
   age.secrets."keys/dev.toml" = {
-    file = "/home/b7r6/src/straylight-eval/ps-v4/secrets/keys/dev.toml.age";
+    # TODO[b7r6]: get this sorted or just build a proper `sops.nix`
+    # setup now that we understand how and why...
+    # file = ps-v4.nixos.secrets.keys.dev.file;
+
+    file = "${inputs.ps-v4}/secrets/keys/dev.toml.age";
     group = "ps-v4";
-    mode = "400";
+    mode = "440";
   };
 
-  # TODO[b7r6]: doesn't belong here...
-  programs.nh.enable = true;
-
-  environment.systemPackages = with pkgs; [
-    alacritty
-    cacert
-    curl
-    git
-    home-manager
-    neovim
-    ripgrep
-  ];
-
-  # Set your time zone.
   time.timeZone = "America/New_York";
 
-  i18n.extraLocaleSettings = {
-    LC_ADDRESS = "en_US.UTF-8";
-    LC_IDENTIFICATION = "en_US.UTF-8";
-    LC_MEASUREMENT = "en_US.UTF-8";
-    LC_MONETARY = "en_US.UTF-8";
-    LC_NAME = "en_US.UTF-8";
-    LC_NUMERIC = "en_US.UTF-8";
-    LC_PAPER = "en_US.UTF-8";
-    LC_TELEPHONE = "en_US.UTF-8";
-    LC_TIME = "en_US.UTF-8";
-  };
-
   services.printing.enable = true;
-
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
 
@@ -112,16 +86,8 @@ in
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
-    # If you want to use JACK applications, uncomment this
-    #jack.enable = true;
-
-    # use the example session manager (no others are packaged yet so this is enabled by default,
-    # no need to redefine it in your config for now)
-    #media-session.enable = true;
   };
 
   environment.sessionVariables.NIXOS_OZONE_WL = "1";
-
-  programs.firefox.enable = true;
   system.stateVersion = "25.05"; # Did you read the comment?
 }

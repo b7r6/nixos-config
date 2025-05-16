@@ -6,11 +6,13 @@
 }:
 with lib;
 let
-  cfg = config.services.my-network;
+  cfg = config.hyper-modern-nixos.network;
 in
 {
-  options.services.my-network = {
-    enable = mkEnableOption "My network configuration with Tailscale and Mullvad";
+  options.hyper-modern-nixos.network = {
+    enable = mkEnableOption "hyper-modern-nixos.network" // {
+      default = true;
+    };
 
     tailnet = {
       domain = mkOption {
@@ -36,23 +38,25 @@ in
   };
 
   config = mkIf cfg.enable {
+
+    services.openssh = {
+      enable = true;
+    };
+
     services.tailscale = {
       enable = true;
-      useRoutingFeatures = "client"; # Accept routes from Tailscale network
+      useRoutingFeatures = "client";
       extraUpFlags = [
         "--accept-routes" # Accept subnet routes
         "--accept-dns=true" # Accept DNS settings from Tailscale
-        "--ssh" # Enable Tailscale SSH
       ];
     };
 
-    # Enable Mullvad VPN
     services.mullvad-vpn = {
       enable = true;
       package = pkgs.mullvad-vpn;
     };
 
-    # Firewall configuration
     networking.firewall = {
       enable = cfg.firewall.enable;
 
@@ -61,6 +65,7 @@ in
         22
         3000
       ];
+
       allowedUDPPorts = mkIf cfg.firewall.enable [ 41641 ];
       checkReversePath = mkIf cfg.firewall.enable "loose";
 
@@ -81,11 +86,7 @@ in
           [ "100.100.100.100" ];
 
       search = [ cfg.tailnet.domain ];
-      networkmanager.dns = "none"; # Let the OS handle DNS configuration
-    };
-
-    services.openssh = {
-      enable = true;
+      networkmanager.dns = "none";
     };
 
     environment.systemPackages = with pkgs; [

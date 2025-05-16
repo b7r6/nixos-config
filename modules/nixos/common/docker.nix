@@ -1,18 +1,25 @@
-{ config, pkgs, ... }:
+{ config, lib, ... }:
+with lib;
+let
+  cfg = config.hyper-modern-nixos.docker;
+in
 {
-  # Enable Docker properly
-  virtualisation.docker = {
-    enable = true;
-    enableOnBoot = true;
-    autoPrune.enable = true;
+  options.hyper-modern-nixos.docker = {
+    enable = mkEnableOption "hyper-modern-nixos.docker" // {
+      default = true;
+    };
   };
 
-  # Make sure Podman's Docker compatibility is disabled
-  virtualisation.podman = {
-    enable = false; # Set to false if you don't need Podman
-    dockerCompat = false; # Disable Docker compatibility mode
-  };
+  config = mkIf cfg.enable {
+    virtualisation.docker = {
+      enable = true;
+      enableOnBoot = true;
+      autoPrune.enable = true;
+    };
 
-  # Add your user to the "docker" group
-  users.users.b7r6.extraGroups = [ "docker" ];
+    virtualisation.podman = {
+      enable = false;
+      dockerCompat = false;
+    };
+  };
 }
