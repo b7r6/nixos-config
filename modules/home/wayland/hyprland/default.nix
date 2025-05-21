@@ -77,23 +77,18 @@ in
 
     settings = {
       monitor = [
-        # "desc:AOC CU34G2XP,3440x1440@100.00,0x0,1.0"
-        "desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483,3840x2160x144,0x0,1.5"
-        "eDP-1,3840x2400@60.00,-1536x0,2.5"
-        ",preferred,auto,1"
+        "desc:LG Electronics LG ULTRAGEAR+,3840x2160x120hz,0x0,1.5"
       ];
 
       # ===== Persistent Workspace Assignment =====
       # First three workspaces for external, next three for laptop
       workspace = [
-        "1, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, default:true, persistent:true"
-        "2, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, persistent:true"
-        "3, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, persistent:true"
-        "4, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, persistent:true"
-        "5, monitor:eDP-1, default:true, persistent:true"
-        "6, monitor:eDP-1, persistent:true"
-        "7, monitor:eDP-1, persistent:true"
-        "8, monitor:eDP-1, persistent:true"
+        "1, monitor:desc:LG Electronics LG ULTRAGEAR+, default:true, persistent:true"
+        "2, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
+        "3, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
+        "4, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
+        "5, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
+        "6, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
 
         # Special workspace can be summoned anywhere
         "special, on-created-empty:wezterm"
@@ -208,6 +203,7 @@ in
           "col.text.inactive" = "rgba(${base04}aa)";
           "col.active_border" = "rgba(${base0D}ee) rgba(${base0E}ee) 45deg";
           "col.inactive_border" = "rgba(${base02}aa)";
+
           border_width = 1;
         };
 
@@ -270,26 +266,22 @@ in
         "$mod SHIFT, 8, movetoworkspace, 8"
 
         # Window focus - vim keys
-        "$mod, H, hy3:movefocus, l"
-        "$mod, L, hy3:movefocus, r"
-        "$mod, K, hy3:movefocus, u"
-        "$mod, J, hy3:movefocus, d"
+        "$mod, H, movefocus, l"
+        "$mod, L, movefocus, r"
+        "$mod, K, movefocus, u"
+        "$mod, J, movefocus, d"
 
         # Move windows - vim keys
-        "$mod SHIFT, H, hy3:movewindow, l"
-        "$mod SHIFT, L, hy3:movewindow, r"
-        "$mod SHIFT, K, hy3:movewindow, u"
-        "$mod SHIFT, J, hy3:movewindow, d"
+        "$mod SHIFT, H, movewindow, l"
+        "$mod SHIFT, L, movewindow, r"
+        "$mod SHIFT, K, movewindow, u"
+        "$mod SHIFT, J, movewindow, d"
 
         # Resize windows - vim keys with ALT
         "$mod $alt, H, resizeactive, -20 0"
         "$mod $alt, L, resizeactive, 20 0"
         "$mod $alt, K, resizeactive, 0 -20"
         "$mod $alt, J, resizeactive, 0 20"
-
-        # Layout control
-        "$mod, T, hy3:makegroup, tab"
-        "$mod, G, hy3:changegroup, opposite"
 
         # Screenshots
         "$mod, S, exec, grimblast copy area"
@@ -458,7 +450,6 @@ in
     '';
   };
 
-  # ===== Notification daemon (mako) =====
   services.mako = {
     enable = true;
 
@@ -471,17 +462,20 @@ in
     textColor = "#${colors.base05}";
     borderColor = "#${colors.base0D}";
 
-    extraConfig = ''
-      [urgency=low]
-      border-color=#${colors.base0D}
+    settings = lib.mkForce {
+      "urgency=low" = {
+        "border-color" = "#${colors.base0D}";
+      };
 
-      [urgency=normal]
-      border-color=#${colors.base0D}
+      "urgency=normal" = {
+        "border-color" = "#${colors.base0D}";
+      };
 
-      [urgency=high]
-      border-color=#${colors.base08}
-      default-timeout=0
-    '';
+      "urgency=high" = {
+        "border-color" = "#${colors.base08}";
+        "default-timeout" = "0"; # Make sure this is a string
+      };
+    };
   };
 
   home.file.".config/wofi/style.css".text = ''

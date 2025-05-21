@@ -228,13 +228,11 @@ with the mode-line background color."
 (use-package vertico
   :ensure t
 
-  :custom
-  (vertico-cycle t)
-
   :init
   (vertico-mode)
-  (vertico-reverse-mode)
-  )
+
+  :config
+  (vertico-reverse-mode))
 
 (use-package orderless
   :ensure t
@@ -244,15 +242,14 @@ with the mode-line background color."
   (completion-category-overrides '((command (styles orderless))))
   )
 
-(use-package posframe
-  :ensure t)
+;; (use-package posframe
+;;   :ensure t)
 
 (use-package marginalia
   :ensure t
   :init
   (marginalia-mode)
-  :bind (:map minibuffer-local-map ("M-A" . marginalia-cycle))
-  )
+  :bind (:map minibuffer-local-map ("M-A" . marginalia-cycle)))
 
 ;; ============================================================
 ;; directories // projects // ripgrep
@@ -631,7 +628,6 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
           (c-sharp "https://github.com/tree-sitter/tree-sitter-c-sharp")
           (cpp "https://github.com/tree-sitter/tree-sitter-cpp")
           (css "https://github.com/tree-sitter/tree-sitter-css")
-          (elisp "https://github.com/Wilfred/tree-sitter-elisp")
           (go "https://github.com/tree-sitter/tree-sitter-go")
           (haskell "https://github.com/tree-sitter/tree-sitter-haskell")
           (html "https://github.com/tree-sitter/tree-sitter-html")
@@ -654,7 +650,6 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
           (c++-mode . c++-ts-mode)
           (cmake-mode . cmake-ts-mode)
           (css-mode . css-ts-mode)
-          (emacs-lisp-mode . elisp-ts-mode)
           (go-mode . go-ts-mode)
           (haskell-mode . haskell-ts-mode)
           (html-mode . html-ts-mode)
@@ -674,39 +669,6 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
   :config
   (setq treesit-auto-install t)
   (global-treesit-auto-mode))
-
-(setq format-all-default-formatters
-      '((c-ts-mode        . clang-format)
-        (c++-ts-mode      . clang-format)
-        (csharp-ts-mode   . clang-format)
-        (css-ts-mode      . prettier)
-        (go-ts-mode       . gofmt)
-        (haskell-ts-mode  . fourmolu)
-        (html-ts-mode     . prettier)
-        (js-ts-mode       . biome)
-        (json-ts-mode     . biome)
-        (python-ts-mode   . ruff)
-        (rust-ts-mode     . rustfmt)
-        (bash-ts-mode     . shfmt)
-        (typescript-ts-mode . biome)
-        (tsx-ts-mode      . biome)
-        (yaml-ts-mode     . yamlfmt)
-        (nix-mode         . nixfmt)
-        (toml-ts-mode     . taplo)
-        (markdown-mode    . mdformat)
-        (zig-mode         . zig)))
-
-(defun hyper-modern/enforce-treesit-modes ()
-  (let ((is-ts-mode (string-match-p "-ts-mode$" (symbol-name major-mode)))
-        (exceptions '(lisp-interaction-mode nix-mode zig-mode fsharp-mode)))
-
-    (unless (or is-ts-mode (memq major-mode exceptions))
-      (display-warning 'treesit
-                       (format "Non-tree-sitter mode detected: %s. Use tree-sitter mode instead"
-                               major-mode)
-                       :error))))
-
-(add-hook 'prog-mode-hook #'hyper-modern/enforce-treesit-modes)
 
 ;; ============================================================
 ;; lsp // init // config

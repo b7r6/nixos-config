@@ -7,8 +7,31 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
+  boot.kernelParams = [ "amd_pstate=active" ];
+  powerManagement.cpuFreqGovernor = "performance";
+  services.thermald.enable = true;
+
+  boot.kernel.sysctl = {
+    "vm.swappiness" = 10;
+    "vm.vfs_cache_pressure" = 50;
+  };
+
   networking.hostName = "watchtower";
   networking.networkmanager.enable = true;
+
+  hardware.graphics = {
+    enable = true;
+    enable32Bit = true;
+  };
+
+  hardware.opengl = {
+    enable = true;
+    extraPackages = with pkgs; [
+      amdvlk
+      # rocm-opencl-icd
+      # rocm-opencl-runtime
+    ];
+  };
 
   time.timeZone = "America/New_York";
   i18n.extraLocaleSettings = {

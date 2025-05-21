@@ -1,31 +1,25 @@
-{ pkgs, lib, ... }:
+{ pkgs, ... }:
 {
-  options.cloud = {
-    enable = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Enable cloud development tools";
-    };
-  };
-
-  config.home.packages = with pkgs; [
-    awscli2
-    bash-my-aws
-
+  home.packages = with pkgs; [
     # <<<<<<< Updated upstream:modules/home/cloud/default.nix
     #     bitwarden-cli
     #     bitwarden-desktop
     #     bws
     # =======
 
+    flyctl
+    flycast
+    awscli2
+    bash-my-aws
     google-cloud-sdk
-    hclfmt
     hclfmt
     hcp
     terraform
     terraform-docs
     terraform-ls
-    vault
+
+    # TODO[b7r6]: very heavy and not in use, obviously make it a module option...
+    # vault
 
     # TODO[b7r6]: fix the `terragrunt` derivation
     # terragrunt
