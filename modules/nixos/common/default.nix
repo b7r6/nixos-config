@@ -39,7 +39,7 @@ in
     firewall.enable = false;
     useBackupResolver = true;
   };
-  
+
   services.greetd = {
     enable = true;
     settings = {
@@ -74,6 +74,7 @@ in
 
   security.sudo.wheelNeedsPassword = false;
 
+  programs.firefox.enable = true;
   environment.systemPackages = with pkgs; [
     # Base utilities
     atuin
@@ -99,6 +100,9 @@ in
     wget
     xz
     zoxide
+
+    dbus
+    dconf
 
     # System diagnostics & performance
     # bcc # BPF Compiler Collection for Linux kernel tracing

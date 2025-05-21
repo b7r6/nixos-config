@@ -29,10 +29,5 @@ in
       MOZ_ENABLE_WAYLAND = "1";
       _JAVA_AWT_WM_NONREPARENTING = "1";
     };
-
-    hardware.graphics = {
-      enable = true;
-      enable32Bit = true;
-    };
   };
 }

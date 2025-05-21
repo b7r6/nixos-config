@@ -1,6 +1,10 @@
 { pkgs, ... }:
 {
   home.packages = with pkgs; [
+    _1password-cli
+    _1password-gui-beta
+    brave
+    nemo
     pavucontrol
     slack
     slack-term
@@ -9,9 +13,6 @@
     spotify-tray
     telegram-desktop
     zoom-us
-    nemo
-    _1password-cli
-    _1password-gui-beta
   ];
 
   fonts.fontconfig.enable = true;
