@@ -1,14 +1,5 @@
-{
-  config,
-  lib,
-  pkgs,
-  modulesPath,
-  ...
-}:
-{
-  imports = [
-    (modulesPath + "/installer/scan/not-detected.nix")
-  ];
+{ config, lib, pkgs, modulesPath, ... }: {
+  imports = [ (modulesPath + "/installer/scan/not-detected.nix") ];
 
   # TODO[b7r6]: move this shit to disko...
   fileSystems."/" = {
@@ -19,10 +10,7 @@
   fileSystems."/boot" = {
     device = "/dev/disk/by-uuid/4C1D-B8D4";
     fsType = "vfat";
-    options = [
-      "fmask=0077"
-      "dmask=0077"
-    ];
+    options = [ "fmask=0077" "dmask=0077" ];
   };
 
   swapDevices = [ ];
@@ -31,37 +19,27 @@
   # asus specific
   # =====================================================
 
-  boot.extraModulePackages = [ config.boot.kernelPackages.nvidia_x11 ];
   boot.initrd.kernelModules = [ ];
+
   boot.kernelModules = [ "kvm-amd" ];
-  boot.kernelPackages = pkgs.linuxPackages_testing;
+  boot.kernelPackages = pkgs.linuxPackages_6_14;
   boot.kernelParams = [ "mem_sleep_default=deep" ];
+  boot.blacklistedKernelModules = [ "ucsi_acpi" ];
 
-  boot.blacklistedKernelModules = [
-    "ucsi_acpi"
-    "nouveau"
-  ];
-
-  boot.initrd.availableKernelModules = [
-    "nvme"
-    "xhci_pci"
-    "thunderbolt"
-    "usbhid"
-    "sdhci_pci"
-  ];
+  boot.initrd.availableKernelModules =
+    [ "nvme" "xhci_pci" "thunderbolt" "usbhid" "sdhci_pci" ];
 
   hardware.cpu.amd.updateMicrocode = true;
   powerManagement.cpuFreqGovernor = "performance";
   services.supergfxd.enable = true;
   systemd.services.supergfxd.path = [ pkgs.pciutils ];
+
   services.asusd = {
     enable = true;
     enableUserService = true;
   };
 
-  environment.systemPackages = with pkgs; [
-    ryzenadj
-  ];
+  environment.systemPackages = with pkgs; [ ryzenadj ];
 
   networking.useDHCP = lib.mkDefault true;
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";

@@ -26,7 +26,7 @@ in
 
   # TODO[b7r6]: we've got to either converge or diverge on
   # `autowire`, this in-between isn't working out...
-  #
+
   hyper-modern-nixos.nvidia.enable = true;
 
   programs.hyprland = {
@@ -44,36 +44,30 @@ in
 
   users.groups."ps-v4" = { };
 
-  users.users.gedanziger = {
-    isNormalUser = true;
-
+  users.users.b7r6 = {
     extraGroups = [
       "wheel"
+      "docker"
       "ps-v4"
     ];
 
     openssh.authorizedKeys.keys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEU8Z7JibxxeULoRcIhTS2uaKfr6SWRMJJCWpldFRnZ2 grandpa-mac"
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINbn+XF6n9v9VKLFGLBVz+G1LyL6GlcgZbIwhP89PPsp" # weyl b7r7 key
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ1ptqyz5C3YCcMgh3LUbXtjeS1rIZ5/6RHnH7D93Nqf" # 1password id_ed25519_b7r6
     ];
-  };
-
-  users.groups.ps-v4 = { };
-  users.users.b7r6 = {
-    extraGroups = [ "ps-v4" ];
   };
 
   security.sudo.wheelNeedsPassword = false;
 
-  ps-v4.nixos.secrets.devKeys = true;
-  age.secrets."keys/dev.toml" = {
-    # TODO[b7r6]: get this sorted or just build a proper `sops.nix`
-    # setup now that we understand how and why...
-    # file = ps-v4.nixos.secrets.keys.dev.file;
-
-    file = "${inputs.ps-v4}/secrets/keys/dev.toml.age";
-    group = "ps-v4";
-    mode = "440";
-  };
+  # ps-v4.nixos.secrets.devKeys = true;
+  # age.secrets."keys/dev.toml" = {
+  #   # TODO[b7r6]: get this sorted or just build a proper `sops.nix`
+  #   # setup now that we understand how and why...
+  #   # file = ps-v4.nixos.secrets.keys.dev.file;
+  #   file = "${inputs.ps-v4}/secrets/keys/dev.toml.age";
+  #   group = "ps-v4";
+  #   mode = "440";
+  # };
 
   time.timeZone = "America/New_York";
 

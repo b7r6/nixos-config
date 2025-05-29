@@ -1,5 +1,5 @@
 {
-  description = "DEV // v4";
+  description = "HYPER // MODERN // NIXOS";
 
   outputs =
     inputs:
@@ -9,18 +9,12 @@
     };
 
   inputs = {
-
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs?branch=nixos-25.05";
     flake-parts.url = "github:hercules-ci/flake-parts";
 
     # srid
     nixos-unified.url = "github:srid/nixos-unified";
     nixid.url = "github:srid/nixid";
-
-    nix-darwin = {
-      url = "github:LnL7/nix-darwin";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
 
     home-manager = {
       url = "github:nix-community/home-manager";
@@ -44,11 +38,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    hyprland-virtual-desktops = {
-      url = "github:levnikmyskin/hyprland-virtual-desktops";
-      inputs.hyprland.follows = "hyprland";
-    };
-
     hyprland-plugins = {
       url = "github:hyprwm/hyprland-plugins";
       inputs.hyprland.follows = "hyprland";
@@ -57,12 +46,6 @@
     hy3 = {
       url = "github:outfoxxed/hy3";
       inputs.hyprland.follows = "hyprland";
-    };
-
-    plasma-manager = {
-      url = "github:nix-community/plasma-manager";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.home-manager.follows = "home-manager";
     };
 
     sops-nix = {
@@ -90,13 +73,14 @@
       inputs.flake-parts.follows = "flake-parts";
     };
 
-    hyprpanel = {
-      url = "github:jas-singhfsu/hyprpanel";
+    nix4nvchad = {
+      url = "github:nix-community/nix4nvchad";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    devenv = {
-      url = "github:cachix/devenv/latest";
+    hyprpanel = {
+      url = "github:jas-singhfsu/hyprpanel";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     ps-v4 = {

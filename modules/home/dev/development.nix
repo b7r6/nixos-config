@@ -6,7 +6,6 @@ let
   inherit (flake) inputs;
 in
 {
-  # TODO[b7r6]: most of these belong in one of the langauge toolchains...
   home.packages = with pkgs; [
     alejandra
     cmake
@@ -51,14 +50,7 @@ in
     dhall-nix
     dhall-yaml
 
-    # TODO[b7r6]: this is a whole thing...
-    dotnet-sdk_8
-
-    # TODO[b7r6]: this is a whole thing...
-    dotnet-sdk_8
-
-    # TODO[b7r6]: this is a whole thing....
-    inputs.devenv.packages."${pkgs.system}".devenv
+    dotnet-sdk_9
   ];
 
   programs.gh = {
