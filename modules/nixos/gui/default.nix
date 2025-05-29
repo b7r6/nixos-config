@@ -17,9 +17,11 @@ in
 
   config = mkIf cfg.enable {
     environment.systemPackages = with pkgs; [
+      dbus
+      dconf
       xdg-utils
       qt6.qtwayland
-      wl-clipboard # Clipboard manager
+      wl-clipboard
       hicolor-icon-theme
       adwaita-icon-theme
     ];

@@ -27,7 +27,6 @@ in
   home-manager.useGlobalPkgs = true;
   home-manager.backupFileExtension = "hm-backup";
 
-  services.tailscale.enable = true;
   services.openssh.enable = true;
 
   programs.ssh.startAgent = true;
@@ -207,8 +206,6 @@ in
 
   users.groups.adbusers = { };
   programs.adb.enable = true;
-
-  # TODO[b7r6]: move to clean users configuration...
   users.users.b7r6.extraGroups = [ ];
   # If using android-nixpkgs, you can include this part
   # This assumes you have android-nixpkgs set up in your imports

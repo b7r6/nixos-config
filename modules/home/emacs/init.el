@@ -185,10 +185,10 @@ with the mode-line background color."
         gptel-response-length 4096)    ;Maximum output tokens (4K)
 
   (setq gptel-backend
-        (gptel-make-anthropic "sonnet-3.7"
+        (gptel-make-anthropic "anthropic"
           :stream t
           :key #'gptel-api-key-from-auth-source
-          :models '(claude-3-7-sonnet-20250219)
+          :models '(claude-3.5-sonnet-20241022 claude-4-sonnet-20250514 claude-4-opus-20250514)
           :request-params '(:max_tokens 4096)))
 
   ;; OpenAI GPT-4o
@@ -206,7 +206,7 @@ with the mode-line background color."
     :models '(deepseek-coder deepseek-chat)
     :request-params '(:max_tokens 4096))
 
-  (setq gptel-model 'claude-3-7-sonnet-20250219))
+  (setq gptel-model 'claude-4-opus-20250514))
 
 ;; ============================================================
 ;; completion // minibuffer // read
@@ -619,50 +619,6 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
       (setq-local lsp-enable-formatting nil)))
 
   (add-hook 'format-all-mode-hook #'disable-lsp-formatters))
-
-(use-package treesit
-  :config
-  (setq treesit-language-source-alist
-        '((bash "https://github.com/tree-sitter/tree-sitter-bash")
-          (c "https://github.com/tree-sitter/tree-sitter-c")
-          (c-sharp "https://github.com/tree-sitter/tree-sitter-c-sharp")
-          (cpp "https://github.com/tree-sitter/tree-sitter-cpp")
-          (css "https://github.com/tree-sitter/tree-sitter-css")
-          (go "https://github.com/tree-sitter/tree-sitter-go")
-          (haskell "https://github.com/tree-sitter/tree-sitter-haskell")
-          (html "https://github.com/tree-sitter/tree-sitter-html")
-          (javascript "https://github.com/tree-sitter/tree-sitter-javascript")
-          (json "https://github.com/tree-sitter/tree-sitter-json")
-          (make "https://github.com/alemuller/tree-sitter-make")
-          (markdown "https://github.com/ikatyang/tree-sitter-markdown")
-          (nix "https://github.com/nix-community/tree-sitter-nix")
-          (python "https://github.com/tree-sitter/tree-sitter-python")
-          (rust "https://github.com/tree-sitter/tree-sitter-rust")
-          (toml "https://github.com/tree-sitter/tree-sitter-toml")
-          (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
-          (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
-          (yaml "https://github.com/ikatyang/tree-sitter-yaml")
-          (zig "https://github.com/maxxnino/tree-sitter-zig")))
-
-  (setq major-mode-remap-alist
-        '((bash-mode . bash-ts-mode)
-          (c-mode . c-ts-mode)
-          (c++-mode . c++-ts-mode)
-          (cmake-mode . cmake-ts-mode)
-          (css-mode . css-ts-mode)
-          (go-mode . go-ts-mode)
-          (haskell-mode . haskell-ts-mode)
-          (html-mode . html-ts-mode)
-          (java-mode . java-ts-mode)
-          (js-mode . js-ts-mode)
-          (js-json-mode . json-ts-mode)
-          (json-mode . json-ts-mode)
-          (python-mode . python-ts-mode)
-          (ruby-mode . ruby-ts-mode)
-          (rust-mode . rust-ts-mode)
-          (sh-mode . bash-ts-mode)
-          (typescript-mode . typescript-ts-mode)
-          (yaml-mode . yaml-ts-mode))))
 
 (use-package treesit-auto
   :ensure t

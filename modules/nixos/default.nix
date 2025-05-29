@@ -1,9 +1,10 @@
 { flake, ... }:
 let
   inherit (flake) inputs;
+  inherit (inputs) self;
 in
 {
   imports = [
-    inputs.self.nixosModules.common
+    self.nixosModules.common
   ];
 }
