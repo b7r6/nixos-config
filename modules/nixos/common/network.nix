@@ -38,7 +38,6 @@ in
   };
 
   config = mkIf cfg.enable {
-
     services.openssh = {
       enable = true;
     };
@@ -75,21 +74,24 @@ in
     };
 
     networking = {
-      nameservers =
-        if cfg.useBackupResolver then
-          [
-            "100.100.100.100"
-            "1.1.1.1"
-            "8.8.8.8"
-          ]
-        else
-          [ "100.100.100.100" ];
+      # TODO[b7r6]: we need to do something here, but this isn't it...
+      # nameservers =
+      #   if cfg.useBackupResolver then
+      #     [
+      #       "100.100.100.100"
+      #       "1.1.1.1"
+      #       "8.8.8.8"
+      #     ]
+      #   else
+      #     [ "100.100.100.100" ];
 
-      search = [ cfg.tailnet.domain ];
-      networkmanager.dns = "none";
+      # search = [ cfg.tailnet.domain ];
+      # networkmanager.dns = "none";
     };
 
     environment.systemPackages = with pkgs; [
+      wget
+      ethtool
       curl
       dig
       inetutils
