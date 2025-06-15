@@ -3,7 +3,7 @@
   home.packages = with pkgs; [
     flyctl
     awscli2
-    bash-my-aws
+    # bash-my-aws
     google-cloud-sdk
     hclfmt
     hcp

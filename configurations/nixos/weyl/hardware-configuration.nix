@@ -22,7 +22,7 @@
   boot.initrd.kernelModules = [ ];
 
   boot.kernelModules = [ "kvm-amd" ];
-  boot.kernelPackages = pkgs.linuxPackages_6_14;
+  boot.kernelPackages = pkgs.linuxPackages_testing;
   boot.kernelParams = [ "mem_sleep_default=deep" ];
   boot.blacklistedKernelModules = [ "ucsi_acpi" ];
 
