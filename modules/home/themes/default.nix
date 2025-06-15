@@ -145,10 +145,10 @@ in
 
         # Font sizes
         sizes = {
-          desktop = 14;
-          applications = 14;
-          terminal = 14;
-          popups = 14;
+          desktop = 18;
+          applications = 12;
+          terminal = 16;
+          popups = 16;
         };
       };
     };

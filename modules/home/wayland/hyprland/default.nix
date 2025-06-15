@@ -77,21 +77,26 @@ in
 
     settings = {
       monitor = [
-        "desc:LG Electronics LG ULTRAGEAR+,3840x2160x120hz,0x0,1.5"
+        "eDP-1,3840x2400@60.00000,0x0,2.5"
+        # "desc:LG Electronics LG ULTRAGEAR+,3840x2160x120hz,0x0,1.5"
       ];
 
       # ===== Persistent Workspace Assignment =====
       # First three workspaces for external, next three for laptop
       workspace = [
-        "1, monitor:desc:LG Electronics LG ULTRAGEAR+, default:true, persistent:true"
-        "2, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
-        "3, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
-        "4, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
-        "5, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
-        "6, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
+        "1, monitor:eDP-1, default:true, persistent:true"
+        "2, monitor:eDP-1, persistent:true"
+        "3, monitor:eDP-1, persistent:true"
+        "4, monitor:eDP-1, persistent:true"
+        "5, monitor:eDP-1, persistent:true"
+        "6, monitor:eDP-1, persistent:true"
 
-        # Special workspace can be summoned anywhere
-        "special, on-created-empty:wezterm"
+         # "2, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
+        # "3, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
+        # "4, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
+        # "5, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
+        # "6, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
+        # special, on-created-empty:wezterm"
       ];
 
       # ===== Handle laptop lid =====

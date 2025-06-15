@@ -22,6 +22,7 @@ in
 
   networking.hosts = {
     "192.168.50.12" = [ "files01.rhosts.net" ];
+    "10.215.1.12" = [ "cc1-agiti.cloud.parabolicsurf.net" ];
   };
 
   # TODO[b7r6]: we've got to either converge or diverge on
@@ -33,6 +34,17 @@ in
     enable = true;
     package = inputs.hyprland.packages.${pkgs.system}.hyprland;
     xwayland.enable = false;
+  };
+
+  fonts.fontconfig = {
+    enable = true;
+
+    hinting = {
+      enable = false;
+      style = "slight"; # Options: none, slight, medium, full
+    };
+
+    antialias = false; # Smoothens the appearance of fonts
   };
 
   environment.variables = {
