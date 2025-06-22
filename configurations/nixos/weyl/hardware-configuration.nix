@@ -1,4 +1,11 @@
-{ config, lib, pkgs, modulesPath, ... }: {
+{
+  config,
+  lib,
+  pkgs,
+  modulesPath,
+  ...
+}:
+{
   imports = [ (modulesPath + "/installer/scan/not-detected.nix") ];
 
   # TODO[b7r6]: move this shit to disko...
@@ -10,7 +17,10 @@
   fileSystems."/boot" = {
     device = "/dev/disk/by-uuid/4C1D-B8D4";
     fsType = "vfat";
-    options = [ "fmask=0077" "dmask=0077" ];
+    options = [
+      "fmask=0077"
+      "dmask=0077"
+    ];
   };
 
   swapDevices = [ ];
@@ -26,8 +36,13 @@
   boot.kernelParams = [ "mem_sleep_default=deep" ];
   boot.blacklistedKernelModules = [ "ucsi_acpi" ];
 
-  boot.initrd.availableKernelModules =
-    [ "nvme" "xhci_pci" "thunderbolt" "usbhid" "sdhci_pci" ];
+  boot.initrd.availableKernelModules = [
+    "nvme"
+    "xhci_pci"
+    "thunderbolt"
+    "usbhid"
+    "sdhci_pci"
+  ];
 
   hardware.cpu.amd.updateMicrocode = true;
   powerManagement.cpuFreqGovernor = "performance";
@@ -40,6 +55,10 @@
   };
 
   environment.systemPackages = with pkgs; [ ryzenadj ];
+
+  environment.sessionVariables = {
+    FREETYPE_PROPERTIES = "cff:no-stem-darkening=0 autofitter:no-stem-darkening=0 truetype:interpreter-version=40";
+  };
 
   networking.useDHCP = lib.mkDefault true;
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";

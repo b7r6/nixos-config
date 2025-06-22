@@ -1,0 +1,100 @@
+<svg width="2560" height="1440" viewBox="0 0 2560 1440" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&amp;display=swap');
+      .mono { font-family: 'JetBrains Mono', monospace; }
+    </style>
+  </defs>
+  
+  <!-- Chiba palette for variety -->
+  <!-- base00: #090b0e, base04: #596775, base0A: #54aeff, base09: #80ccff, base0C: #0969da -->
+  
+  <!-- Background -->
+  <rect width="2560" height="1440" fill="#090b0e"/>
+  
+  <!-- Complex perSystem module - top left, showing real advanced nix -->
+  <g transform="translate(60, 60)" opacity="0.23">
+    <text x="0" y="0" class="mono" fill="#596775" font-size="10" font-weight="300">
+      <tspan x="0" dy="0">[nixos@chiba:~/psv4]$ cat nix/modules/psv4.nix</tspan>
+      <tspan x="0" dy="16">{ config, lib, flake-parts-lib, ... }:</tspan>
+      <tspan x="0" dy="16">let</tspan>
+      <tspan x="0" dy="16">  inherit (lib) mkOption types;</tspan>
+      <tspan x="0" dy="16">  inherit (flake-parts-lib) mkPerSystemOption;</tspan>
+      <tspan x="0" dy="16">in {</tspan>
+      <tspan x="0" dy="16">  options.perSystem = mkPerSystemOption ({ config, pkgs, ... }: {</tspan>
+      <tspan x="0" dy="16">    psv4 = {</tspan>
+      <tspan x="0" dy="16">      theme = mkOption {</tspan>
+      <tspan x="0" dy="16">        type = types.enum [ "razorgirl" "chiba" "sprawl" ];</tspan>
+      <tspan x="0" dy="16">        default = "razorgirl";</tspan>
+      <tspan x="0" dy="16">      };</tspan>
+      <tspan x="0" dy="16">      </tspan>
+      <tspan x="0" dy="16">      packages = mkOption {</tspan>
+      <tspan x="0" dy="16">        type = types.attrsOf types.package;</tspan>
+      <tspan x="0" dy="16">        default = {};</tspan>
+      <tspan x="0" dy="16">      };</tspan>
+      <tspan x="0" dy="16">    };</tspan>
+      <tspan x="0" dy="16">  });</tspan>
+      <tspan x="0" dy="16">  </tspan>
+      <tspan x="0" dy="16">  config.perSystem = { config, pkgs, ... }: {</tspan>
+      <tspan x="0" dy="16">    psv4.packages = {</tspan>
+      <tspan x="0" dy="16">      theme = pkgs.callPackage ./theme.nix {</tspan>
+      <tspan x="0" dy="16">        themeName = config.psv4.theme;</tspan>
+      <tspan x="0" dy="16">      };</tspan>
+      <tspan x="0" dy="16">    };</tspan>
+      <tspan x="0" dy="16">  };</tspan>
+      <tspan x="0" dy="16">}</tspan>
+    </text>
+  </g>
+  
+  <!-- Nix store paths visualization - top right -->
+  <g transform="translate(2300, 60)" opacity="0.2">
+    <text x="0" y="0" class="mono" fill="#596775" font-size="9" font-weight="300" text-anchor="end">
+      <tspan x="0" dy="0">STORE::DERIVATIONS</tspan>
+      <tspan x="0" dy="14">━━━━━━━━━━━━━━━━━━━━━━</tspan>
+      <tspan x="0" dy="14" fill="#0969da">/nix/store/x7q9...f3p2</tspan>
+      <tspan x="0" dy="14">  └─ psv4-0.1.0</tspan>
+      <tspan x="0" dy="14" fill="#0969da">/nix/store/b8n4...2k1x</tspan>
+      <tspan x="0" dy="14">  └─ razorgirl-theme</tspan>
+      <tspan x="0" dy="14" fill="#0969da">/nix/store/m3d8...9pq7</tspan>
+      <tspan x="0" dy="14">  └─ berkeley-mono</tspan>
+      <tspan x="0" dy="14">━━━━━━━━━━━━━━━━━━━━━━</tspan>
+      <tspan x="0" dy="14">total: 12,847 paths</tspan>
+      <tspan x="0" dy="14">size: 184.2 GiB</tspan>
+      <tspan x="0" dy="14">━━━━━━━━━━━━━━━━━━━━━━</tspan>
+    </text>
+  </g>
+  
+  <!-- Main statement - lower left, prominent -->
+  <g transform="translate(120, 1200)">
+    <text x="0" y="0" class="mono" font-size="80" font-weight="300">
+      <tspan fill="#54aeff">//</tspan>
+      <tspan fill="#596775" dx="20">hyper</tspan>
+      <tspan fill="#54aeff" dx="20">//</tspan>
+      <tspan fill="#596775" dx="20">modern</tspan>
+      <tspan fill="#54aeff" dx="20">//</tspan>
+      <tspan fill="#596775" dx="20">nixos</tspan>
+    </text>
+  </g>
+  
+  <!-- Flake evaluation output - bottom right -->
+  <g transform="translate(2300, 1280)" opacity="0.15">
+    <text x="0" y="0" class="mono" fill="#596775" font-size="9" font-weight="300" text-anchor="end">
+      <tspan x="0" dy="0">$ nix flake check</tspan>
+      <tspan x="0" dy="12">✓ packages.x86_64-linux.psv4</tspan>
+      <tspan x="0" dy="12">✓ devShells.x86_64-linux.default</tspan>
+      <tspan x="0" dy="12">✓ nixosConfigurations.chiba</tspan>
+      <tspan x="0" dy="12">✓ formatter.x86_64-linux</tspan>
+      <tspan x="0" dy="12">evaluation completed in 2.41s</tspan>
+    </text>
+  </g>
+  
+  <!-- Command being typed -->
+  <g transform="translate(900, 600)" opacity="0.1">
+    <text x="0" y="0" class="mono" fill="#80ccff" font-size="14" font-weight="400">
+      <tspan x="0" dy="0">$ nix run .#psv4 -- --theme razorgirl</tspan>
+    </text>
+    <rect x="460" y="-12" width="8" height="16" fill="#54aeff" opacity="0.8">
+      <animate attributeName="opacity" values="0.8;0;0.8" dur="1s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+</svg>

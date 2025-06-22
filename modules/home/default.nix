@@ -22,6 +22,6 @@
     # optional desktop environments
     ./desktop
     ./wayland
-    ./vscode
+    # ./vscode
   ];
 }

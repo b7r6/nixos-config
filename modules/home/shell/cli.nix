@@ -1,6 +1,5 @@
 { config, pkgs, ... }:
 let
-  colors = config.themes.palette;
 in
 {
   programs.bat = {
@@ -30,19 +29,6 @@ in
 
     enableBashIntegration = true;
     enableZshIntegration = true;
-
-    colors = {
-      "bg+" = colors.base01;
-      fg = colors.base04;
-      "fg+" = colors.base06;
-      hl = colors.base0D;
-      "hl+" = colors.base0D;
-      info = colors.base0A;
-      marker = colors.base0C;
-      pointer = colors.base0C;
-      prompt = colors.base0A;
-      spinner = colors.base0C;
-    };
   };
 
   programs.zoxide = {

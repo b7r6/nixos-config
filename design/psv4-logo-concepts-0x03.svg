@@ -1,0 +1,160 @@
+<svg width="1200" height="1600" viewBox="0 0 1200 1600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&amp;display=swap');
+      .mono { font-family: 'JetBrains Mono', 'Courier New', monospace; }
+      .bg { fill: #090b0e; }
+      .container { fill: #13161a; }
+      .primary { fill: #54aeff; }
+      .secondary { fill: #0969da; }
+      .bright { fill: #b6e3ff; }
+      .accent { fill: #80ccff; }
+      .mid { fill: #596775; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="1600" class="bg"/>
+  
+  <!-- Main Logo - 16:9 (Desktop/Hero) -->
+  <g transform="translate(50, 50)">
+    <text x="0" y="-10" class="mono mid" font-size="14">16:9 HORIZONTAL (1920×1080)</text>
+    <rect x="0" y="0" width="640" height="360" class="container"/>
+    <rect x="0" y="0" width="4" height="360" class="primary"/>
+    <rect x="636" y="0" width="4" height="360" class="primary"/>
+    
+    <g transform="translate(40, 180)">
+      <text x="0" y="0" class="mono accent" font-size="48" font-weight="600">//</text>
+      <text x="80" y="0" class="mono primary" font-size="48" font-weight="700">psv4 --init</text>
+      <rect x="440" y="10" width="120" height="4" class="bright" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0;0.8" dur="1.5s" repeatCount="indefinite"/>
+      </rect>
+      <text x="80" y="50" class="mono mid" font-size="20">parabolic.version.4</text>
+    </g>
+  </g>
+  
+  <!-- Square (Social Media) -->
+  <g transform="translate(750, 50)">
+    <text x="0" y="-10" class="mono mid" font-size="14">1:1 SQUARE (1080×1080)</text>
+    <rect x="0" y="0" width="360" height="360" class="container"/>
+    <rect x="0" y="0" width="4" height="360" class="primary"/>
+    <rect x="356" y="0" width="4" height="360" class="primary"/>
+    
+    <g transform="translate(30, 140)">
+      <text x="0" y="0" class="mono accent" font-size="40" font-weight="600">//</text>
+      <text x="65" y="0" class="mono primary" font-size="40" font-weight="700">psv4</text>
+      <text x="30" y="50" class="mono primary" font-size="40" font-weight="700">--init</text>
+      <rect x="180" y="60" width="80" height="4" class="bright" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0;0.8" dur="1.5s" repeatCount="indefinite"/>
+      </rect>
+      <text x="30" y="100" class="mono mid" font-size="16">parabolic.v4</text>
+    </g>
+  </g>
+  
+  <!-- 4:3 (Classic/Presentation) -->
+  <g transform="translate(50, 470)">
+    <text x="0" y="-10" class="mono mid" font-size="14">4:3 CLASSIC (1024×768)</text>
+    <rect x="0" y="0" width="480" height="360" class="container"/>
+    <rect x="0" y="0" width="4" height="360" class="primary"/>
+    <rect x="476" y="0" width="4" height="360" class="primary"/>
+    
+    <g transform="translate(40, 160)">
+      <text x="0" y="0" class="mono accent" font-size="42" font-weight="600">//</text>
+      <text x="70" y="0" class="mono primary" font-size="42" font-weight="700">psv4</text>
+      <text x="40" y="50" class="mono primary" font-size="32" font-weight="600">--deploy</text>
+      <rect x="240" y="60" width="90" height="4" class="bright" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0;0.8" dur="1.5s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+  </g>
+  
+  <!-- Favicon (Minimal) -->
+  <g transform="translate(600, 470)">
+    <text x="0" y="-10" class="mono mid" font-size="14">FAVICON (64×64)</text>
+    <rect x="0" y="0" width="120" height="120" class="container"/>
+    <rect x="0" y="0" width="2" height="120" class="primary"/>
+    <rect x="118" y="0" width="2" height="120" class="primary"/>
+    
+    <text x="60" y="75" class="mono primary" font-size="42" font-weight="700" text-anchor="middle">P4</text>
+  </g>
+  
+  <!-- Variations with different flags -->
+  <g transform="translate(50, 900)">
+    <text x="0" y="-10" class="mono bright" font-size="18">FLAG VARIATIONS</text>
+    
+    <!-- --dev -->
+    <g transform="translate(0, 20)">
+      <rect x="0" y="0" width="500" height="80" class="container"/>
+      <rect x="0" y="0" width="3" height="80" class="primary"/>
+      <rect x="497" y="0" width="3" height="80" class="primary"/>
+      <text x="20" y="45" class="mono accent" font-size="28" font-weight="600">//</text>
+      <text x="70" y="45" class="mono primary" font-size="28" font-weight="700">psv4 --dev</text>
+      <rect x="260" y="50" width="60" height="3" class="bright" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0;0.8" dur="1.5s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+    
+    <!-- --prod -->
+    <g transform="translate(0, 120)">
+      <rect x="0" y="0" width="500" height="80" class="container"/>
+      <rect x="0" y="0" width="3" height="80" class="secondary"/>
+      <rect x="497" y="0" width="3" height="80" class="secondary"/>
+      <text x="20" y="45" class="mono accent" font-size="28" font-weight="600">//</text>
+      <text x="70" y="45" class="mono bright" font-size="28" font-weight="700">psv4 --prod</text>
+      <rect x="280" y="50" width="60" height="3" class="bright" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0;0.8" dur="1.5s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+    
+    <!-- --test -->
+    <g transform="translate(0, 220)">
+      <rect x="0" y="0" width="500" height="80" class="container"/>
+      <rect x="0" y="0" width="3" height="80" class="accent"/>
+      <rect x="497" y="0" width="3" height="80" class="accent"/>
+      <text x="20" y="45" class="mono accent" font-size="28" font-weight="600">//</text>
+      <text x="70" y="45" class="mono accent" font-size="28" font-weight="700">psv4 --test</text>
+      <rect x="280" y="50" width="60" height="3" class="bright" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0;0.8" dur="1.5s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+  </g>
+  
+  <!-- Color specs -->
+  <g transform="translate(650, 900)">
+    <text x="0" y="-10" class="mono bright" font-size="18">COLOR SYSTEM</text>
+    
+    <g transform="translate(0, 20)">
+      <rect x="0" y="0" width="60" height="60" fill="#090b0e"/>
+      <text x="70" y="35" class="mono mid" font-size="14">BG: #090b0e</text>
+    </g>
+    
+    <g transform="translate(0, 80)">
+      <rect x="0" y="0" width="60" height="60" fill="#13161a"/>
+      <text x="70" y="35" class="mono mid" font-size="14">CONTAINER: #13161a</text>
+    </g>
+    
+    <g transform="translate(0, 140)">
+      <rect x="0" y="0" width="60" height="60" fill="#54aeff"/>
+      <text x="70" y="35" class="mono mid" font-size="14">PRIMARY: #54aeff</text>
+    </g>
+    
+    <g transform="translate(0, 200)">
+      <rect x="0" y="0" width="60" height="60" fill="#80ccff"/>
+      <text x="70" y="35" class="mono mid" font-size="14">ACCENT: #80ccff</text>
+    </g>
+    
+    <g transform="translate(0, 260)">
+      <rect x="0" y="0" width="60" height="60" fill="#b6e3ff"/>
+      <text x="70" y="35" class="mono mid" font-size="14">BRIGHT: #b6e3ff</text>
+    </g>
+  </g>
+  
+  <!-- Typography notes -->
+  <g transform="translate(50, 1300)">
+    <text x="0" y="0" class="mono bright" font-size="18">TYPOGRAPHY</text>
+    <text x="0" y="40" class="mono mid" font-size="14">Primary: JetBrains Mono 700 (Bold)</text>
+    <text x="0" y="65" class="mono mid" font-size="14">Secondary: JetBrains Mono 600 (SemiBold)</text>
+    <text x="0" y="90" class="mono mid" font-size="14">Body: JetBrains Mono 400 (Regular)</text>
+    <text x="0" y="130" class="mono mid" font-size="12">Fallback: 'Courier New', monospace</text>
+  </g>
+</svg>

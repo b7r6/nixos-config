@@ -1,0 +1,369 @@
+<svg width="1600" height="2400" viewBox="0 0 1600 2400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&amp;family=Fira+Code:wght@400;700&amp;family=Source+Code+Pro:wght@400;700&amp;family=IBM+Plex+Mono:wght@400;700&amp;family=Roboto+Mono:wght@400;700&amp;family=Space+Mono:wght@400;700&amp;family=Ubuntu+Mono:wght@400;700&amp;family=Inconsolata:wght@400;700&amp;family=Overpass+Mono:wght@400;700&amp;family=Cousine:wght@400;700&amp;family=Anonymous+Pro:wght@400;700&amp;family=Share+Tech+Mono&amp;family=Aldrich&amp;family=Major+Mono+Display&amp;family=VT323&amp;family=Courier+Prime:wght@400;700&amp;family=Nanum+Gothic+Coding:wght@400;700&amp;family=PT+Mono&amp;family=B612+Mono:wght@400;700&amp;family=Red+Hat+Mono:wght@400;700&amp;family=Azeret+Mono:wght@400;700&amp;display=swap');
+      
+      /* Frog Design inspired base16 */
+      .fd-bg { fill: #0a0a0c; }
+      .fd-base00 { fill: #0a0a0c; }
+      .fd-base01 { fill: #161619; }
+      .fd-base02 { fill: #2a2a2f; }
+      .fd-base03 { fill: #3e3e45; }
+      .fd-base04 { fill: #52525b; }
+      .fd-base05 { fill: #e8e8ea; }
+      .fd-base06 { fill: #f0f0f2; }
+      .fd-base07 { fill: #f8f8fa; }
+      .fd-base08 { fill: #ff5d62; }
+      .fd-base09 { fill: #ff8f40; }
+      .fd-base0A { fill: #ffd866; }
+      .fd-base0B { fill: #a9dc76; }
+      .fd-base0C { fill: #78dce8; }
+      .fd-base0D { fill: #ab9df2; }
+      .fd-base0E { fill: #ff6188; }
+      .fd-base0F { fill: #fc9867; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1600" height="2400" class="fd-bg"/>
+  
+  <!-- Header -->
+  <text x="50" y="50" font-family="Aldrich" class="fd-base05" font-size="32">MONOSPACE TYPOGRAPHY EXPLORATION</text>
+  <text x="50" y="80" font-family="JetBrains Mono" class="fd-base04" font-size="14">PSV4 BRAND SYSTEM DEVELOPMENT</text>
+  <line x1="50" y1="90" x2="1550" y2="90" stroke="#2a2a2f" stroke-width="2"/>
+  
+  <!-- Typography Grid -->
+  <g transform="translate(50, 130)">
+    <!-- Column 1 -->
+    <g transform="translate(0, 0)">
+      <text x="0" y="0" font-family="JetBrains Mono" class="fd-base0C" font-size="18" font-weight="700">JetBrains Mono</text>
+      <text x="0" y="30" font-family="JetBrains Mono" class="fd-base05" font-size="24" font-weight="400">// psv4 --init</text>
+      <text x="0" y="55" font-family="JetBrains Mono" class="fd-base05" font-size="24" font-weight="700">// PSV4 --INIT</text>
+      <text x="0" y="75" font-family="JetBrains Mono" class="fd-base04" font-size="12">Excellent ligatures, wide range</text>
+    </g>
+    
+    <g transform="translate(400, 0)">
+      <text x="0" y="0" font-family="Fira Code" class="fd-base0C" font-size="18" font-weight="700">Fira Code</text>
+      <text x="0" y="30" font-family="Fira Code" class="fd-base05" font-size="24" font-weight="400">// psv4 --init</text>
+      <text x="0" y="55" font-family="Fira Code" class="fd-base05" font-size="24" font-weight="700">// PSV4 --INIT</text>
+      <text x="0" y="75" font-family="Fira Code" class="fd-base04" font-size="12">Mozilla heritage, great ligatures</text>
+    </g>
+    
+    <g transform="translate(800, 0)">
+      <text x="0" y="0" font-family="Source Code Pro" class="fd-base0C" font-size="18" font-weight="700">Source Code Pro</text>
+      <text x="0" y="30" font-family="Source Code Pro" class="fd-base05" font-size="24" font-weight="400">// psv4 --init</text>
+      <text x="0" y="55" font-family="Source Code Pro" class="fd-base05" font-size="24" font-weight="700">// PSV4 --INIT</text>
+      <text x="0" y="75" font-family="Source Code Pro" class="fd-base04" font-size="12">Adobe, very clean</text>
+    </g>
+    
+    <g transform="translate(1200, 0)">
+      <text x="0" y="0" font-family="IBM Plex Mono" class="fd-base0C" font-size="18" font-weight="700">IBM Plex Mono</text>
+      <text x="0" y="30" font-family="IBM Plex Mono" class="fd-base05" font-size="24" font-weight="400">// psv4 --init</text>
+      <text x="0" y="55" font-family="IBM Plex Mono" class="fd-base05" font-size="24" font-weight="700">// PSV4 --INIT</text>
+      <text x="0" y="75" font-family="IBM Plex Mono" class="fd-base04" font-size="12">Corporate precision</text>
+    </g>
+    
+    <!-- Column 2 -->
+    <g transform="translate(0, 120)">
+      <text x="0" y="0" font-family="Roboto Mono" class="fd-base0C" font-size="18" font-weight="700">Roboto Mono</text>
+      <text x="0" y="30" font-family="Roboto Mono" class="fd-base05" font-size="24" font-weight="400">// psv4 --init</text>
+      <text x="0" y="55" font-family="Roboto Mono" class="fd-base05" font-size="24" font-weight="700">// PSV4 --INIT</text>
+      <text x="0" y="75" font-family="Roboto Mono" class="fd-base04" font-size="12">Google standard</text>
+    </g>
+    
+    <g transform="translate(400, 120)">
+      <text x="0" y="0" font-family="Space Mono" class="fd-base0C" font-size="18" font-weight="700">Space Mono</text>
+      <text x="0" y="30" font-family="Space Mono" class="fd-base05" font-size="24" font-weight="400">// psv4 --init</text>
+      <text x="0" y="55" font-family="Space Mono" class="fd-base05" font-size="24" font-weight="700">// PSV4 --INIT</text>
+      <text x="0" y="75" font-family="Space Mono" class="fd-base04" font-size="12">Retro-futuristic</text>
+    </g>
+    
+    <g transform="translate(800, 120)">
+      <text x="0" y="0" font-family="Ubuntu Mono" class="fd-base0C" font-size="18" font-weight="700">Ubuntu Mono</text>
+      <text x="0" y="30" font-family="Ubuntu Mono" class="fd-base05" font-size="24" font-weight="400">// psv4 --init</text>
+      <text x="0" y="55" font-family="Ubuntu Mono" class="fd-base05" font-size="24" font-weight="700">// PSV4 --INIT</text>
+      <text x="0" y="75" font-family="Ubuntu Mono" class="fd-base04" font-size="12">Humanist touch</text>
+    </g>
+    
+    <g transform="translate(1200, 120)">
+      <text x="0" y="0" font-family="Inconsolata" class="fd-base0C" font-size="18" font-weight="700">Inconsolata</text>
+      <text x="0" y="30" font-family="Inconsolata" class="fd-base05" font-size="24" font-weight="400">// psv4 --init</text>
+      <text x="0" y="55" font-family="Inconsolata" class="fd-base05" font-size="24" font-weight="700">// PSV4 --INIT</text>
+      <text x="0" y="75" font-family="Inconsolata" class="fd-base04" font-size="12">Classic hacker font</text>
+    </g>
+    
+    <!-- Column 3 -->
+    <g transform="translate(0, 240)">
+      <text x="0" y="0" font-family="Overpass Mono" class="fd-base0C" font-size="18" font-weight="700">Overpass Mono</text>
+      <text x="0" y="30" font-family="Overpass Mono" class="fd-base05" font-size="24" font-weight="400">// psv4 --init</text>
+      <text x="0" y="55" font-family="Overpass Mono" class="fd-base05" font-size="24" font-weight="700">// PSV4 --INIT</text>
+      <text x="0" y="75" font-family="Overpass Mono" class="fd-base04" font-size="12">Red Hat design</text>
+    </g>
+    
+    <g transform="translate(400, 240)">
+      <text x="0" y="0" font-family="Cousine" class="fd-base0C" font-size="18" font-weight="700">Cousine</text>
+      <text x="0" y="30" font-family="Cousine" class="fd-base05" font-size="24" font-weight="400">// psv4 --init</text>
+      <text x="0" y="55" font-family="Cousine" class="fd-base05" font-size="24" font-weight="700">// PSV4 --INIT</text>
+      <text x="0" y="75" font-family="Cousine" class="fd-base04" font-size="12">Courier alternative</text>
+    </g>
+    
+    <g transform="translate(800, 240)">
+      <text x="0" y="0" font-family="Anonymous Pro" class="fd-base0C" font-size="18" font-weight="700">Anonymous Pro</text>
+      <text x="0" y="30" font-family="Anonymous Pro" class="fd-base05" font-size="24" font-weight="400">// psv4 --init</text>
+      <text x="0" y="55" font-family="Anonymous Pro" class="fd-base05" font-size="24" font-weight="700">// PSV4 --INIT</text>
+      <text x="0" y="75" font-family="Anonymous Pro" class="fd-base04" font-size="12">Fixed-width classic</text>
+    </g>
+    
+    <g transform="translate(1200, 240)">
+      <text x="0" y="0" font-family="Share Tech Mono" class="fd-base0C" font-size="18">Share Tech Mono</text>
+      <text x="0" y="30" font-family="Share Tech Mono" class="fd-base05" font-size="24">// psv4 --init</text>
+      <text x="0" y="55" font-family="Share Tech Mono" class="fd-base05" font-size="24">// PSV4 --INIT</text>
+      <text x="0" y="75" font-family="Share Tech Mono" class="fd-base04" font-size="12">Single weight only</text>
+    </g>
+    
+    <!-- Column 4 - Specialty -->
+    <g transform="translate(0, 360)">
+      <text x="0" y="0" font-family="Aldrich" class="fd-base0C" font-size="18">Aldrich</text>
+      <text x="0" y="30" font-family="Aldrich" class="fd-base05" font-size="24">// psv4 --init</text>
+      <text x="0" y="55" font-family="Aldrich" class="fd-base05" font-size="24">// PSV4 --INIT</text>
+      <text x="0" y="75" font-family="Aldrich" class="fd-base04" font-size="12">Unique, technical feel</text>
+    </g>
+    
+    <g transform="translate(400, 360)">
+      <text x="0" y="0" font-family="Major Mono Display" class="fd-base0C" font-size="18">Major Mono Display</text>
+      <text x="0" y="30" font-family="Major Mono Display" class="fd-base05" font-size="24">// psv4 --init</text>
+      <text x="0" y="55" font-family="Major Mono Display" class="fd-base05" font-size="24">// psv4 --init</text>
+      <text x="0" y="75" font-family="Major Mono Display" class="fd-base04" font-size="12">All lowercase display</text>
+    </g>
+    
+    <g transform="translate(800, 360)">
+      <text x="0" y="0" font-family="VT323" class="fd-base0C" font-size="20">VT323</text>
+      <text x="0" y="30" font-family="VT323" class="fd-base05" font-size="28">// psv4 --init</text>
+      <text x="0" y="55" font-family="VT323" class="fd-base05" font-size="28">// PSV4 --INIT</text>
+      <text x="0" y="75" font-family="VT323" class="fd-base04" font-size="16">Terminal nostalgia</text>
+    </g>
+    
+    <g transform="translate(1200, 360)">
+      <text x="0" y="0" font-family="Courier Prime" class="fd-base0C" font-size="18" font-weight="700">Courier Prime</text>
+      <text x="0" y="30" font-family="Courier Prime" class="fd-base05" font-size="24" font-weight="400">// psv4 --init</text>
+      <text x="0" y="55" font-family="Courier Prime" class="fd-base05" font-size="24" font-weight="700">// PSV4 --INIT</text>
+      <text x="0" y="75" font-family="Courier Prime" class="fd-base04" font-size="12">Screenplay standard</text>
+    </g>
+    
+    <!-- Column 5 -->
+    <g transform="translate(0, 480)">
+      <text x="0" y="0" font-family="Nanum Gothic Coding" class="fd-base0C" font-size="18" font-weight="700">Nanum Gothic Coding</text>
+      <text x="0" y="30" font-family="Nanum Gothic Coding" class="fd-base05" font-size="24" font-weight="400">// psv4 --init</text>
+      <text x="0" y="55" font-family="Nanum Gothic Coding" class="fd-base05" font-size="24" font-weight="700">// PSV4 --INIT</text>
+      <text x="0" y="75" font-family="Nanum Gothic Coding" class="fd-base04" font-size="12">CJK support</text>
+    </g>
+    
+    <g transform="translate(400, 480)">
+      <text x="0" y="0" font-family="PT Mono" class="fd-base0C" font-size="18">PT Mono</text>
+      <text x="0" y="30" font-family="PT Mono" class="fd-base05" font-size="24">// psv4 --init</text>
+      <text x="0" y="55" font-family="PT Mono" class="fd-base05" font-size="24">// PSV4 --INIT</text>
+      <text x="0" y="75" font-family="PT Mono" class="fd-base04" font-size="12">Russian design</text>
+    </g>
+    
+    <g transform="translate(800, 480)">
+      <text x="0" y="0" font-family="B612 Mono" class="fd-base0C" font-size="18" font-weight="700">B612 Mono</text>
+      <text x="0" y="30" font-family="B612 Mono" class="fd-base05" font-size="24" font-weight="400">// psv4 --init</text>
+      <text x="0" y="55" font-family="B612 Mono" class="fd-base05" font-size="24" font-weight="700">// PSV4 --INIT</text>
+      <text x="0" y="75" font-family="B612 Mono" class="fd-base04" font-size="12">Aerospace design</text>
+    </g>
+    
+    <g transform="translate(1200, 480)">
+      <text x="0" y="0" font-family="Red Hat Mono" class="fd-base0C" font-size="18" font-weight="700">Red Hat Mono</text>
+      <text x="0" y="30" font-family="Red Hat Mono" class="fd-base05" font-size="24" font-weight="400">// psv4 --init</text>
+      <text x="0" y="55" font-family="Red Hat Mono" class="fd-base05" font-size="24" font-weight="700">// PSV4 --INIT</text>
+      <text x="0" y="75" font-family="Red Hat Mono" class="fd-base04" font-size="12">Modern enterprise</text>
+    </g>
+  </g>
+  
+  <!-- Frog Design Base16 Palette -->
+  <g transform="translate(50, 850)">
+    <text x="0" y="0" font-family="Aldrich" class="fd-base05" font-size="24">FROG DESIGN INSPIRED BASE16</text>
+    <text x="0" y="30" font-family="JetBrains Mono" class="fd-base04" font-size="14">Industrial precision meets unexpected warmth</text>
+    
+    <!-- Base colors -->
+    <g transform="translate(0, 60)">
+      <rect x="0" y="0" width="120" height="120" fill="#0a0a0c"/>
+      <text x="130" y="60" font-family="JetBrains Mono" class="fd-base05" font-size="16" font-weight="600">base00</text>
+      <text x="130" y="80" font-family="JetBrains Mono" class="fd-base04" font-size="14">#0a0a0c</text>
+      <text x="130" y="100" font-family="JetBrains Mono" class="fd-base04" font-size="12">Deep charcoal</text>
+    </g>
+    
+    <g transform="translate(350, 60)">
+      <rect x="0" y="0" width="120" height="120" fill="#161619"/>
+      <text x="130" y="60" font-family="JetBrains Mono" class="fd-base05" font-size="16" font-weight="600">base01</text>
+      <text x="130" y="80" font-family="JetBrains Mono" class="fd-base04" font-size="14">#161619</text>
+      <text x="130" y="100" font-family="JetBrains Mono" class="fd-base04" font-size="12">Lifted black</text>
+    </g>
+    
+    <g transform="translate(700, 60)">
+      <rect x="0" y="0" width="120" height="120" fill="#2a2a2f"/>
+      <text x="130" y="60" font-family="JetBrains Mono" class="fd-base05" font-size="16" font-weight="600">base02</text>
+      <text x="130" y="80" font-family="JetBrains Mono" class="fd-base04" font-size="14">#2a2a2f</text>
+      <text x="130" y="100" font-family="JetBrains Mono" class="fd-base04" font-size="12">Dark surface</text>
+    </g>
+    
+    <g transform="translate(1050, 60)">
+      <rect x="0" y="0" width="120" height="120" fill="#3e3e45"/>
+      <text x="130" y="60" font-family="JetBrains Mono" class="fd-base05" font-size="16" font-weight="600">base03</text>
+      <text x="130" y="80" font-family="JetBrains Mono" class="fd-base04" font-size="14">#3e3e45</text>
+      <text x="130" y="100" font-family="JetBrains Mono" class="fd-base04" font-size="12">Comments</text>
+    </g>
+    
+    <g transform="translate(0, 200)">
+      <rect x="0" y="0" width="120" height="120" fill="#52525b"/>
+      <text x="130" y="60" font-family="JetBrains Mono" class="fd-base05" font-size="16" font-weight="600">base04</text>
+      <text x="130" y="80" font-family="JetBrains Mono" class="fd-base04" font-size="14">#52525b</text>
+      <text x="130" y="100" font-family="JetBrains Mono" class="fd-base04" font-size="12">Dark fg</text>
+    </g>
+    
+    <g transform="translate(350, 200)">
+      <rect x="0" y="0" width="120" height="120" fill="#e8e8ea"/>
+      <text x="130" y="60" font-family="JetBrains Mono" class="fd-base05" font-size="16" font-weight="600">base05</text>
+      <text x="130" y="80" font-family="JetBrains Mono" class="fd-base04" font-size="14">#e8e8ea</text>
+      <text x="130" y="100" font-family="JetBrains Mono" class="fd-base04" font-size="12">Default fg</text>
+    </g>
+    
+    <g transform="translate(700, 200)">
+      <rect x="0" y="0" width="120" height="120" fill="#f0f0f2"/>
+      <text x="130" y="60" font-family="JetBrains Mono" class="fd-base05" font-size="16" font-weight="600">base06</text>
+      <text x="130" y="80" font-family="JetBrains Mono" class="fd-base04" font-size="14">#f0f0f2</text>
+      <text x="130" y="100" font-family="JetBrains Mono" class="fd-base04" font-size="12">Light fg</text>
+    </g>
+    
+    <g transform="translate(1050, 200)">
+      <rect x="0" y="0" width="120" height="120" fill="#f8f8fa"/>
+      <text x="130" y="60" font-family="JetBrains Mono" class="fd-base05" font-size="16" font-weight="600">base07</text>
+      <text x="130" y="80" font-family="JetBrains Mono" class="fd-base04" font-size="14">#f8f8fa</text>
+      <text x="130" y="100" font-family="JetBrains Mono" class="fd-base04" font-size="12">Light bg</text>
+    </g>
+    
+    <!-- Accent colors -->
+    <g transform="translate(0, 340)">
+      <rect x="0" y="0" width="120" height="120" fill="#ff5d62"/>
+      <text x="130" y="60" font-family="JetBrains Mono" class="fd-base05" font-size="16" font-weight="600">base08</text>
+      <text x="130" y="80" font-family="JetBrains Mono" class="fd-base04" font-size="14">#ff5d62</text>
+      <text x="130" y="100" font-family="JetBrains Mono" class="fd-base04" font-size="12">Coral red</text>
+    </g>
+    
+    <g transform="translate(350, 340)">
+      <rect x="0" y="0" width="120" height="120" fill="#ff8f40"/>
+      <text x="130" y="60" font-family="JetBrains Mono" class="fd-base05" font-size="16" font-weight="600">base09</text>
+      <text x="130" y="80" font-family="JetBrains Mono" class="fd-base04" font-size="14">#ff8f40</text>
+      <text x="130" y="100" font-family="JetBrains Mono" class="fd-base04" font-size="12">Warm orange</text>
+    </g>
+    
+    <g transform="translate(700, 340)">
+      <rect x="0" y="0" width="120" height="120" fill="#ffd866"/>
+      <text x="130" y="60" font-family="JetBrains Mono" class="fd-base05" font-size="16" font-weight="600">base0A</text>
+      <text x="130" y="80" font-family="JetBrains Mono" class="fd-base04" font-size="14">#ffd866</text>
+      <text x="130" y="100" font-family="JetBrains Mono" class="fd-base04" font-size="12">Warm yellow</text>
+    </g>
+    
+    <g transform="translate(1050, 340)">
+      <rect x="0" y="0" width="120" height="120" fill="#a9dc76"/>
+      <text x="130" y="60" font-family="JetBrains Mono" class="fd-base05" font-size="16" font-weight="600">base0B</text>
+      <text x="130" y="80" font-family="JetBrains Mono" class="fd-base04" font-size="14">#a9dc76</text>
+      <text x="130" y="100" font-family="JetBrains Mono" class="fd-base04" font-size="12">Fresh green</text>
+    </g>
+    
+    <g transform="translate(0, 480)">
+      <rect x="0" y="0" width="120" height="120" fill="#78dce8"/>
+      <text x="130" y="60" font-family="JetBrains Mono" class="fd-base05" font-size="16" font-weight="600">base0C</text>
+      <text x="130" y="80" font-family="JetBrains Mono" class="fd-base04" font-size="14">#78dce8</text>
+      <text x="130" y="100" font-family="JetBrains Mono" class="fd-base04" font-size="12">Cyan blue</text>
+    </g>
+    
+    <g transform="translate(350, 480)">
+      <rect x="0" y="0" width="120" height="120" fill="#ab9df2"/>
+      <text x="130" y="60" font-family="JetBrains Mono" class="fd-base05" font-size="16" font-weight="600">base0D</text>
+      <text x="130" y="80" font-family="JetBrains Mono" class="fd-base04" font-size="14">#ab9df2</text>
+      <text x="130" y="100" font-family="JetBrains Mono" class="fd-base04" font-size="12">Soft purple</text>
+    </g>
+    
+    <g transform="translate(700, 480)">
+      <rect x="0" y="0" width="120" height="120" fill="#ff6188"/>
+      <text x="130" y="60" font-family="JetBrains Mono" class="fd-base05" font-size="16" font-weight="600">base0E</text>
+      <text x="130" y="80" font-family="JetBrains Mono" class="fd-base04" font-size="14">#ff6188</text>
+      <text x="130" y="100" font-family="JetBrains Mono" class="fd-base04" font-size="12">Hot pink</text>
+    </g>
+    
+    <g transform="translate(1050, 480)">
+      <rect x="0" y="0" width="120" height="120" fill="#fc9867"/>
+      <text x="130" y="60" font-family="JetBrains Mono" class="fd-base05" font-size="16" font-weight="600">base0F</text>
+      <text x="130" y="80" font-family="JetBrains Mono" class="fd-base04" font-size="14">#fc9867</text>
+      <text x="130" y="100" font-family="JetBrains Mono" class="fd-base04" font-size="12">Burnt orange</text>
+    </g>
+  </g>
+  
+  <!-- Mock applications -->
+  <g transform="translate(50, 1500)">
+    <text x="0" y="0" font-family="Aldrich" class="fd-base05" font-size="24">APPLIED TO PSV4</text>
+    
+    <!-- JetBrains Mono example -->
+    <g transform="translate(0, 40)">
+      <rect x="0" y="0" width="500" height="100" class="fd-base01"/>
+      <rect x="0" y="0" width="4" height="100" class="fd-base0D"/>
+      <rect x="496" y="0" width="4" height="100" class="fd-base0D"/>
+      <text x="20" y="55" font-family="JetBrains Mono" class="fd-base0C" font-size="32" font-weight="600">//</text>
+      <text x="80" y="55" font-family="JetBrains Mono" class="fd-base05" font-size="32" font-weight="700">psv4 --init</text>
+      <rect x="340" y="65" width="80" height="4" class="fd-base0B" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0;0.8" dur="1.5s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+    
+    <!-- Aldrich example -->
+    <g transform="translate(550, 40)">
+      <rect x="0" y="0" width="500" height="100" class="fd-base01"/>
+      <rect x="0" y="0" width="4" height="100" class="fd-base08"/>
+      <rect x="496" y="0" width="4" height="100" class="fd-base08"/>
+      <text x="20" y="55" font-family="Aldrich" class="fd-base09" font-size="28">//</text>
+      <text x="70" y="55" font-family="Aldrich" class="fd-base05" font-size="28">PSV4:STELLARWIND</text>
+    </g>
+    
+    <!-- Space Mono example -->
+    <g transform="translate(0, 160)">
+      <rect x="0" y="0" width="500" height="100" class="fd-base00"/>
+      <rect x="0" y="0" width="500" height="4" class="fd-base0B"/>
+      <text x="250" y="55" font-family="Space Mono" class="fd-base05" font-size="36" font-weight="700" text-anchor="middle">PARABOLIC V4</text>
+      <text x="250" y="80" font-family="Space Mono" class="fd-base04" font-size="14" text-anchor="middle">SYSTEM INITIALIZED</text>
+    </g>
+    
+    <!-- IBM Plex Mono -->
+    <g transform="translate(550, 160)">
+      <rect x="0" y="0" width="500" height="100" class="fd-base02"/>
+      <text x="20" y="40" font-family="IBM Plex Mono" class="fd-base0E" font-size="20" font-weight="400">psv4@katara:~$</text>
+      <text x="220" y="40" font-family="IBM Plex Mono" class="fd-base05" font-size="20" font-weight="700">deploy --prod</text>
+      <text x="20" y="70" font-family="IBM Plex Mono" class="fd-base0B" font-size="16">[SUCCESS] Deployment complete</text>
+    </g>
+  </g>
+  
+  <!-- Base16 YAML format -->
+  <g transform="translate(50, 1800)">
+    <text x="0" y="0" font-family="JetBrains Mono" class="fd-base04" font-size="12">
+# Frog Design Inspired Base16
+scheme: "PSV4 Frog"
+author: "Claude/Anthropic"
+base00: "0a0a0c" # Deep charcoal
+base01: "161619" # Lifted black
+base02: "2a2a2f" # Dark surface
+base03: "3e3e45" # Comments
+base04: "52525b" # Dark foreground
+base05: "e8e8ea" # Default foreground
+base06: "f0f0f2" # Light foreground
+base07: "f8f8fa" # Light background
+base08: "ff5d62" # Variables, coral red
+base09: "ff8f40" # Integers, warm orange
+base0A: "ffd866" # Classes, warm yellow
+base0B: "a9dc76" # Strings, fresh green
+base0C: "78dce8" # Support, cyan blue
+base0D: "ab9df2" # Functions, soft purple
+base0E: "ff6188" # Keywords, hot pink
+base0F: "fc9867" # Deprecated, burnt orange
+    </text>
+  </g>
+</svg>
