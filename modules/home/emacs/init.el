@@ -68,19 +68,19 @@
 (set-face-attribute 'default nil :height 130)
 (setq font-lock-maximum-decoration nil)
 
-(defun remove-all-text-properties ()
-  "Remove bold/italic from all faces."
-  (interactive)
-  (mapc (lambda (face)
-          (when (facep face)
-            (set-face-attribute face nil
-                                :weight 'normal
-                                :slant 'normal
-                                :inherit nil)))
-        (face-list)))
+;; (defun remove-all-text-properties ()
+;;   "Remove bold/italic from all faces."
+;;   (interactive)
+;;   (mapc (lambda (face)
+;;           (when (facep face)
+;;             (set-face-attribute face nil
+;;                                 :weight 'normal
+;;                                 :slant 'normal
+;;                                 :inherit nil)))
+;;         (face-list)))
 
-;; Run it after startup
-(add-hook 'after-init-hook #'remove-all-text-properties)
+;; ;; Run it after startup
+;; (add-hook 'after-init-hook #'remove-all-text-properties)
 
 
 (setq auto-save-default nil)

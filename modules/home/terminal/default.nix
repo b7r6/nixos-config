@@ -5,45 +5,32 @@
 }:
 with lib;
 let
-  cfg = config.terminals;
-  isLowEndHardware = cfg.lowEndHardware;
-  hasStylex = config.stylix ? enable && config.stylix.enable;
-
-  defaultFont = "Berkeley Mono";
-  defaultFontSize = 12;
-
-  defaultFontFeatures = [
-    "liga"
-    "calt"
-    "ss01"
-    "ss02"
-    "ss03"
-  ];
+  cfg = config.hyper-modern-nixos.terminals;
 in
 {
-  options.terminals = {
-    lowEndHardware = mkOption {
-      type = types.bool;
-      default = false;
-      description = "Whether to optimize for low-end hardware";
-    };
-
+  options.hyper-modern-nixos.terminals = {
     font = {
       name = mkOption {
         type = types.str;
-        default = defaultFont;
-        description = "Primary terminal font";
+        default = "Berkeley Mono SemiBold";
+        description = "primary terminal font";
       };
 
       size = mkOption {
         type = types.int;
-        default = defaultFontSize;
-        description = "Font size for terminals";
+        default = 14;
+        description = "font size for terminals";
       };
 
       features = mkOption {
         type = types.listOf types.str;
-        default = defaultFontFeatures;
+        default = [
+          "liga"
+          "calt"
+          "ss01"
+          "ss02"
+          "ss03"
+        ];
         description = "Font features to enable";
       };
     };
@@ -56,7 +43,6 @@ in
   };
 
   config = {
-
     programs.wezterm = {
       enable = true;
       enableBashIntegration = true;
@@ -86,61 +72,9 @@ in
       '';
     };
 
-    # Alacritty configuration
-    programs.alacritty = {
+    programs.ghostty = {
       enable = true;
-      settings = {
-        window = {
-          padding = {
-            x = cfg.padding;
-            y = cfg.padding;
-          };
-          dynamic_padding = true;
-        };
-
-        font = {
-          normal = {
-            family = cfg.font.name;
-            style = mkForce "SemiBold";
-          };
-
-          bold = {
-            family = cfg.font.name;
-            style = "Bold";
-          };
-
-          italic = {
-            family = cfg.font.name;
-            style = "SemiBold";
-          };
-
-          size = mkForce cfg.font.size;
-        };
-
-        general.live_config_reload = true;
-      };
-    };
-
-    # Kitty configuration (only enabled on low-end hardware)
-    programs.kitty = {
-      enable = isLowEndHardware;
-
-      settings = {
-        font_family = cfg.font.name;
-        bold_font = "${cfg.font.name} Bold";
-        italic_font = "${cfg.font.name} Italic";
-        bold_italic_font = "${cfg.font.name} Bold Italic";
-        font_size = cfg.font.size;
-
-        font_features = "${
-          replaceStrings [ " " ] [ "-" ] cfg.font.name
-        }-SemiBold +${concatStringsSep " +" cfg.font.features}";
-
-        window_padding_width = cfg.padding;
-        sync_to_monitor = true;
-        disable_ligatures = if isLowEndHardware then "always" else "never";
-        background_opacity = if hasStylex then "0.95" else "1.0";
-      };
+      enableBashIntegration = true;
     };
   };
 }

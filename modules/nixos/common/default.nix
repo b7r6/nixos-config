@@ -103,6 +103,9 @@ in
     dbus
     dconf
 
+    wireshark
+    wireshark-cli
+    
     # System diagnostics & performance
     # bcc # BPF Compiler Collection for Linux kernel tracing
     # bpftrace # High-level tracing language for Linux eBPF
@@ -205,8 +208,9 @@ in
   ];
 
   users.groups.adbusers = { };
+  users.groups.wireshark = { };
   programs.adb.enable = true;
-  users.users.b7r6.extraGroups = [ ];
+  users.users.b7r6.extraGroups = [ "wireshark" ];
   # If using android-nixpkgs, you can include this part
   # This assumes you have android-nixpkgs set up in your imports
   # android-nixpkgs.androidenv = {

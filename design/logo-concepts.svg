@@ -1,0 +1,281 @@
+<svg width="1400" height="2000" viewBox="0 0 1400 2000" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&amp;display=swap');
+      .mono { font-family: 'JetBrains Mono', 'Courier New', monospace; }
+      .bg { fill: #090b0e; }
+      .base00 { fill: #090b0e; }
+      .base01 { fill: #13161a; }
+      .base02 { fill: #1a1f24; }
+      .base03 { fill: #23292f; }
+      .base04 { fill: #23292f; }
+      .base05 { fill: #d8e0e7; }
+      .base06 { fill: #596775; }
+      .base07 { fill: #ddf4ff; }
+      .base08 { fill: #b6e3ff; }
+      .base09 { fill: #80ccff; }
+      .base0A { fill: #54aeff; }
+      .base0B { fill: #218bff; }
+      .base0C { fill: #0969da; }
+      .base0D { fill: #54aeff; }
+      .base0E { fill: #80ccff; }
+      .base0F { fill: #218bff; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1400" height="2000" class="bg"/>
+  
+  <!-- Header -->
+  <text x="50" y="50" class="mono base08" font-size="32" font-weight="700">PSV4 BRAND SYSTEM</text>
+  <text x="50" y="80" class="mono base06" font-size="16">HYPER MODERN / ONO-SENDAI BLUE</text>
+  <line x1="50" y1="90" x2="1350" y2="90" stroke="#1a1f24" stroke-width="2"/>
+  
+  <!-- Full Color Palette -->
+  <g transform="translate(50, 130)">
+    <text x="0" y="0" class="mono base08" font-size="20" font-weight="600">COLOR PALETTE</text>
+    
+    <g transform="translate(0, 30)">
+      <rect x="0" y="0" width="80" height="80" fill="#090b0e"/>
+      <text x="90" y="40" class="mono base06" font-size="14" font-weight="400">base00 #090b0e</text>
+      <text x="90" y="60" class="mono base06" font-size="12">background</text>
+    </g>
+    
+    <g transform="translate(300, 30)">
+      <rect x="0" y="0" width="80" height="80" fill="#13161a"/>
+      <text x="90" y="40" class="mono base06" font-size="14" font-weight="400">base01 #13161a</text>
+      <text x="90" y="60" class="mono base06" font-size="12">container</text>
+    </g>
+    
+    <g transform="translate(600, 30)">
+      <rect x="0" y="0" width="80" height="80" fill="#1a1f24"/>
+      <text x="90" y="40" class="mono base06" font-size="14" font-weight="400">base02 #1a1f24</text>
+      <text x="90" y="60" class="mono base06" font-size="12">surface+</text>
+    </g>
+    
+    <g transform="translate(900, 30)">
+      <rect x="0" y="0" width="80" height="80" fill="#23292f"/>
+      <text x="90" y="40" class="mono base06" font-size="14" font-weight="400">base03/04 #23292f</text>
+      <text x="90" y="60" class="mono base06" font-size="12">comments</text>
+    </g>
+    
+    <g transform="translate(0, 130)">
+      <rect x="0" y="0" width="80" height="80" fill="#d8e0e7"/>
+      <text x="90" y="40" class="mono base06" font-size="14" font-weight="400">base05 #d8e0e7</text>
+      <text x="90" y="60" class="mono base06" font-size="12">foreground</text>
+    </g>
+    
+    <g transform="translate(300, 130)">
+      <rect x="0" y="0" width="80" height="80" fill="#596775"/>
+      <text x="90" y="40" class="mono base06" font-size="14" font-weight="400">base06 #596775</text>
+      <text x="90" y="60" class="mono base06" font-size="12">dim text</text>
+    </g>
+    
+    <g transform="translate(600, 130)">
+      <rect x="0" y="0" width="80" height="80" fill="#ddf4ff"/>
+      <text x="90" y="40" class="mono base06" font-size="14" font-weight="400">base07 #ddf4ff</text>
+      <text x="90" y="60" class="mono base06" font-size="12">bright</text>
+    </g>
+    
+    <g transform="translate(900, 130)">
+      <rect x="0" y="0" width="80" height="80" fill="#b6e3ff"/>
+      <text x="90" y="40" class="mono base06" font-size="14" font-weight="400">base08 #b6e3ff</text>
+      <text x="90" y="60" class="mono base06" font-size="12">accent hi</text>
+    </g>
+    
+    <g transform="translate(0, 230)">
+      <rect x="0" y="0" width="80" height="80" fill="#80ccff"/>
+      <text x="90" y="40" class="mono base06" font-size="14" font-weight="400">base09/0E #80ccff</text>
+      <text x="90" y="60" class="mono base06" font-size="12">accent mid</text>
+    </g>
+    
+    <g transform="translate(300, 230)">
+      <rect x="0" y="0" width="80" height="80" fill="#54aeff"/>
+      <text x="90" y="40" class="mono base06" font-size="14" font-weight="400">base0A/0D #54aeff</text>
+      <text x="90" y="60" class="mono base06" font-size="12">primary</text>
+    </g>
+    
+    <g transform="translate(600, 230)">
+      <rect x="0" y="0" width="80" height="80" fill="#218bff"/>
+      <text x="90" y="40" class="mono base06" font-size="14" font-weight="400">base0B/0F #218bff</text>
+      <text x="90" y="60" class="mono base06" font-size="12">secondary</text>
+    </g>
+    
+    <g transform="translate(900, 230)">
+      <rect x="0" y="0" width="80" height="80" fill="#0969da"/>
+      <text x="90" y="40" class="mono base06" font-size="14" font-weight="400">base0C #0969da</text>
+      <text x="90" y="60" class="mono base06" font-size="12">tertiary</text>
+    </g>
+  </g>
+  
+  <!-- Typography Showcase -->
+  <g transform="translate(50, 500)">
+    <text x="0" y="0" class="mono base08" font-size="20" font-weight="600">TYPOGRAPHY WEIGHTS</text>
+    
+    <text x="0" y="40" class="mono base0A" font-size="24" font-weight="300">JetBrains Mono Light 300</text>
+    <text x="0" y="75" class="mono base0A" font-size="24" font-weight="400">JetBrains Mono Regular 400</text>
+    <text x="0" y="110" class="mono base0A" font-size="24" font-weight="500">JetBrains Mono Medium 500</text>
+    <text x="0" y="145" class="mono base0A" font-size="24" font-weight="600">JetBrains Mono SemiBold 600</text>
+    <text x="0" y="180" class="mono base0A" font-size="24" font-weight="700">JetBrains Mono Bold 700</text>
+    <text x="0" y="215" class="mono base0A" font-size="24" font-weight="800">JetBrains Mono ExtraBold 800</text>
+  </g>
+  
+  <!-- Primary Logo Variations -->
+  <g transform="translate(50, 750)">
+    <text x="0" y="0" class="mono base08" font-size="20" font-weight="600">PRIMARY MARKS</text>
+    
+    <!-- Standard -->
+    <g transform="translate(0, 40)">
+      <rect x="0" y="0" width="500" height="80" class="base01"/>
+      <rect x="0" y="0" width="3" height="80" class="base0A"/>
+      <rect x="497" y="0" width="3" height="80" class="base0A"/>
+      <text x="20" y="45" class="mono base09" font-size="28" font-weight="600">//</text>
+      <text x="70" y="45" class="mono base0A" font-size="28" font-weight="700">psv4 --init</text>
+      <rect x="290" y="50" width="60" height="3" class="base08" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0;0.8" dur="1.5s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+    
+    <!-- Minimal -->
+    <g transform="translate(550, 40)">
+      <rect x="0" y="0" width="200" height="80" class="base01"/>
+      <rect x="0" y="0" width="3" height="80" class="base0A"/>
+      <rect x="197" y="0" width="3" height="80" class="base0A"/>
+      <text x="20" y="45" class="mono base09" font-size="28" font-weight="600">//</text>
+      <text x="70" y="45" class="mono base0A" font-size="28" font-weight="700">psv4</text>
+    </g>
+    
+    <!-- Stacked -->
+    <g transform="translate(800, 40)">
+      <rect x="0" y="0" width="150" height="80" class="base01"/>
+      <rect x="0" y="0" width="3" height="80" class="base0A"/>
+      <rect x="147" y="0" width="3" height="80" class="base0A"/>
+      <text x="75" y="35" class="mono base0A" font-size="24" font-weight="700" text-anchor="middle">PSV4</text>
+      <text x="75" y="60" class="mono base06" font-size="12" text-anchor="middle">parabolic.v4</text>
+    </g>
+  </g>
+  
+  <!-- Sub-project Variations -->
+  <g transform="translate(50, 900)">
+    <text x="0" y="0" class="mono base08" font-size="20" font-weight="600">SUB-PROJECT VARIANTS</text>
+    
+    <!-- katara -->
+    <g transform="translate(0, 40)">
+      <rect x="0" y="0" width="550" height="80" class="base01"/>
+      <rect x="0" y="0" width="3" height="80" class="base0B"/>
+      <rect x="547" y="0" width="3" height="80" class="base0B"/>
+      <text x="20" y="45" class="mono base09" font-size="28" font-weight="600">//</text>
+      <text x="70" y="45" class="mono base0B" font-size="28" font-weight="700">psv4:katara --init</text>
+      <rect x="420" y="50" width="60" height="3" class="base08" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0;0.8" dur="1.5s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+    
+    <!-- agiti -->
+    <g transform="translate(0, 140)">
+      <rect x="0" y="0" width="550" height="80" class="base01"/>
+      <rect x="0" y="0" width="3" height="80" class="base0E"/>
+      <rect x="547" y="0" width="3" height="80" class="base0E"/>
+      <text x="20" y="45" class="mono base09" font-size="28" font-weight="600">//</text>
+      <text x="70" y="45" class="mono base0E" font-size="28" font-weight="700">psv4:agiti --deploy</text>
+      <rect x="440" y="50" width="60" height="3" class="base08" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0;0.8" dur="1.5s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+    
+    <!-- stellarwind -->
+    <g transform="translate(0, 240)">
+      <rect x="0" y="0" width="650" height="80" class="base01"/>
+      <rect x="0" y="0" width="3" height="80" class="base0C"/>
+      <rect x="647" y="0" width="3" height="80" class="base0C"/>
+      <text x="20" y="45" class="mono base09" font-size="28" font-weight="600">//</text>
+      <text x="70" y="45" class="mono base0C" font-size="28" font-weight="700">psv4:stellarwind --surveil</text>
+      <rect x="540" y="50" width="60" height="3" class="base08" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0;0.8" dur="1.5s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+  </g>
+  
+  <!-- Additional Flag Options -->
+  <g transform="translate(750, 900)">
+    <text x="0" y="0" class="mono base08" font-size="20" font-weight="600">FLAG REFERENCE</text>
+    <text x="0" y="40" class="mono base06" font-size="14">Core flags:</text>
+    <text x="0" y="65" class="mono base0A" font-size="14" font-weight="500">--init</text>
+    <text x="100" y="65" class="mono base06" font-size="14">initialize</text>
+    <text x="0" y="85" class="mono base0A" font-size="14" font-weight="500">--dev</text>
+    <text x="100" y="85" class="mono base06" font-size="14">development</text>
+    <text x="0" y="105" class="mono base0A" font-size="14" font-weight="500">--prod</text>
+    <text x="100" y="105" class="mono base06" font-size="14">production</text>
+    <text x="0" y="125" class="mono base0A" font-size="14" font-weight="500">--test</text>
+    <text x="100" y="125" class="mono base06" font-size="14">testing</text>
+    
+    <text x="0" y="165" class="mono base06" font-size="14">Extended flags:</text>
+    <text x="0" y="190" class="mono base0A" font-size="14" font-weight="500">--deploy</text>
+    <text x="100" y="190" class="mono base06" font-size="14">deployment</text>
+    <text x="0" y="210" class="mono base0A" font-size="14" font-weight="500">--build</text>
+    <text x="100" y="210" class="mono base06" font-size="14">compilation</text>
+    <text x="0" y="230" class="mono base0A" font-size="14" font-weight="500">--run</text>
+    <text x="100" y="230" class="mono base06" font-size="14">execution</text>
+    <text x="0" y="250" class="mono base0A" font-size="14" font-weight="500">--debug</text>
+    <text x="100" y="250" class="mono base06" font-size="14">debugging</text>
+    <text x="0" y="270" class="mono base0A" font-size="14" font-weight="500">--surveil</text>
+    <text x="100" y="270" class="mono base06" font-size="14">monitoring</text>
+  </g>
+  
+  <!-- Typography Combinations -->
+  <g transform="translate(50, 1300)">
+    <text x="0" y="0" class="mono base08" font-size="20" font-weight="600">TYPOGRAPHY COMBINATIONS</text>
+    
+    <!-- High contrast -->
+    <g transform="translate(0, 40)">
+      <rect x="0" y="0" width="400" height="60" class="base01"/>
+      <text x="20" y="35" class="mono base07" font-size="18" font-weight="800">PSV4</text>
+      <text x="80" y="35" class="mono base06" font-size="18" font-weight="300">parabolic system</text>
+    </g>
+    
+    <!-- Medium contrast -->
+    <g transform="translate(450, 40)">
+      <rect x="0" y="0" width="400" height="60" class="base01"/>
+      <text x="20" y="35" class="mono base0A" font-size="18" font-weight="700">psv4</text>
+      <text x="80" y="35" class="mono base05" font-size="18" font-weight="400">version 4.0</text>
+    </g>
+    
+    <!-- Monochrome -->
+    <g transform="translate(0, 120)">
+      <rect x="0" y="0" width="400" height="60" class="base01"/>
+      <text x="20" y="35" class="mono base09" font-size="18" font-weight="600">// psv4</text>
+      <text x="120" y="35" class="mono base09" font-size="18" font-weight="600">init</text>
+    </g>
+  </g>
+  
+  <!-- Usage Examples -->
+  <g transform="translate(50, 1500)">
+    <text x="0" y="0" class="mono base08" font-size="20" font-weight="600">USAGE EXAMPLES</text>
+    
+    <!-- Terminal mockup -->
+    <g transform="translate(0, 40)">
+      <rect x="0" y="0" width="600" height="150" class="base00"/>
+      <rect x="0" y="0" width="600" height="30" class="base01"/>
+      <circle cx="20" cy="15" r="5" class="base06"/>
+      <circle cx="40" cy="15" r="5" class="base06"/>
+      <circle cx="60" cy="15" r="5" class="base06"/>
+      
+      <text x="20" y="60" class="mono base06" font-size="14">user@cyberdeck:~$</text>
+      <text x="190" y="60" class="mono base09" font-size="14" font-weight="600">//</text>
+      <text x="220" y="60" class="mono base0A" font-size="14" font-weight="600">psv4:katara --init</text>
+      <text x="20" y="85" class="mono base08" font-size="14">[INITIALIZING] parabolic.system.v4::katara</text>
+      <text x="20" y="110" class="mono base0B" font-size="14">[SUCCESS] Module loaded</text>
+      <rect x="200" y="120" width="40" height="2" class="base08" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0;0.8" dur="1.5s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+  </g>
+  
+  <!-- Grid overlay -->
+  <g opacity="0.05">
+    <line x1="0" y1="400" x2="1400" y2="400" stroke="#54aeff" stroke-width="1"/>
+    <line x1="0" y1="800" x2="1400" y2="800" stroke="#54aeff" stroke-width="1"/>
+    <line x1="0" y1="1200" x2="1400" y2="1200" stroke="#54aeff" stroke-width="1"/>
+    <line x1="0" y1="1600" x2="1400" y2="1600" stroke="#54aeff" stroke-width="1"/>
+  </g>
+</svg>

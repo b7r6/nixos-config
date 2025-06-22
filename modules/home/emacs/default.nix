@@ -21,7 +21,7 @@ let
   };
 in
 {
-  # stylix.targets.emacs.enable = true;
+  stylix.targets.emacs.enable = true;
 
   programs.emacs = {
     enable = true;

@@ -25,5 +25,6 @@
 
       formatter = pkgs.nixfmt-rfc-style;
       packages.default = self'.packages.activate;
+      packages.berkeley-mono = pkgs.callPackage ../home/themes/fonts/berkeley-mono { };
     };
 }

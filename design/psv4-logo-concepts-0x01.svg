@@ -1,0 +1,123 @@
+<svg width="800" height="1200" viewBox="0 0 800 1200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&amp;display=swap');
+      .mono { font-family: 'JetBrains Mono', 'Courier New', monospace; }
+      .bg { fill: #090b0e; }
+      .primary { fill: #54aeff; }
+      .secondary { fill: #0969da; }
+      .bright { fill: #b6e3ff; }
+      .accent { fill: #80ccff; }
+      .dark { fill: #13161a; }
+      .mid { fill: #1a1f24; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="1200" class="bg"/>
+  
+  <!-- Concept 1: Terminal Style -->
+  <g transform="translate(50, 50)">
+    <text x="0" y="0" class="mono bright" font-size="24" font-weight="400">CONCEPT 1: TERMINAL</text>
+    <rect x="0" y="20" width="300" height="100" fill="none" stroke="#54aeff" stroke-width="2"/>
+    <text x="20" y="60" class="mono primary" font-size="32" font-weight="700">// PSV4 //</text>
+    <text x="20" y="90" class="mono accent" font-size="14" letter-spacing="2">PARABOLIC.V4</text>
+    <line x1="0" y1="120" x2="300" y2="120" stroke="#0969da" stroke-width="1"/>
+  </g>
+  
+  <!-- Concept 2: Geometric Block -->
+  <g transform="translate(400, 50)">
+    <text x="0" y="0" class="mono bright" font-size="24" font-weight="400">CONCEPT 2: BLOCK</text>
+    <rect x="0" y="20" width="300" height="100" class="dark"/>
+    <rect x="10" y="30" width="280" height="80" fill="none" stroke="#54aeff" stroke-width="2"/>
+    <text x="150" y="75" class="mono primary" font-size="36" font-weight="700" text-anchor="middle">PS-V4</text>
+    <rect x="10" y="85" width="280" height="2" class="secondary"/>
+  </g>
+  
+  <!-- Concept 3: Bracket Style -->
+  <g transform="translate(50, 250)">
+    <text x="0" y="0" class="mono bright" font-size="24" font-weight="400">CONCEPT 3: BRACKETS</text>
+    <text x="0" y="60" class="mono primary" font-size="48" font-weight="400">[</text>
+    <text x="30" y="60" class="mono bright" font-size="32" font-weight="700">PSV4</text>
+    <text x="120" y="60" class="mono primary" font-size="48" font-weight="400">]</text>
+    <rect x="0" y="70" width="150" height="2" class="accent"/>
+    <text x="0" y="95" class="mono secondary" font-size="12" letter-spacing="3">PARABOLIC.VERSION.4</text>
+  </g>
+  
+  <!-- Concept 4: Matrix Style -->
+  <g transform="translate(400, 250)">
+    <text x="0" y="0" class="mono bright" font-size="24" font-weight="400">CONCEPT 4: MATRIX</text>
+    <rect x="0" y="20" width="300" height="100" class="mid"/>
+    <text x="20" y="50" class="mono accent" font-size="20" opacity="0.5">0110 1001</text>
+    <text x="20" y="75" class="mono primary" font-size="32" font-weight="700">ps-v4</text>
+    <text x="20" y="100" class="mono accent" font-size="20" opacity="0.5">1101 0010</text>
+    <rect x="0" y="20" width="2" height="100" class="primary"/>
+    <rect x="298" y="20" width="2" height="100" class="primary"/>
+  </g>
+  
+  <!-- Concept 5: Minimal Clean -->
+  <g transform="translate(50, 450)">
+    <text x="0" y="0" class="mono bright" font-size="24" font-weight="400">CONCEPT 5: MINIMAL</text>
+    <text x="0" y="70" class="mono primary" font-size="64" font-weight="700" letter-spacing="-2">PSV4</text>
+    <line x1="0" y1="80" x2="180" y2="80" stroke="#54aeff" stroke-width="4"/>
+  </g>
+  
+  <!-- Concept 6: Slashed -->
+  <g transform="translate(400, 450)">
+    <text x="0" y="0" class="mono bright" font-size="24" font-weight="400">CONCEPT 6: SLASHED</text>
+    <text x="0" y="60" class="mono secondary" font-size="48" font-weight="400">//</text>
+    <text x="60" y="60" class="mono bright" font-size="40" font-weight="700">psv4</text>
+    <rect x="0" y="70" width="180" height="30" fill="none" stroke="#0969da" stroke-width="1"/>
+    <text x="5" y="92" class="mono accent" font-size="12" opacity="0.7">parabolic</text>
+  </g>
+  
+  <!-- Concept 7: Stacked -->
+  <g transform="translate(50, 650)">
+    <text x="0" y="0" class="mono bright" font-size="24" font-weight="400">CONCEPT 7: STACKED</text>
+    <rect x="0" y="20" width="200" height="120" class="dark"/>
+    <text x="100" y="55" class="mono primary" font-size="36" font-weight="700" text-anchor="middle">PARA</text>
+    <text x="100" y="85" class="mono accent" font-size="36" font-weight="700" text-anchor="middle">BOLIC</text>
+    <line x1="20" y1="95" x2="180" y2="95" stroke="#54aeff" stroke-width="2"/>
+    <text x="100" y="120" class="mono bright" font-size="20" font-weight="400" text-anchor="middle">V4</text>
+  </g>
+  
+  <!-- Concept 8: Command Line -->
+  <g transform="translate(400, 650)">
+    <text x="0" y="0" class="mono bright" font-size="24" font-weight="400">CONCEPT 8: COMMAND</text>
+    <rect x="0" y="20" width="300" height="80" class="dark"/>
+    <text x="10" y="50" class="mono accent" font-size="20">&gt; </text>
+    <text x="40" y="50" class="mono primary" font-size="20" font-weight="700">psv4 --init</text>
+    <rect x="40" y="55" width="80" height="2" class="bright" opacity="0.8">
+      <animate attributeName="opacity" values="0.8;0;0.8" dur="1.5s" repeatCount="indefinite"/>
+    </rect>
+    <text x="10" y="80" class="mono secondary" font-size="12">parabolic.version.4</text>
+  </g>
+  
+  <!-- Concept 9: Hexagonal -->
+  <g transform="translate(50, 850)">
+    <text x="0" y="0" class="mono bright" font-size="24" font-weight="400">CONCEPT 9: HEX</text>
+    <polygon points="100,20 150,45 150,95 100,120 50,95 50,45" fill="none" stroke="#54aeff" stroke-width="2"/>
+    <text x="100" y="75" class="mono primary" font-size="28" font-weight="700" text-anchor="middle">PSV4</text>
+  </g>
+  
+  <!-- Concept 10: Data Stream -->
+  <g transform="translate(400, 850)">
+    <text x="0" y="0" class="mono bright" font-size="24" font-weight="400">CONCEPT 10: STREAM</text>
+    <rect x="0" y="20" width="300" height="100" class="mid"/>
+    <text x="10" y="50" class="mono accent" font-size="16" opacity="0.4">10110</text>
+    <text x="80" y="50" class="mono primary" font-size="32" font-weight="700">PSV4</text>
+    <text x="180" y="50" class="mono accent" font-size="16" opacity="0.4">01101</text>
+    <rect x="0" y="60" width="300" height="1" class="secondary"/>
+    <text x="10" y="85" class="mono bright" font-size="14">PARABOLIC</text>
+    <text x="10" y="105" class="mono accent" font-size="14">VERSION 4.0</text>
+  </g>
+  
+  <!-- Grid overlay for cyberpunk feel -->
+  <g opacity="0.1">
+    <line x1="0" y1="200" x2="800" y2="200" stroke="#54aeff" stroke-width="1"/>
+    <line x1="0" y1="400" x2="800" y2="400" stroke="#54aeff" stroke-width="1"/>
+    <line x1="0" y1="600" x2="800" y2="600" stroke="#54aeff" stroke-width="1"/>
+    <line x1="0" y1="800" x2="800" y2="800" stroke="#54aeff" stroke-width="1"/>
+    <line x1="0" y1="1000" x2="800" y2="1000" stroke="#54aeff" stroke-width="1"/>
+  </g>
+</svg>

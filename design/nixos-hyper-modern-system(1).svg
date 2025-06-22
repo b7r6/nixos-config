@@ -1,0 +1,89 @@
+<svg width="2560" height="1440" viewBox="0 0 2560 1440" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&amp;display=swap');
+      .mono { font-family: 'JetBrains Mono', monospace; }
+    </style>
+  </defs>
+  
+  <!-- Razorgirl palette for this one -->
+  <!-- base00: #111417, base04: #596775, base0A: #54aeff, base09: #80ccff, base0B: #218bff -->
+  
+  <!-- Background -->
+  <rect width="2560" height="1440" fill="#111417"/>
+  
+  <!-- nixos-rebuild output - top left -->
+  <g transform="translate(60, 60)" opacity="0.22">
+    <text x="0" y="0" class="mono" fill="#596775" font-size="10" font-weight="300">
+      <tspan x="0" dy="0">[nixos@stellarwind:~]$ sudo nixos-rebuild switch --flake .#stellarwind</tspan>
+      <tspan x="0" dy="16" fill="#80ccff">building the system configuration...</tspan>
+      <tspan x="0" dy="16">these 12 derivations will be built:</tspan>
+      <tspan x="0" dy="16">  /nix/store/...-postgresql-15.4</tspan>
+      <tspan x="0" dy="16">  /nix/store/...-nginx-1.24.0</tspan>
+      <tspan x="0" dy="16">  /nix/store/...-berkeley-mono-font</tspan>
+      <tspan x="0" dy="16">  /nix/store/...-psv4-razorgirl-theme</tspan>
+      <tspan x="0" dy="16">  /nix/store/...-wezterm-20230712</tspan>
+      <tspan x="0" dy="16">  /nix/store/...-wayland-1.22.0</tspan>
+      <tspan x="0" dy="16">  /nix/store/...-linux-6.1.55</tspan>
+      <tspan x="0" dy="16">  /nix/store/...-systemd-253.6</tspan>
+      <tspan x="0" dy="16">  /nix/store/...-hyprland-0.30.0</tspan>
+      <tspan x="0" dy="16">  /nix/store/...-home-manager-path</tspan>
+      <tspan x="0" dy="16">  /nix/store/...-system-path</tspan>
+      <tspan x="0" dy="16">  /nix/store/...-nixos-system-stellarwind-23.11</tspan>
+      <tspan x="0" dy="16"></tspan>
+      <tspan x="0" dy="16" fill="#218bff">building '/nix/store/...-berkeley-mono-font'...</tspan>
+      <tspan x="0" dy="16" fill="#218bff">building '/nix/store/...-psv4-razorgirl-theme'...</tspan>
+      <tspan x="0" dy="16"></tspan>
+      <tspan x="0" dy="16" fill="#80ccff">activating the configuration...</tspan>
+      <tspan x="0" dy="16">setting up /etc...</tspan>
+      <tspan x="0" dy="16">reloading user units for b7r6...</tspan>
+      <tspan x="0" dy="16">setting up tmpfiles</tspan>
+      <tspan x="0" dy="16" fill="#54aeff">✓ activation finished successfully</tspan>
+    </text>
+  </g>
+  
+  <!-- Network stats - top right -->
+  <g transform="translate(2300, 60)" opacity="0.18">
+    <text x="0" y="0" class="mono" fill="#596775" font-size="9" font-weight="300" text-anchor="end">
+      <tspan x="0" dy="0">NETWORK::STELLARWIND</tspan>
+      <tspan x="0" dy="14">━━━━━━━━━━━━━━━━━━━━━</tspan>
+      <tspan x="0" dy="14">wlan0: 192.168.1.42</tspan>
+      <tspan x="0" dy="14">  ↓ 142.7 MB/s</tspan>
+      <tspan x="0" dy="14">  ↑ 12.4 MB/s</tspan>
+      <tspan x="0" dy="14">━━━━━━━━━━━━━━━━━━━━━</tspan>
+      <tspan x="0" dy="14">tailscale0: 100.x.x.x</tspan>
+      <tspan x="0" dy="14">  peers: 7 active</tspan>
+      <tspan x="0" dy="14">━━━━━━━━━━━━━━━━━━━━━</tspan>
+      <tspan x="0" dy="14">firewall: active</tspan>
+      <tspan x="0" dy="14">fail2ban: 0 bans</tspan>
+    </text>
+  </g>
+  
+  <!-- Main statement - lower left, prominent -->
+  <g transform="translate(120, 1200)">
+    <text x="0" y="0" class="mono" font-size="80" font-weight="300">
+      <tspan fill="#54aeff">//</tspan>
+      <tspan fill="#596775" dx="20">hyper</tspan>
+      <tspan fill="#54aeff" dx="20">//</tspan>
+      <tspan fill="#596775" dx="20">modern</tspan>
+      <tspan fill="#54aeff" dx="20">//</tspan>
+      <tspan fill="#596775" dx="20">nixos</tspan>
+    </text>
+  </g>
+  
+  <!-- Git status of config - bottom right -->
+  <g transform="translate(2300, 1300)" opacity="0.15">
+    <text x="0" y="0" class="mono" fill="#596775" font-size="9" font-weight="300" text-anchor="end">
+      <tspan x="0" dy="0">[nixos-config] (main) ✓</tspan>
+      <tspan x="0" dy="12">→ origin/main [ahead 3]</tspan>
+      <tspan x="0" dy="12">last: "feat: add razorgirl theme"</tspan>
+      <tspan x="0" dy="12">247 generations | 184.2 GiB</tspan>
+    </text>
+  </g>
+  
+  <!-- Subtle grid accent -->
+  <g opacity="0.02">
+    <rect x="100" y="1100" width="1" height="180" fill="#54aeff"/>
+    <rect x="100" y="1280" width="1200" height="1" fill="#54aeff"/>
+  </g>
+</svg>
