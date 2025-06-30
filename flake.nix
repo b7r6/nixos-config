@@ -1,5 +1,5 @@
 {
-  description = "HYPER // MODERN // NIXOS";
+  description = "// hypermodern // nixos";
 
   outputs =
     inputs:
@@ -81,10 +81,6 @@
     hyprpanel = {
       url = "github:jas-singhfsu/hyprpanel";
       inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    ps-v4 = {
-      url = "git+ssh://git@github.com/straylight-evaluation/ps-v4.git?ref=b7r6/new-okx-secrets";
     };
   };
 }
