@@ -711,21 +711,21 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
 
 (use-package consult
   :ensure t
-  :bind (("C-c c a" . #'(lambda ()
-                          (interactive)
-                          (if (bound-and-true-p lsp-mode)
-                              (call-interactively #'lsp-execute-code-action))))
+  :bind (("C-c c a" . (lambda ()
+                        (interactive)
+                        (if (bound-and-true-p lsp-mode)
+                            (call-interactively #'lsp-execute-code-action))))
 
-         ("C-c c r" . #'(lambda ()
-                          (interactive)
-                          (if (bound-and-true-p lsp-mode)
-                              (call-interactively #'lsp-rename)
-                            (call-interactively #'eglot-rename))))
+         ("C-c c r" . (lambda ()
+                        (interactive)
+                        (if (bound-and-true-p lsp-mode)
+                            (call-interactively #'lsp-rename)
+                          (call-interactively #'eglot-rename))))
 
-         ("C-c c f" . #'(lambda ()
-                          (interactive)
-                          (if (bound-and-true-p lsp-mode)
-                              (call-interactively #'lsp-format-buffer))))
+         ("C-c c f" . (lambda ()
+                        (interactive)
+                        (if (bound-and-true-p lsp-mode)
+                            (call-interactively #'lsp-format-buffer))))
 
          ("C-c c d" . eldoc)))
 
@@ -784,6 +784,67 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
 (use-package sh-script
   :mode (("\\.sh\\'" . bash-ts-mode)
          ("\\.bash\\'" . bash-ts-mode)))
+
+;; ============================================================
+;; haskell // mode
+;; ============================================================
+
+(use-package haskell-mode
+  :ensure t
+  :mode (("\\.hs\\'" . haskell-mode)
+         ("\\.lhs\\'" . literate-haskell-mode)
+         ("\\.cabal\\'" . haskell-cabal-mode))
+
+  :config
+  ;; Interactive Haskell
+  (setq haskell-interactive-popup-errors nil)
+  (setq haskell-process-type 'cabal-repl)
+  (setq haskell-process-suggest-remove-import-lines t)
+  (setq haskell-process-auto-import-loaded-modules t)
+
+  ;; Indentation
+  (setq haskell-indentation-layout-offset 4)
+  (setq haskell-indentation-left-offset 4)
+  (setq haskell-indentation-where-pre-offset 2)
+  (setq haskell-indentation-where-post-offset 2)
+
+  ;; Stylish on save (optional - you have fourmolu in format-all)
+  (setq haskell-stylish-on-save nil)
+
+  :hook
+  ((haskell-mode . interactive-haskell-mode)
+   (haskell-mode . haskell-indentation-mode)
+   (haskell-mode . haskell-doc-mode)))
+
+(use-package lsp-haskell
+  :ensure t
+  :after (haskell-mode lsp-mode)
+  :config
+  (setq lsp-haskell-server-path "haskell-language-server-wrapper"))
+
+
+;; Better REPL integration
+(use-package haskell-interactive-mode
+  :ensure nil
+  :after haskell-mode
+  :bind (:map haskell-mode-map
+              ("C-c C-l" . haskell-process-load-file)
+              ("C-c C-z" . haskell-interactive-switch)
+              ("C-c C-t" . haskell-process-do-type)
+              ("C-c C-i" . haskell-process-do-info)))
+
+;; Company backend for Haskell
+(use-package company-ghci
+  :ensure t
+  :after (company haskell-mode)
+  :config
+  (push 'company-ghci company-backends))
+
+;; Flycheck for Haskell (optional - if you use flycheck)
+(use-package flycheck-haskell
+  :ensure t
+  :after (flycheck haskell-mode)
+  :hook (haskell-mode . flycheck-haskell-setup))
 
 ;; ============================================================
 ;; nix // mode
