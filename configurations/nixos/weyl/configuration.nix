@@ -11,7 +11,6 @@ in
   imports = [
     ./hardware-configuration.nix
     inputs.agenix.nixosModules.default
-    inputs.ps-v4.nixosModules.secrets
   ];
 
   boot.loader.systemd-boot.enable = true;
@@ -71,18 +70,7 @@ in
 
   security.sudo.wheelNeedsPassword = false;
 
-  # ps-v4.nixos.secrets.devKeys = true;
-  # age.secrets."keys/dev.toml" = {
-  #   # TODO[b7r6]: get this sorted or just build a proper `sops.nix`
-  #   # setup now that we understand how and why...
-  #   # file = ps-v4.nixos.secrets.keys.dev.file;
-  #   file = "${inputs.ps-v4}/secrets/keys/dev.toml.age";
-  #   group = "ps-v4";
-  #   mode = "440";
-  # };
-
   time.timeZone = "America/New_York";
-
   services.printing.enable = true;
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
