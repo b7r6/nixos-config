@@ -7,88 +7,205 @@
 }:
 let
   inherit (flake) inputs;
+  inherit (lib)
+    mkOption
+    mkEnableOption
+    mkIf
+    types
+    ;
+
+  cfg = config.hyper-modern-nixos.themes;
 
   themes = {
-    ono-sendai = import ./ono-sendai-blue.nix;
+    ono-sendai = import ./palettes/ono-sendai-blue.nix;
+
+    # HOWTO: new themes can be added easily...
+    # hosaka = import ./palettes/hosaka.nix;
   };
 
-  themeVariants = with builtins; concatLists (attrValues (mapAttrs (_: attrNames) themes));
+  themeVariants = lib.unique (
+    lib.flatten (lib.mapAttrsToList (_: theme: lib.attrNames theme) themes)
+  );
 
-  # # TODO[b7r6]: Replace this with a proper fetchFromGitHub or similar approach
-  # # This is a temporary solution until we have a proper way to handle Berkeley Mono
-  # berkeley-mono = pkgs.stdenv.mkDerivation {
-  #   name = "berkeley-mono-font";
-  #   src = ./.;
+  # Berkeley Mono font configuration
+  berkeleyMono = pkgs.callPackage ./fonts/berkeley-mono { };
 
-  #   dontUnpack = true;
-  #   installPhase = ''
-  #     mkdir -p $out/share/fonts/opentype
-  #     cp ${./berkeley-mono-semi-bold.otf} $out/share/fonts/opentype/
-  #   '';
-  # };
+  # Helper to get the current theme/variant data
+  currentTheme = themes.${cfg.theme}.${cfg.variant};
 
-  berkeley-mono = pkgs.callPackage ./fonts/berkeley-mono { };
+  # Font configuration based on display profile
 
-  monoFont = {
-    package = berkeley-mono;
-    name = "Berkeley Mono Medium";
-  };
-  
-  cfg = config.hyper-modern-nixos.themes;
-in
-{
-  imports = [ inputs.stylix.homeManagerModules.stylix ];
+  fontConfig = rec {
+    package = berkeleyMono;
+    name = "Berkeley Mono";
 
-  options.hyper-modern-nixos.themes = {
-    enable = lib.mkEnableOption "hyper-modern-nixos.themes" // {
-      default = true;
+    weights = {
+      light = "${name} Light";
+      regular = "${name} Regular";
+      medium = "${name} Medium";
+      semibold = "${name} SemiBold";
+      bold = "${name} Bold";
     };
 
-    theme = lib.mkOption {
-      type = lib.types.enum [ "ono-sendai" ];
-      default = "ono-sendai";
-      description = "theme family";
+    monospace = {
+      inherit package;
+      name =
+        if cfg.display.highDPI && cfg.display.width >= 3840 then
+          weights.regular
+        else if cfg.display.highDPI then
+          weights.medium
+        else
+          weights.medium;
     };
 
-    variant = lib.mkOption {
-      type = lib.types.enum themeVariants;
-      default = "chiba";
-      description = "theme family";
-    };
-
-    palette = lib.mkOption {
-      type = lib.types.attrs;
-      description = "The base16 theme palette with hashtags for use in configurations";
-      internal = true;
-      readOnly = true;
-      default = themes.${cfg.theme}.${cfg.variant}.palette;
-    };
-  };
-
-  config = lib.mkIf cfg.enable {
-
-    stylix = {
-      enable = true;
-      autoEnable = true;
-
-      image = ./hyper-modern-nixos-wallpaper-0x01.png;
-
-      base16Scheme = themes.${cfg.theme}.${cfg.variant};
-
-      fonts = {
-        monospace = monoFont;
-        sansSerif = monoFont;
-        serif = monoFont;
-        emoji = monoFont;
-
-        # Font sizes
-        sizes = {
+    # Size calculations - account for Hyprland scaling
+    sizes =
+      let
+        baseSizes = {
           desktop = 14;
           applications = 14;
           terminal = 16;
           popups = 16;
         };
+
+        scaleFactor = 1.0;
+      in
+      lib.mapAttrs (_: size: lib.toInt (size * scaleFactor)) baseSizes;
+
+    sansSerif = {
+      inherit package;
+      name = weights.medium;
+    };
+  };
+in
+{
+  imports = [
+    inputs.stylix.homeModules.stylix # FIXED: changed from homeManagerModules
+    ./wallpapers
+  ];
+
+  options.hyper-modern-nixos.themes = {
+    enable = mkEnableOption "hyper-modern theming system" // {
+      default = true;
+    };
+
+    theme = mkOption {
+      type = types.enum (lib.attrNames themes);
+      default = "ono-sendai";
+      description = "Theme family to use";
+    };
+
+    variant = mkOption {
+      type = types.enum themeVariants;
+      default = "chiba";
+      description = "Theme variant within the family";
+    };
+
+    palette = mkOption {
+      type = types.attrs;
+      description = "The resolved base16 theme palette";
+      internal = true;
+      readOnly = true;
+      default = currentTheme.palette;
+    };
+
+    # Display profile affects font rendering and wallpaper generation
+    display = {
+      profile = mkOption {
+        type = types.enum [
+          "generic"
+          "oled"
+          "samsung-e6"
+          "high-contrast"
+        ];
+        default = "generic";
+        description = "Display profile for optimizations";
       };
+
+      highDPI = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Enable high-DPI adjustments";
+      };
+
+      width = mkOption {
+        type = types.int;
+        default = 2560;
+        description = "Display width for wallpaper generation";
+      };
+
+      height = mkOption {
+        type = types.int;
+        default = 1440;
+        description = "Display height for wallpaper generation";
+      };
+    };
+
+    # Override options for fine-tuning
+    overrides = {
+      fontSizes = mkOption {
+        type = types.attrsOf types.int;
+        default = { };
+        description = "Override specific font sizes";
+        example = {
+          terminal = 18;
+        };
+      };
+
+      opacity = mkOption {
+        type = types.attrsOf types.float;
+        default = { };
+        description = "Override opacity values";
+        example = {
+          terminal = 0.95;
+        };
+      };
+    };
+  };
+
+  config = mkIf cfg.enable {
+    stylix = {
+      enable = true;
+      autoEnable = true;
+
+      # Use generated wallpaper if enabled, fallback to static
+      image =
+        if config.hyper-modern-nixos.wallpaper.enable then
+          "${config.hyper-modern-nixos.wallpaper.package}/wallpaper.png"
+        else
+          ./assets/hyper-modern-nixos-wallpaper-0x01.png;
+
+      # Stylix wants just the color values
+      base16Scheme = currentTheme.palette;
+
+      fonts = {
+        monospace = fontConfig.monospace;
+        sansSerif = fontConfig.sansSerif;
+        serif = fontConfig.monospace;
+        emoji = {
+          package = pkgs.noto-fonts-emoji;
+          name = "Noto Color Emoji";
+        };
+
+        sizes = fontConfig.sizes // cfg.overrides.fontSizes;
+      };
+
+      opacity = {
+        terminal = if cfg.display.profile == "oled" then 0.98 else 0.95;
+        desktop = 0.95;
+        popups = 0.95;
+      } // cfg.overrides.opacity;
+    };
+
+    home.sessionVariables = mkIf (cfg.display.profile == "samsung-e6") {
+      FREETYPE_PROPERTIES = "cff:no-stem-darkening=0 autofitter:no-stem-darkening=0 truetype:interpreter-version=40";
+    };
+
+    hyper-modern-nixos.wallpaper.enable = true;
+    hyper-modern-nixos.wallpaper.customize = {
+      inherit (cfg.display) profile width height;
+      theme = currentTheme;
+      dpi = if cfg.display.highDPI then 192 else 96;
     };
   };
 }

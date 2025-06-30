@@ -15,7 +15,7 @@
   <!-- Complex perSystem module - top left, HIGH CONTRAST -->
   <g transform="translate(60, 60)" opacity="0.7">
     <text x="0" y="0" class="mono" fill="#80ccff" font-size="12" font-weight="500">
-      <tspan x="0" dy="0">[nixos@razorgirl:~/psv4]$ cat nix/modules/psv4.nix</tspan>
+      <tspan x="0" dy="0">[nixos@chiba:~/psv4]$ cat nix/modules/psv4.nix</tspan>
     </text>
     <text x="0" y="18" class="mono" fill="#596775" font-size="12" font-weight="400">
       <tspan x="0" dy="18">{ <tspan fill="#b6e3ff">config</tspan>, <tspan fill="#b6e3ff">lib</tspan>, <tspan fill="#b6e3ff">flake-parts-lib</tspan>, ... }:</tspan>
@@ -26,7 +26,7 @@
       <tspan x="0" dy="18">  options.perSystem = mkPerSystemOption ({ <tspan fill="#b6e3ff">config</tspan>, <tspan fill="#b6e3ff">pkgs</tspan>, ... }: {</tspan>
       <tspan x="0" dy="18">    psv4 = {</tspan>
       <tspan x="0" dy="18">      theme = mkOption {</tspan>
-      <tspan x="0" dy="18">        type = types.enum [ <tspan fill="#218bff">"razorgirl"</tspan> <tspan fill="#218bff">"razorgirl"</tspan> <tspan fill="#218bff">"sprawl"</tspan> ];</tspan>
+      <tspan x="0" dy="18">        type = types.enum [ <tspan fill="#218bff">"razorgirl"</tspan> <tspan fill="#218bff">"chiba"</tspan> <tspan fill="#218bff">"sprawl"</tspan> ];</tspan>
       <tspan x="0" dy="18">        default = <tspan fill="#218bff">"razorgirl"</tspan>;</tspan>
       <tspan x="0" dy="18">      };</tspan>
       <tspan x="0" dy="18">      </tspan>
@@ -72,11 +72,11 @@
   <g transform="translate(120, 1200)">
     <text x="0" y="0" class="mono" font-size="86" font-weight="500">
       <tspan fill="#54aeff" font-weight="700">//</tspan>
-      <tspan fill="#b6e3ff" dx="24">HYPER</tspan>
+      <tspan fill="#b6e3ff" dx="24">hyper</tspan>
       <tspan fill="#54aeff" font-weight="700" dx="24">//</tspan>
-      <tspan fill="#b6e3ff" dx="24">MODERN</tspan>
+      <tspan fill="#b6e3ff" dx="24">modern</tspan>
       <tspan fill="#54aeff" font-weight="700" dx="24">//</tspan>
-      <tspan fill="#b6e3ff" dx="24">NIXOS</tspan>
+      <tspan fill="#b6e3ff" dx="24">nixos</tspan>
     </text>
   </g>
   
@@ -86,7 +86,7 @@
       <tspan x="0" dy="0" fill="#80ccff">$ nix flake check</tspan>
       <tspan x="0" dy="14" fill="#54aeff">✓ packages.x86_64-linux.psv4</tspan>
       <tspan x="0" dy="14" fill="#54aeff">✓ devShells.x86_64-linux.default</tspan>
-      <tspan x="0" dy="14" fill="#54aeff">✓ nixosConfigurations.razorgirl</tspan>
+      <tspan x="0" dy="14" fill="#54aeff">✓ nixosConfigurations.chiba</tspan>
       <tspan x="0" dy="14" fill="#54aeff">✓ formatter.x86_64-linux</tspan>
       <tspan x="0" dy="14" fill="#596775">evaluation completed in 2.41s</tspan>
     </text>

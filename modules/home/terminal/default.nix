@@ -12,13 +12,19 @@ in
     font = {
       name = mkOption {
         type = types.str;
-        default = "Berkeley Mono SemiBold";
+        default = "Berkeley Mono";
         description = "primary terminal font";
+      };
+
+      weight = mkOption {
+        type = types.str;
+        default = "Regular";
+        description = "primary terminal font weight";
       };
 
       size = mkOption {
         type = types.int;
-        default = 14;
+        default = 12;
         description = "font size for terminals";
       };
 
@@ -54,7 +60,7 @@ in
         end
 
         -- Font configuration
-        config.font = wezterm.font('${cfg.font.name}', {weight='DemiBold'})
+        config.font = wezterm.font('${cfg.font.name}', {weight='${cfg.font.weight}'})
         config.font_size = ${toString cfg.font.size}
         config.harfbuzz_features = {'${concatStringsSep "', '" cfg.font.features}'}
 
@@ -75,6 +81,20 @@ in
     programs.ghostty = {
       enable = true;
       enableBashIntegration = true;
+      settings = {
+        # Force Wayland backend
+        window-decoration = false; # Use client-side decorations
+        gtk-single-instance = true;
+
+        # Font settings to match your module
+        font-family = "${cfg.font.name}";
+        font-size = cfg.font.size;
+        font-feature = cfg.font.features;
+
+        # Padding
+        window-padding-x = cfg.padding;
+        window-padding-y = cfg.padding;
+      };
     };
   };
 }

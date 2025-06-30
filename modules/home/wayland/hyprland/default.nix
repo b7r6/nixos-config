@@ -6,40 +6,6 @@
   ...
 }:
 
-# 1. **Zero Border Radius**: Removed all rounded corners throughout Hyprland, Waybar, notifications, and application launcher.
-
-# 2. **Minimal Gaps**: Set to just 2px for both inner and outer gaps.
-
-# 3. **Strong Vim-style Navigation**:
-#    - `Super+H,J,K,L` for window focus
-#    - `Super+Shift+H,J,K,L` for moving windows
-#    - `Super+Alt+H,J,K,L` for resizing windows
-
-# 4. **Monitor Management**:
-#    - Persistent workspaces per monitor (1-3 on external, 4-6 on laptop)
-#    - `Super+,/.` to switch between monitors
-#    - `Super+Shift+,/.` to move workspaces between monitors
-
-# 5. **Improved Layout Controls**:
-#    - `Super+V` for vertical split
-#    - `Super+B` for horizontal split
-#    - `Super+T` for tabbed layout
-#    - `Super+G` to change group layout type
-#    - `Super+R` to rotate focus within a group
-
-# 6. **Special Workspace (Scratchpad)**:
-#    - `Super+S` to toggle special workspace
-#    - Auto-spawns terminal in empty special workspace
-
-# 7. **Workspace Controls**:
-#    - `Super+Tab` / `Super+Shift+Tab` to cycle workspaces on current monitor
-#    - `Super+Alt+Tab` to cycle through all workspaces
-
-# 8. **Clean, Minimal UI**:
-#    - Simple Waybar with basic information
-#    - Minimal animations for better performance
-#    - Flat, square design throughout
-
 let
   cfg = config.wayland.hyprland;
   inherit (flake) inputs;
@@ -82,7 +48,6 @@ in
       ];
 
       # ===== Persistent Workspace Assignment =====
-      # First three workspaces for external, next three for laptop
       workspace = [
         "1, monitor:eDP-1, default:true, persistent:true"
         "2, monitor:eDP-1, persistent:true"
@@ -90,37 +55,27 @@ in
         "4, monitor:eDP-1, persistent:true"
         "5, monitor:eDP-1, persistent:true"
         "6, monitor:eDP-1, persistent:true"
-
-         # "2, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
-        # "3, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
-        # "4, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
-        # "5, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
-        # "6, monitor:desc:LG Electronics LG ULTRAGEAR+, persistent:true"
-        # special, on-created-empty:wezterm"
+        "special:scratchpad, on-created-empty:wezterm"
       ];
-
-      # ===== Handle laptop lid =====
-      # bindl = [
-      #   ",switch:off:Lid Switch,exec,hyprctl keyword monitor eDP-1 disable"
-      #   ",switch:on:Lid Switch,exec,hyprctl keyword monitor eDP-1 3840x2400@60.00,3440x0,2.5"
-      # ];
 
       exec-once = [
         "blueman-applet"
+        "flameshot"
         "hyprpaper"
         "mako"
         "nm-tray"
         "tailscale-systray"
-        "flameshot"
       ];
 
       general = {
-        gaps_in = 6;
-        gaps_out = 6;
         border_size = 2;
-
-        resize_on_border = true;
+        gaps_in = 2;
+        gaps_out = 2;
         layout = "hy3";
+        resize_on_border = true;
+
+        "col.active_border" = lib.mkForce "rgba(${base0D}ee) rgba(${base0E}ee) 45deg";
+        "col.inactive_border" = lib.mkForce "rgba(${base02}aa)";
       };
 
       decoration = {
@@ -145,15 +100,16 @@ in
 
         bezier = [
           "easeOutQuint, 0.22, 1, 0.36, 1"
+          "easeInQuint, 0.64, 0, 0.78, 0"
         ];
 
         animation = [
           "windows, 1, 3, easeOutQuint"
-          "windowsOut, 1, 3, easeOutQuint"
+          "windowsOut, 1, 3, easeInQuint, popin 80%"
           "border, 1, 3, easeOutQuint"
           "fade, 1, 3, easeOutQuint"
           "workspaces, 1, 3, easeOutQuint"
-          "specialWorkspace, 1, 3, easeOutQuint"
+          "specialWorkspace, 1, 3, easeOutQuint, slidevert"
         ];
       };
 
@@ -189,12 +145,11 @@ in
         enable_swallow = true;
         swallow_regex = "^(wezterm|ghostty|alacritty)$";
         focus_on_activate = true;
+        disable_hyprland_logo = true;
+        disable_splash_rendering = true;
       };
 
       plugin.hy3 = {
-        vim_bindings = true;
-        node_collapse_policy = 2; # Only collapse if empty
-
         tabs = {
           height = 16;
           padding = 0;
@@ -206,8 +161,6 @@ in
           "col.inactive" = "rgba(${base02}aa)";
           "col.text.active" = "rgba(${base05}ee)";
           "col.text.inactive" = "rgba(${base04}aa)";
-          "col.active_border" = "rgba(${base0D}ee) rgba(${base0E}ee) 45deg";
-          "col.inactive_border" = "rgba(${base02}aa)";
 
           border_width = 1;
         };
@@ -215,6 +168,7 @@ in
         autotile = {
           enable = true;
           trigger_width = 800;
+          trigger_height = 500;
           main_ratio = 0.5;
         };
       };
@@ -223,6 +177,7 @@ in
       "$alt" = "ALT";
 
       bind = [
+        # Core bindings
         "$mod, Return, exec, wezterm"
         "$mod, Space, exec, wofi --show drun"
         "$mod, E, exec, nemo"
@@ -230,9 +185,23 @@ in
         "$mod, BackSpace, killactive"
         "$mod SHIFT, BackSpace, exit"
 
+        # Window states
         "$mod, F, fullscreen, 0"
         "$mod SHIFT, F, fullscreen, 1"
         "$mod, D, togglefloating"
+        "$mod, P, pin"
+
+        # Layout controls with hy3
+        "$mod, V, hy3:makegroup, v"
+        "$mod, B, hy3:makegroup, h"
+        "$mod, T, hy3:makegroup, tab"
+        "$mod, G, hy3:changegroup, toggletab"
+        "$mod, R, hy3:changefocus, raise"
+        "$mod SHIFT, G, hy3:changegroup, opposite"
+
+        # Scratchpad (special workspace)
+        "$mod, S, togglespecialworkspace, scratchpad"
+        "$mod SHIFT, S, movetoworkspace, special:scratchpad"
 
         # Monitor navigation (vim-inspired)
         "$mod, comma, focusmonitor, -1"
@@ -259,6 +228,8 @@ in
         "$mod, 6, workspace, 6"
         "$mod, 7, workspace, 7"
         "$mod, 8, workspace, 8"
+        "$mod, 9, workspace, 9"
+        "$mod, 0, workspace, 10"
 
         # Move windows to workspaces
         "$mod SHIFT, 1, movetoworkspace, 1"
@@ -269,18 +240,20 @@ in
         "$mod SHIFT, 6, movetoworkspace, 6"
         "$mod SHIFT, 7, movetoworkspace, 7"
         "$mod SHIFT, 8, movetoworkspace, 8"
+        "$mod SHIFT, 9, movetoworkspace, 9"
+        "$mod SHIFT, 0, movetoworkspace, 10"
 
         # Window focus - vim keys
-        "$mod, H, movefocus, l"
-        "$mod, L, movefocus, r"
-        "$mod, K, movefocus, u"
-        "$mod, J, movefocus, d"
+        "$mod, H, hy3:movefocus, l"
+        "$mod, L, hy3:movefocus, r"
+        "$mod, K, hy3:movefocus, u"
+        "$mod, J, hy3:movefocus, d"
 
         # Move windows - vim keys
-        "$mod SHIFT, H, movewindow, l"
-        "$mod SHIFT, L, movewindow, r"
-        "$mod SHIFT, K, movewindow, u"
-        "$mod SHIFT, J, movewindow, d"
+        "$mod SHIFT, H, hy3:movewindow, l"
+        "$mod SHIFT, L, hy3:movewindow, r"
+        "$mod SHIFT, K, hy3:movewindow, u"
+        "$mod SHIFT, J, hy3:movewindow, d"
 
         # Resize windows - vim keys with ALT
         "$mod $alt, H, resizeactive, -20 0"
@@ -289,8 +262,10 @@ in
         "$mod $alt, J, resizeactive, 0 20"
 
         # Screenshots
-        "$mod, S, exec, grimblast copy area"
-        "$mod SHIFT, S, exec, grimblast save area ~/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
+        "$mod, Print, exec, grimblast copy area"
+        "$mod SHIFT, Print, exec, grimblast save area ~/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
+        "$mod $alt, Print, exec, grimblast copy screen"
+        "$mod $alt SHIFT, Print, exec, grimblast save screen ~/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
 
         # Media controls
         ", XF86AudioRaiseVolume, exec, pactl set-sink-volume @DEFAULT_SINK@ +5%"
@@ -300,6 +275,7 @@ in
         ", XF86AudioNext, exec, playerctl next"
         ", XF86AudioPrev, exec, playerctl previous"
 
+        # Brightness
         ", XF86MonBrightnessUp, exec, brightnessctl set +5%"
         ", XF86MonBrightnessDown, exec, brightnessctl set 5%-"
       ];
@@ -320,8 +296,8 @@ in
       mainBar = {
         layer = "top";
         position = "top";
-        height = 28;
-        spacing = 2;
+        height = 24;
+        spacing = 0;
 
         modules-left = [
           "hyprland/workspaces"
@@ -331,10 +307,10 @@ in
         modules-center = [ "clock" ];
 
         modules-right = [
-          "battery"
-          "network"
           "cpu"
           "memory"
+          "battery"
+          "network"
           "pulseaudio"
           "tray"
         ];
@@ -347,11 +323,30 @@ in
           active-only = false;
         };
 
+        "hyprland/window" = {
+          format = "{}";
+          max-length = 50;
+          separate-outputs = true;
+        };
+
         "clock" = {
           format = "{:%H:%M}";
           format-alt = "{:%Y-%m-%d}";
-          tooltip-format = "{:%Y-%m-%d | %H:%M}";
-          on-click = "mode";
+          tooltip-format = "<tt><small>{calendar}</small></tt>";
+          calendar = {
+            mode = "year";
+            mode-mon-col = 3;
+            weeks-pos = "right";
+            on-scroll = 1;
+            on-click-right = "mode";
+            format = {
+              months = "<span color='#${colors.base0D}'><b>{}</b></span>";
+              days = "<span color='#${colors.base05}'><b>{}</b></span>";
+              weeks = "<span color='#${colors.base04}'><b>W{}</b></span>";
+              weekdays = "<span color='#${colors.base0A}'><b>{}</b></span>";
+              today = "<span color='#${colors.base08}'><b><u>{}</u></b></span>";
+            };
+          };
         };
 
         "cpu" = {
@@ -361,7 +356,8 @@ in
         };
 
         "memory" = {
-          format = "MEM {used:0.1f}GB";
+          format = "MEM {used:0.1f}G";
+          tooltip-format = "Memory: {used:0.1f}G / {total:0.1f}G\nSwap: {swapUsed:0.1f}G / {swapTotal:0.1f}G";
           interval = 2;
         };
 
@@ -373,14 +369,15 @@ in
           format = "BAT {capacity}%";
           format-charging = "CHG {capacity}%";
           format-plugged = "PLUG {capacity}%";
+          tooltip-format = "{timeTo}, {capacity}%\n{power}W";
         };
 
         "network" = {
-          format-wifi = "WIFI {essid}";
-          format-ethernet = "ETH {ipaddr}";
+          format-wifi = "WIFI {signalStrength}%";
+          format-ethernet = "ETH";
           format-linked = "ETH (No IP)";
-          format-disconnected = "NET Disconnected";
-          tooltip-format = "{ifname}: {ipaddr}/{cidr}";
+          format-disconnected = "OFFLINE";
+          tooltip-format = "{ifname}: {ipaddr}/{cidr}\n{essid}";
           max-length = 50;
           interval = 5;
         };
@@ -388,12 +385,15 @@ in
         "pulseaudio" = {
           format = "VOL {volume}%";
           format-muted = "MUTED";
+          format-bluetooth = "BT {volume}%";
+          format-bluetooth-muted = "BT MUTED";
           on-click = "pavucontrol";
+          on-click-right = "pactl set-sink-mute @DEFAULT_SINK@ toggle";
         };
 
         "tray" = {
-          icon-size = 16;
-          spacing = 5;
+          icon-size = 14;
+          spacing = 4;
         };
       };
     };
@@ -403,6 +403,8 @@ in
         font-family: "${config.stylix.fonts.monospace.name}", monospace;
         font-size: ${toString config.stylix.fonts.sizes.applications}px;
         border-radius: 0px;
+        border: none;
+        min-height: 0;
       }
 
       window#waybar {
@@ -412,23 +414,27 @@ in
       }
 
       #workspaces button {
-        padding: 0 5px;
+        padding: 0 6px;
         background-color: transparent;
         color: #${colors.base05};
-        border-bottom: 1px solid #${colors.base02};
+        border-bottom: 2px solid transparent;
       }
 
       #workspaces button:hover {
         background: #${colors.base01};
+        box-shadow: inherit;
+        border-bottom: 2px solid #${colors.base04};
       }
 
       #workspaces button.active {
         background-color: #${colors.base02};
-        border-bottom: 1px solid #${colors.base0D};
+        border-bottom: 2px solid #${colors.base0D};
+        color: #${colors.base0D};
       }
 
       #workspaces button.urgent {
         background-color: #${colors.base08};
+        color: #${colors.base00};
       }
 
       #clock,
@@ -437,20 +443,57 @@ in
       #memory,
       #network,
       #pulseaudio,
-      #tray {
-        padding: 0 5px;
-        margin: 0 2px;
+      #tray,
+      #window {
+        padding: 0 8px;
         color: #${colors.base05};
       }
 
       #window {
-        margin-left: 5px;
-        color: #${colors.base05};
+        color: #${colors.base04};
+      }
+
+      #battery.charging {
+        color: #${colors.base0B};
+      }
+
+      #battery.warning:not(.charging) {
+        color: #${colors.base0A};
       }
 
       #battery.critical:not(.charging) {
         background-color: #${colors.base08};
         color: #${colors.base00};
+        animation-name: blink;
+        animation-duration: 0.5s;
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
+        animation-direction: alternate;
+      }
+
+      #network.disconnected {
+        color: #${colors.base08};
+      }
+
+      #pulseaudio.muted {
+        color: #${colors.base04};
+      }
+
+      @keyframes blink {
+        to {
+          background-color: #${colors.base00};
+          color: #${colors.base08};
+        }
+      }
+
+      tooltip {
+        background: #${colors.base00};
+        border: 1px solid #${colors.base0D};
+        border-radius: 0px;
+      }
+
+      tooltip label {
+        color: #${colors.base05};
       }
     '';
   };
@@ -458,99 +501,135 @@ in
   services.mako = {
     enable = true;
 
-    borderSize = 1;
-    borderRadius = 0;
-    padding = "5";
-    defaultTimeout = 5000;
-    layer = "overlay";
-
-    textColor = "#${colors.base05}";
-    borderColor = "#${colors.base0D}";
-
-    settings = lib.mkForce {
-      "urgency=low" = {
-        "border-color" = "#${colors.base0D}";
-      };
-
-      "urgency=normal" = {
-        "border-color" = "#${colors.base0D}";
-      };
-
-      "urgency=high" = {
-        "border-color" = "#${colors.base08}";
-        "default-timeout" = "0"; # Make sure this is a string
-      };
+    settings = {
+      # General settings
+      # font = "${config.stylix.fonts.monospace.name} ${toString config.stylix.fonts.sizes.applications}";
+      # background-color = lib.mkForce "#${colors.base00}";
+      text-color = "#${colors.base05}";
+      border-color = "#${colors.base0D}";
+      border-size = 1;
+      border-radius = 0;
+      padding = "8";
+      default-timeout = 5000;
+      layer = "overlay";
+      progress-color = "over #${colors.base02}";
     };
+
+    extraConfig = ''
+      [urgency=low]
+      border-color=#${colors.base0D}
+
+      [urgency=normal]
+      border-color=#${colors.base0D}
+
+      [urgency=high]
+      border-color=#${colors.base08}
+      background-color=#${colors.base00}
+      text-color=#${colors.base08}
+      default-timeout=0
+    '';
   };
 
-  home.file.".config/wofi/style.css".text = ''
-    window {
-      margin: 0px;
-      background-color: #${colors.base00};
-      border: 1px solid #${colors.base0D};
-      border-radius: 0px;
-    }
+  programs.wofi = {
+    enable = true;
+    settings = {
+      width = 600;
+      height = 400;
+      location = "center";
+      show = "drun";
+      prompt = "Search...";
+      filter_rate = 100;
+      allow_markup = true;
+      no_actions = true;
+      halign = "fill";
+      orientation = "vertical";
+      content_halign = "fill";
+      insensitive = true;
+      allow_images = true;
+      image_size = 32;
+      gtk_dark = true;
+    };
 
-    #input {
-      margin: 5px;
-      border: 1px solid #${colors.base02};
-      border-radius: 0px;
-      color: #${colors.base05};
-      background-color: #${colors.base01};
-    }
+    style = ''
+      window {
+        margin: 0px;
+        background-color: #${colors.base00};
+        border: 2px solid #${colors.base0D};
+        border-radius: 0px;
+      }
 
-    #inner-box {
-      margin: 2px;
-      background-color: #${colors.base00};
-      border-radius: 0px;
-    }
+      #input {
+        margin: 8px;
+        padding: 8px;
+        border: 1px solid #${colors.base02};
+        border-radius: 0px;
+        color: #${colors.base05};
+        background-color: #${colors.base01};
+        font-size: ${toString config.stylix.fonts.sizes.applications}px;
+      }
 
-    #outer-box {
-      margin: 2px;
-      padding: 5px;
-      background-color: #${colors.base00};
-      border-radius: 0px;
-    }
+      #inner-box {
+        margin: 8px;
+        background-color: #${colors.base00};
+        border-radius: 0px;
+      }
 
-    #scroll {
-      margin: 2px;
-      background-color: #${colors.base00};
-    }
+      #outer-box {
+        margin: 0px;
+        padding: 0px;
+        background-color: #${colors.base00};
+        border-radius: 0px;
+      }
 
-    #text {
-      margin: 2px;
-      color: #${colors.base05};
-    }
+      #scroll {
+        margin: 0px;
+        background-color: #${colors.base00};
+      }
 
-    #entry:selected {
-      background-color: #${colors.base02};
-    }
+      #text {
+        margin: 2px;
+        padding: 4px;
+        color: #${colors.base05};
+      }
 
-    #text:selected {
-      color: #${colors.base0D};
-    }
-  '';
+      #entry {
+        padding: 4px;
+        margin: 2px;
+      }
+
+      #entry:selected {
+        background-color: #${colors.base02};
+        border: 1px solid #${colors.base0D};
+      }
+
+      #text:selected {
+        color: #${colors.base0D};
+        font-weight: bold;
+      }
+    '';
+  };
 
   home.packages = with pkgs; [
     blueman
     brightnessctl
-    flameshot # heard good things
-    grim # Screenshot tool
+    flameshot
+    grim
     grimblast
-    hyprpaper # Wallpaper
-    jq # JSON processing
-    libnotify # Notifications
-    mako # Notifications
+    hyprpaper
+    hyprpicker # Color picker
+    jq
+    libnotify
+    mako
     nm-tray
-    pamixer # Pulseaudio control
-    pavucontrol # Audio control
-    playerctl # Media control
-    slurp # Screen area selection
-    swappy # Screenshot editing
+    pamixer
+    pavucontrol
+    playerctl
+    slurp
+    swappy
     tailscale-systray
-    wev # Input debugger
-    wl-clipboard # Clipboard tools
-    wlr-randr # Output management
-    wofi # Application launcher
+    wev
+    wl-clipboard
+    wlr-randr
+    wofi
   ];
 }
