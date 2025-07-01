@@ -202,9 +202,7 @@ in
     wayland.windowManager.hyprland = {
       enable = true;
       systemd.enable = true;
-      plugins = mkIf cfg.enableHy3 [
-        inputs.hy3.outputs.packages.${pkgs.stdenv.system}.hy3
-      ];
+      plugins = mkIf cfg.enableHy3 [ inputs.hy3.outputs.packages.${pkgs.stdenv.system}.hy3 ];
       settings = import ./settings.nix { inherit config lib cfg; };
     };
 
@@ -328,18 +326,18 @@ in
 
         # Terminal
         (lib.getAttr cfg.terminal {
-          wezterm = wezterm;
-          kitty = kitty;
-          alacritty = alacritty;
-          foot = foot;
+          inherit wezterm;
+          inherit kitty;
+          inherit alacritty;
+          inherit foot;
         })
 
         # File manager
         (lib.getAttr cfg.fileManager {
-          dolphin = dolphin;
-          thunar = xfce.thunar;
-          nemo = cinnamon.nemo;
-          nautilus = gnome.nautilus;
+          inherit dolphin;
+          inherit (xfce) thunar;
+          inherit (cinnamon) nemo;
+          inherit (gnome) nautilus;
         })
 
         # Screenshot tools
@@ -363,25 +361,25 @@ in
 
         # Launcher
         (lib.getAttr cfg.launcher {
-          wofi = wofi;
+          inherit wofi;
           rofi = rofi-wayland;
-          tofi = tofi;
-          fuzzel = fuzzel;
-          anyrun = anyrun;
+          inherit tofi;
+          inherit fuzzel;
+          inherit anyrun;
         })
 
         # Wallpaper
         (lib.getAttr cfg.wallpaperMode {
-          hyprpaper = hyprpaper;
-          swww = swww;
-          swaybg = swaybg;
+          inherit hyprpaper;
+          inherit swww;
+          inherit swaybg;
         })
 
         # Lock screen
         (lib.getAttr cfg.lockScreen {
-          swaylock = swaylock;
+          inherit swaylock;
           "swaylock-effects" = swaylock-effects;
-          hyprlock = inputs.hyprlang.packages.${pkgs.stdenv.system}.hyprlock;
+          inherit (inputs.hyprlang.packages.${pkgs.stdenv.system}) hyprlock;
         })
 
         # Clipboard manager

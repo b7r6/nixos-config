@@ -1,11 +1,4 @@
-{
-
-  config,
-  lib,
-  pkgs,
-  ...
-}:
-{
+_: {
   nix = {
     settings = {
       substituters = [

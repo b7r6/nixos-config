@@ -11,13 +11,13 @@ let
   localLibs = pkgs.symlinkJoin {
     name = "emacs-local-libs";
     paths = lib.mapAttrsToList (
-      name: value:
+      name: _value:
       pkgs.writeTextFile {
-        name = name;
+        inherit name;
         text = builtins.readFile (./lib + "/${name}");
         destination = "/share/emacs/site-lisp/${name}";
       }
-    ) (lib.filterAttrs (n: v: lib.hasSuffix ".el" n) (builtins.readDir ./lib));
+    ) (lib.filterAttrs (n: _v: lib.hasSuffix ".el" n) (builtins.readDir ./lib));
   };
 in
 {

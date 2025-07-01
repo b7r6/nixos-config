@@ -1,4 +1,1 @@
-{ ... }:
-{
-  networking.networkmanager.enable = true;
-}
+_: { networking.networkmanager.enable = true; }

@@ -13,33 +13,23 @@ let
   inherit (config.lib.stylix) colors;
   base00 = lib.removePrefix "#" colors.base00; # background
   base01 = lib.removePrefix "#" colors.base01; # lighter background
-  base02 = lib.removePrefix "#" colors.base02; # selection background
-  base03 = lib.removePrefix "#" colors.base03; # comments/dark
+  base02 = lib.removePrefix "#" colors.base02; # selection background # comments/dark
   base04 = lib.removePrefix "#" colors.base04; # dark foreground
-  base05 = lib.removePrefix "#" colors.base05; # foreground
-  base06 = lib.removePrefix "#" colors.base06; # light foreground
-  base07 = lib.removePrefix "#" colors.base07; # light background
-  base08 = lib.removePrefix "#" colors.base08; # red
-  base09 = lib.removePrefix "#" colors.base09; # orange
+  base05 = lib.removePrefix "#" colors.base05; # foreground # light foreground # light background
+  base08 = lib.removePrefix "#" colors.base08; # red # orange
   base0A = lib.removePrefix "#" colors.base0A; # yellow
-  base0B = lib.removePrefix "#" colors.base0B; # green
-  base0C = lib.removePrefix "#" colors.base0C; # cyan
+  base0B = lib.removePrefix "#" colors.base0B; # green # cyan
   base0D = lib.removePrefix "#" colors.base0D; # blue
-  base0E = lib.removePrefix "#" colors.base0E; # purple
-  base0F = lib.removePrefix "#" colors.base0F; # dark accent
+  base0E = lib.removePrefix "#" colors.base0E; # purple # dark accent
 in
 {
-  imports = [
-    inputs.hyprland.homeManagerModules.default
-  ];
+  imports = [ inputs.hyprland.homeManagerModules.default ];
 
   wayland.windowManager.hyprland = {
-    enable = cfg.enable;
+    inherit (cfg) enable;
     systemd.enable = true;
 
-    plugins = [
-      inputs.hy3.outputs.packages.${pkgs.system}.hy3
-    ];
+    plugins = [ inputs.hy3.outputs.packages.${pkgs.system}.hy3 ];
 
     settings = {
       monitor = [

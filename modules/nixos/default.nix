@@ -4,7 +4,5 @@ let
   inherit (inputs) self;
 in
 {
-  imports = [
-    self.nixosModules.common
-  ];
+  imports = [ self.nixosModules.common ];
 }

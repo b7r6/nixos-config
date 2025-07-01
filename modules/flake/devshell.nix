@@ -95,9 +95,7 @@ in
       devShells.default = pkgs.mkShell {
         name = "dev-v4";
         meta.description = "DEV // V4";
-        pacakges = [
-          nixd-with-config
-        ];
+        pacakges = [ nixd-with-config ];
 
         shellHook = ''
           export NIX_CONFIG="experimental-features = nix-command flakes"

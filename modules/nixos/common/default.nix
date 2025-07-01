@@ -105,7 +105,7 @@ in
 
     wireshark
     wireshark-cli
-    
+
     # System diagnostics & performance
     # bcc # BPF Compiler Collection for Linux kernel tracing
     # bpftrace # High-level tracing language for Linux eBPF

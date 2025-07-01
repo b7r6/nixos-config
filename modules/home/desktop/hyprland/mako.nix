@@ -1,8 +1,4 @@
-{
-  config,
-  cfg,
-  ...
-}:
+{ config, cfg, ... }:
 
 let
   inherit (config.lib.stylix) colors;

@@ -1,13 +1,4 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
-let
-  colors = config.hyper-modern-nixos.themes.palette;
-in
-{
+_: {
   programs.atuin = {
     enable = true;
     enableBashIntegration = true;

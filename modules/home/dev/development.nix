@@ -1,10 +1,4 @@
-{ flake
-, pkgs
-, ...
-}:
-let
-  inherit (flake) inputs;
-in
+{ pkgs, ... }:
 {
   home.packages = with pkgs; [
     alejandra

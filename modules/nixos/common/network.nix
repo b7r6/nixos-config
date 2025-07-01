@@ -57,7 +57,7 @@ in
     };
 
     networking.firewall = {
-      enable = cfg.firewall.enable;
+      inherit (cfg.firewall) enable;
 
       trustedInterfaces = mkIf cfg.firewall.enable [ "tailscale0" ];
       allowedTCPPorts = mkIf cfg.firewall.enable [
@@ -68,9 +68,7 @@ in
       allowedUDPPorts = mkIf cfg.firewall.enable [ 41641 ];
       checkReversePath = mkIf cfg.firewall.enable "loose";
 
-      interfaces = mkIf cfg.firewall.enable {
-        tailscale0.allowAll = true;
-      };
+      interfaces = mkIf cfg.firewall.enable { tailscale0.allowAll = true; };
     };
 
     networking = {

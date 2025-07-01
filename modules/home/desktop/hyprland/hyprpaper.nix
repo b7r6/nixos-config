@@ -1,9 +1,4 @@
-{
-  config,
-  lib,
-  cfg,
-  ...
-}:
+{ cfg, ... }:
 
 let
   wallpaperPath = "$HOME/.config/hypr/wallpaper.jpg";

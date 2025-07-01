@@ -1,8 +1,4 @@
-{ flake, ... }:
-let
-  inherit (flake) inputs;
-in
-{
+_: {
   # imports = [
   #   inputs.hyprpanel.homeManagerModules.hyprpanel
   # ];

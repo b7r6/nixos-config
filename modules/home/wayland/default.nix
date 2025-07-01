@@ -1,8 +1,6 @@
 { lib, ... }:
 {
-  imports = [
-    ./hyprland
-  ];
+  imports = [ ./hyprland ];
 
   options.wayland = {
     enable = lib.mkOption {

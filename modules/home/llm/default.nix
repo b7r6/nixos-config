@@ -58,7 +58,7 @@ in
     local = true
   '';
 
-  programs.bash.initExtra = lib.mkIf (config.programs.bash.enable) ''
+  programs.bash.initExtra = lib.mkIf config.programs.bash.enable ''
     # Setup LLM tool with API keys from .netrc
     function setup_ai_env() {
       # Anthropic API key

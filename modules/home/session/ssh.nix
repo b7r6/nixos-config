@@ -1,9 +1,4 @@
-{ flake, ... }:
-let
-  inherit (flake) inputs self;
-  inherit (flake.config) me;
-in
-{
+_: {
   programs.ssh = {
     enable = true;
     forwardAgent = true;

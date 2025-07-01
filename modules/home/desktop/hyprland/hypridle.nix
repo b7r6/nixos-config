@@ -1,10 +1,4 @@
-{
-  config,
-  lib,
-  cfg,
-  pkgs,
-  ...
-}:
+{ cfg, pkgs, ... }:
 
 let
   # Get the appropriate lock command
@@ -20,7 +14,7 @@ let
 in
 {
   enable = cfg.idleManager == "hypridle";
-  lockCmd = lockCmd;
+  inherit lockCmd;
   beforeSleepCmd = lockCmd;
   afterSleepCmd = "${pkgs.hyprland}/bin/hyprctl dispatch dpms on";
 

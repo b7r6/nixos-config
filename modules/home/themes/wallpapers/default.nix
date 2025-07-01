@@ -12,7 +12,6 @@ let
     args:
     let
       baseWidth = 2560;
-      baseHeight = 1440;
 
       defaults = {
         width = 2560;
@@ -23,7 +22,7 @@ let
         theme =
           cfg.wallpaper.customize.theme or {
             slug = "default";
-            palette = cfg.themes.palette;
+            inherit (cfg.themes) palette;
           };
 
         berkeley-mono-path = "${pkgs.callPackage ../fonts/berkeley-mono { }}/share/fonts/opentype";

@@ -75,7 +75,5 @@
   };
 
   # TODO[b7r6]: re-do the extensiosn and settings...
-  home.packages = with pkgs; [
-    code-cursor
-  ];
+  home.packages = with pkgs; [ code-cursor ];
 }
