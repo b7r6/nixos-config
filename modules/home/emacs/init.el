@@ -2,8 +2,6 @@
 ;;
 ;; "On The Design Of Text Editors" - https://arxiv.org/abs/2008.06030
 ;;
-;;
-;;
 ;; "There is always a point at which the terrorist ceases to manipulate the media
 ;;  gestalt. A point at which the violence may well escalate, but beyond which the
 ;;  terrorist has become symptomatic of the media gestalt itself. Terrorism as we
@@ -18,10 +16,10 @@
 ;; memory // performance // optimization
 ;; ============================================================
 
-(defvar hyper-modern/gc-cons-threshold (* 256 1024 1024))
+(defvar hypermodern/gc-cons-threshold (* 256 1024 1024))
 
 (setq
- gc-cons-threshold hyper-modern/gc-cons-threshold
+ gc-cons-threshold hypermodern/gc-cons-threshold
  gc-cons-percentage 0.1)
 
 (add-hook
@@ -33,7 +31,7 @@
  'minibuffer-exit-hook
  (lambda ()
    (garbage-collect)
-   (setq gc-cons-threshold hyper-modern/gc-cons-threshold)))
+   (setq gc-cons-threshold hypermodern/gc-cons-threshold)))
 
 (setq copy-region-blink-delay 0)
 
@@ -67,7 +65,7 @@
 (require 'use-package)
 (setq use-package-always-ensure t)
 
-(when (boundp 'hyper-modern/install-extras)
+(when (boundp 'hypermodern/install-extras)
   (use-package quelpa
     :ensure t
     :config
@@ -144,7 +142,7 @@
 (setq-default visible-bell nil)
 (setq-default ring-bell-function #'ignore)
 
-(defun hyper-modern/remove-face-decorations ()
+(defun hypermodern/remove-face-decorations ()
   "Remove all bold and italic attributes from all faces."
   (mapc (lambda (face)
           (when (face-attribute face :weight nil t)
@@ -155,17 +153,17 @@
 
 (add-hook 'after-init-hook
           (lambda ()
-            (run-with-timer 0.1 nil 'hyper-modern/remove-face-decorations)))
+            (run-with-timer 0.1 nil 'hypermodern/remove-face-decorations)))
 
 (advice-add 'load-theme :after
             (lambda (&rest _)
-              (hyper-modern/remove-face-decorations)))
+              (hypermodern/remove-face-decorations)))
 
 ;; ============================================================
 ;; hyper // modern // interactive
 ;; ============================================================
 
-(defun hyper-modern/reinit-vertical-divider (&optional sync-with-mode-line)
+(defun hypermodern/reinit-vertical-divider (&optional sync-with-mode-line)
   "Set up clean modern window dividers for both GUI and terminal Emacs.
 When SYNC-WITH-MODE-LINE is non-nil, attempt to match the divider color
 with the mode-line background color."
@@ -333,7 +331,7 @@ with the mode-line background color."
 ;; window // frame // movement
 ;; ============================================================
 
-(defun hyper-modern/scratch ()
+(defun hypermodern/scratch ()
   (let ((scratch-name "*scratch*"))
     (if (get-buffer scratch-name)
         (get-buffer scratch-name)
@@ -342,36 +340,36 @@ with the mode-line background color."
           (emacs-lisp-mode))
         buf))))
 
-;; (defun hyper-modern/scratch ()
+;; (defun hypermodern/scratch ()
 ;;   (let ((dir (if buffer-file-name
 ;; 	         (file-name-directory buffer-file-name)
 ;;                default-directory)))
 ;;     (get-buffer-create (concat dir "elisp-scratch.el"))))
 
-(defun hyper-modern/other ()
+(defun hypermodern/other ()
   (let ((buf (other-buffer (current-buffer))))
     (if (or (null buf) (eq buf (current-buffer)))
-        (hyper-modern/scratch)
+        (hypermodern/scratch)
       buf)))
 
-(defun hyper-modern/switch ()
+(defun hypermodern/switch ()
   (let ((nw (next-window))
         (cb (current-buffer)))
     (with-selected-window nw
       (when (eq (window-buffer) cb)
-        (switch-to-buffer (hyper-modern/other))))))
+        (switch-to-buffer (hypermodern/other))))))
 
-(defun hyper-modern/hsplit (&optional size)
+(defun hypermodern/hsplit (&optional size)
   (interactive)
   (split-window-right size)
-  (hyper-modern/switch))
+  (hypermodern/switch))
 
-(defun hyper-modern/vsplit (&optional size)
+(defun hypermodern/vsplit (&optional size)
   (interactive)
   (split-window-below size)
-  (hyper-modern/switch))
+  (hypermodern/switch))
 
-(defun hyper-modern/rotate-windows ()
+(defun hypermodern/rotate-windows ()
   (interactive)
   (let* ((original-buffer (current-buffer))
          (windows (window-list))
@@ -407,7 +405,7 @@ with the mode-line background color."
 ;; magit // init
 ;; ============================================================
 
-(defun hyper-modern/magit-display-buffer-function (buffer)
+(defun hypermodern/magit-display-buffer-function (buffer)
   "Display BUFFER in the rightmost window without splitting."
   (let ((window (if (one-window-p)
                     (selected-window)
@@ -418,7 +416,7 @@ with the mode-line background color."
       (set-window-buffer window buffer)
       window)))
 
-;; (defun hyper-modern/magit-display-buffer-function (buffer)
+;; (defun hypermodern/magit-display-buffer-function (buffer)
 ;;   "Display BUFFER in the rightmost window without splitting."
 ;;   (let ((window (if (one-window-p)
 ;;                     (selected-window)
@@ -430,7 +428,7 @@ with the mode-line background color."
 (use-package magit
   :ensure t
   :config
-  (setq magit-display-buffer-function #'hyper-modern/magit-display-buffer-function))
+  (setq magit-display-buffer-function #'hypermodern/magit-display-buffer-function))
 
 ;; ============================================================
 ;; edit // compile // test
@@ -470,7 +468,7 @@ with the mode-line background color."
 ;; dashboard // mode
 ;; ============================================================
 
-(defvar hyper-modern/gibson-quotes
+(defvar hypermodern/gibson-quotes
   '("he mythform is usually encountered in one of two modes. one mode
 assumes that the cyberspace matric is inhabited, or perhaps visited, by
 entities whose characteristics correspond with the primary mythoform
@@ -514,7 +512,7 @@ no way human."))
 (use-package dashboard
   :ensure t
   :config
-  ;; Create a persistent banner file
+
   (defvar my-custom-banner-file
     (expand-file-name "dashboard-banner-0x04.txt" user-emacs-directory))
 
@@ -529,20 +527,15 @@ no way human."))
 
   (setq dashboard-startup-banner my-custom-banner-file)
 
-  ;;   (setq dashboard-banner-logo-title
-  ;;         "it was the style that mattered and the style was the same.
-  ;; the moderns were mercenaries, practical jokers, nihilistic technofetishists.")
-
   (setq dashboard-banner-logo-title
-        (nth (random (length hyper-modern/gibson-quotes))
-             hyper-modern/gibson-quotes))
+        (nth (random (length hypermodern/gibson-quotes))
+             hypermodern/gibson-quotes))
 
   (setq dashboard-center-content t)
   (setq dashboard-set-heading-icons t)
   (setq dashboard-set-file-icons t)
-  (setq dashboard-items '((projects . 5)
-                          (recents . 5)))
 
+  (setq dashboard-items '((recents . 5)))
   (dashboard-setup-startup-hook))
 
 ;; ============================================================
@@ -561,28 +554,28 @@ no way human."))
   :ensure t
   :config
 
-  (defun hyper-modern/what-face (pos)
+  (defun hypermodern/what-face (pos)
     "Display the face at POS."
     (interactive "d")
     (let ((face (or (get-char-property (point) 'read-face-name)
                     (get-char-property (point) 'face))))
       (if face (message "Face: %s" face) (message "No face at %d" pos))))
 
-  (defun hyper-modern/show-current-file ()
+  (defun hypermodern/show-current-file ()
     "Print the current buffer filename to the minibuffer."
     (interactive)
     (message (buffer-file-name)))
 
-  (defun hyper-modern/kill-current-buffer ()
+  (defun hypermodern/kill-current-buffer ()
     "Kill the current buffer."
     (interactive)
     (kill-buffer (current-buffer)))
 
-  (defun hyper-modern/visit-init-file ()
+  (defun hypermodern/visit-init-file ()
     (interactive)
     (find-file user-init-file))
 
-  (defun hyper-modern/format-all-buffer ()
+  (defun hypermodern/format-all-buffer ()
     "Format buffer if formatter is available, otherwise message."
     (interactive)
     (condition-case err
@@ -607,16 +600,16 @@ no way human."))
    "M-/"     'undo
    "M-N"     'windmove-right
    "M-P"     'windmove-left
-   "M-i"     'hyper-modern/visit-init-file
-   "M-z"     'hyper-modern/format-all-buffer
+   "M-i"     'hypermodern/visit-init-file
+   "M-z"     'hypermodern/format-all-buffer
 
-   ;; `hyper-modern` overrides
+   ;; `hypermodern` overrides
    "C-M-r"   'consult-ripgrep
-   "M-R"     'hyper-modern/rotate-windows
-   "C-c f"   'hyper-modern/show-current-file
-   "C-x 2"   'hyper-modern/vsplit
-   "C-x 3"   'hyper-modern/hsplit
-   "C-x k"   'hyper-modern/kill-current-buffer))
+   "M-R"     'hypermodern/rotate-windows
+   "C-c f"   'hypermodern/show-current-file
+   "C-x 2"   'hypermodern/vsplit
+   "C-x 3"   'hypermodern/hsplit
+   "C-x k"   'hypermodern/kill-current-buffer))
 
 ;; ============================================================
 ;; company // complete
@@ -645,6 +638,10 @@ no way human."))
 
   :bind (("M-TAB" . company-complete-common-or-cycle)
          ("C-M-i" . company-complete-common-or-cycle)))
+
+;; ============================================================
+;;                   hacker // essential
+;; ============================================================
 
 ;; ============================================================
 ;; formatting // configuration
@@ -721,22 +718,22 @@ no way human."))
                   (toml-mode      . (taplo))))
 
   ;; Custom function for Haskell's two-pass formatting
-  (defun hyper-modern/format-haskell ()
+  (defun hypermodern/format-haskell ()
     "Run fourmolu then stylish-haskell for peak aesthetics."
     (when (derived-mode-p 'haskell-mode)
       (format-all-buffer)  ; fourmolu via format-all
       (haskell-mode-stylish-buffer)))  ; then stylish
 
   ;; Override format-all for Haskell
-  (defun hyper-modern/format-all-buffer-override ()
+  (defun hypermodern/format-all-buffer-override ()
     "Format buffer with special handling for Haskell."
     (interactive)
     (if (derived-mode-p 'haskell-mode)
-        (hyper-modern/format-haskell)
+        (hypermodern/format-haskell)
       (format-all-buffer)))
 
   ;; Rebind M-z to our override
-  (global-set-key (kbd "M-z") 'hyper-modern/format-all-buffer-override)
+  (global-set-key (kbd "M-z") 'hypermodern/format-all-buffer-override)
 
   ;; Disable lsp formatters as before
   (defun disable-lsp-formatters ()
@@ -933,7 +930,7 @@ no way human."))
 (setq flycheck-highlighting-mode nil) ;; no buffer highlighting at all
 
 ;; ============================================================
-;; Snippets with YASnippet
+;; yasnipptet // so global
 ;; ============================================================
 
 (use-package yasnippet
@@ -942,7 +939,7 @@ no way human."))
   (yas-global-mode 1))
 
 ;; ============================================================
-;; language // specific
+;;                  language // specific
 ;; ============================================================
 
 ;; ============================================================
@@ -1001,7 +998,7 @@ no way human."))
    (haskell-mode . haskell-doc-mode)
    (haskell-mode . (lambda ()
                      (add-hook 'before-save-hook
-                               'hyper-modern/format-haskell
+                               'hypermodern/format-haskell
                                nil t)))))
 
 (use-package lsp-haskell
@@ -1011,7 +1008,6 @@ no way human."))
   (setq lsp-haskell-server-path "haskell-language-server-wrapper"))
 
 
-;; Better REPL integration
 (use-package haskell-interactive-mode
   :ensure nil
   :after haskell-mode
@@ -1021,14 +1017,12 @@ no way human."))
               ("C-c C-t" . haskell-process-do-type)
               ("C-c C-i" . haskell-process-do-info)))
 
-;; Company backend for Haskell
 (use-package company-ghci
   :ensure t
   :after (company haskell-mode)
   :config
   (push 'company-ghci company-backends))
 
-;; Flycheck for Haskell (optional - if you use flycheck)
 (use-package flycheck-haskell
   :ensure t
   :after (flycheck haskell-mode)

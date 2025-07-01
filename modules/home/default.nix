@@ -1,5 +1,7 @@
+{ inputs, ... }:
 {
   imports = [
+
     # user identity
     ./me.nix
 

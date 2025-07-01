@@ -12,7 +12,6 @@ the moderns were mercenaries, practical jokers, nihilistic technofetishists.
 
 ## // architecture
 
-
 ```
 ...burgeoning technologies require outlaw zones, that Night City wasn’t
 there for its inhabitants, but as a deliberately unsupervised playground for
