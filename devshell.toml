@@ -1,0 +1,44 @@
+[devshell]
+name = "// hypermodern // nixos"
+
+motd = '''
+
+// hypermodern // nixos
+  
+  all the speed he took, all the turns he'd taken and the corners he'd cut
+in night city, and still he'd see the matrix in his sleep, bright lattices
+of logic unfolding across that colorless void...
+'''
+packages = [
+  "nh"
+]
+
+[[commands]]
+name = "switch-os"
+help = "i had to switch it on em..."
+category = "development"
+command = "nh os switch ."
+
+[[commands]]
+name = "switch-home"
+help = "...flipmode is the greatest"
+category = "development"
+command = "nh home switch ."
+  
+[[commands]]
+name = "treefmt"
+help = "legiblibility is next to godliness"
+category = "development"
+command = "nix fmt"
+
+[[commands]]
+name = "tailscale-up-current-user"
+help = "tailscale logged-in user as the operator"
+category = "network"
+command = "sudo tailscale up --operator=$(whoami)"
+
+[[commands]]
+name = "list-tailscale-networks"
+help = "Alias for somewhat non-obvious command"
+category = "network"
+command = "sudo tailscale switch --list"
