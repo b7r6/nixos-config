@@ -22,8 +22,6 @@
       diff = {
         colorMoved = "default";
       };
-
-      credential.helper = "${pkgs.git-credential-manager}/bin/git-credential-manager";
     };
 
     # Common aliases for git commands
@@ -62,7 +60,6 @@
 
   # Install additional git-related tools
   home.packages = with pkgs; [
-    git-credential-manager
     git-lfs
   ];
 }
