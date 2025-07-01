@@ -9,7 +9,7 @@
     };
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs?branch=nixos-25.05";
+    nixpkgs.url = "github:NixOS/nixpkgs?ref=nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
 
     agenix.url = "github:ryantm/agenix";

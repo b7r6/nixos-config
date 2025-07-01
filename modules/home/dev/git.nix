@@ -59,7 +59,5 @@
   };
 
   # Install additional git-related tools
-  home.packages = with pkgs; [
-    git-lfs
-  ];
+  home.packages = with pkgs; [ git-lfs ];
 }
