@@ -1,5 +1,4 @@
-{ ... }:
-{
+_: {
   # Create the nixd configuration file
   xdg.configFile."nixd/nixd.nix".text = ''
     {

@@ -179,8 +179,8 @@ in
       base16Scheme = currentTheme.palette;
 
       fonts = {
-        monospace = fontConfig.monospace;
-        sansSerif = fontConfig.sansSerif;
+        inherit (fontConfig) monospace;
+        inherit (fontConfig) sansSerif;
         serif = fontConfig.monospace;
         emoji = {
           package = pkgs.noto-fonts-emoji;

@@ -1,13 +1,4 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
-let
-  termType = "xterm-256color";
-in
-{
+_: {
   programs.bash = {
     enable = true;
     enableCompletion = true;

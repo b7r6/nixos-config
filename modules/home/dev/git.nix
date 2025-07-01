@@ -1,10 +1,5 @@
 # TODO[b7r6]: reconciel this with the original stuff...
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
+{ config, pkgs, ... }:
 {
   programs.git = {
     enable = true;
@@ -22,8 +17,7 @@
       fetch.prune = true;
       push.autoSetupRemote = true;
 
-      core = {
-      };
+      core = { };
 
       diff = {
         colorMoved = "default";

@@ -1,89 +1,83 @@
-# Cross-Platform Development Tooling
+## `// hypermodern // nix`
 
-This repository contains a modular NixOS and Home-Manager configuration using the nixos-unified framework.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-## Directory Structure
+this is a `nixos` configuration. whether it is your `nixos` configuration is, in accordance with our
+agenda, your decision.
 
-- `modules/home/` - Home-Manager modules organized by category:
-  - `cloud/` - Cloud development tools (AWS, GCP, Terraform)
-  - `dev/` - Development environments (Python, Ruby, TypeScript, etc.)
-  - `llm/` - LLM integration tools
-  - `nix/` - Nix configuration and development tools
-  - `emacs/` - Emacs configuration
-  - `neovim/` - Neovim configuration
-  - `shell/` - Shell environments (bash, cli tools, etc.)
-  - `terminal/` - Terminal emulator configuration
-  - `themes/` - Theme and styling configuration
-  - `vscode/` - VSCode configuration
-  - `session/` - Session and SSH configuration
-  - `wayland/` - Wayland desktop environments (Hyprland)
-
-- `modules/flake/` - Flake modules that can be reused:
-  - `dev-environments.nix` - Reusable development environments for various languages
-  - `devshell.nix` - Dev shell configuration
-  - `toplevel.nix` - Top-level flake module
-  - `neovim.nix` - Neovim editor configuration
-
-- `examples/` - Example configurations:
-  - `devshell.nix` - Example project using dev environments in a devShell
-  - `home-manager-integration.nix` - Example of using dev environments in home-manager
-
-## Usage
-
-The configuration provides options to selectively enable or disable modules and features.
-
-### Home-Manager Configuration:
-
-```nix
-{ ... }:
-{
-  # Configure user identity
-  me = {
-    username = "youruser";
-    fullname = "Your Full Name";
-    email = "your.email@example.com";
-  };
-
-  # Configure wayland modules
-  wayland = {
-    # Enable or disable all wayland modules
-    enable = true;
-    
-    # Configure specific desktop environments
-    hyprland.enable = true;
-  };
-  
-  # Configure development modules
-  dev = {
-    # Enable or disable all development modules 
-    enable = true;
-    
-    # Configure specific languages
-    python.enable = true;
-    ruby.enable = false;
-    typescript.enable = true;
-    git.enable = true;
-    systems.enable = true;
-  };
-}
+```
+it was the style that mattered and the style was the same.
+the moderns were mercenaries, practical jokers, nihilistic technofetishists.
 ```
 
-### Development Environments
+## // architecture
 
-The repository now includes flake modules for development environments that can be:
-1. Used directly in project-specific devShells
-2. Integrated into home-manager configurations
 
-This allows reusing the same development environment definitions across both your home environment and project-specific shells.
+```
+...burgeoning technologies require outlaw zones, that Night City wasn’t
+there for its inhabitants, but as a deliberately unsupervised playground for
+technology itself.
+```
 
-See the `examples/` directory for usage examples.
+```
+configurations/  # per-host manifestations
+modules/         # composable fragments
+design/          # aesthetic decisions
+sh/              # executable artifacts
+```
 
-## Commands
+## // usage
 
 ```bash
-just update  # Update flake locks
-just check   # Validate configuration
-just lint    # Format nix files
-just run     # Activate the configuration
-just dev     # Enter the development shell
+# deploy to host
+just deploy <hostname>
+
+# rebuild locally
+just rebuild
+
+# format everything
+just fmt
 ```
+
+## // philosophy
+
+```
+mirros, someone has once said, where in some way essentially unwholesome, constructs were more so, she decided.
+```
+
+- **`deterministic`**: reproducible across timelines
+- **`minimal`**: no engagement theater
+- **`composable`**: unix philosophy for the post-unix era
+- **`aesthetic`**: form follows function follows form
+
+## // requirements
+
+- `nixos` or `home-manager` configured via flakes
+- desultuatory acknowledgement of late capitalism's technical victories
+- a sense that there is still a way to live well in this digital world
+
+## // recommended
+
+- `strix halo` and related `amd` equipment
+- `berkeley mono` and related lifelong investments
+- affordable displays with modern black level handling
+
+## // hosts
+
+see `configurations/` for available manifestations
+
+## // notes
+
+secrets managed via `agenix`. legibility via `treefmt`.
+
+no warranty is implied: it is outright stated. if you wish to use this code, we will help you to the
+greatest possible extent.
+
+```
+he'd always imagined it as a gradual and willing accommodation of
+the machine, the parent organism. it was the root of street cool too,
+the knowing posture that implied connection, invisible lines up to
+hidden levels of influence.
+```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -1,6 +1,6 @@
 # Example user configuration
 # Include this module in your configuration to see how to use module options
-{ ... }:
+_:
 
 # This is a template - copy this file and customize it for your configuration
 {

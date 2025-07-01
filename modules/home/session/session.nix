@@ -1,8 +1,4 @@
-{ flake, ... }:
-let
-  inherit (flake.config) me;
-in
-{
+_: {
   home.sessionVariables = {
     PATH = "$HOME/.local/bin:$PATH";
     EDITOR = "nvim";

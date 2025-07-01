@@ -1,4 +1,10 @@
-{ config, lib, pkgs, modulesPath, ... }: {
+{
+  lib,
+  pkgs,
+  modulesPath,
+  ...
+}:
+{
   imports = [ (modulesPath + "/installer/scan/not-detected.nix") ];
 
   # TODO[b7r6]: move this shit to disko...
@@ -10,7 +16,10 @@
   fileSystems."/boot" = {
     device = "/dev/disk/by-uuid/DB39-BC6C";
     fsType = "vfat";
-    options = [ "fmask=0077" "dmask=0077" ];
+    options = [
+      "fmask=0077"
+      "dmask=0077"
+    ];
   };
 
   swapDevices = [ ];
@@ -25,8 +34,13 @@
   boot.kernelPackages = pkgs.linuxPackages_6_14;
   boot.kernelParams = [ "mem_sleep_default=deep" ];
 
-  boot.initrd.availableKernelModules =
-    [ "nvme" "xhci_pci" "thunderbolt" "usbhid" "sdhci_pci" ];
+  boot.initrd.availableKernelModules = [
+    "nvme"
+    "xhci_pci"
+    "thunderbolt"
+    "usbhid"
+    "sdhci_pci"
+  ];
 
   hardware.cpu.amd.updateMicrocode = true;
   powerManagement.cpuFreqGovernor = "performance";

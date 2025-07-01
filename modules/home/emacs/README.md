@@ -1,6 +1,7 @@
 # Including Custom Emacs Libraries with Home Manager
 
-When using Home Manager to manage your Emacs configuration, you have several options for including custom libraries in your `.emacs.d` directory:
+When using Home Manager to manage your Emacs configuration, you have several options for including
+custom libraries in your `.emacs.d` directory:
 
 ## Option 1: Use `extraPackages`
 

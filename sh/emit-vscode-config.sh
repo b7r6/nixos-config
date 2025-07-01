@@ -5,7 +5,7 @@ echo "programs.vscode = {"
 echo "  enable = true;"
 echo "  extensions = with pkgs.vscode-extensions; ["
 code --list-extensions | while read extension; do
-    echo "    # ${extension}"
+  echo "    # ${extension}"
 done
 echo "  ];"
 

@@ -1,6 +1,7 @@
 # `// hyprland // config`
 
-A minimal, keyboard-driven Hyprland configuration with zero rounded corners, vim-style navigation, and efficient workspace management.
+A minimal, keyboard-driven Hyprland configuration with zero rounded corners, vim-style navigation,
+and efficient workspace management.
 
 ## Design Philosophy
 
@@ -14,121 +15,85 @@ A minimal, keyboard-driven Hyprland configuration with zero rounded corners, vim
 
 ### Core Operations
 
-| Binding                     | Action                      |
-| --------------------------- | --------------------------- |
-| `Super + Return`            | Open terminal (wezterm)     |
-| `Super + Space`             | Application launcher (wofi) |
-| `Super + W`                 | Open web browser (firefox)  |
-| `Super + E`                 | Open file manager (nemo)    |
-| `Super + BackSpace`         | Close active window         |
-| `Super + Shift + BackSpace` | Exit Hyprland               |
+| Binding | Action | | --------------------------- | --------------------------- | |
+`Super + Return` | Open terminal (wezterm) | | `Super + Space` | Application launcher (wofi) | |
+`Super + W` | Open web browser (firefox) | | `Super + E` | Open file manager (nemo) | |
+`Super + BackSpace` | Close active window | | `Super + Shift + BackSpace` | Exit Hyprland |
 
 ### Window Management
 
 #### Focus Navigation (Vim-style)
 
-| Binding     | Action      |
-| ----------- | ----------- |
-| `Super + H` | Focus left  |
-| `Super + J` | Focus down  |
-| `Super + K` | Focus up    |
-| `Super + L` | Focus right |
+| Binding | Action | | ----------- | ----------- | | `Super + H` | Focus left | | `Super + J` |
+Focus down | | `Super + K` | Focus up | | `Super + L` | Focus right |
 
 #### Window Movement
 
-| Binding             | Action            |
-| ------------------- | ----------------- |
-| `Super + Shift + H` | Move window left  |
-| `Super + Shift + J` | Move window down  |
-| `Super + Shift + K` | Move window up    |
-| `Super + Shift + L` | Move window right |
+| Binding | Action | | ------------------- | ----------------- | | `Super + Shift + H` | Move window
+left | | `Super + Shift + J` | Move window down | | `Super + Shift + K` | Move window up | |
+`Super + Shift + L` | Move window right |
 
 #### Window Resizing
 
-| Binding           | Action               |
-| ----------------- | -------------------- |
-| `Super + Alt + H` | Resize left (-20px)  |
-| `Super + Alt + J` | Resize down (+20px)  |
-| `Super + Alt + K` | Resize up (-20px)    |
-| `Super + Alt + L` | Resize right (+20px) |
+| Binding | Action | | ----------------- | -------------------- | | `Super + Alt + H` | Resize left
+(-20px) | | `Super + Alt + J` | Resize down (+20px) | | `Super + Alt + K` | Resize up (-20px) | |
+`Super + Alt + L` | Resize right (+20px) |
 
 ### Layout Controls (hy3)
 
-| Binding             | Action                      |
-| ------------------- | --------------------------- |
-| `Super + V`         | Create vertical split       |
-| `Super + B`         | Create horizontal split     |
-| `Super + T`         | Create tabbed group         |
-| `Super + G`         | Toggle tab bar visibility   |
-| `Super + R`         | Raise window focus in group |
-| `Super + Shift + G` | Switch to opposite layout   |
+| Binding | Action | | ------------------- | --------------------------- | | `Super + V` | Create
+vertical split | | `Super + B` | Create horizontal split | | `Super + T` | Create tabbed group | |
+`Super + G` | Toggle tab bar visibility | | `Super + R` | Raise window focus in group | |
+`Super + Shift + G` | Switch to opposite layout |
 
 ### Window States
 
-| Binding             | Action                                 |
-| ------------------- | -------------------------------------- |
-| `Super + F`         | Toggle fullscreen (maintain gaps)      |
-| `Super + Shift + F` | Toggle fullscreen (no gaps)            |
-| `Super + D`         | Toggle floating                        |
-| `Super + P`         | Pin window (visible on all workspaces) |
+| Binding | Action | | ------------------- | -------------------------------------- | | `Super + F`
+| Toggle fullscreen (maintain gaps) | | `Super + Shift + F` | Toggle fullscreen (no gaps) | |
+`Super + D` | Toggle floating | | `Super + P` | Pin window (visible on all workspaces) |
 
 ### Workspace Navigation
 
 #### Direct Access
 
-| Binding                   | Action                        |
-| ------------------------- | ----------------------------- |
-| `Super + [1-9,0]`         | Switch to workspace 1-10      |
-| `Super + Shift + [1-9,0]` | Move window to workspace 1-10 |
+| Binding | Action | | ------------------------- | ----------------------------- | |
+`Super + [1-9,0]` | Switch to workspace 1-10 | | `Super + Shift + [1-9,0]` | Move window to
+workspace 1-10 |
 
 #### Cycling
 
-| Binding                     | Action                                |
-| --------------------------- | ------------------------------------- |
-| `Super + Tab`               | Next workspace on current monitor     |
-| `Super + Shift + Tab`       | Previous workspace on current monitor |
-| `Super + Alt + Tab`         | Next workspace (global)               |
-| `Super + Alt + Shift + Tab` | Previous workspace (global)           |
+| Binding | Action | | --------------------------- | ------------------------------------- | |
+`Super + Tab` | Next workspace on current monitor | | `Super + Shift + Tab` | Previous workspace on
+current monitor | | `Super + Alt + Tab` | Next workspace (global) | | `Super + Alt + Shift + Tab` |
+Previous workspace (global) |
 
 ### Monitor Management
 
-| Binding             | Action                             |
-| ------------------- | ---------------------------------- |
-| `Super + ,`         | Focus previous monitor             |
-| `Super + .`         | Focus next monitor                 |
-| `Super + Shift + ,` | Move workspace to previous monitor |
-| `Super + Shift + .` | Move workspace to next monitor     |
+| Binding | Action | | ------------------- | ---------------------------------- | | `Super + ,` |
+Focus previous monitor | | `Super + .` | Focus next monitor | | `Super + Shift + ,` | Move workspace
+to previous monitor | | `Super + Shift + .` | Move workspace to next monitor |
 
 ### Special Workspace (Scratchpad)
 
-| Binding             | Action                    |
-| ------------------- | ------------------------- |
-| `Super + S`         | Toggle scratchpad         |
-| `Super + Shift + S` | Move window to scratchpad |
+| Binding | Action | | ------------------- | ------------------------- | | `Super + S` | Toggle
+scratchpad | | `Super + Shift + S` | Move window to scratchpad |
 
 The scratchpad automatically spawns a terminal if empty.
 
 ### Screenshots
 
-| Binding                       | Action                                     |
-| ----------------------------- | ------------------------------------------ |
-| `Super + Print`               | Screenshot region (copy to clipboard)      |
-| `Super + Shift + Print`       | Screenshot region (save to file)           |
-| `Super + Alt + Print`         | Screenshot full screen (copy to clipboard) |
-| `Super + Alt + Shift + Print` | Screenshot full screen (save to file)      |
+| Binding | Action | | ----------------------------- | ------------------------------------------ |
+| `Super + Print` | Screenshot region (copy to clipboard) | | `Super + Shift + Print` | Screenshot
+region (save to file) | | `Super + Alt + Print` | Screenshot full screen (copy to clipboard) | |
+`Super + Alt + Shift + Print` | Screenshot full screen (save to file) |
 
 ### Media & System Controls
 
-| Binding                 | Action                |
-| ----------------------- | --------------------- |
-| `XF86AudioRaiseVolume`  | Volume up (+5%)       |
-| `XF86AudioLowerVolume`  | Volume down (-5%)     |
-| `XF86AudioMute`         | Toggle mute           |
-| `XF86AudioPlay`         | Play/pause media      |
-| `XF86AudioNext`         | Next track            |
-| `XF86AudioPrev`         | Previous track        |
-| `XF86MonBrightnessUp`   | Brightness up (+5%)   |
-| `XF86MonBrightnessDown` | Brightness down (-5%) |
+| Binding | Action | | ----------------------- | --------------------- | | `XF86AudioRaiseVolume` |
+Volume up (+5%) | | `XF86AudioLowerVolume` | Volume down (-5%) | | `XF86AudioMute` | Toggle mute | |
+`XF86AudioPlay` | Play/pause media | | `XF86AudioNext` | Next track | | `XF86AudioPrev` | Previous
+track | | `XF86MonBrightnessUp` | Brightness up (+5%) | | `XF86MonBrightnessDown` | Brightness down
+(-5%) |
 
 ## Workspace Layout
 
@@ -161,11 +126,14 @@ Workspaces are persistent and monitor-aware:
 
 ## Tips & Tricks
 
-1. **Quick workspace switching**: Use `Super + Tab` to quickly cycle through workspaces on your current monitor
+1. **Quick workspace switching**: Use `Super + Tab` to quickly cycle through workspaces on your
+   current monitor
 
-2. **Efficient layouts**: The hy3 plugin automatically tiles windows. Use `Super + V/B` to control split direction
+2. **Efficient layouts**: The hy3 plugin automatically tiles windows. Use `Super + V/B` to control
+   split direction
 
-3. **Scratchpad usage**: Keep frequently used apps in the scratchpad for quick access with `Super + S`
+3. **Scratchpad usage**: Keep frequently used apps in the scratchpad for quick access with
+   `Super + S`
 
 4. **Mouse usage**: While keyboard-focused, you can still:
 
@@ -176,6 +144,7 @@ Workspaces are persistent and monitor-aware:
 
 ## Troubleshooting
 
-- **Windows not tiling**: Ensure hy3 autotile is working. Some windows may have minimum size requirements
+- **Windows not tiling**: Ensure hy3 autotile is working. Some windows may have minimum size
+  requirements
 - **Keybindings not working**: Check if another application is capturing the keys first
 - **Performance issues**: Try disabling blur or reducing animation speed in the config
