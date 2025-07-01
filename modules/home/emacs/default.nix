@@ -83,6 +83,7 @@ in
         clipetty
         cmake-mode
         company
+        company-ghci
         consult
         consult-eglot
         corfu
@@ -97,6 +98,8 @@ in
         expand-region
         f
         flycheck
+        flycheck
+        flycheck-haskell
         flymake-diagnostic-at-point
         fontify-face
         format-all
@@ -112,6 +115,7 @@ in
         just-mode
         language-id
         llama
+        lsp-haskell
         lsp-mode
         lsp-python-ms
         lsp-treemacs

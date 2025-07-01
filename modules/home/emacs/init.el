@@ -38,22 +38,52 @@
 (setq copy-region-blink-delay 0)
 
 ;; ============================================================
-;; package // management
+;; package // management // human // agent // hybrid
 ;; ============================================================
 
-(setq native-comp-async-report-warnings-errors nil)
-
 (require 'package)
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+
+;; add all mainstream archives...
+(setq package-archives
+      '(("gnu" . "https://elpa.gnu.org/packages/")
+        ("nongnu" . "https://elpa.nongnu.org/nongnu/")
+        ("melpa" . "https://melpa.org/packages/")
+        ("melpa-stable" . "https://stable.melpa.org/packages/")))
+
+;; prefer `MELPA` over `MELPA` stable
+(setq package-archive-priorities
+      '(("melpa" . 99)
+        ("nongnu" . 80)
+        ("gnu" . 70)
+        ("melpa-stable" . 60)))
+
 (package-initialize)
 
-;; Bootstrap use-package
+;; bootstrap use-package
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))
 
 (require 'use-package)
 (setq use-package-always-ensure t)
+
+(when (boundp 'hyper-modern/install-extras)
+  (use-package quelpa
+    :ensure t
+    :config
+    (setq quelpa-update-melpa-p nil))
+
+  (use-package quelpa-use-package
+    :ensure t
+    :after quelpa)
+
+  (use-package auto-package-update
+    :ensure t
+    :config
+    (setq auto-package-update-delete-old-versions t)
+    (setq auto-package-update-hide-results t)))
+
+(require 'package)
 
 ;; ============================================================
 ;; ui // reinit
@@ -64,25 +94,8 @@
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 (setq frame-title-format "// %b //")
-
 (set-face-attribute 'default nil :height 130)
 (setq font-lock-maximum-decoration nil)
-
-;; (defun remove-all-text-properties ()
-;;   "Remove bold/italic from all faces."
-;;   (interactive)
-;;   (mapc (lambda (face)
-;;           (when (facep face)
-;;             (set-face-attribute face nil
-;;                                 :weight 'normal
-;;                                 :slant 'normal
-;;                                 :inherit nil)))
-;;         (face-list)))
-
-;; ;; Run it after startup
-;; (add-hook 'after-init-hook #'remove-all-text-properties)
-
-
 (setq auto-save-default nil)
 (setq confirm-kill-processes nil)
 (setq debug-on-error nil)
@@ -131,7 +144,7 @@
 (setq-default visible-bell nil)
 (setq-default ring-bell-function #'ignore)
 
-(defun remove-bold-italic-from-all-faces ()
+(defun hyper-modern/remove-face-decorations ()
   "Remove all bold and italic attributes from all faces."
   (mapc (lambda (face)
           (when (face-attribute face :weight nil t)
@@ -140,7 +153,13 @@
             (set-face-attribute face nil :slant 'normal)))
         (face-list)))
 
-(remove-bold-italic-from-all-faces)
+(add-hook 'after-init-hook
+          (lambda ()
+            (run-with-timer 0.1 nil 'hyper-modern/remove-face-decorations)))
+
+(advice-add 'load-theme :after
+            (lambda (&rest _)
+              (hyper-modern/remove-face-decorations)))
 
 ;; ============================================================
 ;; hyper // modern // interactive
@@ -315,10 +334,19 @@ with the mode-line background color."
 ;; ============================================================
 
 (defun hyper-modern/scratch ()
-  (let ((dir (if buffer-file-name
-	         (file-name-directory buffer-file-name)
-               default-directory)))
-    (get-buffer-create (concat dir "elisp-scratch.el"))))
+  (let ((scratch-name "*scratch*"))
+    (if (get-buffer scratch-name)
+        (get-buffer scratch-name)
+      (let ((buf (get-buffer-create scratch-name)))
+        (with-current-buffer buf
+          (emacs-lisp-mode))
+        buf))))
+
+;; (defun hyper-modern/scratch ()
+;;   (let ((dir (if buffer-file-name
+;; 	         (file-name-directory buffer-file-name)
+;;                default-directory)))
+;;     (get-buffer-create (concat dir "elisp-scratch.el"))))
 
 (defun hyper-modern/other ()
   (let ((buf (other-buffer (current-buffer))))
@@ -383,10 +411,21 @@ with the mode-line background color."
   "Display BUFFER in the rightmost window without splitting."
   (let ((window (if (one-window-p)
                     (selected-window)
-                  (window-at (- (frame-width) 2) 1))))
-    (select-window window)
-    (set-window-buffer window buffer)
-    window))
+                  (let ((windows (window-list)))
+                    (car (last windows))))))
+    (when window
+      (select-window window)
+      (set-window-buffer window buffer)
+      window)))
+
+;; (defun hyper-modern/magit-display-buffer-function (buffer)
+;;   "Display BUFFER in the rightmost window without splitting."
+;;   (let ((window (if (one-window-p)
+;;                     (selected-window)
+;;                   (window-at (- (frame-width) 2) 1))))
+;;     (select-window window)
+;;     (set-window-buffer window buffer)
+;;     window))
 
 (use-package magit
   :ensure t
@@ -431,27 +470,76 @@ with the mode-line background color."
 ;; dashboard // mode
 ;; ============================================================
 
+(defvar hyper-modern/gibson-quotes
+  '("he mythform is usually encountered in one of two modes. one mode
+assumes that the cyberspace matric is inhabited, or perhaps visited, by
+entities whose characteristics correspond with the primary mythoform
+of a hidden people."
+
+    "it was the style that mattered and the style was the same.
+the moderns were mercenaries, practical jokers, nihilistic technofetishists."
+
+    "all the speed he took, all the turns he'd taken and the corners he'd cut
+in night city, and still he'd see the matrix in his sleep, bright lattices
+of logic unfolding across that colorless void..."
+
+    "mirros, someone has once said, where in some way essentially
+unwholesome, constructs were more so, she decided."
+
+    "power, in case's world, meant corporate power. the zaibatsus,
+the multinationals that shaped the course of human history,
+had transcended old barriers."
+
+    "you're always building models. stone circles. cathedrals.
+pipe-organs. adding machines. i got no idea why i'm here now."
+
+    "a gothic folly. endless series of chambers linked by passages,
+by stairwells vaulted like intestines."
+
+    "senior is wealthy. senior enjoys any number of means of manifestation."
+
+    "and arranged to become a partron of the aeschmann colection. the aeschmann
+collection was restricted to the work of psychotics."
+
+    "he'd always imagined it as a gradual and willing accommodation of
+the machine, the parent organism. it was the root of street cool too, the
+knowing posture that implied connection, invisible lines up to hidden
+levels of influence."
+
+    "well if feels like i am, kid, but i'm really just a bunch of
+rom, it's one of them, ah, philosophical questions i guess. but i aint's likely
+to write you no poem, if you follow me, your ai? it just might. bit it ain't
+no way human."))
+
 (use-package dashboard
   :ensure t
   :config
-  (defvar my-custom-banner-file (make-temp-file "emacs-dashboard-banner-" nil ".txt"))
-  (defvar my-custom-banner-text "HYPER // MODERN // NIX ")
+  ;; Create a persistent banner file
+  (defvar my-custom-banner-file
+    (expand-file-name "dashboard-banner-0x04.txt" user-emacs-directory))
 
-  (with-temp-file my-custom-banner-file
-    (insert my-custom-banner-text))
+  (defvar my-custom-banner-text
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                 // hypermodern
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+  (unless (file-exists-p my-custom-banner-file)
+    (with-temp-file my-custom-banner-file
+      (insert my-custom-banner-text)))
 
   (setq dashboard-startup-banner my-custom-banner-file)
 
+  ;;   (setq dashboard-banner-logo-title
+  ;;         "it was the style that mattered and the style was the same.
+  ;; the moderns were mercenaries, practical jokers, nihilistic technofetishists.")
+
   (setq dashboard-banner-logo-title
-        "it was the style that mattered and the style was the same.
-the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
+        (nth (random (length hyper-modern/gibson-quotes))
+             hyper-modern/gibson-quotes))
 
   (setq dashboard-center-content t)
-
   (setq dashboard-set-heading-icons t)
-
   (setq dashboard-set-file-icons t)
-
   (setq dashboard-items '((projects . 5)
                           (recents . 5)))
 
@@ -494,6 +582,13 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
     (interactive)
     (find-file user-init-file))
 
+  (defun hyper-modern/format-all-buffer ()
+    "Format buffer if formatter is available, otherwise message."
+    (interactive)
+    (condition-case err
+        (format-all-buffer)
+      (error (message "[emacs] formatter not available: %s" err))))
+
   (general-define-key
    ;; standard movement
    "C-c q"   'join-line
@@ -513,7 +608,7 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
    "M-N"     'windmove-right
    "M-P"     'windmove-left
    "M-i"     'hyper-modern/visit-init-file
-   "M-z"     'format-all-buffer
+   "M-z"     'hyper-modern/format-all-buffer
 
    ;; `hyper-modern` overrides
    "C-M-r"   'consult-ripgrep
@@ -557,86 +652,106 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
 
 (use-package format-all
   :ensure t
-  :bind ("M-z" . format-all-buffer)
-  :hook (prog-mode . format-all-mode)  ;; Enable format-all in all programming modes
+
   :config
+  (setq format-all-show-errors 'never)
+  (setq-default format-all-formatters
+                '(("C++"          . (clang-format))
+                  ("C#"           . (clang-format))
+                  ("CSS"          . (prettier))
+                  ("F#"           . (fantomas))
+                  ("Go"           . (gofmt))
+                  ("HTML"         . (prettier))
+                  ("Haskell"      . (fourmolu))
+                  ("JavaScript"   . (biome))
+                  ("JSON"         . (biome))
+                  ("Markdown"     . (mdformat))
+                  ("Nix"          . (nixfmt))
+                  ("Python"       . (ruff))
+                  ("Ruby"         . (rubocop))
+                  ("Rust"         . (rustfmt))
+                  ("Shell"        . (shfmt))
+                  ("TypeScript"   . (biome))
+                  ("TSX"          . (biome))
+                  ("YAML"         . (yamlfmt))
+                  ("TOML"         . (taplo))
+                  ("Terraform"    . (terraform))
+                  ("HCL"          . (hclfmt))
+                  ("Zig"          . (zig))
 
-  (setq format-all-default-formatters
-        '(("C++"          . clang-format)
-          ("C#"           . clang-format)
-          ("CSS"          . prettier)
-          ("F#"           . fantomas)
-          ("Go"           . gofmt)
-          ("HTML"         . prettier)
-          ("Haskell"      . fourmolu)
-          ("JavaScript"   . biome)
-          ("JSON"         . biome)
-          ("Markdown"     . mdformat)
-          ("Nix"          . nixfmt)
-          ("Python"       . ruff)
-          ("Ruby"         . rubocop)
-          ("Rust"         . rustfmt)
-          ("Shell"        . shfmt)
-          ("TypeScript"   . biome)
-          ("TSX"          . biome)
-          ("YAML"         . yamlfmt)
-          ("TOML"         . taplo)
-          ("Terraform"    . terraform)
-          ("HCL"          . hclfmt)
-          ("Zig"          . zig)
+                  ;; TreeSit mode mappings
+                  (c-ts-mode      . (clang-format))
+                  (c++-ts-mode    . (clang-format))
+                  (csharp-ts-mode . (clang-format))
+                  (css-ts-mode    . (prettier))
+                  (go-ts-mode     . (gofmt))
+                  (html-ts-mode   . (prettier))
+                  (js-ts-mode     . (biome))
+                  (json-ts-mode   . (biome))
+                  (python-ts-mode . (ruff))
+                  (rust-ts-mode   . (rustfmt))
+                  (bash-ts-mode   . (shfmt))
+                  (sh-mode        . (shfmt))
+                  (typescript-ts-mode . (biome))
+                  (tsx-ts-mode    . (biome))
+                  (yaml-ts-mode   . (yamlfmt))
+                  (nix-mode       . (nixfmt))
+                  (toml-ts-mode   . (taplo))
+                  (zig-mode       . (zig))
 
-          ;; TreeSit mode mappings
-          (c-ts-mode      . clang-format)
-          (c++-ts-mode    . clang-format)
-          (csharp-ts-mode . clang-format)
-          (css-ts-mode    . prettier)
-          (go-ts-mode     . gofmt)
-          (html-ts-mode   . prettier)
-          (js-ts-mode     . biome)
-          (json-ts-mode   . biome)
-          (python-ts-mode . ruff)
-          (rust-ts-mode   . rustfmt)
-          (bash-ts-mode   . shfmt)
-          (sh-mode        . shfmt)
-          (typescript-ts-mode . biome)
-          (tsx-ts-mode    . biome)
-          (yaml-ts-mode   . yamlfmt)
-          (nix-mode       . nixfmt)
-          (toml-ts-mode   . taplo)
-          (zig-mode       . zig)
+                  ;; Traditional mode mappings
+                  (c-mode         . (clang-format))
+                  (c++-mode       . (clang-format))
+                  (csharp-mode    . (clang-format))
+                  (css-mode       . (prettier))
+                  (go-mode        . (gofmt))
+                  (html-mode      . (prettier))
+                  (js-mode        . (biome))
+                  (js2-mode       . (biome))
+                  (json-mode      . (biome))
+                  (python-mode    . (ruff))
+                  (ruby-mode      . (rubocop))
+                  (rust-mode      . (rustfmt))
+                  (typescript-mode . (biome))
+                  (nix-mode       . (nixfmt))
+                  (yaml-mode      . (yamlfmt))
+                  (markdown-mode  . (mdformat))
+                  (terraform-mode . (terraform))
+                  (hcl-mode       . (hclfmt))
+                  (toml-mode      . (taplo))))
 
-          ;; Traditional mode mappings
-          (c-mode         . clang-format)
-          (c++-mode       . clang-format)
-          (csharp-mode    . clang-format)
-          (css-mode       . prettier)
-          (go-mode        . gofmt)
-          (html-mode      . prettier)
-          (js-mode        . biome)
-          (js2-mode       . biome)
-          (json-mode      . biome)
-          (python-mode    . ruff)
-          (ruby-mode      . rubocop)
-          (rust-mode      . rustfmt)
-          (typescript-mode . biome)
-          (nix-mode       . nixfmt)
-          (yaml-mode      . yamlfmt)
-          (markdown-mode  . mdformat)
-          (terraform-mode . terraform)
-          (hcl-mode       . hclfmt)
-          (toml-mode      . taplo)))
+  ;; Custom function for Haskell's two-pass formatting
+  (defun hyper-modern/format-haskell ()
+    "Run fourmolu then stylish-haskell for peak aesthetics."
+    (when (derived-mode-p 'haskell-mode)
+      (format-all-buffer)  ; fourmolu via format-all
+      (haskell-mode-stylish-buffer)))  ; then stylish
 
+  ;; Override format-all for Haskell
+  (defun hyper-modern/format-all-buffer-override ()
+    "Format buffer with special handling for Haskell."
+    (interactive)
+    (if (derived-mode-p 'haskell-mode)
+        (hyper-modern/format-haskell)
+      (format-all-buffer)))
 
+  ;; Rebind M-z to our override
+  (global-set-key (kbd "M-z") 'hyper-modern/format-all-buffer-override)
+
+  ;; Disable lsp formatters as before
   (defun disable-lsp-formatters ()
     (when (and (boundp 'eglot--managed-mode) eglot--managed-mode)
       (remove-hook 'before-save-hook #'eglot-format-buffer t))
-
     (when (and (boundp 'lsp-mode) lsp-mode)
       (setq-local lsp-enable-on-type-formatting nil)
       (setq-local lsp-enable-indentation nil)
       (setq-local lsp-enable-formatting nil)))
 
-  (add-hook 'format-all-mode-hook #'disable-lsp-formatters))
+  (add-hook 'format-all-mode-hook #'disable-lsp-formatters)
+
+  :bind ("M-z" . format-all-buffer)
+  :hook (prog-mode . format-all-mode))
+
 
 (use-package treesit-auto
   :ensure t
@@ -689,11 +804,24 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
   (add-to-list 'lsp-disabled-clients '(nix-mode . rnix-lsp))
   (add-to-list 'lsp-disabled-clients '(nix-ts-mode . rnix-lsp))
 
+  (when (executable-find "nixd")
+    (lsp-register-client
+     (make-lsp-client :new-connection (lsp-stdio-connection "nixd")
+                      :major-modes '(nix-mode nix-ts-mode)
+                      :priority 1
+                      :server-id 'nixd)))
+
+
   (lsp-register-client
    (make-lsp-client :new-connection (lsp-stdio-connection "nixd")
                     :major-modes '(nix-mode nix-ts-mode)
                     :priority 1
-                    :server-id 'nixd)))
+                    :server-id 'nixd))
+
+  (setq lsp-auto-guess-root t) ;; auto-detect project roots
+  (setq lsp-enable-file-watchers nil) ;; don't ask about watching files
+  (setq lsp-enable-suggest-server-download nil) ;; don't prompt to download servers
+  )
 
 (use-package lsp-ui
   :ensure t
@@ -702,12 +830,30 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
          (nix-ts-mode . lsp-ui-mode))
 
   :config
+  (setq lsp-ui-sideline-enable t) ;; sideline in the margin, not inline
+  (setq lsp-ui-sideline-show-code-actions nil)
+  (setq lsp-ui-sideline-show-symbol nil)
+
+  (setq lsp-ui-sideline-show-diagnostics nil) ;; sideline the diagnostics sideline...
+  (setq lsp-ui-sideline-show-hover t) ;; sometimes contains type infosssss....sssss...
+  ;; (setq lsp-modeline-diagnostics-enable t)
+
+
+  ;; keep it subtle
+  (setq lsp-ui-sideline-ignore-duplicate t)
+  (setq lsp-ui-sideline-delay 1.0)  ; don't flash on every cursor move
+
+  ;; push it to the actual margin
+  (setq lsp-ui-sideline-update-mode 'point)  ; only update at point
+
+  ;; doc hover is fine but only on demand
   (setq lsp-ui-doc-enable t)
-  (setq lsp-ui-doc-position 'at-point)
-  (setq lsp-ui-sideline-enable t)
-  (setq lsp-ui-sideline-show-diagnostics t)
-  (setq lsp-ui-sideline-show-hover t)
-  (setq lsp-ui-sideline-show-code-actions t))
+  (setq lsp-ui-doc-show-with-cursor nil)  ; don't auto-show
+  (setq lsp-ui-doc-show-with-mouse nil)   ; don't auto-show
+
+  ;; absolutely no inline hints
+  (setq lsp-inlay-hint-enable nil)
+  (setq lsp-lens-enable nil))  ; no codelens either, jetbrains is right there if you never ever ever want it...
 
 (use-package consult
   :ensure t
@@ -749,6 +895,44 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
         nix-mode-hook))
 
 ;; ============================================================
+;; flymanke // flycheck // subtle
+;; ============================================================
+
+;; kill the wavy underlines
+(custom-set-faces
+ '(flymake-error ((t (:underline nil :background nil :foreground nil))))
+ '(flymake-warning ((t (:underline nil :background nil :foreground nil))))
+ '(flymake-note ((t (:underline nil :background nil :foreground nil))))
+
+ ;; same for `flycheck`
+ '(flycheck-error ((t (:underline nil))))
+ '(flycheck-warning ((t (:underline nil))))
+ '(flycheck-info ((t (:underline nil)))))
+
+;; just use fringe indicators (subtle marks in the gutter)
+(setq flymake-fringe-indicator-position 'left-fringe)
+(setq flymake-suppress-zero-counters t)
+(setq flymake-start-on-flymake-mode t)
+(setq flymake-no-changes-timeout 0.5)
+(setq flymake-start-on-save-buffer t)
+(setq flymake-proc-ignored-file-name-regexps '())
+
+;; Make the fringe marks smaller/subtler
+(define-fringe-bitmap 'flymake-double-exclamation-mark
+  [#b00000000
+   #b00000000
+   #b00000000
+   #b00001000
+   #b00001000
+   #b00001000
+   #b00001000
+   #b00000000])
+
+;; for `flycheck`
+(setq flycheck-indication-mode 'left-fringe)
+(setq flycheck-highlighting-mode nil) ;; no buffer highlighting at all
+
+;; ============================================================
 ;; Snippets with YASnippet
 ;; ============================================================
 
@@ -758,7 +942,7 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
   (yas-global-mode 1))
 
 ;; ============================================================
-;; Language-specific configurations
+;; language // specific
 ;; ============================================================
 
 ;; ============================================================
@@ -808,13 +992,17 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
   (setq haskell-indentation-where-pre-offset 2)
   (setq haskell-indentation-where-post-offset 2)
 
-  ;; Stylish on save (optional - you have fourmolu in format-all)
-  (setq haskell-stylish-on-save nil)
+  ;; n.b. stylish is handled higher-up the food chain...
+  (setq haskell-stylish-on-save 't)
 
   :hook
   ((haskell-mode . interactive-haskell-mode)
    (haskell-mode . haskell-indentation-mode)
-   (haskell-mode . haskell-doc-mode)))
+   (haskell-mode . haskell-doc-mode)
+   (haskell-mode . (lambda ()
+                     (add-hook 'before-save-hook
+                               'hyper-modern/format-haskell
+                               nil t)))))
 
 (use-package lsp-haskell
   :ensure t
@@ -856,6 +1044,7 @@ the moderns were mercenaries, practical jokers, nihilistic tehcnofetishists.")
   :config
 
   (setq lsp-nix-nixd-server-path "nixd")
+
   (setq lsp-nix-nixd-formatting-command [ "nixfmt" ])
   (setq lsp-nix-nixd-nixpkgs-expr "import <nixpkgs> { }")
   (setq lsp-nix-nixd-nixos-options-expr "(let pkgs = import \"${inputs.nixpkgs}\" { }; in (pkgs.lib.evalModules { modules =  (import \"${inputs.nixpkgs}/nixos/modules/module-list.nix\") ++ [ ({...}: { nixpkgs.hostPlatform = builtins.currentSystem;} ) ] ; })).options")

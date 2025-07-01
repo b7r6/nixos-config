@@ -199,10 +199,6 @@ in
         "$mod, R, hy3:changefocus, raise"
         "$mod SHIFT, G, hy3:changegroup, opposite"
 
-        # Scratchpad (special workspace)
-        "$mod, S, togglespecialworkspace, scratchpad"
-        "$mod SHIFT, S, movetoworkspace, special:scratchpad"
-
         # Monitor navigation (vim-inspired)
         "$mod, comma, focusmonitor, -1"
         "$mod, period, focusmonitor, +1"
@@ -262,10 +258,10 @@ in
         "$mod $alt, J, resizeactive, 0 20"
 
         # Screenshots
-        "$mod, Print, exec, grimblast copy area"
-        "$mod SHIFT, Print, exec, grimblast save area ~/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
-        "$mod $alt, Print, exec, grimblast copy screen"
-        "$mod $alt SHIFT, Print, exec, grimblast save screen ~/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
+        "$mod, S, exec, grimblast copy area"
+        "$mod SHIFT, S, exec, grimblast save area ~/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
+        "$mod $alt, S, exec, grimblast copy screen"
+        "$mod $alt SHIFT, S, exec, grimblast save screen ~/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
 
         # Media controls
         ", XF86AudioRaiseVolume, exec, pactl set-sink-volume @DEFAULT_SINK@ +5%"
