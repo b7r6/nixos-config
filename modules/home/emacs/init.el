@@ -722,7 +722,8 @@ no way human."))
     "Run fourmolu then stylish-haskell for peak aesthetics."
     (when (derived-mode-p 'haskell-mode)
       (format-all-buffer)  ; fourmolu via format-all
-      (haskell-mode-stylish-buffer)))  ; then stylish
+      ;; (haskell-mode-stylish-buffer)   ; then stylish
+      ))
 
   ;; Override format-all for Haskell
   (defun hypermodern/format-all-buffer-override ()
@@ -892,8 +893,25 @@ no way human."))
         nix-mode-hook))
 
 ;; ============================================================
-;; flymanke // flycheck // subtle
+;; flymake // flycheck // subtle
 ;; ============================================================
+
+;; stop the flycheck bukkake, i don't want new buffers in my face...
+
+(setq flycheck-display-errors-function nil) ;; don't auto-display error buffers
+(setq flycheck-help-echo-function nil) ;; don't show errors in echo area either
+
+;; If you still want to see errors on demand:
+(defun hypermodern/flycheck-list-errors-only-when-asked ()
+  "Only show flycheck errors when explicitly requested."
+  (interactive)
+  (flycheck-list-errors))
+
+;; Bind it to something reasonable
+(global-set-key (kbd "C-c ! l") 'hypermodern/flycheck-list-errors-only-when-asked)
+
+;; Also prevent the error list from stealing focus
+(setq flycheck-standard-error-navigation nil)
 
 ;; kill the wavy underlines
 (custom-set-faces
@@ -990,7 +1008,7 @@ no way human."))
   (setq haskell-indentation-where-post-offset 2)
 
   ;; n.b. stylish is handled higher-up the food chain...
-  (setq haskell-stylish-on-save 't)
+  (setq haskell-stylish-on-save nil)
 
   :hook
   ((haskell-mode . interactive-haskell-mode)
