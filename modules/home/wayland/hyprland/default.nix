@@ -5,7 +5,6 @@
   pkgs,
   ...
 }:
-
 let
   cfg = config.wayland.hyprland;
   inherit (flake) inputs;
@@ -33,19 +32,19 @@ in
 
     settings = {
       monitor = [
-        "eDP-1,3840x2400@60.00000,0x0,2.5"
-        # "desc:LG Electronics LG ULTRAGEAR+,3840x2160x120hz,0x0,1.5"
+        "desc:LG Electronics LG ULTRAGEAR+,3840x2160x60hz,0x0,1.5"
       ];
 
       # ===== Persistent Workspace Assignment =====
       workspace = [
-        "1, monitor:eDP-1, default:true, persistent:true"
-        "2, monitor:eDP-1, persistent:true"
-        "3, monitor:eDP-1, persistent:true"
-        "4, monitor:eDP-1, persistent:true"
-        "5, monitor:eDP-1, persistent:true"
-        "6, monitor:eDP-1, persistent:true"
-        "special:scratchpad, on-created-empty:wezterm"
+        "1, default:true, persistent:true"
+        "2, persistent:true"
+        "3, persistent:true"
+        "4, persistent:true"
+        "5, persistent:true"
+        "6, persistent:true"
+        "7, persistent:true"
+        "8, persistent:true"
       ];
 
       exec-once = [

@@ -11,6 +11,7 @@ let
     mkOption
     mkEnableOption
     mkIf
+    mkMerge
     types
     ;
 
@@ -116,6 +117,7 @@ in
           "generic"
           "oled"
           "samsung-e6"
+          "lg-ultragear-oled"
           "high-contrast"
         ];
         default = "generic";
@@ -197,9 +199,27 @@ in
       } // cfg.overrides.opacity;
     };
 
-    home.sessionVariables = mkIf (cfg.display.profile == "samsung-e6") {
-      FREETYPE_PROPERTIES = "cff:no-stem-darkening=0 autofitter:no-stem-darkening=0 truetype:interpreter-version=40";
-    };
+    home.sessionVariables = mkMerge [
+      (mkIf (cfg.enable && cfg.display.profile == "samsung-e6") {
+        FREETYPE_PROPERTIES = "cff:no-stem-darkening=0 autofitter:no-stem-darkening=0 truetype:interpreter-version=40";
+      })
+
+      (mkIf (cfg.enable && cfg.display.profile == "lg-ultragear-oled") {
+        FREETYPE_PROPERTIES = "cff:no-stem-darkening=0 autofitter:no-stem-darkening=0 truetype:interpreter-version=40 lcdfilter:lcddefault";
+        COLORTERM = "truecolor";
+        __GL_YIELD = "USLEEP";
+        MESA_VK_WSI_PRESENT_MODE = "immediate";
+      })
+
+      (mkIf (cfg.enable && cfg.display.profile == "oled") {
+        FREETYPE_PROPERTIES = "truetype:interpreter-version=40 lcdfilter:lcdnone";
+        COLORTERM = "truecolor";
+      })
+
+      (mkIf (cfg.enable && cfg.display.profile == "high-contrast") {
+        FREETYPE_PROPERTIES = "cff:no-stem-darkening=1 autofitter:no-stem-darkening=1 truetype:interpreter-version=35";
+      })
+    ];
 
     hyper-modern-nixos.wallpaper.enable = true;
     hyper-modern-nixos.wallpaper.customize = {
