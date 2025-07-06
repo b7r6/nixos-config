@@ -33,10 +33,10 @@
     variant = "chiba";
 
     display = {
-      profile = "samsung-e6";
+      profile = "lg-ultragear-oled";
       highDPI = true;
       width = 3840;
-      height = 2400;
+      height = 2160;
     };
 
     overrides = {
