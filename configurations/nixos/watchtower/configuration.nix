@@ -54,5 +54,11 @@
     pulse.enable = true;
   };
 
+  xdg.portal = {
+    enable = true;
+    wlr.enable = true; # for wlroots-based compositors
+    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+  };
+
   system.stateVersion = "24.11"; # Did you read the comment?
 }

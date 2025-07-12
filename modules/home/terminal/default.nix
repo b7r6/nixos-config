@@ -51,16 +51,22 @@ in
       extraConfig = ''
         local wezterm = require 'wezterm'
         local config = {}
+
+
         if wezterm.config_builder then
           config = wezterm.config_builder()
         end
 
-        -- Font configuration
+        -- cursor
+        config.default_cursor_style = 'BlinkingBlock'
+        config.cursor_blink_rate = 500
+
+        -- font configuration
         config.font = wezterm.font('${cfg.font.name}', {weight='${cfg.font.weight}'})
         config.font_size = ${toString cfg.font.size}
         config.harfbuzz_features = {'${concatStringsSep "', '" cfg.font.features}'}
 
-        -- UI configuration
+        -- ui
         config.hide_tab_bar_if_only_one_tab = true
 
         config.window_padding = {
@@ -79,7 +85,7 @@ in
       enableBashIntegration = true;
       settings = {
         # Force Wayland backend
-        window-decoration = false; # Use client-side decorations
+        window-decoration = true; # Use client-side decorations
         gtk-single-instance = true;
 
         # Font settings to match your module

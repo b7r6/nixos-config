@@ -992,59 +992,88 @@ no way human."))
   :ensure t
   :mode (("\\.hs\\'" . haskell-mode)
          ("\\.lhs\\'" . literate-haskell-mode)
-         ("\\.cabal\\'" . haskell-cabal-mode))
-
+         ("\\.cabal\\'" . haskell-cabal-mode)
+         ("\\.hsc\\'" . haskell-mode))
+  
   :config
-  ;; Interactive Haskell
-  (setq haskell-interactive-popup-errors nil)
-  (setq haskell-process-type 'cabal-repl)
-  (setq haskell-process-suggest-remove-import-lines t)
-  (setq haskell-process-auto-import-loaded-modules t)
-
-  ;; Indentation
+  ;; Basic indentation settings
   (setq haskell-indentation-layout-offset 4)
   (setq haskell-indentation-left-offset 4)
   (setq haskell-indentation-where-pre-offset 2)
   (setq haskell-indentation-where-post-offset 2)
-
-  ;; n.b. stylish is handled higher-up the food chain...
+  
+  ;; Disable all the legacy interactive stuff - we have LSP
+  (setq haskell-tags-on-save nil)
   (setq haskell-stylish-on-save nil)
-
+  (setq haskell-mode-stylish-haskell-path "stylish-haskell")
+  
+  ;; Don't load interactive-haskell-mode, it fights with LSP
+  (setq haskell-process-type nil)
+  
   :hook
-  ((haskell-mode . interactive-haskell-mode)
-   (haskell-mode . haskell-indentation-mode)
-   (haskell-mode . haskell-doc-mode)
-   (haskell-mode . (lambda ()
-                     (add-hook 'before-save-hook
-                               'hypermodern/format-haskell
-                               nil t)))))
+  ((haskell-mode . haskell-indentation-mode)
+   (haskell-mode . haskell-decl-scan-mode)))
 
 (use-package lsp-haskell
   :ensure t
   :after (haskell-mode lsp-mode)
+  
+  :init
+  ;; Clear any competing keybindings before LSP starts
+  (add-hook 'haskell-mode-hook
+            (lambda ()
+              ;; Remove ALL competing bindings
+              (local-unset-key (kbd "M-."))
+              (local-unset-key (kbd "M-,"))
+              (local-unset-key (kbd "C-c C-t")))
+            -10) ; Run early with negative priority
+  
   :config
-  (setq lsp-haskell-server-path "haskell-language-server-wrapper"))
+  ;; Use the NixOS-provided HLS
+  (setq lsp-haskell-server-path "haskell-language-server-wrapper")
+  
+  ;; Modern HLS settings
+  (setq lsp-haskell-plugin-stan-global-on nil) ; Stan is noisy
+  (setq lsp-haskell-plugin-hlint-global-on t)
+  (setq lsp-haskell-plugin-eval-global-on t)
+  (setq lsp-haskell-formatting-provider "fourmolu")
+  
+  ;; Completions
+  (setq lsp-haskell-plugin-ghcide-completions-config-auto-extend-on t)
+  (setq lsp-haskell-plugin-ghcide-completions-config-snippets-on t)
+  
+  :hook
+  (haskell-mode . lsp-deferred))
 
-
-(use-package haskell-interactive-mode
-  :ensure nil
+;; Ensure xref (which backs M-.) is properly configured
+(use-package xref
+  :ensure nil ; built-in
   :after haskell-mode
   :bind (:map haskell-mode-map
-              ("C-c C-l" . haskell-process-load-file)
-              ("C-c C-z" . haskell-interactive-switch)
-              ("C-c C-t" . haskell-process-do-type)
-              ("C-c C-i" . haskell-process-do-info)))
+              ("M-." . xref-find-definitions)
+              ("M-," . xref-go-back)
+              ("M-?" . xref-find-references)))
 
+;; Optional: Better haskell completions
 (use-package company-ghci
   :ensure t
   :after (company haskell-mode)
   :config
-  (push 'company-ghci company-backends))
+  ;; Add as fallback only, LSP is primary
+  (add-to-list 'company-backends 'company-ghci t))
 
-(use-package flycheck-haskell
-  :ensure t
-  :after (flycheck haskell-mode)
-  :hook (haskell-mode . flycheck-haskell-setup))
+;; Optional: If you want REPL interaction, use comint directly
+(use-package haskell-interactive-mode
+  :ensure nil ; part of haskell-mode
+  :commands haskell-interactive-switch
+  :bind (:map haskell-mode-map
+              ("C-c C-z" . haskell-interactive-switch)
+              ("C-c C-l" . haskell-process-load-file))
+  :config
+  ;; If loaded, don't let it mess with navigation
+  (when (boundp 'haskell-interactive-mode-map)
+    (define-key haskell-interactive-mode-map (kbd "M-.") nil)
+    (define-key haskell-interactive-mode-map (kbd "M-,") nil)))
 
 ;; ============================================================
 ;; nix // mode
