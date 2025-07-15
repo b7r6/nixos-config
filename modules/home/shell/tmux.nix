@@ -1,6 +1,6 @@
 { config, ... }:
 let
-  colors = config.hyper-modern-nixos.themes.palette;
+  colors = config.hypermodern.nixos.themes.palette;
 in
 {
   programs.tmux = {

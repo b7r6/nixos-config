@@ -12,49 +12,37 @@ in
   boot.loader.efi.canTouchEfiVariables = true;
 
   networking.hostName = "weyl";
-  networking.networkmanager.enable = true;
 
-  networking.hosts = {
-    "192.168.50.12" = [ "files01.rhosts.net" ];
-    "10.215.1.12" = [ "cc1-agiti.cloud.parabolicsurf.net" ];
-  };
+  # TODO[b7r6]: move to modules/nixos/network/
+  networking.networkmanager.enable = true;
 
   # TODO[b7r6]: we've got to either converge or diverge on
   # `autowire`, this in-between isn't working out...
 
-  hyper-modern-nixos.nvidia.enable = true;
+  hypermodern.nixos.nvidia.enable = true;
+  hypermodern.nixos.wayland.enable = true;
 
-  programs.hyprland = {
-    enable = true;
-    package = inputs.hyprland.packages.${pkgs.system}.hyprland;
-    xwayland.enable = false;
-  };
-
+  # TODO[b7r6]: move to `modules/nixos/fonts/`
   fonts.fontconfig = {
     enable = true;
-
     hinting = {
       enable = false;
-      style = "slight"; # Options: none, slight, medium, full
+      style = "slight";
     };
-
-    antialias = false; # Smoothens the appearance of fonts
+    antialias = false;
   };
 
+  # TODO[b7r6]: move to `modules/nixos/nvidia/`
   environment.variables = {
     __GLX_VENDOR_LIBRARY_NAME = "nvidia";
     WLR_NO_HARDWARE_CURSORS = "1";
   };
 
-  programs.firefox.enable = true;
-
-  users.groups."ps-v4" = { };
-
+  # TODO[b7r6]: once everything else is done, figure out users...
   users.users.b7r6 = {
     extraGroups = [
       "wheel"
       "docker"
-      "ps-v4"
     ];
 
     openssh.authorizedKeys.keys = [
@@ -63,13 +51,16 @@ in
     ];
   };
 
+  # TODO[b7r6]: move to `modules/nixos/security/`
   security.sudo.wheelNeedsPassword = false;
 
+  # TODO[b7r6]: move to `modules/nixos/locale/`
   time.timeZone = "America/New_York";
   services.printing.enable = true;
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
 
+  # TODO[b7r6]: move to `modules/nixos/audio/`
   services.pipewire = {
     enable = true;
     alsa.enable = true;
@@ -77,6 +68,5 @@ in
     pulse.enable = true;
   };
 
-  environment.sessionVariables.NIXOS_OZONE_WL = "1";
-  system.stateVersion = "25.05"; # Did you read the comment?
+  system.stateVersion = "25.05";
 }

@@ -23,16 +23,16 @@ in
 
   nix.nixPath = [ "nixpkgs=${inputs.nixpkgs}" ];
   nixpkgs.config.allowUnfree = true;
+
   home-manager.useUserPackages = true;
   home-manager.useGlobalPkgs = true;
   home-manager.backupFileExtension = "hm-backup";
 
   services.openssh.enable = true;
-
   programs.ssh.startAgent = true;
   programs.nh.enable = true;
 
-  hyper-modern-nixos.network = {
+  hypermodern.nixos.network = {
     enable = true;
     tailnet.domain = "risk-nunki.ts.net";
     firewall.enable = false;
@@ -74,6 +74,7 @@ in
   security.sudo.wheelNeedsPassword = false;
 
   programs.firefox.enable = true;
+
   environment.systemPackages = with pkgs; [
     # Base utilities
     atuin
@@ -211,6 +212,7 @@ in
   users.groups.wireshark = { };
   programs.adb.enable = true;
   users.users.b7r6.extraGroups = [ "wireshark" ];
+
   # If using android-nixpkgs, you can include this part
   # This assumes you have android-nixpkgs set up in your imports
   # android-nixpkgs.androidenv = {

@@ -1,11 +1,11 @@
 { config, lib, ... }:
 with lib;
 let
-  cfg = config.hyper-modern-nixos.bluetooth;
+  cfg = config.hypermodern.nixos.bluetooth;
 in
 {
-  options.hyper-modern-nixos.bluetooth = {
-    enable = mkEnableOption "hyper-modern-nixos.bluetooth" // {
+  options.hypermodern.nixos.bluetooth = {
+    enable = mkEnableOption "hypermodern.nixos.bluetooth" // {
       default = true;
     };
   };

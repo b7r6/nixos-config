@@ -6,10 +6,10 @@
 }:
 with lib;
 let
-  cfg = config.hyper-modern-nixos.nvidia;
+  cfg = config.hypermodern.nixos.nvidia;
 in
 {
-  options.hyper-modern-nixos.nvidia.enable = mkEnableOption "hyper-modern-nixos.nvidia" // {
+  options.hypermodern.nixos.nvidia.enable = mkEnableOption "hypermodern.nixos.nvidia" // {
     default = false;
   };
 

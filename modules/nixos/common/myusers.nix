@@ -36,7 +36,6 @@ in
   };
 
   config = {
-
     users.users = mapListToAttrs config.myusers (
       name:
       lib.optionalAttrs pkgs.stdenv.isDarwin { home = "/Users/${name}"; }

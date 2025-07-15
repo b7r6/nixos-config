@@ -1,11 +1,11 @@
 { config, lib, ... }:
 with lib;
 let
-  cfg = config.hyper-modern-nixos.docker;
+  cfg = config.hypermodern.nixos.docker;
 in
 {
-  options.hyper-modern-nixos.docker = {
-    enable = mkEnableOption "hyper-modern-nixos.docker" // {
+  options.hypermodern.nixos.docker = {
+    enable = mkEnableOption "hypermodern.nixos.docker" // {
       default = true;
     };
   };

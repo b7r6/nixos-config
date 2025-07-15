@@ -9,5 +9,5 @@
     ./tmux.nix
   ];
 
-  hyper-modern-nixos.themed-shell.enable = true;
+  hypermodern.nixos.themed-shell.enable = true;
 }

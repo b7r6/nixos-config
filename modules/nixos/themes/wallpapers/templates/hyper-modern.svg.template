@@ -1,0 +1,223 @@
+<!-- wallpapers/templates/hyper-modern.svg.template -->
+<svg width="@WIDTH@" height="@HEIGHT@" viewBox="0 0 @WIDTH@ @HEIGHT@" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @font-face {
+        font-family: 'Berkeley Mono';
+        src: local('Berkeley Mono Medium'), local('BerkeleyMono-Medium');
+      }
+      .mono { 
+        font-family: 'Berkeley Mono', monospace; 
+        font-feature-settings: 'liga' 1, 'calt' 1;
+      }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="@WIDTH@" height="@HEIGHT@" fill="@BASE00@"/>
+  
+  <!-- Complex perSystem module - top left -->
+  <g transform="translate(@MARGIN@, @MARGIN@)" opacity="@CODE-OPACITY@">
+    <text x="0" y="0" class="mono" fill="@BASE09@" font-size="@FONT-SIZE-SMALL@" font-weight="500">
+      <tspan x="0" dy="0">[@HOSTNAME@:~/psv4]$ cat nix/modules/psv4.nix</tspan>
+    </text>
+    <text x="0" y="44" class="mono" fill="@BASE04@" font-size="@FONT-SIZE-SMALL@" font-weight="400">
+      <tspan x="0" dy="0">{ <tspan fill="@BASE08@">config</tspan>, <tspan fill="@BASE08@">lib</tspan>, <tspan fill="@BASE08@">flake-parts-lib</tspan>, ... }:</tspan>
+      <tspan x="0" dy="44"><tspan fill="@BASE0A@" font-weight="600">let</tspan></tspan>
+      <tspan x="0" dy="44">  <tspan fill="@BASE0A@">inherit</tspan> (lib) mkOption types;</tspan>
+      <tspan x="0" dy="44">  <tspan fill="@BASE0A@">inherit</tspan> (flake-parts-lib) mkPerSystemOption;</tspan>
+      <tspan x="0" dy="44"><tspan fill="@BASE0A@" font-weight="600">in</tspan> {</tspan>
+      <tspan x="0" dy="44">  options.perSystem = mkPerSystemOption ({ <tspan fill="@BASE08@">config</tspan>, <tspan fill="@BASE08@">pkgs</tspan>, ... }: {</tspan>
+      <tspan x="0" dy="44">    psv4 = {</tspan>
+      <tspan x="0" dy="44">      theme = mkOption {</tspan>
+      <tspan x="0" dy="44">        type = types.enum [ <tspan fill="@BASE0B@">"razorgirl"</tspan> <tspan fill="@BASE0B@">"chiba"</tspan> <tspan fill="@BASE0B@">"sprawl"</tspan> ];</tspan>
+      <tspan x="0" dy="44">        default = <tspan fill="@BASE0B@">"@THEME-NAME@"</tspan>;</tspan>
+      <tspan x="0" dy="44">      };</tspan>
+      <tspan x="0" dy="44">      </tspan>
+      <tspan x="0" dy="44">      packages = mkOption {</tspan>
+      <tspan x="0" dy="44">        type = types.attrsOf types.package;</tspan>
+      <tspan x="0" dy="44">        default = {};</tspan>
+      <tspan x="0" dy="44">      };</tspan>
+      <tspan x="0" dy="44">    };</tspan>
+      <tspan x="0" dy="44">  });</tspan>
+      <tspan x="0" dy="44">  </tspan>
+      <tspan x="0" dy="44">  config.perSystem = { <tspan fill="@BASE08@">config</tspan>, <tspan fill="@BASE08@">pkgs</tspan>, ... }: {</tspan>
+      <tspan x="0" dy="44">    psv4.packages = {</tspan>
+      <tspan x="0" dy="44">      theme = pkgs.callPackage ./theme.nix {</tspan>
+      <tspan x="0" dy="44">        themeName = config.psv4.theme;</tspan>
+      <tspan x="0" dy="44">      };</tspan>
+      <tspan x="0" dy="44">    };</tspan>
+      <tspan x="0" dy="44">  };</tspan>
+      <tspan x="0" dy="44">}</tspan>
+    </text>
+  </g>
+  
+  <!-- Nix store paths visualization - top right -->
+  <g transform="translate(@STORE-X@, @MARGIN@)" opacity="@STORE-OPACITY@">
+    <text x="0" y="0" class="mono" fill="@BASE09@" font-size="@FONT-SIZE-TINY@" font-weight="500" text-anchor="end">
+      <tspan x="0" dy="0">STORE::DERIVATIONS</tspan>
+    </text>
+    <text x="0" y="32" class="mono" fill="@BASE04@" font-size="@FONT-SIZE-TINY@" font-weight="400" text-anchor="end">
+      <tspan x="0" dy="0">━━━━━━━━━━━━━━━━━━━━━━</tspan>
+      <tspan x="0" dy="32" fill="@BASE0A@" font-weight="600">/nix/store/x7q9...f3p2</tspan>
+      <tspan x="0" dy="32">  └─ psv4-0.1.0</tspan>
+      <tspan x="0" dy="32" fill="@BASE0A@" font-weight="600">/nix/store/b8n4...2k1x</tspan>
+      <tspan x="0" dy="32">  └─ @THEME-NAME@</tspan>
+      <tspan x="0" dy="32" fill="@BASE0A@" font-weight="600">/nix/store/m3d8...9pq7</tspan>
+      <tspan x="0" dy="32">  └─ berkeley-mono</tspan>
+      <tspan x="0" dy="32">━━━━━━━━━━━━━━━━━━━━━━</tspan>
+      <tspan x="0" dy="32" fill="@BASE08@" font-weight="500">total: 12,847 paths</tspan>
+      <tspan x="0" dy="32" fill="@BASE08@" font-weight="500">size: 184.2 GiB</tspan>
+      <tspan x="0" dy="32">━━━━━━━━━━━━━━━━━━━━━━</tspan>
+    </text>
+  </g>
+  
+  <!-- Main statement - lower left -->
+  <g transform="translate(@LOGO-X@, @LOGO-Y@)">
+    <text x="0" y="0" class="mono" font-size="@FONT-SIZE-HERO@" font-weight="@FONT-WEIGHT-HERO@">
+      <tspan fill="@BASE0A@" font-weight="700">//</tspan>
+      <tspan fill="@BASE08@" dx="24">HYPER</tspan>
+      <tspan fill="@BASE0A@" font-weight="700" dx="24">//</tspan>
+      <tspan fill="@BASE08@" dx="24">MODERN</tspan>
+      <tspan fill="@BASE0A@" font-weight="700" dx="24">//</tspan>
+      <tspan fill="@BASE08@" dx="24">NIXOS</tspan>
+    </text>
+  </g>
+  
+  <!-- Flake evaluation output - bottom right -->
+  <g transform="translate(@STATUS-X@, @STATUS-Y@)" opacity="@STATUS-OPACITY@">
+    <text x="0" y="0" class="mono" fill="@BASE04@" font-size="@FONT-SIZE-TINY@" font-weight="400" text-anchor="end">
+      <tspan x="0" dy="0" fill="@BASE09@">$ nix flake check</tspan>
+      <tspan x="0" dy="32" fill="@BASE0A@">✓ packages.x86_64-linux.psv4</tspan>
+      <tspan x="0" dy="32" fill="@BASE0A@">✓ devShells.x86_64-linux.default</tspan>
+      <tspan x="0" dy="32" fill="@BASE0A@">✓ nixosConfigurations.@HOSTNAME@</tspan>
+      <tspan x="0" dy="32" fill="@BASE0A@">✓ formatter.x86_64-linux</tspan>
+      <tspan x="0" dy="32" fill="@BASE04@">evaluation completed in 2.41s</tspan>
+    </text>
+  </g>
+  
+  <!-- Command being typed -->
+  <g transform="translate(@INTERACTIVE-X@, @INTERACTIVE-Y@)" opacity="@INTERACTIVE-OPACITY@">
+    <text x="0" y="0" class="mono" fill="@BASE08@" font-size="@FONT-SIZE-MEDIUM@" font-weight="600">
+      <tspan x="0" dy="0">$ nix run .#uring-trade-execution -- --stategy=@THEME-NAME@</tspan>
+    </text>
+    <rect x="@CURSOR-X@" y="-16" width="12" height="24" fill="@BASE0A@" opacity="0.9">
+      <animate attributeName="opacity" values="0.9;0;0.9" dur="1s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+  
+  <!-- Subtle accent line -->
+  <!-- <rect x="@ACCENT-X@" y="@ACCENT-Y@" width="@ACCENT-WIDTH@" height="@ACCENT-HEIGHT@" fill="@BASE0A@" opacity="@ACCENT-OPACITY@"/> -->
+</svg>
+
+<!-- <!-\- wallpapers/templates/hyper-modern.svg.template -\-> -->
+<!-- <svg width="@WIDTH@" height="@HEIGHT@" viewBox="0 0 @WIDTH@ @HEIGHT@" xmlns="http://www.w3.org/2000/svg"> -->
+<!--   <defs> -->
+<!--     <style> -->
+<!--       @font-face { -->
+<!--         font-family: 'Berkeley Mono'; -->
+<!--         src: local('Berkeley Mono Medium'), local('BerkeleyMono-Medium'); -->
+<!--       } -->
+<!--       .mono {  -->
+<!--         font-family: 'Berkeley Mono', monospace;  -->
+<!--         font-feature-settings: 'liga' 1, 'calt' 1; -->
+<!--       } -->
+<!--     </style> -->
+<!--   </defs> -->
+  
+<!--   <!-\- Background -\-> -->
+<!--   <rect width="@WIDTH@" height="@HEIGHT@" fill="@BASE00@"/> -->
+  
+<!--   <!-\- Complex perSystem module - top left -\-> -->
+<!--   <g transform="translate(@MARGIN@, @MARGIN@)" opacity="@CODE-OPACITY@"> -->
+<!--     <text x="0" y="0" class="mono" fill="@BASE09@" font-size="@FONT-SIZE-SMALL@" font-weight="500"> -->
+<!--       <tspan x="0" dy="0">[@HOSTNAME@:~/psv4]$ cat nix/modules/psv4.nix</tspan> -->
+<!--     </text> -->
+<!--     <text x="0" y="18" class="mono" fill="@BASE04@" font-size="@FONT-SIZE-SMALL@" font-weight="400"> -->
+<!--       <tspan x="0" dy="18">{ <tspan fill="@BASE08@">config</tspan>, <tspan fill="@BASE08@">lib</tspan>, <tspan fill="@BASE08@">flake-parts-lib</tspan>, ... }:</tspan> -->
+<!--       <tspan x="0" dy="18"><tspan fill="@BASE0A@" font-weight="600">let</tspan></tspan> -->
+<!--       <tspan x="0" dy="18">  <tspan fill="@BASE0A@">inherit</tspan> (lib) mkOption types;</tspan> -->
+<!--       <tspan x="0" dy="18">  <tspan fill="@BASE0A@">inherit</tspan> (flake-parts-lib) mkPerSystemOption;</tspan> -->
+<!--       <tspan x="0" dy="18"><tspan fill="@BASE0A@" font-weight="600">in</tspan> {</tspan> -->
+<!--       <tspan x="0" dy="18">  options.perSystem = mkPerSystemOption ({ <tspan fill="@BASE08@">config</tspan>, <tspan fill="@BASE08@">pkgs</tspan>, ... }: {</tspan> -->
+<!--       <tspan x="0" dy="18">    psv4 = {</tspan> -->
+<!--       <tspan x="0" dy="18">      theme = mkOption {</tspan> -->
+<!--       <tspan x="0" dy="18">        type = types.enum [ <tspan fill="@BASE0B@">"razorgirl"</tspan> <tspan fill="@BASE0B@">"chiba"</tspan> <tspan fill="@BASE0B@">"sprawl"</tspan> ];</tspan> -->
+<!--       <tspan x="0" dy="18">        default = <tspan fill="@BASE0B@">"razorgirl"</tspan>;</tspan> -->
+<!--       <tspan x="0" dy="18">      };</tspan> -->
+<!--       <tspan x="0" dy="18">      </tspan> -->
+<!--       <tspan x="0" dy="18">      packages = mkOption {</tspan> -->
+<!--       <tspan x="0" dy="18">        type = types.attrsOf types.package;</tspan> -->
+<!--       <tspan x="0" dy="18">        default = {};</tspan> -->
+<!--       <tspan x="0" dy="18">      };</tspan> -->
+<!--       <tspan x="0" dy="18">    };</tspan> -->
+<!--       <tspan x="0" dy="18">  });</tspan> -->
+<!--       <tspan x="0" dy="18">  </tspan> -->
+<!--       <tspan x="0" dy="18">  config.perSystem = { <tspan fill="@BASE08@">config</tspan>, <tspan fill="@BASE08@">pkgs</tspan>, ... }: {</tspan> -->
+<!--       <tspan x="0" dy="18">    psv4.packages = {</tspan> -->
+<!--       <tspan x="0" dy="18">      theme = pkgs.callPackage ./theme.nix {</tspan> -->
+<!--       <tspan x="0" dy="18">        themeName = config.psv4.theme;</tspan> -->
+<!--       <tspan x="0" dy="18">      };</tspan> -->
+<!--       <tspan x="0" dy="18">    };</tspan> -->
+<!--       <tspan x="0" dy="18">  };</tspan> -->
+<!--       <tspan x="0" dy="18">}</tspan> -->
+<!--     </text> -->
+<!--   </g> -->
+  
+<!--   <!-\- Nix store paths visualization - top right -\-> -->
+<!--   <g transform="translate(@STORE-X@, @MARGIN@)" opacity="@STORE-OPACITY@"> -->
+<!--     <text x="0" y="0" class="mono" fill="@BASE09@" font-size="@FONT-SIZE-TINY@" font-weight="500" text-anchor="end"> -->
+<!--       <tspan x="0" dy="0">STORE::DERIVATIONS</tspan> -->
+<!--     </text> -->
+<!--     <text x="0" y="14" class="mono" fill="@BASE04@" font-size="@FONT-SIZE-TINY@" font-weight="400" text-anchor="end"> -->
+<!--       <tspan x="0" dy="14">━━━━━━━━━━━━━━━━━━━━━━</tspan> -->
+<!--       <tspan x="0" dy="14" fill="@BASE0A@" font-weight="600">/nix/store/x7q9...f3p2</tspan> -->
+<!--       <tspan x="0" dy="14">  └─ psv4-0.1.0</tspan> -->
+<!--       <tspan x="0" dy="14" fill="@BASE0A@" font-weight="600">/nix/store/b8n4...2k1x</tspan> -->
+<!--       <tspan x="0" dy="14">  └─ @THEME-NAME@-theme</tspan> -->
+<!--       <tspan x="0" dy="14" fill="@BASE0A@" font-weight="600">/nix/store/m3d8...9pq7</tspan> -->
+<!--       <tspan x="0" dy="14">  └─ berkeley-mono</tspan> -->
+<!--       <tspan x="0" dy="14">━━━━━━━━━━━━━━━━━━━━━━</tspan> -->
+<!--       <tspan x="0" dy="14" fill="@BASE08@" font-weight="500">total: 12,847 paths</tspan> -->
+<!--       <tspan x="0" dy="14" fill="@BASE08@" font-weight="500">size: 184.2 GiB</tspan> -->
+<!--       <tspan x="0" dy="14">━━━━━━━━━━━━━━━━━━━━━━</tspan> -->
+<!--     </text> -->
+<!--   </g> -->
+  
+<!--   <!-\- Main statement - lower left -\-> -->
+<!--   <g transform="translate(@LOGO-X@, @LOGO-Y@)"> -->
+<!--     <text x="0" y="0" class="mono" font-size="@FONT-SIZE-HERO@" font-weight="@FONT-WEIGHT-HERO@"> -->
+<!--       <tspan fill="@BASE0A@" font-weight="700">//</tspan> -->
+<!--       <tspan fill="@BASE08@" dx="24">HYPER</tspan> -->
+<!--       <tspan fill="@BASE0A@" font-weight="700" dx="24">//</tspan> -->
+<!--       <tspan fill="@BASE08@" dx="24">MODERN</tspan> -->
+<!--       <tspan fill="@BASE0A@" font-weight="700" dx="24">//</tspan> -->
+<!--       <tspan fill="@BASE08@" dx="24">NIXOS</tspan> -->
+<!--     </text> -->
+<!--   </g> -->
+  
+<!--   <!-\- Flake evaluation output - bottom right -\-> -->
+<!--   <g transform="translate(@STATUS-X@, @STATUS-Y@)" opacity="@STATUS-OPACITY@"> -->
+<!--     <text x="0" y="0" class="mono" fill="@BASE04@" font-size="@FONT-SIZE-TINY@" font-weight="400" text-anchor="end"> -->
+<!--       <tspan x="0" dy="0" fill="@BASE09@">$ nix flake check</tspan> -->
+<!--       <tspan x="0" dy="14" fill="@BASE0A@">✓ packages.x86_64-linux.psv4</tspan> -->
+<!--       <tspan x="0" dy="14" fill="@BASE0A@">✓ devShells.x86_64-linux.default</tspan> -->
+<!--       <tspan x="0" dy="14" fill="@BASE0A@">✓ nixosConfigurations.@HOSTNAME@</tspan> -->
+<!--       <tspan x="0" dy="14" fill="@BASE0A@">✓ formatter.x86_64-linux</tspan> -->
+<!--       <tspan x="0" dy="14" fill="@BASE04@">evaluation completed in 2.41s</tspan> -->
+<!--     </text> -->
+<!--   </g> -->
+  
+<!--   <!-\- Command being typed -\-> -->
+<!--   <g transform="translate(@INTERACTIVE-X@, @INTERACTIVE-Y@)" opacity="@INTERACTIVE-OPACITY@"> -->
+<!--     <text x="0" y="0" class="mono" fill="@BASE08@" font-size="@FONT-SIZE-MEDIUM@" font-weight="600"> -->
+<!--       <tspan x="0" dy="0">$ nix run .#psv4 -\- -\-theme @THEME-NAME@</tspan> -->
+<!--     </text> -->
+<!--     <rect x="@CURSOR-X@" y="-16" width="12" height="24" fill="@BASE0A@" opacity="0.9"> -->
+<!--       <animate attributeName="opacity" values="0.9;0;0.9" dur="1s" repeatCount="indefinite"/> -->
+<!--     </rect> -->
+<!--   </g> -->
+  
+<!--   <!-\- Subtle accent line -\-> -->
+<!--   <rect x="@ACCENT-X@" y="@ACCENT-Y@" width="@ACCENT-WIDTH@" height="1" fill="@BASE0A@" opacity="@ACCENT-OPACITY@"/> -->
+<!-- </svg> -->

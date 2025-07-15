@@ -1,10 +1,10 @@
 { config, lib, ... }:
 with lib;
 let
-  cfg = config.hyper-modern-nixos.themed-shell;
+  cfg = config.hypermodern.nixos.themed-shell;
 in
 {
-  options.hyper-modern-nixos.themed-shell = {
+  options.hypermodern.nixos.themed-shell = {
     enable = lib.mkEnableOption "Themed shell with starship and atuin";
   };
 
