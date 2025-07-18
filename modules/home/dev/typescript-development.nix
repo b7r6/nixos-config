@@ -8,9 +8,9 @@
 
     # mandatory current typescript support...
     nodePackages.fixjson
-    nodePackages_latest.nodejs
-    nodePackages_latest.prettier
-    nodePackages_latest.typescript-language-server
-    nodePackages_latest.yarn
+    nodePackages.nodejs
+    nodePackages.prettier
+    nodePackages.typescript-language-server
+    nodePackages.yarn
   ];
 }
