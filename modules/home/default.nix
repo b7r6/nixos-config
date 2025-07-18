@@ -22,8 +22,8 @@
     ./session
 
     # optional desktop environments
-    ./desktop
-    ./wayland
+    # ./desktop
+    # ./wayland
     # ./vscode
   ];
 
@@ -48,4 +48,9 @@
       };
     };
   };
+
+  home.packages = with pkgs; [
+    dbus
+    dconf
+  ];
 }
