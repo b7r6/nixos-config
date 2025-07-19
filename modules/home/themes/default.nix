@@ -52,11 +52,11 @@ let
       inherit package;
       name =
         if cfg.display.highDPI && cfg.display.width >= 3840 then
-          weights.regular
+          weights.semibold
         else if cfg.display.highDPI then
-          weights.medium
+          weights.semibold
         else
-          weights.medium;
+          weights.semibold;
     };
 
     # Size calculations - account for Hyprland scaling
@@ -184,6 +184,7 @@ in
         inherit (fontConfig) monospace;
         inherit (fontConfig) sansSerif;
         serif = fontConfig.monospace;
+
         emoji = {
           package = pkgs.noto-fonts-emoji;
           name = "Noto Color Emoji";
