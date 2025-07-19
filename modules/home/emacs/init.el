@@ -1005,11 +1005,15 @@ no way human."))
   ;; Disable all the legacy interactive stuff - we have LSP
   (setq haskell-tags-on-save nil)
   (setq haskell-stylish-on-save nil)
+
   (setq haskell-mode-stylish-haskell-path "stylish-haskell")
   
   ;; Don't load interactive-haskell-mode, it fights with LSP
-  (setq haskell-process-type nil)
+  ;; (setq haskell-process-type nil)
   
+  (setq format-all-formatters
+        '((haskell-mode . ("fourmolu" "--config" ".fourmolu.yaml"))))
+
   :hook
   ((haskell-mode . haskell-indentation-mode)
    (haskell-mode . haskell-decl-scan-mode)))
