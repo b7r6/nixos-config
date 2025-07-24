@@ -1,7 +1,1 @@
-{ inputs, ... }:
-{
-  perSystem =
-    { pkgs, system, ... }:
-    {
-    };
-}
+{ }

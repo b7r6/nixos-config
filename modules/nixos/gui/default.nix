@@ -30,11 +30,14 @@ in
     # XDG portal configuration
     xdg.portal = {
       enable = true;
+      wlr.enable = true;
       xdgOpenUsePortal = true;
+
       extraPortals = with pkgs; [
         xdg-desktop-portal-gtk
         xdg-desktop-portal-wlr
       ];
+
       config = {
         common = {
           default = [ "gtk" ];
@@ -42,7 +45,7 @@ in
       };
     };
 
-    # Ensure portal services are enabled
+    # ensure portal services are enabled
     systemd.user.services = {
       xdg-desktop-portal-gtk = {
         wantedBy = [ "graphical-session.target" ];

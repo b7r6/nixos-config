@@ -1,9 +1,5 @@
 let
-  inherit (import ./keys.nix) users hosts;
-
-  allUsers = builtins.attrNames users;
-  allHosts = builtins.attrNames hosts;
-  mkSecret = user: hostList: (builtins.concatMap (h: hosts.${h} or [ ]) hostList) ++ users.${user};
+  inherit (import ./keys.nix) users;
 
   mkUserSecret = user: users.${user};
 in

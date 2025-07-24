@@ -7,6 +7,7 @@
 }:
 let
   inherit (flake) inputs;
+
   inherit (lib)
     mkOption
     mkEnableOption
@@ -19,22 +20,15 @@ let
 
   themes = {
     ono-sendai = import ./palettes/ono-sendai-blue.nix;
-
-    # HOWTO: new themes can be added easily...
-    # hosaka = import ./palettes/hosaka.nix;
+    ono-sendai-tactical = import ./palettes/ono-sendai-tactical.nix;
   };
 
   themeVariants = lib.unique (
     lib.flatten (lib.mapAttrsToList (_: theme: lib.attrNames theme) themes)
   );
 
-  # Berkeley Mono font configuration
   berkeleyMono = pkgs.callPackage ./fonts/berkeley-mono { };
-
-  # Helper to get the current theme/variant data
   currentTheme = themes.${cfg.theme}.${cfg.variant};
-
-  # Font configuration based on display profile
 
   fontConfig = rec {
     package = berkeleyMono;
@@ -59,13 +53,12 @@ let
           weights.semibold;
     };
 
-    # Size calculations - account for Hyprland scaling
     sizes =
       let
         baseSizes = {
-          desktop = 14;
-          applications = 14;
-          terminal = 16;
+          desktop = 16;
+          applications = 16;
+          terminal = 14;
           popups = 16;
         };
 
@@ -81,7 +74,7 @@ let
 in
 {
   imports = [
-    inputs.stylix.homeModules.stylix # FIXED: changed from homeManagerModules
+    inputs.stylix.homeModules.stylix
     ./wallpapers
   ];
 
@@ -110,9 +103,10 @@ in
       default = currentTheme.palette;
     };
 
-    # Display profile affects font rendering and wallpaper generation
+    # font rendering and wallpaper generation
     display = {
       profile = mkOption {
+
         type = types.enum [
           "generic"
           "oled"
@@ -120,6 +114,7 @@ in
           "lg-ultragear-oled"
           "high-contrast"
         ];
+
         default = "generic";
         description = "Display profile for optimizations";
       };

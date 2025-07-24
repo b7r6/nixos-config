@@ -1,0 +1,240 @@
+#!/usr/bin/env bash
+# workspace-toggle - digital realm navigator for hyprland
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+set -euo pipefail
+
+# defaults ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SET1_WORKSPACES=(1 2)
+SET2_WORKSPACES=(3 4)
+FOCUS_MONITOR=""
+
+verbose=false
+dry_run=false
+
+# utilities ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+die() {
+	printf "\033[31merror:\033[0m %s\n" "$*" >&2
+	exit 1
+}
+warn() { printf "\033[33mwarn:\033[0m %s\n" "$*" >&2; }
+info() { printf "\033[34minfo:\033[0m %s\n" "$*" >&2; }
+log() { $verbose && printf "\033[90m::\033[0m %s\n" "$*" >&2; }
+success() { printf "\033[32m✓\033[0m %s\n" "$*" >&2; }
+
+# checks ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+check_deps() {
+	local missing=()
+
+	command -v hyprctl >/dev/null || missing+=("hyprctl")
+	command -v jq >/dev/null || missing+=("jq")
+
+	if [[ ${#missing[@]} -gt 0 ]]; then
+		die "missing dependencies: ${missing[*]}"
+	fi
+
+	# check if hyprland is running
+	if ! hyprctl version &>/dev/null; then
+		die "hyprland not running or hyprctl cannot connect"
+	fi
+
+	log "dependencies ok"
+}
+
+# discovery ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+get_monitors() {
+	local monitors_json
+	monitors_json=$(hyprctl monitors -j 2>&1) || {
+		die "failed to get monitors: $monitors_json"
+	}
+
+	echo "$monitors_json" | jq -r '.[].name' | sort || {
+		die "failed to parse monitor data"
+	}
+}
+
+get_current_workspaces() {
+	local monitors_json
+	monitors_json=$(hyprctl monitors -j 2>&1) || {
+		die "failed to get monitor state"
+	}
+
+	echo "$monitors_json" | jq -r '.[].activeWorkspace.id' | sort -n || {
+		die "failed to parse workspace data"
+	}
+}
+
+get_focused_monitor() {
+	hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .name' || echo ""
+}
+
+# core ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+execute() {
+	local cmd="$1"
+	if $dry_run; then
+		info "[dry-run] hyprctl dispatch $cmd"
+	else
+		log "exec: $cmd"
+		local output
+		if ! output=$(hyprctl dispatch "$cmd" 2>&1); then
+			die "hyprctl failed: $output"
+		fi
+	fi
+}
+
+toggle() {
+	info "checking environment..."
+	check_deps
+
+	# discover monitors
+	info "discovering monitors..."
+	local -a monitors
+	readarray -t monitors < <(get_monitors)
+
+	if [[ ${#monitors[@]} -eq 0 ]]; then
+		die "no monitors found"
+	fi
+
+	success "found ${#monitors[@]} monitors: ${monitors[*]}"
+
+	# get current state
+	info "checking current workspaces..."
+	local -a current_workspaces
+	readarray -t current_workspaces < <(get_current_workspaces)
+
+	if [[ ${#current_workspaces[@]} -eq 0 ]]; then
+		die "could not determine current workspaces"
+	fi
+
+	success "current workspaces: ${current_workspaces[*]}"
+
+	# determine which set we're on
+	local on_set1=false
+	for ws in "${current_workspaces[@]}"; do
+		for set1_ws in "${SET1_WORKSPACES[@]}"; do
+			[[ "$ws" == "$set1_ws" ]] && on_set1=true && break
+		done
+	done
+
+	# select target set
+	local -a target_workspaces
+	if $on_set1; then
+		info "switching: set1 → set2"
+		target_workspaces=("${SET2_WORKSPACES[@]}")
+	else
+		info "switching: set2 → set1"
+		target_workspaces=("${SET1_WORKSPACES[@]}")
+	fi
+
+	# ensure we have enough workspaces for monitors
+	local workspace_count=${#target_workspaces[@]}
+	local monitor_count=${#monitors[@]}
+
+	if [[ $workspace_count -lt $monitor_count ]]; then
+		warn "only $workspace_count workspaces configured for $monitor_count monitors"
+		warn "using first $workspace_count monitors only"
+		monitors=("${monitors[@]:0:$workspace_count}")
+	fi
+
+	# remember current focus
+	local current_focus
+	current_focus=$(get_focused_monitor)
+	[[ -z "$FOCUS_MONITOR" ]] && FOCUS_MONITOR="$current_focus"
+
+	# switch each monitor
+	info "switching workspaces..."
+	for i in "${!monitors[@]}"; do
+		local monitor="${monitors[$i]}"
+		local workspace="${target_workspaces[$i]}"
+
+		log "  $monitor → workspace $workspace"
+		execute "focusmonitor $monitor"
+		execute "workspace $workspace"
+	done
+
+	# restore focus
+	if [[ -n "$FOCUS_MONITOR" ]]; then
+		log "restoring focus to $FOCUS_MONITOR"
+		execute "focusmonitor $FOCUS_MONITOR"
+	fi
+
+	$dry_run || success "workspace toggle complete"
+}
+
+# config ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/workspace-toggle.conf"
+if [[ -f "$CONFIG" ]]; then
+	log "loading config: $CONFIG"
+	# shellcheck source=/dev/null
+	source "$CONFIG" || warn "failed to load config: $CONFIG"
+fi
+
+# args ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+	-v | --verbose) verbose=true ;;
+	-d | --dry-run) dry_run=true ;;
+	-s | --set1)
+		IFS=',' read -ra SET1_WORKSPACES <<<"$2"
+		shift
+		;;
+	-t | --set2)
+		IFS=',' read -ra SET2_WORKSPACES <<<"$2"
+		shift
+		;;
+	-f | --focus)
+		FOCUS_MONITOR="$2"
+		shift
+		;;
+	-h | --help)
+		cat <<'EOF'
+workspace-toggle - hyprland workspace switcher
+
+usage: workspace-toggle [options]
+
+options:
+  -v, --verbose      verbose output
+  -d, --dry-run      preview changes
+  -s, --set1 1,2     workspace set 1 (comma-separated)
+  -t, --set2 3,4     workspace set 2 (comma-separated)
+  -f, --focus MON    monitor to focus after switch
+  -h, --help         this message
+
+discovers monitors automatically. defaults to workspaces 1,2 and 3,4.
+
+config: ~/.config/hypr/workspace-toggle.conf
+  SET1_WORKSPACES=(1 2)
+  SET2_WORKSPACES=(3 4)
+  FOCUS_MONITOR=DP-1
+EOF
+		exit 0
+		;;
+	*) die "unknown option: $1" ;;
+	esac
+	shift
+done
+
+# debug ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+if $verbose; then
+	log "configuration:"
+	log "  set1: ${SET1_WORKSPACES[*]}"
+	log "  set2: ${SET2_WORKSPACES[*]}"
+	log "  focus: ${FOCUS_MONITOR:-auto}"
+	log "  dry-run: $dry_run"
+fi
+
+# entry ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+toggle || {
+	code=$?
+	die "toggle failed with exit code $code"
+}
