@@ -1,6 +1,12 @@
-{ pkgs, ... }:
+{ flake, pkgs, ... }:
+let
+  inherit (flake) inputs;
+in
 {
-  imports = [ ./hardware-configuration.nix ];
+  imports = [
+    ./hardware-configuration.nix
+    inputs.agenix.nixosModules.default
+  ];
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -14,21 +20,14 @@
     "vm.vfs_cache_pressure" = 50;
   };
 
-  networking.hostName = "watchtower";
+  networking.hostName = "railgun";
   networking.networkmanager.enable = true;
+
+  hyper-modern-nixos.nvidia.enable = true;
 
   hardware.graphics = {
     enable = true;
     enable32Bit = true;
-  };
-
-  hardware.opengl = {
-    enable = true;
-    extraPackages = with pkgs; [
-      amdvlk
-      # rocm-opencl-icd
-      # rocm-opencl-runtime
-    ];
   };
 
   time.timeZone = "America/New_York";
