@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ ... }:
 {
   imports = [
 
@@ -41,7 +41,7 @@
 
     overrides = {
       fontSizes = {
-        desktop = 14;
+        desktop = 16;
         applications = 14;
         terminal = 14;
         popups = 14;

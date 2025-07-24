@@ -10,16 +10,16 @@ let
   inherit (flake) inputs;
 
   inherit (config.lib.stylix) colors;
-  base00 = lib.removePrefix "#" colors.base00; # background
-  base01 = lib.removePrefix "#" colors.base01; # lighter background
-  base02 = lib.removePrefix "#" colors.base02; # selection background # comments/dark
-  base04 = lib.removePrefix "#" colors.base04; # dark foreground
-  base05 = lib.removePrefix "#" colors.base05; # foreground # light foreground # light background
-  base08 = lib.removePrefix "#" colors.base08; # red # orange
-  base0A = lib.removePrefix "#" colors.base0A; # yellow
-  base0B = lib.removePrefix "#" colors.base0B; # green # cyan
-  base0D = lib.removePrefix "#" colors.base0D; # blue
-  base0E = lib.removePrefix "#" colors.base0E; # purple # dark accent
+  base00 = lib.removePrefix "#" colors.base00;
+  base01 = lib.removePrefix "#" colors.base01;
+  base02 = lib.removePrefix "#" colors.base02;
+  base04 = lib.removePrefix "#" colors.base04;
+  base05 = lib.removePrefix "#" colors.base05;
+  base08 = lib.removePrefix "#" colors.base08;
+  base0A = lib.removePrefix "#" colors.base0A;
+  base0B = lib.removePrefix "#" colors.base0B;
+  base0D = lib.removePrefix "#" colors.base0D;
+  base0E = lib.removePrefix "#" colors.base0E;
 in
 {
   imports = [ inputs.hyprland.homeManagerModules.default ];
@@ -32,55 +32,65 @@ in
 
     settings = {
       monitor = [
-        "desc:LG Electronics LG ULTRAGEAR+,3840x2160x60hz,0x0,1.5"
+        # Gaming monitor (left, 1.5 inches lower = ~38px at 96 DPI) - reduced refresh to 144Hz for stability
+        # "desc:AOC CU34G2XP 1Q1QBHA003343,3440x1440@60,0x38,1.0"
+        # LG primary (right, aligned top)
+        "desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483,0x0@60,0x0,2.0"
       ];
 
-      # ===== Persistent Workspace Assignment =====
       workspace = [
-        "1, default:true, persistent:true"
-        "2, persistent:true"
-        "3, persistent:true"
-        "4, persistent:true"
-        "5, persistent:true"
-        "6, persistent:true"
-        "7, persistent:true"
-        "8, persistent:true"
+        # Primary monitor (LG) - workspaces 1-6
+        "1, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, default:true, persistent:true"
+        "2, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, persistent:true"
+        "3, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, persistent:true"
+        "4, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, persistent:true"
+        "5, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, persistent:true"
+        "6, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, persistent:true"
+
+        # Gaming monitor - workspaces 7-10
+        # "7, monitor:desc:AOC CU34G2XP 1Q1QBHA003343, persistent:true"
+        # "8, monitor:desc:AOC CU34G2XP 1Q1QBHA003343, persistent:true"
+        # "9, monitor:desc:AOC CU34G2XP 1Q1QBHA003343, persistent:true"
+        # "10, monitor:desc:AOC CU34G2XP 1Q1QBHA003343, persistent:true"
       ];
 
       exec-once = [
-        "blueman-applet"
-        "flameshot"
         "hyprpaper"
+        "waybar" # Explicitly start waybar
         "mako"
-        "nm-tray"
+        "blueman-applet"
+        "nm-applet"
         "tailscale-systray"
       ];
 
       general = {
         border_size = 2;
-        gaps_in = 2;
-        gaps_out = 2;
+        gaps_in = 4;
+        gaps_out = 8;
         layout = "hy3";
         resize_on_border = true;
 
-        "col.active_border" = lib.mkForce "rgba(${base0D}ee) rgba(${base0E}ee) 45deg";
-        "col.inactive_border" = lib.mkForce "rgba(${base02}aa)";
+        "col.active_border" = lib.mkForce "rgba(${base0D}ff) rgba(${base0E}ff) 45deg";
+        "col.inactive_border" = lib.mkForce "rgba(${base02}66)";
       };
 
       decoration = {
-        rounding = 0; # No rounded corners
+        rounding = 0;
 
         blur = {
           enabled = true;
-          size = 3;
-          passes = 1;
+          size = 8;
+          passes = 2;
           new_optimizations = true;
-          xray = false;
-          ignore_opacity = true;
+          xray = true;
+          ignore_opacity = false;
+          brightness = 0.8;
+          contrast = 1.2;
+          noise = 0.01;
         };
 
         active_opacity = 1.0;
-        inactive_opacity = 0.95;
+        inactive_opacity = 0.85;
         fullscreen_opacity = 1.0;
       };
 
@@ -89,16 +99,17 @@ in
 
         bezier = [
           "easeOutQuint, 0.22, 1, 0.36, 1"
-          "easeInQuint, 0.64, 0, 0.78, 0"
+          "easeInOutQuint, 0.83, 0, 0.17, 1"
+          "easeOutExpo, 0.16, 1, 0.3, 1"
         ];
 
         animation = [
-          "windows, 1, 3, easeOutQuint"
-          "windowsOut, 1, 3, easeInQuint, popin 80%"
-          "border, 1, 3, easeOutQuint"
-          "fade, 1, 3, easeOutQuint"
-          "workspaces, 1, 3, easeOutQuint"
-          "specialWorkspace, 1, 3, easeOutQuint, slidevert"
+          "windows, 1, 3, easeOutExpo, popin 80%"
+          "windowsOut, 1, 3, easeOutExpo, popin 80%"
+          "border, 1, 5, easeOutQuint"
+          "fade, 1, 3, easeInOutQuint"
+          "workspaces, 1, 3, easeOutExpo, slide"
+          "specialWorkspace, 1, 3, easeOutExpo, slidevert"
         ];
       };
 
@@ -107,6 +118,7 @@ in
         follow_mouse = 1;
         sensitivity = 0;
         accel_profile = "flat";
+        mouse_refocus = false;
 
         touchpad = {
           natural_scroll = true;
@@ -132,33 +144,36 @@ in
         animate_mouse_windowdragging = false;
         animate_manual_resizes = false;
         enable_swallow = true;
-        swallow_regex = "^(wezterm|ghostty|alacritty)$";
+        swallow_regex = "^(wezterm|ghostty|alacritty|foot|kitty)$";
         focus_on_activate = true;
         disable_hyprland_logo = true;
         disable_splash_rendering = true;
+        vfr = true;
+        vrr = 1;
+        mouse_move_enables_dpms = true;
+        key_press_enables_dpms = true;
       };
 
       plugin.hy3 = {
         tabs = {
-          height = 16;
-          padding = 0;
+          height = 20;
+          padding = 4;
           from_top = true;
-          rounding = 0; # No rounding
+          rounding = 0;
           render_text = true;
+          text_font = config.stylix.fonts.monospace.name;
+          text_height = 10;
 
-          "col.active" = "rgba(${base0D}ee)";
-          "col.inactive" = "rgba(${base02}aa)";
-          "col.text.active" = "rgba(${base05}ee)";
-          "col.text.inactive" = "rgba(${base04}aa)";
-
-          border_width = 1;
+          "col.active" = "rgba(${base0D}ff)";
+          "col.inactive" = "rgba(${base01}ff)";
+          "col.text.active" = "rgba(${base00}ff)";
+          "col.text.inactive" = "rgba(${base04}ff)";
         };
 
         autotile = {
           enable = true;
           trigger_width = 800;
           trigger_height = 500;
-          main_ratio = 0.5;
         };
       };
 
@@ -168,7 +183,9 @@ in
       bind = [
         # Core bindings
         "$mod, Return, exec, wezterm"
+        "$mod SHIFT, Return, exec, [float] wezterm"
         "$mod, Space, exec, wofi --show drun"
+        "$mod SHIFT, Space, exec, wofi --show run"
         "$mod, E, exec, nemo"
         "$mod, W, exec, firefox"
         "$mod, BackSpace, killactive"
@@ -179,6 +196,7 @@ in
         "$mod SHIFT, F, fullscreen, 1"
         "$mod, D, togglefloating"
         "$mod, P, pin"
+        "$mod, C, centerwindow"
 
         # Layout controls with hy3
         "$mod, V, hy3:makegroup, v"
@@ -188,21 +206,17 @@ in
         "$mod, R, hy3:changefocus, raise"
         "$mod SHIFT, G, hy3:changegroup, opposite"
 
-        # Monitor navigation (vim-inspired)
+        # Monitor navigation
         "$mod, comma, focusmonitor, -1"
         "$mod, period, focusmonitor, +1"
 
-        # Move current workspace to next/prev monitor
-        "$mod SHIFT, comma, movecurrentworkspacetomonitor, -1"
-        "$mod SHIFT, period, movecurrentworkspacetomonitor, +1"
+        # Move windows between monitors
+        "$mod SHIFT, comma, movewindow, mon:-1"
+        "$mod SHIFT, period, movewindow, mon:+1"
 
         # Workspace switching - per monitor
         "$mod, Tab, workspace, m+1"
         "$mod SHIFT, Tab, workspace, m-1"
-
-        # Workspace switching - global
-        "$mod $alt, Tab, workspace, +1"
-        "$mod $alt SHIFT, Tab, workspace, -1"
 
         # Direct workspace access
         "$mod, 1, workspace, 1"
@@ -241,10 +255,10 @@ in
         "$mod SHIFT, J, hy3:movewindow, d"
 
         # Resize windows - vim keys with ALT
-        "$mod $alt, H, resizeactive, -20 0"
-        "$mod $alt, L, resizeactive, 20 0"
-        "$mod $alt, K, resizeactive, 0 -20"
-        "$mod $alt, J, resizeactive, 0 20"
+        "$mod $alt, H, resizeactive, -30 0"
+        "$mod $alt, L, resizeactive, 30 0"
+        "$mod $alt, K, resizeactive, 0 -30"
+        "$mod $alt, J, resizeactive, 0 30"
 
         # Screenshots
         "$mod, S, exec, grimblast copy area"
@@ -253,9 +267,9 @@ in
         "$mod $alt SHIFT, S, exec, grimblast save screen ~/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
 
         # Media controls
-        ", XF86AudioRaiseVolume, exec, pactl set-sink-volume @DEFAULT_SINK@ +5%"
-        ", XF86AudioLowerVolume, exec, pactl set-sink-volume @DEFAULT_SINK@ -5%"
-        ", XF86AudioMute, exec, pactl set-sink-mute @DEFAULT_SINK@ toggle"
+        ", XF86AudioRaiseVolume, exec, wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+"
+        ", XF86AudioLowerVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
+        ", XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
         ", XF86AudioPlay, exec, playerctl play-pause"
         ", XF86AudioNext, exec, playerctl next"
         ", XF86AudioPrev, exec, playerctl previous"
@@ -263,12 +277,36 @@ in
         # Brightness
         ", XF86MonBrightnessUp, exec, brightnessctl set +5%"
         ", XF86MonBrightnessDown, exec, brightnessctl set 5%-"
+
+        # Lock screen
+        "$mod, Escape, exec, swaylock"
       ];
 
       # Mouse bindings
       bindm = [
         "$mod, mouse:272, movewindow"
         "$mod, mouse:273, resizewindow"
+        "$mod SHIFT, mouse:272, resizewindow"
+      ];
+
+      # Window rules for better behavior
+      windowrulev2 = [
+        "workspace 1, class:^(firefox)$"
+        "workspace 2, class:^(Code|code-url-handler)$"
+        "workspace 9, class:^(discord|Discord)$"
+        "workspace 10, class:^(Spotify|spotify)$"
+
+        # Float specific windows
+        "float, class:^(pavucontrol)$"
+        "float, class:^(nm-connection-editor)$"
+        "float, class:^(.blueman-manager-wrapped)$"
+        "float, title:^(Picture-in-Picture)$"
+
+        # PiP rules
+        "float, title:^(Picture-in-Picture)$"
+        "pin, title:^(Picture-in-Picture)$"
+        "size 560 315, title:^(Picture-in-Picture)$"
+        "move 100%-576 100%-331, title:^(Picture-in-Picture)$"
       ];
     };
   };
@@ -278,164 +316,215 @@ in
     systemd.enable = true;
 
     settings = {
-      mainBar = {
-        layer = "top";
-        position = "top";
-        height = 24;
-        spacing = 0;
+      # mainBar = {
+      #     layer = "top";
+      #     position = "top";
+      #     height = 26;
+      #     spacing = 0;
+      #     output = "*"; # Show on all monitors
 
-        modules-left = [
-          "hyprland/workspaces"
-          "hyprland/window"
-        ];
+      #     modules-left = [
+      #       "hyprland/workspaces"
+      #       "hyprland/submap"
+      #       "hyprland/window"
+      #     ];
 
-        modules-center = [ "clock" ];
+      #     modules-center = [ "clock" ];
 
-        modules-right = [
-          "cpu"
-          "memory"
-          "battery"
-          "network"
-          "pulseaudio"
-          "tray"
-        ];
+      #     modules-right = [
+      #       "cpu"
+      #       "memory"
+      #       "temperature"
+      #       "battery"
+      #       "network"
+      #       "pulseaudio"
+      #       "tray"
+      #     ];
 
-        "hyprland/workspaces" = {
-          format = "{name}";
-          on-click = "activate";
-          sort-by-number = true;
-          all-outputs = false;
-          active-only = false;
-        };
+      #     "hyprland/workspaces" = {
+      #       format = "{name}";
+      #       on-click = "activate";
+      #       sort-by-number = true;
+      #       all-outputs = false;
+      #       active-only = false;
+      #       format-icons = {
+      #         urgent = "";
+      #         focused = "";
+      #         default = "";
+      #       };
+      #     };
 
-        "hyprland/window" = {
-          format = "{}";
-          max-length = 50;
-          separate-outputs = true;
-        };
+      #     "hyprland/window" = {
+      #       format = "{}";
+      #       max-length = 50;
+      #       separate-outputs = true;
+      #       rewrite = {
+      #         "(.*) — Mozilla Firefox" = "🌐 $1";
+      #         "(.*) - Visual Studio Code" = "󰨞 $1";
+      #         "(.*) - WezTerm" = " $1";
+      #       };
+      #     };
 
-        "clock" = {
-          format = "{:%H:%M}";
-          format-alt = "{:%Y-%m-%d}";
-          tooltip-format = "<tt><small>{calendar}</small></tt>";
-          calendar = {
-            mode = "year";
-            mode-mon-col = 3;
-            weeks-pos = "right";
-            on-scroll = 1;
-            on-click-right = "mode";
-            format = {
-              months = "<span color='#${colors.base0D}'><b>{}</b></span>";
-              days = "<span color='#${colors.base05}'><b>{}</b></span>";
-              weeks = "<span color='#${colors.base04}'><b>W{}</b></span>";
-              weekdays = "<span color='#${colors.base0A}'><b>{}</b></span>";
-              today = "<span color='#${colors.base08}'><b><u>{}</u></b></span>";
-            };
-          };
-        };
+      #     "clock" = {
+      #       format = "{:%H:%M}";
+      #       format-alt = "{:%a %b %d}";
+      #       tooltip-format = "<tt><small>{calendar}</small></tt>";
+      #       calendar = {
+      #         mode = "year";
+      #         mode-mon-col = 3;
+      #         weeks-pos = "right";
+      #         on-scroll = 1;
+      #         on-click-right = "mode";
+      #         format = {
+      #           months = "<span color='#${colors.base0D}'><b>{}</b></span>";
+      #           days = "<span color='#${colors.base05}'><b>{}</b></span>";
+      #           weeks = "<span color='#${colors.base04}'><b>W{}</b></span>";
+      #           weekdays = "<span color='#${colors.base0A}'><b>{}</b></span>";
+      #           today = "<span color='#${colors.base08}'><b><u>{}</u></b></span>";
+      #         };
+      #       };
+      #     };
 
-        "cpu" = {
-          format = "CPU {usage}%";
-          tooltip = true;
-          interval = 2;
-        };
+      #     "cpu" = {
+      #       format = " {usage}%";
+      #       tooltip = true;
+      #       interval = 2;
+      #       states = {
+      #         warning = 70;
+      #         critical = 90;
+      #       };
+      #     };
 
-        "memory" = {
-          format = "MEM {used:0.1f}G";
-          tooltip-format = "Memory: {used:0.1f}G / {total:0.1f}G\nSwap: {swapUsed:0.1f}G / {swapTotal:0.1f}G";
-          interval = 2;
-        };
+      #     "memory" = {
+      #       format = " {percentage}%";
+      #       tooltip-format = "Memory: {used:0.1f}G / {total:0.1f}G\nSwap: {swapUsed:0.1f}G / {swapTotal:0.1f}G";
+      #       interval = 2;
+      #       states = {
+      #         warning = 70;
+      #         critical = 90;
+      #       };
+      #     };
 
-        "battery" = {
-          states = {
-            warning = 30;
-            critical = 15;
-          };
-          format = "BAT {capacity}%";
-          format-charging = "CHG {capacity}%";
-          format-plugged = "PLUG {capacity}%";
-          tooltip-format = "{timeTo}, {capacity}%\n{power}W";
-        };
+      #     "temperature" = {
+      #       critical-threshold = 80;
+      #       format = "{icon} {temperatureC}°C";
+      #       format-icons = [
+      #         ""
+      #         ""
+      #         ""
+      #         ""
+      #         ""
+      #       ];
+      #     };
 
-        "network" = {
-          format-wifi = "WIFI {signalStrength}%";
-          format-ethernet = "ETH";
-          format-linked = "ETH (No IP)";
-          format-disconnected = "OFFLINE";
-          tooltip-format = "{ifname}: {ipaddr}/{cidr}\n{essid}";
-          max-length = 50;
-          interval = 5;
-        };
+      #     "battery" = {
+      #       states = {
+      #         good = 95;
+      #         warning = 30;
+      #         critical = 15;
+      #       };
+      #       format = "{icon} {capacity}%";
+      #       format-charging = " {capacity}%";
+      #       format-plugged = " {capacity}%";
+      #       format-icons = [
+      #         ""
+      #         ""
+      #         ""
+      #         ""
+      #         ""
+      #       ];
+      #       tooltip-format = "{timeTo}, {capacity}%\n{power}W";
+      #     };
 
-        "pulseaudio" = {
-          format = "VOL {volume}%";
-          format-muted = "MUTED";
-          format-bluetooth = "BT {volume}%";
-          format-bluetooth-muted = "BT MUTED";
-          on-click = "pavucontrol";
-          on-click-right = "pactl set-sink-mute @DEFAULT_SINK@ toggle";
-        };
+      #     "network" = {
+      #       format-wifi = " {signalStrength}%";
+      #       format-ethernet = "󰈁";
+      #       format-linked = "󰈂 No IP";
+      #       format-disconnected = "󰈂";
+      #       tooltip-format = "{ifname}: {ipaddr}/{cidr}\n{essid}";
+      #       on-click = "nm-connection-editor";
+      #     };
 
-        "tray" = {
-          icon-size = 14;
-          spacing = 4;
-        };
-      };
+      #     "pulseaudio" = {
+      #       format = "{icon} {volume}%";
+      #       format-muted = "";
+      #       format-bluetooth = "{icon} {volume}%";
+      #       format-bluetooth-muted = " ";
+      #       format-icons = {
+      #         default = [
+      #           ""
+      #           ""
+      #           ""
+      #         ];
+      #       };
+      #       on-click = "pavucontrol";
+      #       on-click-right = "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
+      #     };
+
+      #     "tray" = {
+      #       icon-size = 16;
+      #       spacing = 8;
+      #     };
+      # };
     };
 
     style = ''
       * {
-        font-family: "${config.stylix.fonts.monospace.name}", monospace;
-        font-size: ${toString config.stylix.fonts.sizes.applications}px;
+        font-family: "${config.stylix.fonts.monospace.name}", "Font Awesome 6 Free", monospace;
+        font-size: 13px;
         border-radius: 0px;
         border: none;
         min-height: 0;
       }
 
       window#waybar {
-        background-color: #${colors.base00};
-        color: #${colors.base05};
-        border-bottom: 1px solid #${colors.base02};
+        background-color: @base00;
+        opacity: 0.93;
+        border-bottom: 2px solid #${colors.base0D};
       }
 
       #workspaces button {
-        padding: 0 6px;
+        padding: 0 8px;
         background-color: transparent;
         color: #${colors.base05};
-        border-bottom: 2px solid transparent;
+        border-bottom: 3px solid transparent;
+        min-width: 36px;
       }
 
       #workspaces button:hover {
-        background: #${colors.base01};
+        background: #${colors.base02};
         box-shadow: inherit;
-        border-bottom: 2px solid #${colors.base04};
+        border-bottom: 3px solid #${colors.base04};
       }
 
       #workspaces button.active {
         background-color: #${colors.base02};
-        border-bottom: 2px solid #${colors.base0D};
+        border-bottom: 3px solid #${colors.base0D};
         color: #${colors.base0D};
       }
 
       #workspaces button.urgent {
         background-color: #${colors.base08};
         color: #${colors.base00};
+        animation: blink 0.5s linear infinite alternate;
       }
 
       #clock,
       #battery,
       #cpu,
       #memory,
+      #temperature,
       #network,
       #pulseaudio,
       #tray,
       #window {
-        padding: 0 8px;
+        padding: 0 10px;
         color: #${colors.base05};
       }
 
       #window {
         color: #${colors.base04};
+        font-weight: 600;
       }
 
       #battery.charging {
@@ -444,16 +533,33 @@ in
 
       #battery.warning:not(.charging) {
         color: #${colors.base0A};
+        animation: blink 2s linear infinite;
       }
 
       #battery.critical:not(.charging) {
-        background-color: #${colors.base08};
-        color: #${colors.base00};
-        animation-name: blink;
-        animation-duration: 0.5s;
-        animation-timing-function: linear;
-        animation-iteration-count: infinite;
-        animation-direction: alternate;
+        color: #${colors.base08};
+        animation: blink 0.5s linear infinite;
+      }
+
+      #cpu.warning {
+        color: #${colors.base0A};
+      }
+
+      #cpu.critical {
+        color: #${colors.base08};
+      }
+
+      #memory.warning {
+        color: #${colors.base0A};
+      }
+
+      #memory.critical {
+        color: #${colors.base08};
+      }
+
+      #temperature.critical {
+        color: #${colors.base08};
+        animation: blink 0.5s linear infinite;
       }
 
       #network.disconnected {
@@ -466,14 +572,14 @@ in
 
       @keyframes blink {
         to {
-          background-color: #${colors.base00};
-          color: #${colors.base08};
+          color: #${colors.base00};
+          background-color: #${colors.base08};
         }
       }
 
       tooltip {
-        background: #${colors.base00};
-        border: 1px solid #${colors.base0D};
+        background: rgba(9, 11, 14, 0.93);
+        border: 2px solid #4d9fff;
         border-radius: 0px;
       }
 
@@ -483,46 +589,64 @@ in
     '';
   };
 
+  # Better notification styling
   services.mako = {
     enable = true;
 
-    settings = {
-      # General settings
-      # font = "${config.stylix.fonts.monospace.name} ${toString config.stylix.fonts.sizes.applications}";
-      # background-color = lib.mkForce "#${colors.base00}";
+    settings = lib.mkForce {
+      font = "${config.stylix.fonts.monospace.name} 11";
+      background-color = "#${colors.base00}ee";
       text-color = "#${colors.base05}";
       border-color = "#${colors.base0D}";
-      border-size = 1;
+      border-size = 2;
       border-radius = 0;
-      padding = "8";
+      padding = "10";
+      margin = "20";
       default-timeout = 5000;
       layer = "overlay";
-      progress-color = "over #${colors.base02}";
+      width = 350;
+      height = 200;
+      progress-color = "over #${colors.base0D}";
+      icons = true;
+      max-icon-size = 64;
+      markup = true;
+      actions = true;
+      history = true;
+      max-history = 20;
+
+      # Positioning on primary monitor
+      anchor = "top-right";
     };
 
     extraConfig = ''
       [urgency=low]
-      border-color=#${colors.base0D}
+      border-color=#${colors.base0B}
+      default-timeout=3000
 
       [urgency=normal]
       border-color=#${colors.base0D}
 
       [urgency=high]
       border-color=#${colors.base08}
-      background-color=#${colors.base00}
+      background-color=#${colors.base00}ee
       text-color=#${colors.base08}
       default-timeout=0
+
+      [category=volume]
+      default-timeout=1000
+      group-by=category
     '';
   };
 
+  # Enhanced wofi config - fixed clipping issue
   programs.wofi = {
     enable = true;
-    settings = {
+    settings = lib.mkForce {
       width = 600;
-      height = 400;
+      height = 450; # Reduced height to prevent clipping
       location = "center";
       show = "drun";
-      prompt = "Search...";
+      prompt = "";
       filter_rate = 100;
       allow_markup = true;
       no_actions = true;
@@ -533,58 +657,69 @@ in
       allow_images = true;
       image_size = 32;
       gtk_dark = true;
+      matching = "fuzzy";
+      sort_order = "alphabetical";
+      hide_scroll = false; # Show scrollbar to prevent clipping
     };
 
     style = ''
       window {
         margin: 0px;
-        background-color: #${colors.base00};
+        background-color: rgba(${lib.removePrefix "#" colors.base00}, 0.95);
         border: 2px solid #${colors.base0D};
         border-radius: 0px;
       }
 
       #input {
-        margin: 8px;
-        padding: 8px;
-        border: 1px solid #${colors.base02};
+        margin: 10px;
+        padding: 10px;
+        border: 2px solid #${colors.base02};
         border-radius: 0px;
         color: #${colors.base05};
-        background-color: #${colors.base01};
-        font-size: ${toString config.stylix.fonts.sizes.applications}px;
+        background-color: rgba(${lib.removePrefix "#" colors.base01}, 0.8);
+        font-size: 14px;
+      }
+
+      #input:focus {
+        border-color: #${colors.base0D};
       }
 
       #inner-box {
-        margin: 8px;
-        background-color: #${colors.base00};
+        margin: 10px;
+        margin-bottom: 10px;  /* Ensure bottom margin */
+        background-color: transparent;
         border-radius: 0px;
       }
 
       #outer-box {
         margin: 0px;
         padding: 0px;
-        background-color: #${colors.base00};
+        background-color: transparent;
         border-radius: 0px;
       }
 
       #scroll {
         margin: 0px;
-        background-color: #${colors.base00};
+        margin-bottom: 10px;  /* Add bottom margin to scroll container */
+        background-color: transparent;
       }
 
       #text {
         margin: 2px;
-        padding: 4px;
+        padding: 6px;
         color: #${colors.base05};
       }
 
       #entry {
-        padding: 4px;
-        margin: 2px;
+        padding: 8px;
+        margin: 4px;
+        background-color: rgba(${lib.removePrefix "#" colors.base01}, 0.5);
+        border: 2px solid transparent;
       }
 
       #entry:selected {
-        background-color: #${colors.base02};
-        border: 1px solid #${colors.base0D};
+        background-color: rgba(${lib.removePrefix "#" colors.base02}, 0.8);
+        border: 2px solid #${colors.base0D};
       }
 
       #text:selected {
@@ -594,27 +729,84 @@ in
     '';
   };
 
+  # Add better lock screen
+  programs.swaylock = {
+    enable = true;
+    settings = lib.mkForce {
+      color = colors.base00;
+      bs-hl-color = colors.base08;
+      key-hl-color = colors.base0B;
+      caps-lock-bs-hl-color = colors.base08;
+      caps-lock-key-hl-color = colors.base0B;
+      ring-color = colors.base02;
+      ring-clear-color = colors.base0A;
+      ring-ver-color = colors.base0D;
+      ring-wrong-color = colors.base08;
+      inside-color = "00000000";
+      inside-clear-color = "00000000";
+      inside-ver-color = "00000000";
+      inside-wrong-color = "00000000";
+      line-color = "00000000";
+      line-clear-color = "00000000";
+      line-ver-color = "00000000";
+      line-wrong-color = "00000000";
+      separator-color = "00000000";
+      text-color = colors.base05;
+      text-clear-color = colors.base05;
+      text-ver-color = colors.base05;
+      text-wrong-color = colors.base05;
+      indicator-radius = 100;
+      indicator-thickness = 10;
+      font = config.stylix.fonts.monospace.name;
+      font-size = 24;
+      show-failed-attempts = true;
+    };
+  };
+
   home.packages = with pkgs; [
-    blueman
+    # Core utilities
     brightnessctl
-    flameshot
     grim
     grimblast
     hyprpaper
-    hyprpicker # Color picker
+    hyprpicker
     jq
     libnotify
-    mako
-    nm-tray
     pamixer
     pavucontrol
     playerctl
     slurp
     swappy
-    tailscale-systray
+    swaybg
+    # swaylock-effects
+    # waybar-hyprland removed as it doesn't exist
+    waybar # Standard waybar should work fine
     wev
     wl-clipboard
     wlr-randr
     wofi
+
+    # Enhanced utilities
+    cliphist
+    eww
+    font-awesome
+    networkmanagerapplet
+    swayidle
+    wdisplays
+    wlsunset
+
+    # Screenshot/recording
+    wf-recorder
+
+    # System tray apps
+    blueman
+    tailscale-systray
   ];
+
+  # Add hyprpaper config
+  xdg.configFile."hypr/hyprpaper.conf".text = ''
+    preload = ~/.config/wallpaper.png
+    wallpaper = ,~/.config/wallpaper.png
+    splash = false
+  '';
 }

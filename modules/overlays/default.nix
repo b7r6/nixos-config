@@ -1,7 +1,6 @@
-{ inputs, ... }:
 {
   flake.overlays = {
-    default = final: prev: {
+    default = _final: prev: {
       # Fix ragenix to include runtime dependencies
       ragenix = prev.ragenix.overrideAttrs (old: {
         nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ prev.makeWrapper ];
@@ -22,7 +21,7 @@
           '';
       });
 
-      # Fix agenix wrapper too if we ever get it
+      # TODO[b7r6]: no way we need both, probably don't need either...
       agenix =
         if prev ? agenix then
           prev.agenix.overrideAttrs (old: {

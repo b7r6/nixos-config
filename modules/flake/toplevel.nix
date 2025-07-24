@@ -26,9 +26,7 @@
           allowUnfreePredicate = _: true;
         };
 
-        overlays = [
-          inputs.devshell.overlays.default
-        ];
+        overlays = [ inputs.devshell.overlays.default ];
       };
 
       devshells.default.imports = [ (pkgs.devshell.importTOML ../../devshell.toml) ];

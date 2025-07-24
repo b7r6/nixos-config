@@ -47,6 +47,7 @@
   services.printing.enable = true;
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
+
   services.pipewire = {
     enable = true;
     alsa.enable = true;
@@ -54,11 +55,5 @@
     pulse.enable = true;
   };
 
-  xdg.portal = {
-    enable = true;
-    wlr.enable = true; # for wlroots-based compositors
-    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
-  };
-
-  system.stateVersion = "24.11"; # Did you read the comment?
+  system.stateVersion = "25.05"; # Did you read the comment?
 }

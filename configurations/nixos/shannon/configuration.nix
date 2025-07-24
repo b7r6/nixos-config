@@ -14,8 +14,7 @@ in
   networking.hostName = "shannon";
   networking.networkmanager.enable = true;
 
-  networking.hosts = {
-  };
+  networking.hosts = { };
 
   # TODO[b7r6]: we've got to either converge or diverge on
   # `autowire`, this in-between isn't working out...

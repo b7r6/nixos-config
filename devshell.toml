@@ -9,9 +9,7 @@ motd = '''
 in night city, and still he'd see the matrix in his sleep, bright lattices
 of logic unfolding across that colorless void...
 '''
-packages = [
-  "nh"
-]
+packages = ["nh"]
 
 [[commands]]
 name = "switch-os"
@@ -24,7 +22,7 @@ name = "switch-home"
 help = "...flipmode is the greatest"
 category = "development"
 command = "nh home switch ."
-  
+
 [[commands]]
 name = "treefmt"
 help = "legiblibility is next to godliness"
