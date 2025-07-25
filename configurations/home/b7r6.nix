@@ -4,7 +4,10 @@ let
   inherit (inputs) self;
 in
 {
-  imports = [ self.homeModules.default ];
+  imports = [
+    inputs.agenix.homeManagerModules.default
+    self.homeModules.default
+  ];
 
   me = {
     username = "b7r6";

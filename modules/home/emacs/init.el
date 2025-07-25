@@ -216,32 +216,79 @@ with the mode-line background color."
   :ensure t
   :config
 
-  (setq gptel-max-tokens 200000        ;Maximum input tokens (200K)
-        gptel-response-length 4096)    ;Maximum output tokens (4K)
-
-  (setq gptel-backend
-        (gptel-make-anthropic "anthropic"
+  ;; OpenRouter backend – the four coding champions
+  (setq gptel-model 'anthropic/claude-opus-4         ;;  default start-up model
+        gptel-backend
+        (gptel-make-openai "// open // router"
+          :host "openrouter.ai"
+          :endpoint "/api/v1/chat/completions"
           :stream t
-          :key #'gptel-api-key-from-auth-source
-          :models '(claude-3.5-sonnet-20241022 claude-4-sonnet-20250514 claude-4-opus-20250514)
-          :request-params '(:max_tokens 4096)))
+          :key (lambda ()
+                 (or (getenv "OPENROUTER_API_KEY")
+                     (auth-source-pick-first-password
+                      :host "api.openrouter.ai")))
+          :models
+          '(;; the old guard…
+            anthropic/claude-opus-4            ;; world’s best
+            anthropic/claude-sonnet-4          ;; fast & solid
+            moonshotai/kimi-k2                 ;; long-form beast
+            ;; …and the new kid
+            qwen/qwen3-coder)))                ;; 262 K context MoE
 
-  ;; OpenAI GPT-4o
-  (gptel-make-openai "gpt-4o"
-    :stream t
-    :key #'gptel-api-key-from-auth-source
-    :models '(gpt-4o-2024-05-13)
-    :request-params '(:max_tokens 4096))
+  ;; Model-specific settings ---------------------------------------------------
+  (defun hypermodern/gptel-configure-output ()
+    "Configure output length based on model, always leaving room for input."
+    (pcase gptel-model
+      ('anthropic/claude-opus-4
+       (setq gptel-response-length 8192 gptel-max-tokens 150000))
+      ('anthropic/claude-sonnet-4
+       (setq gptel-response-length 16384 gptel-max-tokens 130000))
+      ('moonshotai/kimi-k2
+       (setq gptel-response-length 32768 gptel-max-tokens 90000))
+      ('qwen/qwen3-coder                 ; <-- new! 262 K context buffer
+       (setq gptel-response-length 68000 ; plenty of room for input+output
+             gptel-max-tokens (- 262144 (* 2 gptel-response-length))))
+      (_
+       (setq gptel-response-length 4096
+             gptel-max-tokens 100000))))
 
-  ;; DeepSeek
-  (gptel-make-deepseek "deepseek"
-    :stream t
-    :key (or (getenv "GPTEL_DEEPSEEK_KEY")
-             #'gptel-api-key-from-netrc)
-    :models '(deepseek-coder deepseek-chat)
-    :request-params '(:max_tokens 4096))
+  ;; Quick model switcher now with Coder Qwen included -------------------------
+  (defun hypermodern/gptel-switch-model ()
+    "Switch between the four coding models."
+    (interactive)
+    (let* ((models '(("Opus 4 (Best)"       . anthropic/claude-opus-4)
+                     ("Sonnet 4 (Fast)"     . anthropic/claude-sonnet-4)
+                     ("Kimi K2 (Long)"      . moonshotai/kimi-k2)
+                     ("Qwen Coder (Ultra)"  . qwen/qwen3-coder)))
+           (choice (completing-read "Model: " (mapcar #'car models))))
+      (setq gptel-model (cdr (assoc choice models)))
+      (hypermodern/gptel-configure-output)
+      (message "Switched to %s (max output: %d tokens)"
+               choice gptel-response-length)))
 
-  (setq gptel-model 'claude-4-opus-20250514))
+  ;; Token estimator & prompt-less system message unchanged --------------------
+  (defun hypermodern/gptel-check-tokens ()
+    "Check estimated token usage before sending."
+    (interactive)
+    (let* ((content (if (use-region-p)
+                        (buffer-substring-no-properties (region-beginning) (region-end))
+                      (buffer-string)))
+           (estimated-tokens (/ (length content) 4)) ; crude heuristic
+           (total (+ estimated-tokens gptel-response-length)))
+      (message "Estimated: %d input + %d output = %d total (query limit: %dK)"
+               estimated-tokens gptel-response-length total
+               (round (/ gptel-max-tokens 1000.0)))))
+
+  (setq gptel--system-message nil)
+
+  :bind (("C-c g g" . gptel)
+         ("C-c g m" . gptel-menu)
+         ("C-c g a" . hypermodern/gptel-switch-model)
+         ("C-c g s" . gptel-send)
+         ("C-c g r" . gptel-rewrite)
+         ("C-c g t" . hypermodern/gptel-check-tokens)
+         ("C-c g k" . gptel-abort)))
+                  ;; Abort request
 
 ;; ============================================================
 ;; completion // minibuffer // read
@@ -994,22 +1041,22 @@ no way human."))
          ("\\.lhs\\'" . literate-haskell-mode)
          ("\\.cabal\\'" . haskell-cabal-mode)
          ("\\.hsc\\'" . haskell-mode))
-  
+
   :config
   ;; Basic indentation settings
   (setq haskell-indentation-layout-offset 4)
   (setq haskell-indentation-left-offset 4)
   (setq haskell-indentation-where-pre-offset 2)
   (setq haskell-indentation-where-post-offset 2)
-  
+
   ;; Disable all the legacy interactive stuff - we have LSP
   (setq haskell-tags-on-save nil)
   (setq haskell-stylish-on-save nil)
   (setq haskell-mode-stylish-haskell-path "stylish-haskell")
-  
+
   ;; Don't load interactive-haskell-mode, it fights with LSP
   (setq haskell-process-type nil)
-  
+
   :hook
   ((haskell-mode . haskell-indentation-mode)
    (haskell-mode . haskell-decl-scan-mode)))
@@ -1017,7 +1064,7 @@ no way human."))
 (use-package lsp-haskell
   :ensure t
   :after (haskell-mode lsp-mode)
-  
+
   :init
   ;; Clear any competing keybindings before LSP starts
   (add-hook 'haskell-mode-hook
@@ -1027,21 +1074,21 @@ no way human."))
               (local-unset-key (kbd "M-,"))
               (local-unset-key (kbd "C-c C-t")))
             -10) ; Run early with negative priority
-  
+
   :config
   ;; Use the NixOS-provided HLS
   (setq lsp-haskell-server-path "haskell-language-server-wrapper")
-  
+
   ;; Modern HLS settings
   (setq lsp-haskell-plugin-stan-global-on nil) ; Stan is noisy
   (setq lsp-haskell-plugin-hlint-global-on t)
   (setq lsp-haskell-plugin-eval-global-on t)
   (setq lsp-haskell-formatting-provider "fourmolu")
-  
+
   ;; Completions
   (setq lsp-haskell-plugin-ghcide-completions-config-auto-extend-on t)
   (setq lsp-haskell-plugin-ghcide-completions-config-snippets-on t)
-  
+
   :hook
   (haskell-mode . lsp-deferred))
 
@@ -1114,6 +1161,38 @@ no way human."))
   :ensure nil
   :mode (("\\.py\\'" . python-ts-mode)
          ("\\.pyi\\'" . python-ts-mode)))
+
+
+;; ============================================================
+;; shell / sh-mode
+;; ============================================================
+
+(use-package sh-mode
+  :ensure nil
+  :mode (("\\.sh\\'" . sh-mode)
+         ("\\.bash\\'" . sh-mode)
+         ("\\.zsh\\'" . sh-mode))
+  :config
+  (setq sh-basic-offset 2
+        sh-indentation 2
+        sh-indent-for-case-label 0
+        sh-indent-for-case-alt '+)
+  :hook
+  (sh-mode . (lambda () (setq indent-tabs-mode nil))))
+
+;; If you're using tree-sitter bash mode
+(use-package bash-ts-mode
+  :ensure nil
+  :mode (("\\.sh\\'" . bash-ts-mode)
+         ("\\.bash\\'" . bash-ts-mode))
+
+  :when (treesit-available-p)
+
+  :config
+
+  (setq sh-basic-offset 2)
+  :hook
+  (bash-ts-mode . (lambda () (setq indent-tabs-mode nil))))
 
 (provide 'init)
 ;;; init.el ends here
