@@ -12,6 +12,16 @@ let
   '';
 in
 {
+  age = {
+    secrets = {
+      netrc = {
+        file = ../../../secrets/b7r6/.netrc.age;
+        path = "${config.home.homeDirectory}/.netrc";
+        mode = "600";
+      };
+    };
+  };
+
   home.packages = with pkgs; [
     (python313.withPackages (ps: [
       ps.llm
@@ -61,25 +71,45 @@ in
   programs.bash.initExtra = lib.mkIf config.programs.bash.enable ''
     # Setup LLM tool with API keys from .netrc
     function setup_ai_env() {
+      # Check if netrc exists
+      if [ ! -f "$HOME/.netrc" ]; then
+        echo "Warning: .netrc file not found" >&2
+        return 1
+      fi
+
       # Anthropic API key
       export ANTHROPIC_API_KEY=$(${readNetrcEntry "api.anthropic.com"})
 
       # OpenAI API key
       export OPENAI_API_KEY=$(${readNetrcEntry "api.openai.com"})
 
-      # GitHub Copilot API key
-      export GITHUB_TOKEN=$(${readNetrcEntry "github.com"})
+      # Tailscale API key
+      export TAILSCALE_API_KEY=$(${readNetrcEntry "api.tailscale.com"})
 
-      # DeepSeek API key
-      export DEEPSEEK_API_KEY=$(${readNetrcEntry "api.deepseek.com"})
+      # Buf.build API key
+      export BUF_TOKEN=$(${readNetrcEntry "buf.build"})
+
+      # Brave Search API key
+      export BRAVE_SEARCH_API_KEY=$(${readNetrcEntry "search.brave.com"})
+
+      # Latitude API key
+      export LATITUDE_API_KEY=$(${readNetrcEntry "api.latitude.sh"})
+
+      # Together AI API key
+      export TOGETHER_API_KEY=$(${readNetrcEntry "api.together.xyz"})
+
+      # OpenRouter API key
+      export OPENROUTER_API_KEY=$(${readNetrcEntry "api.openrouter.ai"})
+
+      # OpenRouter Provisioning API key
+      export OPENROUTER_PROVISIONING_API_KEY=$(${readNetrcEntry "provisioning.openrouter.ai"})
 
       # Configure LLM tool
       export LLM_ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
 
       # Set environment variables for gptel (Emacs)
-      # These are picked up by gptel automatically
-      export GPTEL_API_KEY=$OPENAI_API_KEY  # For OpenAI
-      export GPTEL_ANTHROPIC_KEY=$ANTHROPIC_API_KEY  # For Anthropic
+      export GPTEL_API_KEY=$OPENAI_API_KEY
+      export GPTEL_ANTHROPIC_KEY=$ANTHROPIC_API_KEY
 
       # Enable Claude Code autocompletion
       if command -v claude-code &> /dev/null; then
