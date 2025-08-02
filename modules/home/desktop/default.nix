@@ -14,6 +14,7 @@
     spotify-tray
     telegram-desktop
     zoom-us
+    whatsie
   ];
 
   fonts.fontconfig.enable = true;

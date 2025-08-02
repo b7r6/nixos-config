@@ -22,9 +22,9 @@
     ./session
 
     # optional desktop environments
-    # ./desktop
-    # ./wayland
-    # ./vscode
+    ./desktop
+    ./wayland
+    ./vscode
   ];
 
   hyper-modern-nixos.themes = {
