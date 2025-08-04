@@ -5,6 +5,7 @@
     _1password-cli
     _1password-gui-beta
     brave
+    discord
     nemo
     pavucontrol
     slack
@@ -13,8 +14,8 @@
     spotify-cli-linux
     spotify-tray
     telegram-desktop
-    zoom-us
     whatsie
+    zoom-us
   ];
 
   fonts.fontconfig.enable = true;
