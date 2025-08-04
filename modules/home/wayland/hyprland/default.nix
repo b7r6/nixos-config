@@ -32,26 +32,17 @@ in
 
     settings = {
       monitor = [
-        # Gaming monitor (left, 1.5 inches lower = ~38px at 96 DPI) - reduced refresh to 144Hz for stability
-        # "desc:AOC CU34G2XP 1Q1QBHA003343,3440x1440@60,0x38,1.0"
-        # LG primary (right, aligned top)
-        "desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483,0x0@60,0x0,2.0"
+        "eDP-1,3840x2400@60,0x0,3.0"
       ];
 
       workspace = [
-        # Primary monitor (LG) - workspaces 1-6
-        "1, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, default:true, persistent:true"
-        "2, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, persistent:true"
-        "3, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, persistent:true"
-        "4, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, persistent:true"
-        "5, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, persistent:true"
-        "6, monitor:desc:LG Electronics LG ULTRAGEAR+ 502NTMX7E483, persistent:true"
-
-        # Gaming monitor - workspaces 7-10
-        # "7, monitor:desc:AOC CU34G2XP 1Q1QBHA003343, persistent:true"
-        # "8, monitor:desc:AOC CU34G2XP 1Q1QBHA003343, persistent:true"
-        # "9, monitor:desc:AOC CU34G2XP 1Q1QBHA003343, persistent:true"
-        # "10, monitor:desc:AOC CU34G2XP 1Q1QBHA003343, persistent:true"
+        # Samsung Display Corp. 0x415D
+        "1, monitor:eDP-1, default:true, persistent:true"
+        "2, monitor:eDP-1, persistent:true"
+        "3, monitor:eDP-1, persistent:true"
+        "4, monitor:eDP-1, persistent:true"
+        "5, monitor:eDP-1, persistent:true"
+        "6, monitor:eDP-1, persistent:true"
       ];
 
       exec-once = [

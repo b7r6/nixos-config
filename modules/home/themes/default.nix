@@ -35,7 +35,7 @@ let
     name = "Berkeley Mono";
 
     weights = {
-      light = "${name} Light";
+      light = "${name} Regular";
       regular = "${name} Regular";
       medium = "${name} Medium";
       semibold = "${name} SemiBold";
@@ -53,18 +53,12 @@ let
           weights.semibold;
     };
 
-    sizes =
-      let
-        baseSizes = {
-          desktop = 16;
-          applications = 16;
-          terminal = 14;
-          popups = 16;
-        };
-
-        scaleFactor = 1.0;
-      in
-      lib.mapAttrs (_: size: lib.toInt (size * scaleFactor)) baseSizes;
+    sizes = {
+      desktop = 18;
+      applications = 14;
+      terminal = 14;
+      popups = 16;
+    };
 
     sansSerif = {
       inherit package;

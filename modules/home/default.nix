@@ -1,7 +1,6 @@
 { pkgs, ... }:
 {
   imports = [
-
     # user identity
     ./me.nix
 
@@ -33,19 +32,10 @@
     variant = "chiba";
 
     display = {
-      profile = "lg-ultragear-oled";
-      highDPI = true;
+      profile = "samsung-e6";
+      highDPI = false;
       width = 3840;
-      height = 2160;
-    };
-
-    overrides = {
-      fontSizes = {
-        desktop = 16;
-        applications = 14;
-        terminal = 14;
-        popups = 14;
-      };
+      height = 2400;
     };
   };
 
