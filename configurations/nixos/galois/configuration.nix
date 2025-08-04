@@ -1,6 +1,14 @@
 { pkgs, ... }:
 {
-  imports = [ ./hardware-configuration.nix ];
+  imports = [
+    ./hardware-configuration.nix
+  ];
+
+  hyper-modern-nixos.radeon = {
+    enable = true;
+    rocm.enable = true;
+    strixHalo = true;
+  };
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -16,20 +24,6 @@
 
   networking.hostName = "galois";
   networking.networkmanager.enable = true;
-
-  hardware.graphics = {
-    enable = true;
-    enable32Bit = true;
-  };
-
-  hardware.opengl = {
-    enable = true;
-    extraPackages = with pkgs; [
-      amdvlk
-      # rocm-opencl-icd
-      # rocm-opencl-runtime
-    ];
-  };
 
   time.timeZone = "America/New_York";
   i18n.extraLocaleSettings = {
@@ -54,5 +48,5 @@
     pulse.enable = true;
   };
 
-  system.stateVersion = "24.11"; # Did you read the comment?
+  system.stateVersion = "25.05";
 }

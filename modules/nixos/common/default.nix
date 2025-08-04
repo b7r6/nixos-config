@@ -13,6 +13,7 @@ in
     ./network-manager.nix
     ./nvidia.nix
     ./nix-ld.nix
+    ./radeon.nix
     ./secrets.nix
     ./usb.nix
   ];
