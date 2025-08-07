@@ -29,8 +29,6 @@ in
   home-manager.backupFileExtension = "hm-backup";
 
   services.openssh.enable = true;
-
-  programs.ssh.startAgent = true;
   programs.nh.enable = true;
 
   hyper-modern-nixos.network = {

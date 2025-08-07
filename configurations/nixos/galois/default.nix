@@ -6,7 +6,7 @@ in
 {
   imports = [
     self.nixosModules.default
-    self.nixosModules.gui
+    self.nixosModules.wayland
     ./configuration.nix
   ];
 }

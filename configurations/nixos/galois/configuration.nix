@@ -4,6 +4,10 @@
     ./hardware-configuration.nix
   ];
 
+  hyper-modern-nixos.wayland = {
+    enable = true;
+  };
+
   hyper-modern-nixos.radeon = {
     enable = true;
     rocm.enable = true;
@@ -40,7 +44,7 @@
 
   services.printing.enable = true;
   services.pulseaudio.enable = false;
-  security.rtkit.enable = true;
+  security.rtkit.enable = false;
   services.pipewire = {
     enable = true;
     alsa.enable = true;

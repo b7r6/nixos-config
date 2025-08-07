@@ -5,16 +5,9 @@
   lib,
   ...
 }:
+with lib;
 let
   inherit (flake) inputs;
-
-  inherit (lib)
-    mkOption
-    mkEnableOption
-    mkIf
-    mkMerge
-    types
-    ;
 
   cfg = config.hyper-modern-nixos.themes;
 
@@ -74,7 +67,7 @@ let
 in
 {
   imports = [
-    inputs.stylix.homeModules.stylix
+    inputs.stylix.nixosModules.stylix
     ./wallpapers
   ];
 
@@ -195,9 +188,8 @@ in
       } // cfg.overrides.opacity;
     };
 
-    # TODO[b7r6]: we've got to get this lifted out into
-    # the `nixos` stuff as well...
-    home.sessionVariables = mkMerge [
+    # System-level theme configuration
+    environment.sessionVariables = mkMerge [
       (mkIf (cfg.enable && cfg.display.profile == "samsung-e6") {
         FREETYPE_PROPERTIES = "cff:no-stem-darkening=0 autofitter:no-stem-darkening=0 truetype:interpreter-version=40";
       })

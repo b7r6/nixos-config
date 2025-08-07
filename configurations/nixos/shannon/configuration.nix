@@ -64,7 +64,7 @@ in
   time.timeZone = "America/New_York";
   services.printing.enable = true;
   services.pulseaudio.enable = false;
-  security.rtkit.enable = true;
+  security.rtkit.enable = false;
 
   services.pipewire = {
     enable = true;
