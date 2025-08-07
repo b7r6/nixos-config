@@ -1,8 +1,40 @@
-{ pkgs, ... }:
+{ ... }:
 {
-  imports = [
-    ./hardware-configuration.nix
-  ];
+  imports = [ ./hardware-configuration.nix ];
+
+  hyper-modern-nixos.wayland = {
+    enable = true;
+    compositor = "hyprland";
+  };
+
+  hyper-modern-nixos.hyprland = {
+    enable = true;
+  };
+
+  hyper-modern-nixos.themes = {
+    enable = true;
+    theme = "ono-sendai";
+    variant = "chiba";
+
+    # TODO[b7r6]: cope with multi-monitor...
+    # TODO[b7r6]: one of `hyprland` or `wayland` is probably the better
+    # home for the display stuff...
+    display = {
+      profile = "lg-ultragear-oled";
+      highDPI = true;
+      width = 3840;
+      height = 2160;
+    };
+
+    overrides = {
+      fontSizes = {
+        desktop = 16;
+        applications = 14;
+        terminal = 14;
+        popups = 14;
+      };
+    };
+  };
 
   hyper-modern-nixos.radeon = {
     enable = true;
@@ -40,7 +72,7 @@
 
   services.printing.enable = true;
   services.pulseaudio.enable = false;
-  security.rtkit.enable = true;
+  security.rtkit.enable = false;
   services.pipewire = {
     enable = true;
     alsa.enable = true;

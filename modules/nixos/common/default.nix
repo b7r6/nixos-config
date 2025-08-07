@@ -29,8 +29,6 @@ in
   home-manager.backupFileExtension = "hm-backup";
 
   services.openssh.enable = true;
-
-  programs.ssh.startAgent = true;
   programs.nh.enable = true;
 
   hyper-modern-nixos.network = {
@@ -108,10 +106,10 @@ in
     wireshark-cli
 
     # System diagnostics & performance
-    # bcc # BPF Compiler Collection for Linux kernel tracing
-    # bpftrace # High-level tracing language for Linux eBPF
-    # ethtool # Network interface diagnostic tool
-    # glances # System monitoring tool
+    bcc # BPF Compiler Collection for Linux kernel tracing
+    bpftrace # High-level tracing language for Linux eBPF
+    ethtool # Network interface diagnostic tool
+    glances # System monitoring tool
     # htop # Interactive process viewer
     # iftop # Network bandwidth monitor
     # iotop # I/O monitoring tool

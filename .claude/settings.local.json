@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:nixos-unified.org)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(git add:*)",
+      "Bash(nix flake check:*)",
+      "Bash(nh os build:*)",
+      "Bash(find:*)",
+      "Bash(nix flake show:*)",
+      "Bash(ls:*)",
+      "Bash(rm:*)",
+      "Bash(nix eval:*)",
+      "Bash(nh home:*)",
+      "Bash(timeout:*)",
+      "Bash(nix fmt:*)",
+      "Bash(nh os switch:*)",
+      "Bash(sudo nix-collect-garbage:*)",
+      "Bash(sudo nixos-rebuild switch:*)"
+    ],
+    "deny": []
+  }
+}

@@ -1,4 +1,5 @@
 <!-- wallpapers/templates/hyper-modern.svg.template -->
+<!-- TODO: Fix SVG template formatting for treefmt compliance -->
 <svg width="@WIDTH@" height="@HEIGHT@" viewBox="0 0 @WIDTH@ @HEIGHT@" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <style>

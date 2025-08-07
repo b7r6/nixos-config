@@ -20,10 +20,6 @@
   hardware.graphics = {
     enable = true;
     enable32Bit = true;
-  };
-
-  hardware.opengl = {
-    enable = true;
     extraPackages = with pkgs; [
       amdvlk
       # rocm-opencl-icd
@@ -46,7 +42,7 @@
 
   services.printing.enable = true;
   services.pulseaudio.enable = false;
-  security.rtkit.enable = true;
+  security.rtkit.enable = false;
 
   services.pipewire = {
     enable = true;

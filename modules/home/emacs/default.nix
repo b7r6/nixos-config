@@ -2,11 +2,13 @@
   config,
   lib,
   pkgs,
-  stylix,
   ...
 }:
 let
   initialInitEl = builtins.readFile ./init.el;
+
+  cfg = config.hyper-modern-nixos.themes;
+  inherit (cfg) palette;
 
   localLibs = pkgs.symlinkJoin {
     name = "emacs-local-libs";
@@ -21,55 +23,50 @@ let
   };
 in
 {
-  stylix.targets.emacs.enable = true;
-
   programs.emacs = {
     enable = true;
 
     package = (pkgs.emacsPackagesFor pkgs.emacs30-pgtk).emacsWithPackages (
       epkgs: with epkgs; [
-        (epkgs.trivialBuild (
-          with config.lib.stylix.colors.withHashtag;
-          {
-            pname = "base16-stylix-theme";
-            version = "0.1.0";
+        (epkgs.trivialBuild {
+          pname = "base16-hyper-modern-theme";
+          version = "0.1.0";
 
-            src = pkgs.writeText "base16-stylix-theme.el" ''
-              (require 'base16-theme)
-              (defvar base16-stylix-theme-colors
-                '(:base00 "${base00}"
-                  :base01 "${base01}"
-                  :base02 "${base02}"
-                  :base03 "${base03}"
-                  :base04 "${base04}"
-                  :base05 "${base05}"
-                  :base06 "${base06}"
-                  :base07 "${base07}"
-                  :base08 "${base08}"
-                  :base09 "${base09}"
-                  :base0A "${base0A}"
-                  :base0B "${base0B}"
-                  :base0C "${base0C}"
-                  :base0D "${base0D}"
-                  :base0E "${base0E}"
-                  :base0F "${base0F}")
-                "All colors for Base16 stylix are defined here.")
-              ;; Define the theme
-              (deftheme base16-stylix)
-              ;; Add all the faces to the theme
-              (base16-theme-define 'base16-stylix base16-stylix-theme-colors)
-              ;; Mark the theme as provided
-              (provide-theme 'base16-stylix)
-              ;; Add path to theme to theme-path
-              (add-to-list 'custom-theme-load-path
-                  (file-name-directory
-                      (file-truename load-file-name)))
-              (provide 'base16-stylix-theme)
-            '';
+          src = pkgs.writeText "base16-hyper-modern-theme.el" ''
+            (require 'base16-theme)
+            (defvar base16-hyper-modern-theme-colors
+              '(:base00 "${palette.base00}"
+                :base01 "${palette.base01}"
+                :base02 "${palette.base02}"
+                :base03 "${palette.base03}"
+                :base04 "${palette.base04}"
+                :base05 "${palette.base05}"
+                :base06 "${palette.base06}"
+                :base07 "${palette.base07}"
+                :base08 "${palette.base08}"
+                :base09 "${palette.base09}"
+                :base0A "${palette.base0A}"
+                :base0B "${palette.base0B}"
+                :base0C "${palette.base0C}"
+                :base0D "${palette.base0D}"
+                :base0E "${palette.base0E}"
+                :base0F "${palette.base0F}")
+              "All colors for Base16 hyper-modern theme are defined here.")
+            ;; Define the theme
+            (deftheme base16-hyper-modern)
+            ;; Add all the faces to the theme
+            (base16-theme-define 'base16-hyper-modern base16-hyper-modern-theme-colors)
+            ;; Mark the theme as provided
+            (provide-theme 'base16-hyper-modern)
+            ;; Add path to theme to theme-path
+            (add-to-list 'custom-theme-load-path
+                (file-name-directory
+                    (file-truename load-file-name)))
+            (provide 'base16-hyper-modern-theme)
+          '';
 
-            packageRequires = [ epkgs.base16-theme ];
-          }
-        ))
+          packageRequires = [ epkgs.base16-theme ];
+        })
 
         all-the-icons
         all-the-icons-completion
@@ -181,6 +178,9 @@ in
       ;; Load all .el files from local libs
       (dolist (file (directory-files "${localLibs}/share/emacs/site-lisp" t "\\.el$"))
         (load file))
+
+      ;; Load hyper-modern theme directly from palette
+      (load-theme 'base16-hyper-modern t)
     '';
   };
 

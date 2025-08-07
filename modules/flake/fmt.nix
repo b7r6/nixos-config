@@ -108,7 +108,6 @@
             "*.csproj"
             "*.props"
             "*.targets"
-            "*.svg"
             "*.xaml"
           ];
         };
