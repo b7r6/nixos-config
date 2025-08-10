@@ -56,7 +56,6 @@ in
 
       exec-once = [
         "hyprpaper"
-        # "waybar" # Explicitly start waybar
         "mako"
         "blueman-applet"
         "nm-applet"
@@ -182,8 +181,7 @@ in
 
       bind = [
         # Core bindings
-        "$mod, Return, exec, wezterm"
-        "$mod SHIFT, Return, exec, [float] wezterm"
+        "$mod, Return, exec, ghostty"
         "$mod, Space, exec, wofi --show drun"
         "$mod SHIFT, Space, exec, wofi --show run"
         "$mod, E, exec, nemo"
@@ -316,161 +314,241 @@ in
     systemd.enable = true;
 
     settings = {
-      # mainBar = {
-      #     layer = "top";
-      #     position = "top";
-      #     height = 26;
-      #     spacing = 0;
-      #     output = "*"; # Show on all monitors
+      mainBar = {
+        height = 30;
+        spacing = 4;
 
-      #     modules-left = [
-      #       "hyprland/workspaces"
-      #       "hyprland/submap"
-      #       "hyprland/window"
-      #     ];
+        modules-left = [
+          "hyprland/workspaces"
+          "hyprland/mode"
+          "hyprland/scratchpad"
+          "custom/media"
+        ];
 
-      #     modules-center = [ "clock" ];
+        modules-center = [
+          "hyprland/window"
+        ];
 
-      #     modules-right = [
-      #       "cpu"
-      #       "memory"
-      #       "temperature"
-      #       "battery"
-      #       "network"
-      #       "pulseaudio"
-      #       "tray"
-      #     ];
+        modules-right = [
+          "mpd"
+          "idle_inhibitor"
+          "pulseaudio"
+          "network"
+          "power-profiles-daemon"
+          "cpu"
+          "memory"
+          "temperature"
+          "backlight"
+          "keyboard-state"
+          "hyprland/language"
+          "battery"
+          "battery#bat2"
+          "clock"
+          "tray"
+          "custom/power"
+        ];
 
-      #     "hyprland/workspaces" = {
-      #       format = "{name}";
-      #       on-click = "activate";
-      #       sort-by-number = true;
-      #       all-outputs = false;
-      #       active-only = false;
-      #       format-icons = {
-      #         urgent = "";
-      #         focused = "";
-      #         default = "";
-      #       };
-      #     };
+        # All the module configurations from the default
+        "keyboard-state" = {
+          numlock = true;
+          capslock = true;
+          format = "{name} {icon}";
+          format-icons = {
+            locked = "";
+            unlocked = "";
+          };
+        };
 
-      #     "hyprland/window" = {
-      #       format = "{}";
-      #       max-length = 50;
-      #       separate-outputs = true;
-      #       rewrite = {
-      #         "(.*) — Mozilla Firefox" = "🌐 $1";
-      #         "(.*) - Visual Studio Code" = "󰨞 $1";
-      #         "(.*) - WezTerm" = " $1";
-      #       };
-      #     };
+        "hyprland/mode" = {
+          format = "<span style=\"italic\">{}</span>";
+        };
 
-      #     "clock" = {
-      #       format = "{:%H:%M}";
-      #       format-alt = "{:%a %b %d}";
-      #       tooltip-format = "<tt><small>{calendar}</small></tt>";
-      #       calendar = {
-      #         mode = "year";
-      #         mode-mon-col = 3;
-      #         weeks-pos = "right";
-      #         on-scroll = 1;
-      #         on-click-right = "mode";
-      #         format = {
-      #           months = "<span color='#${colors.base0D}'><b>{}</b></span>";
-      #           days = "<span color='#${colors.base05}'><b>{}</b></span>";
-      #           weeks = "<span color='#${colors.base04}'><b>W{}</b></span>";
-      #           weekdays = "<span color='#${colors.base0A}'><b>{}</b></span>";
-      #           today = "<span color='#${colors.base08}'><b><u>{}</u></b></span>";
-      #         };
-      #       };
-      #     };
+        "hyprland/scratchpad" = {
+          format = "{icon} {count}";
+          show-empty = false;
+          format-icons = [
+            ""
+            ""
+          ];
+          tooltip = true;
+          tooltip-format = "{app}: {title}";
+        };
 
-      #     "cpu" = {
-      #       format = " {usage}%";
-      #       tooltip = true;
-      #       interval = 2;
-      #       states = {
-      #         warning = 70;
-      #         critical = 90;
-      #       };
-      #     };
+        mpd = {
+          format = "{stateIcon} {consumeIcon}{randomIcon}{repeatIcon}{singleIcon}{artist} - {album} - {title} ({elapsedTime:%M:%S}/{totalTime:%M:%S}) ⸨{songPosition}|{queueLength}⸩ {volume}% ";
+          format-disconnected = "Disconnected ";
+          format-stopped = "{consumeIcon}{randomIcon}{repeatIcon}{singleIcon}Stopped ";
+          unknown-tag = "N/A";
+          interval = 5;
+          consume-icons = {
+            on = " ";
+          };
+          random-icons = {
+            off = "<span color=\"#f53c3c\"></span> ";
+            on = " ";
+          };
+          repeat-icons = {
+            on = " ";
+          };
+          single-icons = {
+            on = "1 ";
+          };
+          state-icons = {
+            paused = "";
+            playing = "";
+          };
+          tooltip-format = "MPD (connected)";
+          tooltip-format-disconnected = "MPD (disconnected)";
+        };
 
-      #     "memory" = {
-      #       format = " {percentage}%";
-      #       tooltip-format = "Memory: {used:0.1f}G / {total:0.1f}G\nSwap: {swapUsed:0.1f}G / {swapTotal:0.1f}G";
-      #       interval = 2;
-      #       states = {
-      #         warning = 70;
-      #         critical = 90;
-      #       };
-      #     };
+        idle_inhibitor = {
+          format = "{icon}";
+          format-icons = {
+            activated = "";
+            deactivated = "";
+          };
+        };
 
-      #     "temperature" = {
-      #       critical-threshold = 80;
-      #       format = "{icon} {temperatureC}°C";
-      #       format-icons = [
-      #         ""
-      #         ""
-      #         ""
-      #         ""
-      #         ""
-      #       ];
-      #     };
+        tray = {
+          spacing = 10;
+        };
 
-      #     "battery" = {
-      #       states = {
-      #         good = 95;
-      #         warning = 30;
-      #         critical = 15;
-      #       };
-      #       format = "{icon} {capacity}%";
-      #       format-charging = " {capacity}%";
-      #       format-plugged = " {capacity}%";
-      #       format-icons = [
-      #         ""
-      #         ""
-      #         ""
-      #         ""
-      #         ""
-      #       ];
-      #       tooltip-format = "{timeTo}, {capacity}%\n{power}W";
-      #     };
+        clock = {
+          tooltip-format = "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>";
+          format-alt = "{:%Y-%m-%d}";
+        };
 
-      #     "network" = {
-      #       format-wifi = " {signalStrength}%";
-      #       format-ethernet = "󰈁";
-      #       format-linked = "󰈂 No IP";
-      #       format-disconnected = "󰈂";
-      #       tooltip-format = "{ifname}: {ipaddr}/{cidr}\n{essid}";
-      #       on-click = "nm-connection-editor";
-      #     };
+        cpu = {
+          format = "{usage}% ";
+          tooltip = false;
+        };
 
-      #     "pulseaudio" = {
-      #       format = "{icon} {volume}%";
-      #       format-muted = "";
-      #       format-bluetooth = "{icon} {volume}%";
-      #       format-bluetooth-muted = " ";
-      #       format-icons = {
-      #         default = [
-      #           ""
-      #           ""
-      #           ""
-      #         ];
-      #       };
-      #       on-click = "pavucontrol";
-      #       on-click-right = "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
-      #     };
+        memory = {
+          format = "{}% ";
+        };
 
-      #     "tray" = {
-      #       icon-size = 16;
-      #       spacing = 8;
-      #     };
-      # };
+        temperature = {
+          critical-threshold = 80;
+          format = "{temperatureC}°C {icon}";
+          format-icons = [
+            ""
+            ""
+            ""
+          ];
+        };
+
+        backlight = {
+          format = "{percent}% {icon}";
+          format-icons = [
+            ""
+            ""
+            ""
+            ""
+            ""
+            ""
+            ""
+            ""
+            ""
+          ];
+        };
+
+        battery = {
+          states = {
+            warning = 30;
+            critical = 15;
+          };
+          format = "{capacity}% {icon}";
+          format-full = "{capacity}% {icon}";
+          format-charging = "{capacity}% ";
+          format-plugged = "{capacity}% ";
+          format-alt = "{time} {icon}";
+          format-icons = [
+            ""
+            ""
+            ""
+            ""
+            ""
+          ];
+        };
+
+        "battery#bat2" = {
+          bat = "BAT2";
+        };
+
+        "power-profiles-daemon" = {
+          format = "{icon}";
+          tooltip-format = "Power profile: {profile}\nDriver: {driver}";
+          tooltip = true;
+          format-icons = {
+            default = "";
+            performance = "";
+            balanced = "";
+            power-saver = "";
+          };
+        };
+
+        network = {
+          format-wifi = "{essid} ({signalStrength}%) ";
+          format-ethernet = "{ipaddr}/{cidr} ";
+          tooltip-format = "{ifname} via {gwaddr} ";
+          format-linked = "{ifname} (No IP) ";
+          format-disconnected = "Disconnected ⚠";
+          format-alt = "{ifname}: {ipaddr}/{cidr}";
+        };
+
+        pulseaudio = {
+          format = "{volume}% {icon} {format_source}";
+          format-bluetooth = "{volume}% {icon} {format_source}";
+          format-bluetooth-muted = " {icon} {format_source}";
+          format-muted = " {format_source}";
+          format-source = "{volume}% ";
+          format-source-muted = "";
+          format-icons = {
+            headphone = "";
+            hands-free = "";
+            headset = "";
+            phone = "";
+            portable = "";
+            car = "";
+            default = [
+              ""
+              ""
+              ""
+            ];
+          };
+          on-click = "pavucontrol";
+        };
+
+        "custom/media" = {
+          format = "{icon} {text}";
+          return-type = "json";
+          max-length = 40;
+          format-icons = {
+            spotify = "";
+            default = "🎜";
+          };
+          escape = true;
+          exec = "$HOME/.config/waybar/mediaplayer.py 2> /dev/null";
+        };
+
+        "custom/power" = {
+          format = "⏻ ";
+          tooltip = false;
+          menu = "on-click";
+          menu-file = "$HOME/.config/waybar/power_menu.xml";
+          menu-actions = {
+            shutdown = "shutdown";
+            reboot = "reboot";
+            suspend = "systemctl suspend";
+            hibernate = "systemctl hibernate";
+          };
+        };
+      };
     };
 
     style = ''
       * {
-        font-family: "${config.stylix.fonts.monospace.name}", "Font Awesome 6 Free", monospace;
+        font-family: "${config.stylix.fonts.monospace.name}", monospace;
         font-size: 13px;
         border-radius: 0px;
         border: none;
@@ -778,8 +856,6 @@ in
     slurp
     swappy
     swaybg
-    # swaylock-effects
-    # waybar-hyprland removed as it doesn't exist
     waybar # Standard waybar should work fine
     wev
     wl-clipboard

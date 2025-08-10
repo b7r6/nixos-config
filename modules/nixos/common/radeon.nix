@@ -41,9 +41,7 @@ in
 
       extraPackages =
         with pkgs;
-        [
-          amdvlk
-        ]
+        [ amdvlk ]
         ++ (optionals cfg.rocm.enable [
           rocmPackages.clr
           rocmPackages.clr.icd
@@ -55,9 +53,7 @@ in
           rocmPackages.hipblas
         ]);
 
-      extraPackages32 = with pkgs.pkgsi686Linux; [
-        amdvlk
-      ];
+      extraPackages32 = with pkgs.pkgsi686Linux; [ amdvlk ];
     };
 
     # ROCm specific configuration
@@ -76,13 +72,9 @@ in
     ];
 
     environment.variables = mkMerge [
-      (mkIf cfg.rocm.enable {
-        ROC_ENABLE_PRE_VEGA = "1";
-      })
+      (mkIf cfg.rocm.enable { ROC_ENABLE_PRE_VEGA = "1"; })
 
-      (mkIf cfg.strixHalo {
-        HSA_OVERRIDE_GFX_VERSION = "11.0.0";
-      })
+      (mkIf cfg.strixHalo { HSA_OVERRIDE_GFX_VERSION = "11.0.0"; })
     ];
 
     boot.kernelParams = mkMerge [

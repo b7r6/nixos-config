@@ -28,9 +28,11 @@
           "launchSettings.json"
           "package.json"
         ];
+        settings.formatter.biome.excludes = [ ".vscode/settings.json" ];
 
         # `buildifier`: `.bzl` and `.bazel` files
         programs.buildifier.enable = true;
+        settings.formatter.buildifier.excludes = [ ];
 
         # `clang-format`: C/C++, C#, Protocol Buffers, Java
         programs.clang-format.enable = true;
@@ -45,54 +47,69 @@
 
         # `deadnix`: dead code elimination for `nixlang`
         programs.deadnix.enable = true;
+        settings.formatter.deadnix.excludes = [ ];
 
         # `dhall`
         programs.dhall.enable = true;
         programs.dhall.lint = true;
+        settings.formatter.dhall.excludes = [ ];
 
         # `dos2unix`
         programs.dos2unix.enable = true;
+        settings.formatter.dos2unix.excludes = [ ];
 
         # `fourmolu`: haskell formatting
         programs.fourmolu.enable = true;
+        settings.formatter.fourmolu.excludes = [ ];
 
         # `hlint`: haskell linter
         programs.hlint.enable = true;
+        settings.formatter.hlint.excludes = [ ];
 
         # `just`: justfiles
         programs.just.enable = true;
+        settings.formatter.just.excludes = [ ];
 
         # `keep-sorted`: generally tidy
         programs.keep-sorted.enable = true;
+        settings.formatter.keep-sorted.excludes = [ ];
 
         # `mdformat`: markdown with an emphasis on `README.md` style documents
         programs.mdformat.enable = true;
         programs.mdformat.settings.number = true;
         programs.mdformat.settings.wrap = lineLength;
+        settings.formatter.mdformat.excludes = [ ];
 
         # `nixfmt`: nixlang formatter...
         programs.nixfmt.enable = true;
         programs.nixfmt.strict = true;
         programs.nixfmt.width = lineLength;
+        settings.formatter.nixfmt.excludes = [ ];
 
         # `ruff`: best python formatter except maybe that brand-new meta stuff...
         # TODO[b7r6]: set the indent width properly...
         programs.ruff-format.enable = true;
         programs.ruff-format.lineLength = lineLength;
         programs.ruff-check.enable = true;
+        settings.formatter.ruff-format.excludes = [ ];
+        settings.formatter.ruff-check.excludes = [ ];
 
         # `shfmt`: bash mostly, we could consider `beautysh`
         programs.shfmt.enable = true;
         programs.shfmt.indent_size = indentWidth;
+        settings.formatter.shfmt.excludes = [ ];
 
         # `statix`: static anlaysis for `nixlang`
         programs.statix.enable = true;
+        settings.formatter.statix.excludes = [ ];
 
         # `stylish-haskell`: haskell formatting that's a little extra...
         programs.stylish-haskell.enable = true;
+        settings.formatter.stylish-haskell.excludes = [ ];
 
         # `taplo`: TOML
         programs.taplo.enable = true;
+        settings.formatter.taplo.excludes = [ ];
 
         # XML, i.e. most `dotnet`/`msbuild` configuration mostly...
         settings.formatter.xmllint = {
@@ -111,10 +128,12 @@
             "*.svg"
             "*.xaml"
           ];
+          excludes = [ "design/**/*.svg" ];
         };
 
         # `yamlfmt`: YAML
         programs.yamlfmt.enable = true;
+        settings.formatter.yamlfmt.excludes = [ ];
       };
     };
 }

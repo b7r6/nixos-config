@@ -192,7 +192,8 @@ in
         terminal = if cfg.display.profile == "oled" then 0.98 else 0.95;
         desktop = 0.95;
         popups = 0.95;
-      } // cfg.overrides.opacity;
+      }
+      // cfg.overrides.opacity;
     };
 
     home.sessionVariables = mkMerge [
