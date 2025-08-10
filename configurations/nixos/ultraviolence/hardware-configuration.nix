@@ -18,46 +18,61 @@
     "sdhci_pci"
   ];
 
-  boot.initrd.kernelModules = [ ];
-  boot.kernelModules = [ "kvm-amd" ];
+  boot.kernelModules = [
+    "kvm-amd"
+    "btusb"
+    "mt7921e"
+  ];
 
   boot.extraModulePackages = [ ];
   boot.kernelPackages = pkgs.linuxPackages_testing;
 
-  # CPU optimizations for Ryzen 9 9950X3D
-  boot.kernelParams = [
-    # AMD CPU optimizations
-    # "amd_pstate=active"
-    # "amd_pstate.shared_mem=1"
-    # "processor.max_cstate=1"
-    # "idle=nomwait"
+  # Enable firmware
+  hardware.enableRedistributableFirmware = true;
 
-    # # Memory optimizations
-    # "transparent_hugepage=always"
-    # "hugepagesz=1G"
-    # "hugepages=16"
+  # Bluetooth configuration
+  hardware.bluetooth = {
+    enable = true;
+    powerOnBoot = true;
+  };
 
-    # # IOMMU for virtualization
-    # "iommu=pt"
-    # "amd_iommu=on"
-
-    # # NVIDIA Wayland support
-    # "nvidia-drm.modeset=1"
-    # "nvidia-drm.fbdev=1" # For better Wayland compatibility
-
-    # # General performance
-    # "mitigations=off"
-    # "nowatchdog"
-    # "nmi_watchdog=0"
+  boot.kernelPatches = [
+    {
+      name = "btusb-mt7927-support";
+      patch = pkgs.writeText "btusb-mt7927.patch" ''
+        --- a/drivers/bluetooth/btusb.c
+        +++ b/drivers/bluetooth/btusb.c
+        @@ -613,6 +613,10 @@ static const struct usb_device_id quirks_table[] = {
+         	{ USB_DEVICE(0x04ca, 0x3801), .driver_info = BTUSB_MEDIATEK |
+         						     BTUSB_WIDEBAND_SPEECH },
+         
+        +	/* MediaTek MT7927 */
+        +	{ USB_DEVICE(0x0489, 0xe13a), .driver_info = BTUSB_MEDIATEK |
+        +						     BTUSB_WIDEBAND_SPEECH },
+        +
+         	/* Additional MediaTek MT7668 Bluetooth devices */
+         	{ USB_DEVICE(0x043e, 0x3109), .driver_info = BTUSB_MEDIATEK |
+         						     BTUSB_WIDEBAND_SPEECH },
+      '';
+    }
   ];
 
-  # Power management optimizations
-  powerManagement.cpuFreqGovernor = "performance";
+  services.pipewire = {
+    enable = true;
+    alsa.enable = true;
+    alsa.support32Bit = true;
+    pulse.enable = true;
+    wireplumber.enable = true;
+  };
 
-  # AMD microcode updates
+  # Bluetooth management GUI
+  services.blueman.enable = true;
+
+  # CPU and system optimizations
+  boot.kernelParams = [ "pcie_aspm=off" ];
+  powerManagement.cpuFreqGovernor = "performance";
   hardware.cpu.amd.updateMicrocode = true;
 
-  # Btrfs optimizations
   fileSystems."/" = {
     device = "/dev/disk/by-uuid/8d797692-927e-46c4-8047-0c9ea975a41f";
     fsType = "btrfs";
@@ -81,12 +96,9 @@
   };
 
   swapDevices = [ ];
-
   networking.useDHCP = lib.mkDefault true;
 
-  # Network and system performance tuning
   boot.kernel.sysctl = {
-    # Network optimizations
     "net.core.default_qdisc" = "fq_codel";
     "net.ipv4.tcp_congestion" = "bbr";
     "net.core.netdev_max_backlog" = 16384;
@@ -94,17 +106,8 @@
     "net.core.wmem_max" = 134217728;
     "net.ipv4.tcp_rmem" = "4096 87380 134217728";
     "net.ipv4.tcp_wmem" = "4096 65536 134217728";
-
-    # VM optimizations
-    # "vm.swappiness" = 10;
-    # "vm.vfs_cache_pressure" = 50;
-    # "vm.dirty_ratio" = 10;
-    # "vm.dirty_background_ratio" = 5;
-    # "vm.max_map_count" = 2147483642;
   };
 
-  # Firmware updates
   services.fwupd.enable = true;
-
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }
