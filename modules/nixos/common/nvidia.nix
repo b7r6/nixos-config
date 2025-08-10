@@ -14,27 +14,67 @@ in
   };
 
   config = mkIf cfg.enable {
-    hardware.graphics.enable = true;
+    # Allow unfree packages (NVIDIA drivers are proprietary)
+    nixpkgs.config.allowUnfree = true;
+
+    # Graphics configuration
+    hardware.graphics = {
+      enable = true;
+      enable32Bit = true;
+      extraPackages = with pkgs; [
+        nvidia-vaapi-driver
+        vaapiVdpau
+        libvdpau-va-gl
+      ];
+    };
+
+    # X server configuration
     services.xserver.videoDrivers = [ "nvidia" ];
 
+    # NVIDIA specific settings
+    hardware.nvidia = {
+      modesetting.enable = true;
+      nvidiaSettings = true;
+      open = true; # RTX 5090 should work with open drivers too if you want to try
+
+      # Use production or beta for RTX 5090 support
+      package = config.boot.kernelPackages.nvidiaPackages.production;
+
+      powerManagement.enable = false;
+      powerManagement.finegrained = false;
+    };
+
+    # CUDA support
     environment.systemPackages = with pkgs; [
       cudatoolkit
-      linuxPackages.nvidia_x11
-      nvidia-docker
+      cudaPackages.cudnn
+      # nvtop # GPU monitoring
+      # nvidia-smi
     ];
 
     environment.sessionVariables = {
       CUDA_PATH = "${pkgs.cudatoolkit}";
-      LD_LIBRARY_PATH = "${pkgs.linuxPackages.nvidia_x11}/lib:${pkgs.cudatoolkit}/lib";
     };
 
-    hardware.nvidia = {
-      modesetting.enable = true;
-      nvidiaSettings = true;
-      open = false;
-      package = config.boot.kernelPackages.nvidiaPackages.stable;
-      powerManagement.enable = false;
-      powerManagement.finegrained = false;
+    # Docker with NVIDIA support (if needed)
+    virtualisation.docker = {
+      enable = true;
+      enableNvidia = true;
     };
+
+    # Ensure kernel modules are loaded
+    boot.kernelModules = [
+      "nvidia"
+      "nvidia_modeset"
+      "nvidia_uvm"
+      "nvidia_drm"
+    ];
+
+    boot.blacklistedKernelModules = [ "nouveau" ];
+
+    # May be needed for some applications
+    boot.extraModprobeConfig = ''
+      options nvidia-drm modeset=1
+    '';
   };
 }

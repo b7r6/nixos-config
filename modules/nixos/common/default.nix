@@ -107,6 +107,14 @@ in
     wireshark
     wireshark-cli
 
+    pciutils
+
+    python311Full
+    python312Full
+    python313Full
+
+    nvtopPackages.full
+
     # System diagnostics & performance
     # bcc # BPF Compiler Collection for Linux kernel tracing
     # bpftrace # High-level tracing language for Linux eBPF

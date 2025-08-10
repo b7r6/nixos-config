@@ -1157,11 +1157,23 @@ no way human."))
 ;; python // mode
 ;; ============================================================
 
-(use-package python-ts-mode
-  :ensure nil
-  :mode (("\\.py\\'" . python-ts-mode)
-         ("\\.pyi\\'" . python-ts-mode)))
-
+(use-package lsp-pyright
+  :ensure t
+  :demand t
+  :after lsp-mode
+  :custom
+  (lsp-pyright-server-command '("basedpyright-langserver" "--stdio"))
+  (lsp-pyright-typechecking-mode "strict")
+  (lsp-pyright-diagnostic-mode "workspace")
+  
+  :config
+  ;; just use uv for everything
+  (setq lsp-pyright-venv-strategy "useBestEffort")
+  (setq lsp-pyright-basedpyright-inlay-hints nil) ; keep it clean
+  
+  :hook
+  ((python-mode . lsp-deferred)
+   (python-ts-mode . lsp-deferred)))
 
 ;; ============================================================
 ;; shell / sh-mode
