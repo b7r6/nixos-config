@@ -56,7 +56,7 @@ in
 
       exec-once = [
         "hyprpaper"
-        "waybar" # Explicitly start waybar
+        # "waybar" # Explicitly start waybar
         "mako"
         "blueman-applet"
         "nm-applet"

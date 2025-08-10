@@ -118,6 +118,7 @@ in
         lsp-haskell
         lsp-mode
         lsp-python-ms
+        lsp-pyright
         lsp-treemacs
         lsp-ui
         lua-mode
@@ -185,6 +186,7 @@ in
   };
 
   home.packages = [
+    pkgs.basedpyright
     pkgs.csharp-ls
     pkgs.emacs-all-the-icons-fonts
     pkgs.emacs-lsp-booster
