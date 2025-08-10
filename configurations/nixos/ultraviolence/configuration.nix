@@ -1,8 +1,11 @@
-{ pkgs, ... }:
+{ ... }:
 {
-  imports = [
-    ./hardware-configuration.nix
-  ];
+  imports = [ ./hardware-configuration.nix ];
+
+  hyper-modern-nixos.hyper-wayland = {
+    enable = true;
+
+  };
 
   hyper-modern-nixos.nvidia = {
     enable = true;

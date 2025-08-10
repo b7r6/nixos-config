@@ -1,8 +1,6 @@
-{ pkgs, ... }:
+{ ... }:
 {
-  imports = [
-    ./hardware-configuration.nix
-  ];
+  imports = [ ./hardware-configuration.nix ];
 
   hyper-modern-nixos.radeon = {
     enable = true;
