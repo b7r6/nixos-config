@@ -54,6 +54,7 @@ in
 
     environment.sessionVariables = {
       CUDA_PATH = "${pkgs.cudatoolkit}";
+      CUDA_HOME = "${pkgs.cudatoolkit}";
     };
 
     # Docker with NVIDIA support (if needed)

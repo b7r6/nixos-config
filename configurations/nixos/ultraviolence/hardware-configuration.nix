@@ -35,26 +35,26 @@
     powerOnBoot = true;
   };
 
-  boot.kernelPatches = [
-    {
-      name = "btusb-mt7927-support";
-      patch = pkgs.writeText "btusb-mt7927.patch" ''
-        --- a/drivers/bluetooth/btusb.c
-        +++ b/drivers/bluetooth/btusb.c
-        @@ -613,6 +613,10 @@ static const struct usb_device_id quirks_table[] = {
-         	{ USB_DEVICE(0x04ca, 0x3801), .driver_info = BTUSB_MEDIATEK |
-         						     BTUSB_WIDEBAND_SPEECH },
-         
-        +	/* MediaTek MT7927 */
-        +	{ USB_DEVICE(0x0489, 0xe13a), .driver_info = BTUSB_MEDIATEK |
-        +						     BTUSB_WIDEBAND_SPEECH },
-        +
-         	/* Additional MediaTek MT7668 Bluetooth devices */
-         	{ USB_DEVICE(0x043e, 0x3109), .driver_info = BTUSB_MEDIATEK |
-         						     BTUSB_WIDEBAND_SPEECH },
-      '';
-    }
-  ];
+  # boot.kernelPatches = [
+  #   {
+  #     name = "btusb-mt7927-support";
+  #     patch = pkgs.writeText "btusb-mt7927.patch" ''
+  #       --- a/drivers/bluetooth/btusb.c
+  #       +++ b/drivers/bluetooth/btusb.c
+  #       @@ -613,6 +613,10 @@ static const struct usb_device_id quirks_table[] = {
+  #        	{ USB_DEVICE(0x04ca, 0x3801), .driver_info = BTUSB_MEDIATEK |
+  #        						     BTUSB_WIDEBAND_SPEECH },
+
+  #       +	/* MediaTek MT7927 */
+  #       +	{ USB_DEVICE(0x0489, 0xe13a), .driver_info = BTUSB_MEDIATEK |
+  #       +						     BTUSB_WIDEBAND_SPEECH },
+  #       +
+  #        	/* Additional MediaTek MT7668 Bluetooth devices */
+  #        	{ USB_DEVICE(0x043e, 0x3109), .driver_info = BTUSB_MEDIATEK |
+  #        						     BTUSB_WIDEBAND_SPEECH },
+  #     '';
+  #   }
+  # ];
 
   services.pipewire = {
     enable = true;
@@ -105,6 +105,20 @@
     "net.core.wmem_max" = 134217728;
     "net.ipv4.tcp_rmem" = "4096 87380 134217728";
     "net.ipv4.tcp_wmem" = "4096 65536 134217728";
+  };
+
+  environment.systemPackages = with pkgs; [
+    ryzenadj
+  ];
+
+  systemd.services.ryzen-power-limit = {
+    description = "Set Ryzen power limits";
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${pkgs.ryzenadj}/bin/ryzenadj --tctl-temp=85 --stapm-limit=120000 --fast-limit=140000 --slow-limit=130000";
+    };
   };
 
   services.fwupd.enable = true;
