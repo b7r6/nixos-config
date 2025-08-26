@@ -88,6 +88,7 @@ in
         consult-eglot
         corfu
         csv-mode
+        cuda-mode
         dashboard
         direnv
         dirvish
