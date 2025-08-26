@@ -72,6 +72,8 @@ in
     };
   };
 
+  services.redis.enable = true;
+
   security.sudo.wheelNeedsPassword = false;
 
   programs.firefox.enable = true;
