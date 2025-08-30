@@ -92,7 +92,7 @@
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 (setq frame-title-format "// %b //")
-(set-face-attribute 'default nil :height 130)
+(set-face-attribute 'default nil :height 100)
 (setq font-lock-maximum-decoration nil)
 (setq auto-save-default nil)
 (setq confirm-kill-processes nil)
@@ -142,22 +142,20 @@
 (setq-default visible-bell nil)
 (setq-default ring-bell-function #'ignore)
 
-(defun hypermodern/remove-face-decorations ()
-  "Remove all bold and italic attributes from all faces."
-  (mapc (lambda (face)
-          (when (face-attribute face :weight nil t)
-            (set-face-attribute face nil :weight 'normal))
-          (when (face-attribute face :slant nil t)
-            (set-face-attribute face nil :slant 'normal)))
-        (face-list)))
-
-(add-hook 'after-init-hook
-          (lambda ()
-            (run-with-timer 0.1 nil 'hypermodern/remove-face-decorations)))
-
-(advice-add 'load-theme :after
-            (lambda (&rest _)
-              (hypermodern/remove-face-decorations)))
+;; (defun hypermodern/remove-face-decorations ()
+;;   "Remove all bold and italic attributes from all faces."
+;;   (mapc (lambda (face)
+;;           (when (face-attribute face :weight nil t)
+;;             (set-face-attribute face nil :weight 'normal))
+;;           (when (face-attribute face :slant nil t)
+;;             (set-face-attribute face nil :slant 'normal)))
+;;         (face-list)))
+;; (add-hook 'after-init-hook
+;;           (lambda ()
+;;             (run-with-timer 0.1 nil 'hypermodern/remove-face-decorations)))
+;; (advice-add 'load-theme :after
+;;             (lambda (&rest _)
+;;               (hypermodern/remove-face-decorations)))
 
 ;; ============================================================
 ;; hyper // modern // interactive
@@ -217,7 +215,7 @@ with the mode-line background color."
   :config
 
   ;; OpenRouter backend – the four coding champions
-  (setq gptel-model 'anthropic/claude-opus-4         ;;  default start-up model
+  (setq gptel-model 'anthropic/claude-opus-4.1         ;;  default start-up model
         gptel-backend
         (gptel-make-openai "// open // router"
           :host "openrouter.ai"
@@ -256,7 +254,7 @@ with the mode-line background color."
   (defun hypermodern/gptel-switch-model ()
     "Switch between the four coding models."
     (interactive)
-    (let* ((models '(("Opus 4 (Best)"       . anthropic/claude-opus-4)
+    (let* ((models '(("Opus 4 (Best)"       . anthropic/claude-opus-4.1)
                      ("Sonnet 4 (Fast)"     . anthropic/claude-sonnet-4)
                      ("Kimi K2 (Long)"      . moonshotai/kimi-k2)
                      ("Qwen Coder (Ultra)"  . qwen/qwen3-coder)))
