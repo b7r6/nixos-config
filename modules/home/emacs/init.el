@@ -1259,7 +1259,7 @@ no way human."))
   (setq lsp-pyright-venv-strategy "useBestEffort")
   (setq lsp-pyright-basedpyright-inlay-hints nil) ; keep it clean
 
-  ;; Increase heap size for the Python language server
+  ;; n.b. increase heap size for the `python` language server...
   (setenv "NODE_OPTIONS" "--max-old-space-size=16384") ; 16GB
   (setq lsp-pyright-langserver-command-args
         '("--stdio"
