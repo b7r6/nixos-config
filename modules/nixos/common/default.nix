@@ -73,6 +73,7 @@ in
   };
 
   services.redis.enable = true;
+  services.postgresql.enable = true;
 
   security.sudo.wheelNeedsPassword = false;
 

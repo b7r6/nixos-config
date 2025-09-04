@@ -1152,6 +1152,15 @@ no way human."))
   (setq js-ts-mode-indent-offset 2))
 
 ;; ============================================================
+;; rust // mode
+;; ============================================================
+
+(use-package rust-ts-mode
+  :ensure nil
+  :mode (("\\.rs\\'" . rust-ts-mode))
+)
+
+;; ============================================================
 ;; python // mode
 ;; ============================================================
 
@@ -1160,14 +1169,25 @@ no way human."))
   :demand t
   :after lsp-mode
   :custom
-  (lsp-pyright-server-command '("basedpyright-langserver" "--stdio"))
   (lsp-pyright-typechecking-mode "strict")
   (lsp-pyright-diagnostic-mode "workspace")
   
   :config
-  ;; just use uv for everything
   (setq lsp-pyright-venv-strategy "useBestEffort")
   (setq lsp-pyright-basedpyright-inlay-hints nil) ; keep it clean
+  
+  ;; Increase heap size for the Python language server
+  (setenv "NODE_OPTIONS" "--max-old-space-size=16384") ; 16GB
+  (setq lsp-pyright-langserver-command-args
+        '("--stdio"
+          "--max-old-space-size=8192"  ; 8GB heap
+          "--max-semi-space-size=1024")) ; 1GB for garbage collection
+  
+  ;; Alternative: If using node directly
+  (setq lsp-pyright-python-executable-cmd "python")
+  (setq lsp-pyright-server-command
+        '("node" "--max-old-space-size=8192" 
+          "/path/to/pyright-langserver" "--stdio"))
   
   :hook
   ((python-mode . lsp-deferred)
