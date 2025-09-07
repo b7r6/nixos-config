@@ -9,4 +9,5 @@ in
   "secrets/tailscale-auth-key.v4.surf.age".publicKeys = mkUserSecret "b7r6";
   "b7r6/.netrc.age".publicKeys = mkUserSecret "b7r6";
   "b7r6/atuin-key.txt.age".publicKeys = mkUserSecret "b7r6";
+  "b7r6/hf-read-token.txt.age".publicKeys = mkUserSecret "b7r6";
 }
