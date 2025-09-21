@@ -285,8 +285,7 @@ with the mode-line background color."
          ("C-c g s" . gptel-send)
          ("C-c g r" . gptel-rewrite)
          ("C-c g t" . hypermodern/gptel-check-tokens)
-         ("C-c g k" . gptel-abort)))
-                  ;; Abort request
+         ("C-c g k" . gptel-abort))) ;; Abort request
 
 ;; ============================================================
 ;; completion // minibuffer // read
@@ -692,11 +691,21 @@ no way human."))
 ;; formatting // configuration
 ;; ============================================================
 
+;; ============================================================
+;; formatting // configuration
+;; ============================================================
+
 (use-package format-all
   :ensure t
 
   :config
   (setq format-all-show-errors 'never)
+
+  ;; Force Biome to use 2-space indentation
+  (defun hypermodern/biome-args ()
+    "Return Biome formatter arguments with 2-space indentation."
+    '("format" "--stdin-file-path" filepath "--indent-width=2" "--indent-style=space"))
+
   (setq-default format-all-formatters
                 '(("C++"          . (clang-format))
                   ("C#"           . (clang-format))
@@ -705,16 +714,16 @@ no way human."))
                   ("Go"           . (gofmt))
                   ("HTML"         . (prettier))
                   ("Haskell"      . (fourmolu))
-                  ("JavaScript"   . (biome))
-                  ("JSON"         . (biome))
+                  ("JavaScript"   . (biome . hypermodern/biome-args))
+                  ("JSON"         . (biome . hypermodern/biome-args))
                   ("Markdown"     . (mdformat))
                   ("Nix"          . (nixfmt))
                   ("Python"       . (ruff))
                   ("Ruby"         . (rubocop))
                   ("Rust"         . (rustfmt))
-                  ("Shell"        . (shfmt))
-                  ("TypeScript"   . (biome))
-                  ("TSX"          . (biome))
+                  ("Shell"        . (shfmt "-i" "2"))  ; 2-space for shell too
+                  ("TypeScript"   . (biome . hypermodern/biome-args))
+                  ("TSX"          . (biome . hypermodern/biome-args))
                   ("YAML"         . (yamlfmt))
                   ("TOML"         . (taplo))
                   ("Terraform"    . (terraform))
@@ -728,14 +737,14 @@ no way human."))
                   (css-ts-mode    . (prettier))
                   (go-ts-mode     . (gofmt))
                   (html-ts-mode   . (prettier))
-                  (js-ts-mode     . (biome))
-                  (json-ts-mode   . (biome))
+                  (js-ts-mode     . (biome . hypermodern/biome-args))
+                  (json-ts-mode   . (biome . hypermodern/biome-args))
                   (python-ts-mode . (ruff))
                   (rust-ts-mode   . (rustfmt))
-                  (bash-ts-mode   . (shfmt))
-                  (sh-mode        . (shfmt))
-                  (typescript-ts-mode . (biome))
-                  (tsx-ts-mode    . (biome))
+                  (bash-ts-mode   . (shfmt "-i" "2"))
+                  (sh-mode        . (shfmt "-i" "2"))
+                  (typescript-ts-mode . (biome . hypermodern/biome-args))
+                  (tsx-ts-mode    . (biome . hypermodern/biome-args))
                   (yaml-ts-mode   . (yamlfmt))
                   (nix-mode       . (nixfmt))
                   (toml-ts-mode   . (taplo))
@@ -748,13 +757,13 @@ no way human."))
                   (css-mode       . (prettier))
                   (go-mode        . (gofmt))
                   (html-mode      . (prettier))
-                  (js-mode        . (biome))
-                  (js2-mode       . (biome))
-                  (json-mode      . (biome))
+                  (js-mode        . (biome . hypermodern/biome-args))
+                  (js2-mode       . (biome . hypermodern/biome-args))
+                  (json-mode      . (biome . hypermodern/biome-args))
                   (python-mode    . (ruff))
                   (ruby-mode      . (rubocop))
                   (rust-mode      . (rustfmt))
-                  (typescript-mode . (biome))
+                  (typescript-mode . (biome . hypermodern/biome-args))
                   (nix-mode       . (nixfmt))
                   (yaml-mode      . (yamlfmt))
                   (markdown-mode  . (mdformat))
@@ -1148,8 +1157,82 @@ no way human."))
          ("\\.jsx\\'" . jsx-ts-mode))
 
   :config
+  ;; Always use 2 spaces
   (setq typescript-ts-mode-indent-offset 2)
-  (setq js-ts-mode-indent-offset 2))
+  (setq js-ts-mode-indent-offset 2)
+  (setq js-indent-level 2)
+  (setq typescript-indent-level 2)
+
+  ;; Nuclear biome formatter for these modes
+  (defun hypermodern/biome-format-2-spaces ()
+    "Force Biome to format with 2-space indentation, no exceptions."
+    (interactive)
+    (let* ((file (or (buffer-file-name) "file.js"))
+           (content (buffer-substring-no-properties (point-min) (point-max)))
+           (output-buffer (generate-new-buffer " *biome-format*"))
+           (orig-buffer (current-buffer))
+           (orig-point (point))  ; Save cursor position
+           (orig-window-start (window-start)))  ; Save scroll position
+      (with-current-buffer output-buffer
+        (insert content)
+        (if (zerop (call-process-region (point-min) (point-max)
+                                        "biome" t t nil
+                                        "format"
+                                        "--stdin-file-path" file
+                                        "--indent-width=2"
+                                        "--indent-style=space"))
+            (let ((formatted (buffer-string)))
+              (kill-buffer output-buffer)
+              (with-current-buffer orig-buffer
+                (erase-buffer)
+                (insert formatted)
+                (goto-char (min orig-point (point-max)))  ; Restore cursor
+                (set-window-start (selected-window) orig-window-start t)  ; Restore scroll
+                (message "[biome] formatted with 2 spaces")))
+          (kill-buffer output-buffer)
+          (message "[biome] formatting failed")))))
+
+  :hook
+  ((typescript-ts-mode js-ts-mode tsx-ts-mode) .
+   (lambda ()
+     ;; Force all indentation settings
+     (setq-local tab-width 2)
+     (setq-local indent-tabs-mode nil)
+     (setq-local js-indent-level 2)
+     (setq-local typescript-indent-level 2)
+     (setq-local standard-indent 2)
+
+     ;; NUCLEAR OVERRIDE: Hijack M-z for these modes only
+     (local-set-key (kbd "M-z") 'hypermodern/biome-format-2-spaces)
+
+     ;; Also override any format-all binding
+     (local-set-key (kbd "C-c C-f") 'hypermodern/biome-format-2-spaces)
+
+     ;; Kill any other formatting functions
+     (setq-local format-all-formatters nil)
+     (when (fboundp 'format-all-mode)
+       (format-all-mode -1)))))
+
+;; Also handle the non-tree-sitter variants
+(use-package js-mode
+  :ensure nil
+  :hook
+  ((js-mode javascript-mode) .
+   (lambda ()
+     (setq-local tab-width 2)
+     (setq-local indent-tabs-mode nil)
+     (setq-local js-indent-level 2)
+     (local-set-key (kbd "M-z") 'hypermodern/biome-format-2-spaces))))
+
+(use-package typescript-mode
+  :ensure t
+  :hook
+  (typescript-mode .
+                   (lambda ()
+                     (setq-local tab-width 2)
+                     (setq-local indent-tabs-mode nil)
+                     (setq-local typescript-indent-level 2)
+                     (local-set-key (kbd "M-z") 'hypermodern/biome-format-2-spaces))))
 
 ;; ============================================================
 ;; python // mode
@@ -1163,12 +1246,12 @@ no way human."))
   (lsp-pyright-server-command '("basedpyright-langserver" "--stdio"))
   (lsp-pyright-typechecking-mode "strict")
   (lsp-pyright-diagnostic-mode "workspace")
-  
+
   :config
   ;; just use uv for everything
   (setq lsp-pyright-venv-strategy "useBestEffort")
   (setq lsp-pyright-basedpyright-inlay-hints nil) ; keep it clean
-  
+
   :hook
   ((python-mode . lsp-deferred)
    (python-ts-mode . lsp-deferred)))
