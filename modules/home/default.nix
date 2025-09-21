@@ -20,11 +20,6 @@
 
     # session management
     ./session
-
-    # optional desktop environments
-    ./desktop
-    ./wayland
-    ./vscode
   ];
 
   hyper-modern-nixos.themes = {
