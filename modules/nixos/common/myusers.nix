@@ -37,22 +37,36 @@ in
 
   config = {
 
-    users.users = mapListToAttrs config.myusers (
-      name:
-      lib.optionalAttrs pkgs.stdenv.isDarwin { home = "/Users/${name}"; }
-      // lib.optionalAttrs pkgs.stdenv.isLinux {
-        isNormalUser = true;
+    users.users =
+      mapListToAttrs config.myusers (
+        name:
+        lib.optionalAttrs pkgs.stdenv.isDarwin { home = "/Users/${name}"; }
+        // lib.optionalAttrs pkgs.stdenv.isLinux {
+          isNormalUser = true;
 
-        # TODO[b7r6]: we make everyone an admin for now...
-        extraGroups = [
-          "networkmanager"
-          "wheel"
-          "docker"
-          "adbusers"
-          "libvirtd"
-        ];
-      }
-    );
+          # TODO[b7r6]: we make everyone an admin for now...
+          extraGroups = [
+            "networkmanager"
+            "wheel"
+            "docker"
+            "adbusers"
+            "libvirtd"
+          ];
+        }
+      )
+      // {
+        "bhavya" = {
+          isNormalUser = true;
+
+          extraGroups = [
+            "wheel"
+          ];
+
+          openssh.authorizedKeys.keys = [
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIOnk7FxqHaed4BZz6PRoEK6PR7fjpDRHgCN0MnwcFwy bhavya@fleek.xyz"
+          ];
+        };
+      };
 
     home-manager.users = mapListToAttrs config.myusers (name: {
       imports = [ (self + /configurations/home/${name}.nix) ];
