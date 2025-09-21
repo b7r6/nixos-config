@@ -72,26 +72,18 @@
   powerManagement.cpuFreqGovernor = "performance";
   hardware.cpu.amd.updateMicrocode = true;
 
-  # fileSystems."/" = {
-  #   device = "/dev/disk/by-uuid/8d797692-927e-46c4-8047-0c9ea975a41f";
-  #   fsType = "btrfs";
-  #   options = [
-  #     "subvol=@"
-  #     "compress=zstd:1"
-  #     "noatime"
-  #     "space_cache=v2"
-  #     "ssd"
-  #     "discard=async"
-  #   ];
-  # };
-  # fileSystems."/boot" = {
-  #   device = "/dev/disk/by-uuid/8959-4D56";
-  #   fsType = "vfat";
-  #   options = [
-  #     "fmask=0077"
-  #     "dmask=0077"
-  #   ];
-  # };
+
+  fileSystems."/" =
+    { device = "/dev/disk/by-uuid/29f4958a-cbd5-4dba-a2f0-ff482238e00f";
+      fsType = "btrfs";
+      options = [ "subvol=@" ];
+    };
+
+  fileSystems."/boot" =
+    { device = "/dev/disk/by-uuid/7AD0-D99B";
+      fsType = "vfat";
+      options = [ "fmask=0077" "dmask=0077" ];
+    };
 
   swapDevices = [ ];
   networking.useDHCP = lib.mkDefault true;
