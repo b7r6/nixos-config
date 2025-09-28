@@ -24,6 +24,7 @@ in
 
   nix.nixPath = [ "nixpkgs=${inputs.nixpkgs}" ];
   nixpkgs.config.allowUnfree = true;
+
   home-manager.useUserPackages = true;
   home-manager.useGlobalPkgs = true;
   home-manager.backupFileExtension = "hm-backup";
@@ -54,7 +55,7 @@ in
     package = pkgs.nixVersions.stable;
 
     extraOptions = ''
-      experimental-features = nix-command flakes pipe-operators
+      experimental-features = nix-command flakes pipe-operators ca-derivations
     '';
 
     settings = {

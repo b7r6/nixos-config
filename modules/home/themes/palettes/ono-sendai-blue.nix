@@ -167,7 +167,7 @@
   tuned = {
     slug = "ono-sendai-blue-tuned";
     name = "Ono-Sendai Hyper Modern Blue (HSL Tuned)";
-    author = "opus-4";
+    author = "b7r6";
     variant = "dark";
     palette = {
       # grayscale ramp - perceptually uniform with blue tint (211° hue)
