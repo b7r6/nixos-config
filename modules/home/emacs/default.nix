@@ -139,6 +139,7 @@ in
         org-bullets
         paredit
         paredit-everywhere
+        popper
         posframe
         prettier
         prisma-mode
@@ -152,6 +153,7 @@ in
         rg
         ruff-format
         s
+        shackle
         shrink-path
         sideline
         sideline-flymake

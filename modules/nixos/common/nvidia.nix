@@ -38,7 +38,7 @@ in
       open = true; # RTX 5090 should work with open drivers too if you want to try
 
       # Use production or beta for RTX 5090 support
-      package = config.boot.kernelPackages.nvidiaPackages.production;
+      package = config.boot.kernelPackages.nvidiaPackages.beta;
 
       powerManagement.enable = false;
       powerManagement.finegrained = false;

@@ -13,7 +13,7 @@
 ;; "Skip it." Case said.
 
 ;; ============================================================
-;; memory // performance // optimization
+;; // memory // performance // optimization
 ;; ============================================================
 
 (defvar hypermodern/gc-cons-threshold (* 256 1024 1024))
@@ -36,7 +36,7 @@
 (setq copy-region-blink-delay 0)
 
 ;; ============================================================
-;; package // management // human // agent // hybrid
+;; // package // management
 ;; ============================================================
 
 (require 'package)
@@ -84,7 +84,21 @@
 (require 'package)
 
 ;; ============================================================
-;; ui // reinit
+;; // forward // declarations
+;; ============================================================
+
+(declare-function eglot-format-buffer "eglot" ())
+(declare-function eglot-rename "eglot" ())
+(declare-function vertico-reverse-mode "vertico" ())
+(declare-function hypermodern/format-haskell "init" ())
+(declare-function disable-lsp-formatters "init" ())
+
+;; TODO[b7r6]: we really want to handle these, but they break stuff...
+(setq native-comp-async-report-warnings-errors nil)
+(setq comp-async-report-warnings-errors nil)  ; Older variable name
+
+;; ============================================================
+;; // reinit // user // interface
 ;; ============================================================
 
 (setq inhibit-startup-screen t)
@@ -142,23 +156,86 @@
 (setq-default visible-bell nil)
 (setq-default ring-bell-function #'ignore)
 
-;; (defun hypermodern/remove-face-decorations ()
-;;   "Remove all bold and italic attributes from all faces."
-;;   (mapc (lambda (face)
-;;           (when (face-attribute face :weight nil t)
-;;             (set-face-attribute face nil :weight 'normal))
-;;           (when (face-attribute face :slant nil t)
-;;             (set-face-attribute face nil :slant 'normal)))
-;;         (face-list)))
-;; (add-hook 'after-init-hook
-;;           (lambda ()
-;;             (run-with-timer 0.1 nil 'hypermodern/remove-face-decorations)))
-;; (advice-add 'load-theme :after
-;;             (lambda (&rest _)
-;;               (hypermodern/remove-face-decorations)))
+;; ============================================================
+;; // frame // discipline
+;; ============================================================
+
+(use-package shackle
+  :ensure t
+  :config
+  (setq shackle-rules
+        '(;; Help/Documentation - right side, 40% width
+          (help-mode :align right :size 0.4 :select t)
+          ("\\*Help\\*" :align right :size 0.4 :select t)
+          ("\\*info\\*" :align right :size 0.4 :select t)
+          ("\\*eldoc\\*" :align right :size 0.4 :select nil)
+          
+          ;; REPLs/Interactive - bottom, 30% height
+          ("\\*eshell\\*" :align below :size 0.3 :select t)
+          ("\\*shell\\*" :align below :size 0.3 :select t)
+          (vterm-mode :align below :size 0.3 :select t)
+          ("\\*Python\\*" :align below :size 0.3 :select t)
+          
+          ;; Compilation/Output - bottom, 25% height, don't select
+          (compilation-mode :align below :size 0.25 :select nil)
+          ("\\*compilation\\*" :align below :size 0.25 :select nil)
+          ("\\*Compile-Log\\*" :align below :size 0.25 :select nil)
+          ("\\*Messages\\*" :align below :size 0.25 :select nil)
+          
+          ;; Search results - bottom, 35% height
+          ("\\*rg\\*" :align below :size 0.35 :select t)
+          ("\\*grep\\*" :align below :size 0.35 :select t)
+          ("\\*Occur\\*" :align below :size 0.35 :select t)
+          
+          ;; Magit - full frame (your existing preference)
+          (magit-status-mode :same t :select t)
+          (magit-log-mode :same t :select t)
+          
+          ;; Errors/Warnings - bottom, small, never select
+          ("\\*Warnings\\*" :align below :size 0.15 :select nil)
+          ("\\*Backtrace\\*" :align below :size 0.25 :select t)
+          ("\\*Flycheck errors\\*" :align below :size 0.2 :select nil)
+          
+          ;; Completions - bottom, minimal size
+          ("\\*Completions\\*" :align below :size 0.2 :select nil)
+          
+          ;; Org exports/agenda - right side
+          ("\\*Org Agenda\\*" :align right :size 0.4 :select t)
+          ("\\*Org Export\\*" :align below :size 0.25 :select nil)))
+  
+  (shackle-mode 1))
+
+(use-package popper
+  :ensure t
+  :after shackle
+  :bind (("C-\\"   . popper-toggle)
+         ("M-\\"   . popper-cycle)
+         ("C-M-\\" . popper-toggle-type))
+  :init
+  (setq popper-reference-buffers
+        '("\\*Messages\\*"
+          "\\*Compile-Log\\*"
+          "\\*compilation\\*"
+          "\\*Backtrace\\*"
+          "\\*Async Shell Command\\*"
+          "\\*eshell\\*"
+          "\\*shell\\*"
+          "\\*rg\\*"
+          "\\*grep\\*"
+          "Output\\*$"
+          help-mode
+          compilation-mode
+          inferior-python-mode))
+  
+  ;; Let Shackle handle placement
+  (setq popper-display-control nil)
+  
+  :config
+  (popper-mode +1)
+  (popper-echo-mode +1))
 
 ;; ============================================================
-;; hyper // modern // interactive
+;; // hypermodern // interactive
 ;; ============================================================
 
 (defun hypermodern/reinit-vertical-divider (&optional sync-with-mode-line)
@@ -188,11 +265,13 @@ with the mode-line background color."
      standard-display-table 'vertical-border
      (make-glyph-code ?│))))
 
+(hypermodern/reinit-vertical-divider) 
+
 (use-package base16-theme
   :ensure t)
 
 ;; ============================================================
-;; mode // line
+;; // mode // line
 ;; ============================================================
 
 (use-package doom-modeline
@@ -207,24 +286,20 @@ with the mode-line background color."
     (setq doom-modeline-major-mode-icon t)))
 
 ;; ============================================================
-;; hyper // modern // ai
+;; // hyper // modern // ai
 ;; ============================================================
 
 (use-package gptel
   :ensure t
   :config
 
-  ;; OpenRouter backend – the four coding champions
-  (setq gptel-model 'anthropic/claude-opus-4.1         ;;  default start-up model
+  (setq gptel-model 'anthropic/claude-opus-4
         gptel-backend
         (gptel-make-openai "// open // router"
           :host "openrouter.ai"
           :endpoint "/api/v1/chat/completions"
           :stream t
-          :key (lambda ()
-                 (or (getenv "OPENROUTER_API_KEY")
-                     (auth-source-pick-first-password
-                      :host "api.openrouter.ai")))
+          :key "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"
           :models
           '(;; the old guard…
             anthropic/claude-opus-4            ;; world’s best
@@ -233,7 +308,6 @@ with the mode-line background color."
             ;; …and the new kid
             qwen/qwen3-coder)))                ;; 262 K context MoE
 
-  ;; Model-specific settings ---------------------------------------------------
   (defun hypermodern/gptel-configure-output ()
     "Configure output length based on model, always leaving room for input."
     (pcase gptel-model
@@ -250,7 +324,6 @@ with the mode-line background color."
        (setq gptel-response-length 4096
              gptel-max-tokens 100000))))
 
-  ;; Quick model switcher now with Coder Qwen included -------------------------
   (defun hypermodern/gptel-switch-model ()
     "Switch between the four coding models."
     (interactive)
@@ -264,7 +337,6 @@ with the mode-line background color."
       (message "Switched to %s (max output: %d tokens)"
                choice gptel-response-length)))
 
-  ;; Token estimator & prompt-less system message unchanged --------------------
   (defun hypermodern/gptel-check-tokens ()
     "Check estimated token usage before sending."
     (interactive)
@@ -307,10 +379,10 @@ with the mode-line background color."
 (use-package vertico
   :ensure t
 
-  :init
-
   :config
   (vertico-mode)
+
+  :init
   (vertico-reverse-mode))
 
 (use-package orderless
@@ -337,22 +409,12 @@ with the mode-line background color."
 (use-package rg
   :ensure t
   :config
-  ;; Set default directory to search in
   (setq rg-default-directory (expand-file-name "."))
 
-  ;; Use ripgrep as the default search tool in Projectile
   (setq projectile-use-rg t)
-
-  ;; Group search results by file
   (setq rg-group-result t)
-
-  ;; Context lines: 2 lines before and after the match
   (setq rg-context-line-count 2)
-
-  ;; Show search results in a new window
   (setq rg-show-columns t)
-
-  ;; Always search all files in project
   (setq rg-command-line-flags '("--type=all"))
 
   (defun my-rg-project-prompt ()
@@ -360,12 +422,11 @@ with the mode-line background color."
     (let ((current-prefix-arg '(4)))    ; Force prompt behavior
       (call-interactively 'rg-project)))
 
-  ;; Unbind M-N and M-P from rg-mode-map
+  ;; TODO[b7r6]: do this across modes, e.g. `vterm`...
   (with-eval-after-load 'rg
     (define-key rg-mode-map (kbd "M-N") nil)
     (define-key rg-mode-map (kbd "M-P") nil))
 
-  ;; Keybindings
   :bind (("C-c C-r" . my-rg-project-prompt)
          ("C-c s p" . my-rg-project-prompt)
          ("C-c s d" . rg-dwim)
@@ -428,7 +489,7 @@ with the mode-line background color."
           (select-window original-window))))))
 
 ;; ============================================================
-;; mode // hacking
+;; // mode // hacking
 ;; ============================================================
 
 (use-package paredit
@@ -460,14 +521,14 @@ with the mode-line background color."
       (set-window-buffer window buffer)
       window)))
 
-;; (defun hypermodern/magit-display-buffer-function (buffer)
-;;   "Display BUFFER in the rightmost window without splitting."
-;;   (let ((window (if (one-window-p)
-;;                     (selected-window)
-;;                   (window-at (- (frame-width) 2) 1))))
-;;     (select-window window)
-;;     (set-window-buffer window buffer)
-;;     window))
+(defun hypermodern/magit-display-buffer-function (buffer)
+  "Display BUFFER in the rightmost window without splitting."
+  (let ((window (if (one-window-p)
+                    (selected-window)
+                  (window-at (- (frame-width) 2) 1))))
+    (select-window window)
+    (set-window-buffer window buffer)
+    window))
 
 (use-package magit
   :ensure t
@@ -475,7 +536,7 @@ with the mode-line background color."
   (setq magit-display-buffer-function #'hypermodern/magit-display-buffer-function))
 
 ;; ============================================================
-;; edit // compile // test
+;; // edit // compile // test
 ;; ============================================================
 
 (use-package compile
@@ -484,7 +545,7 @@ with the mode-line background color."
   (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter))
 
 ;; ============================================================
-;; vterm
+;; // vterm
 ;; ============================================================
 
 (defun setup-vterm ()
@@ -583,7 +644,7 @@ no way human."))
   (dashboard-setup-startup-hook))
 
 ;; ============================================================
-;; general // key // bind
+;; // general // key // bind
 ;; ============================================================
 
 (use-package which-key
@@ -688,11 +749,7 @@ no way human."))
 ;; ============================================================
 
 ;; ============================================================
-;; formatting // configuration
-;; ============================================================
-
-;; ============================================================
-;; formatting // configuration
+;; // formatting // configuration
 ;; ============================================================
 
 (use-package format-all
@@ -771,7 +828,6 @@ no way human."))
                   (hcl-mode       . (hclfmt))
                   (toml-mode      . (taplo))))
 
-  ;; Custom function for Haskell's two-pass formatting
   (defun hypermodern/format-haskell ()
     "Run fourmolu then stylish-haskell for peak aesthetics."
     (when (derived-mode-p 'haskell-mode)
@@ -779,7 +835,6 @@ no way human."))
       ;; (haskell-mode-stylish-buffer)   ; then stylish
       ))
 
-  ;; Override format-all for Haskell
   (defun hypermodern/format-all-buffer-override ()
     "Format buffer with special handling for Haskell."
     (interactive)
@@ -787,10 +842,8 @@ no way human."))
         (hypermodern/format-haskell)
       (format-all-buffer)))
 
-  ;; Rebind M-z to our override
   (global-set-key (kbd "M-z") 'hypermodern/format-all-buffer-override)
 
-  ;; Disable lsp formatters as before
   (defun disable-lsp-formatters ()
     (when (and (boundp 'eglot--managed-mode) eglot--managed-mode)
       (remove-hook 'before-save-hook #'eglot-format-buffer t))
@@ -812,7 +865,7 @@ no way human."))
   (global-treesit-auto-mode))
 
 ;; ============================================================
-;; lsp // init // config
+;; // lsp // init // config
 ;; ============================================================
 
 (use-package rainbow-mode
@@ -1214,15 +1267,15 @@ no way human."))
        (format-all-mode -1)))))
 
 ;; Also handle the non-tree-sitter variants
-(use-package js-mode
-  :ensure nil
-  :hook
-  ((js-mode javascript-mode) .
-   (lambda ()
-     (setq-local tab-width 2)
-     (setq-local indent-tabs-mode nil)
-     (setq-local js-indent-level 2)
-     (local-set-key (kbd "M-z") 'hypermodern/biome-format-2-spaces))))
+;; (use-package js-mode
+;;   :ensure nil
+;;   :hook
+;;   ((js-mode javascript-mode) .
+;;    (lambda ()
+;;      (setq-local tab-width 2)
+;;      (setq-local indent-tabs-mode nil)
+;;      (setq-local js-indent-level 2)
+;;      (local-set-key (kbd "M-z") 'hypermodern/biome-format-2-spaces))))
 
 (use-package typescript-mode
   :ensure t
@@ -1293,7 +1346,6 @@ no way human."))
   :hook
   (sh-mode . (lambda () (setq indent-tabs-mode nil))))
 
-;; If you're using tree-sitter bash mode
 (use-package bash-ts-mode
   :ensure nil
   :mode (("\\.sh\\'" . bash-ts-mode)
