@@ -714,7 +714,10 @@ no way human."))
    "C-c f"   'hypermodern/show-current-file
    "C-x 2"   'hypermodern/vsplit
    "C-x 3"   'hypermodern/hsplit
-   "C-x k"   'hypermodern/kill-current-buffer))
+   "C-x k"   'hypermodern/kill-current-buffer
+
+   "C-x g"   'magit
+   ))
 
 ;; ============================================================
 ;; company // complete
