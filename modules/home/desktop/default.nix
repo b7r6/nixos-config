@@ -5,7 +5,9 @@
     _1password-cli
     _1password-gui-beta
     brave
+    chromium
     discord
+    firefox
     nemo
     pavucontrol
     slack
