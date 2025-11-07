@@ -24,6 +24,51 @@ in
 {
   imports = [ inputs.hyprland.homeManagerModules.default ];
 
+  xdg.configFile."rofi/config.rasi".text = ''
+    configuration {
+      modi: "window,drun,run,ssh,filebrowser";
+      show-icons: true;
+      icon-theme: "Papirus";
+      font: "${config.stylix.fonts.monospace.name} 12";
+      terminal: "ghostty";
+      
+      // Better window switching
+      window-format: "{w}  {c}  {t}";
+      window-thumbnail: false;
+      
+      // Behavior
+      matching: "fuzzy";
+      sort: true;
+      case-sensitive: false;
+    }
+
+    @theme "theme"
+  '';
+
+  xdg.configFile."rofi/theme.rasi".text = ''
+    * {
+      bg: #${colors.base00}ee;
+      fg: #${colors.base05};
+      selected: #${colors.base02};
+      active: #${colors.base0D};
+      urgent: #${colors.base08};
+      
+      background-color: @bg;
+      text-color: @fg;
+      border-color: @active;
+    }
+
+    window {
+      width: 600px;
+      border: 2px;
+    }
+
+    element selected {
+      background-color: @selected;
+      text-color: @active;
+    }
+  '';
+
   wayland.windowManager.hyprland = {
     inherit (cfg) enable;
     systemd.enable = true;
@@ -32,16 +77,14 @@ in
 
     settings = {
       monitor = [
-        # Gaming monitor (left, 1.5 inches lower = ~38px at 96 DPI) - reduced refresh to 144Hz for stability
-        # "desc:AOC CU34G2XP 1Q1QBHA003343,3440x1440@60,0x38,1.0"
-        # LG primary (right, aligned top)
-        "desc:ASUSTek COMPUTER INC PG32UCDP T1LMQS044820,3840x2160@240,0x0,1.5"
+        "desc:ASUSTek COMPUTER INC PG32UCDP T1LMQS044820,3840x2160@144,auto-right,1.5"
+        "desc:ASUSTek COMPUTER INC PG32UCDP SCLMQS022729,3840x2160@144,auto-left,1.5"
       ];
 
       workspace = [
-        # Primary monitor (LG) - workspaces 1-6
-        "1,desc:ASUSTek COMPUTER INC PG32UCDP T1LMQS044820, default:true, persistent:true"
-        "2,desc:ASUSTek COMPUTER INC PG32UCDP T1LMQS044820, persistent:true"
+        "1,desc:ASUSTek COMPUTER INC PG32UCDP SCLMQS022729, persistent:true"
+        "2,desc:ASUSTek COMPUTER INC PG32UCDP SCLMQS022729, persistent:true"
+
         "3,desc:ASUSTek COMPUTER INC PG32UCDP T1LMQS044820, persistent:true"
         "4,desc:ASUSTek COMPUTER INC PG32UCDP T1LMQS044820, persistent:true"
         "5,desc:ASUSTek COMPUTER INC PG32UCDP T1LMQS044820, persistent:true"
@@ -50,12 +93,6 @@ in
         "8,desc:ASUSTek COMPUTER INC PG32UCDP T1LMQS044820, persistent:true"
         "9,desc:ASUSTek COMPUTER INC PG32UCDP T1LMQS044820, persistent:true"
         "10,desc:ASUSTek COMPUTER INC PG32UCDP T1LMQS044820, persistent:true"
-
-        # Gaming monitor - workspaces 7-10
-        # "7, monitor:desc:AOC CU34G2XP 1Q1QBHA003343, persistent:true"
-        # "8, monitor:desc:AOC CU34G2XP 1Q1QBHA003343, persistent:true"
-        # "9, monitor:desc:AOC CU34G2XP 1Q1QBHA003343, persistent:true"
-        # "10, monitor:desc:AOC CU34G2XP 1Q1QBHA003343, persistent:true"
       ];
 
       exec-once = [
@@ -186,12 +223,28 @@ in
       bind = [
         # Core bindings
         "$mod, Return, exec, ghostty"
-        "$mod, Space, exec, wofi --show drun"
-        "$mod SHIFT, Space, exec, wofi --show run"
         "$mod, E, exec, nemo"
         "$mod, W, exec, firefox"
         "$mod, BackSpace, killactive"
         "$mod SHIFT, BackSpace, exit"
+
+        # === LAUNCHERS ===
+        # Wofi (keep as default)
+        "$mod, Space, exec, wofi --show drun"
+        "$mod SHIFT, Space, exec, wofi --show run"
+
+        # Rofi (with CTRL modifier for advanced features)
+        "$mod CTRL, Space, exec, rofi -show drun" # App launcher
+        "$mod CTRL, Tab, exec, rofi -show window" # Window switcher
+        "$mod CTRL SHIFT, Space, exec, rofi -show run" # Run command
+        "$mod CTRL, S, exec, rofi -show ssh" # SSH launcher
+        "$mod CTRL, F, exec, rofi -show filebrowser" # File browser
+        "$mod CTRL, slash, exec, rofi -show combi" # Combined mode
+
+        # Quick window switching (keep Tab for workspace)
+        "$mod, Tab, workspace, m+1"
+        "$mod SHIFT, Tab, workspace, m-1"
+        # "$alt, Tab, exec, rofi -show window" # Alt+Tab style window switch
 
         # Window states
         "$mod, F, fullscreen, 0"
@@ -208,18 +261,29 @@ in
         "$mod, R, hy3:changefocus, raise"
         "$mod SHIFT, G, hy3:changegroup, opposite"
 
-        # Monitor navigation
+        # === MONITOR CONTROLS ===
+        # Focus monitor
         "$mod, comma, focusmonitor, -1"
         "$mod, period, focusmonitor, +1"
 
-        # Move windows between monitors
+        # Move window to monitor
         "$mod SHIFT, comma, movewindow, mon:-1"
         "$mod SHIFT, period, movewindow, mon:+1"
 
-        # Workspace switching - per monitor
-        "$mod, Tab, workspace, m+1"
-        "$mod SHIFT, Tab, workspace, m-1"
+        # Move workspace to monitor
+        "$mod $alt, comma, movecurrentworkspacetomonitor, -1"
+        "$mod $alt, period, movecurrentworkspacetomonitor, +1"
 
+        # Move window to monitor and follow
+        "$mod $alt SHIFT, comma, movewindow, mon:-1"
+        "$mod $alt SHIFT, comma, focusmonitor, -1"
+        "$mod $alt SHIFT, period, movewindow, mon:+1"
+        "$mod $alt SHIFT, period, focusmonitor, +1"
+
+        # Swap workspaces between monitors
+        "$mod $alt, S, swapactiveworkspaces, 0 1"
+
+        # === WORKSPACE CONTROLS ===
         # Direct workspace access
         "$mod, 1, workspace, 1"
         "$mod, 2, workspace, 2"
@@ -244,6 +308,11 @@ in
         "$mod SHIFT, 9, movetoworkspace, 9"
         "$mod SHIFT, 0, movetoworkspace, 10"
 
+        # Focus workspace on current monitor
+        "$mod CTRL, 1, focusworkspaceoncurrentmonitor, 1"
+        "$mod CTRL, 2, focusworkspaceoncurrentmonitor, 2"
+
+        # === WINDOW MOVEMENT ===
         # Window focus - vim keys
         "$mod, H, hy3:movefocus, l"
         "$mod, L, hy3:movefocus, r"
@@ -293,9 +362,11 @@ in
 
       # Window rules for better behavior
       windowrulev2 = [
-        "workspace 1, class:^(firefox)$"
-        "workspace 2, class:^(Code|code-url-handler)$"
-        "workspace 9, class:^(discord|Discord)$"
+        "workspace 4, class:^(brave|Brave)$"
+        "workspace 5, class:^(firefox)$"
+        "workspace 6, class:^(discord|Discord)$"
+        "workspace 7, class:^(telegram|Telegram)$"
+        "workspace 10, class:^(Spotify|spotify)$"
         "workspace 10, class:^(Spotify|spotify)$"
 
         # Float specific windows
@@ -865,6 +936,8 @@ in
     wl-clipboard
     wlr-randr
     wofi
+
+    rofi-wayland
 
     # Enhanced utilities
     cliphist

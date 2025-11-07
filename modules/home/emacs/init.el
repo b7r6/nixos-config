@@ -160,50 +160,20 @@
 ;; // frame // discipline
 ;; ============================================================
 
-(use-package shackle
-  :ensure t
-  :config
-  (setq shackle-rules
-        '(;; Help/Documentation - right side, 40% width
-          (help-mode :align right :size 0.4 :select t)
-          ("\\*Help\\*" :align right :size 0.4 :select t)
-          ("\\*info\\*" :align right :size 0.4 :select t)
-          ("\\*eldoc\\*" :align right :size 0.4 :select nil)
-          
-          ;; REPLs/Interactive - bottom, 30% height
-          ("\\*eshell\\*" :align below :size 0.3 :select t)
-          ("\\*shell\\*" :align below :size 0.3 :select t)
-          (vterm-mode :align below :size 0.3 :select t)
-          ("\\*Python\\*" :align below :size 0.3 :select t)
-          
-          ;; Compilation/Output - bottom, 25% height, don't select
-          (compilation-mode :align below :size 0.25 :select nil)
-          ("\\*compilation\\*" :align below :size 0.25 :select nil)
-          ("\\*Compile-Log\\*" :align below :size 0.25 :select nil)
-          ("\\*Messages\\*" :align below :size 0.25 :select nil)
-          
-          ;; Search results - bottom, 35% height
-          ("\\*rg\\*" :align below :size 0.35 :select t)
-          ("\\*grep\\*" :align below :size 0.35 :select t)
-          ("\\*Occur\\*" :align below :size 0.35 :select t)
-          
-          ;; Magit - full frame (your existing preference)
-          (magit-status-mode :same t :select t)
-          (magit-log-mode :same t :select t)
-          
-          ;; Errors/Warnings - bottom, small, never select
-          ("\\*Warnings\\*" :align below :size 0.15 :select nil)
-          ("\\*Backtrace\\*" :align below :size 0.25 :select t)
-          ("\\*Flycheck errors\\*" :align below :size 0.2 :select nil)
-          
-          ;; Completions - bottom, minimal size
-          ("\\*Completions\\*" :align below :size 0.2 :select nil)
-          
-          ;; Org exports/agenda - right side
-          ("\\*Org Agenda\\*" :align right :size 0.4 :select t)
-          ("\\*Org Export\\*" :align below :size 0.25 :select nil)))
-  
-  (shackle-mode 1))
+(setq shackle-rules
+      '((help-mode :other t :select t)               ; Reuse other window
+        ("\\*Help\\*" :other t :select t)
+        ("\\*info\\*" :other t :select t)
+        ("\\*eldoc\\*" :other t :select nil)
+        ("\\*eshell\\*" :same t :select t)           ; Reuse current window
+        ("\\*shell\\*" :same t :select t)
+        (vterm-mode :other t :select t)
+        ("\\*Python\\*" :other t :select t)
+        (compilation-mode :other t :select nil)
+        ("\\*compilation\\*" :other t :select nil)
+        ;; Keep some with align for specific placement needs
+        ("\\*Warnings\\*" :align below :size 0.15 :select nil)
+        ("\\*Backtrace\\*" :align below :size 0.25 :select t)))
 
 (use-package popper
   :ensure t
@@ -226,10 +196,10 @@
           help-mode
           compilation-mode
           inferior-python-mode))
-  
+
   ;; Let Shackle handle placement
   (setq popper-display-control nil)
-  
+
   :config
   (popper-mode +1)
   (popper-echo-mode +1))
@@ -265,7 +235,7 @@ with the mode-line background color."
      standard-display-table 'vertical-border
      (make-glyph-code ?│))))
 
-(hypermodern/reinit-vertical-divider) 
+(hypermodern/reinit-vertical-divider)
 
 (use-package base16-theme
   :ensure t)
@@ -850,6 +820,7 @@ no way human."))
   (defun disable-lsp-formatters ()
     (when (and (boundp 'eglot--managed-mode) eglot--managed-mode)
       (remove-hook 'before-save-hook #'eglot-format-buffer t))
+
     (when (and (boundp 'lsp-mode) lsp-mode)
       (setq-local lsp-enable-on-type-formatting nil)
       (setq-local lsp-enable-indentation nil)
@@ -1297,40 +1268,141 @@ no way human."))
 (use-package rust-ts-mode
   :ensure nil
   :mode (("\\.rs\\'" . rust-ts-mode))
-)
+  )
 
 ;; ============================================================
 ;; python // mode
 ;; ============================================================
 
+;; ============================================================
+;; python // mode
+;; ============================================================
+
+;; First, register both language servers
+(use-package lsp-mode
+  :config
+  ;; Register Ruff LSP
+  (lsp-register-client
+   (make-lsp-client
+    :new-connection (lsp-stdio-connection '("ruff" "server" "--preview"))
+    :activation-fn (lsp-activate-on "python")
+    :server-id 'ruff-lsp
+    :priority 1
+    :initialization-options
+    (lambda ()
+      '((settings . ((lint . ((enable . t)))
+                     (format . ((enable . t)))
+                     (codeAction . ((enable . t)))
+                     (completion . ((enable . t)))
+                     (definition . ((enable . t)))
+                     (hover . ((enable . t)))))))))
+
+  ;; Performance settings for large projects
+  (setq lsp-idle-delay 0.75)
+  (setq lsp-log-io nil))
+
 (use-package lsp-pyright
   :ensure t
   :demand t
   :after lsp-mode
-  :custom
-  (lsp-pyright-typechecking-mode "strict")
-  (lsp-pyright-diagnostic-mode "workspace")
 
   :config
-  (setq lsp-pyright-venv-strategy "useBestEffort")
-  (setq lsp-pyright-basedpyright-inlay-hints nil) ; keep it clean
+  ;; Configure for BasedPyright (falls back to pyright if not found)
+  (setq lsp-pyright-langserver-command "basedpyright-langserver")
 
-  ;; n.b. increase heap size for the `python` language server...
-  (setenv "NODE_OPTIONS" "--max-old-space-size=16384") ; 16GB
-  (setq lsp-pyright-langserver-command-args
-        '("--stdio"
-          "--max-old-space-size=8192"  ; 8GB heap
-          "--max-semi-space-size=1024")) ; 1GB for garbage collection
-  
-  ;; Alternative: If using node directly
-  (setq lsp-pyright-python-executable-cmd "python")
-  (setq lsp-pyright-server-command
-        '("node" "--max-old-space-size=8192" 
-          "/path/to/pyright-langserver" "--stdio"))
-  
-  :hook
-  ((python-mode . lsp-deferred)
-   (python-ts-mode . lsp-deferred)))
+  ;; Memory settings - 24GB for Node, leaving 8GB for Emacs/OS
+  (setenv "NODE_OPTIONS" "--max-old-space-size=24576")
+
+  ;; Reasonable performance settings
+  (setq lsp-pyright-typechecking-mode "basic")  ; Not "strict" for big projects
+  (setq lsp-pyright-diagnostic-mode "openFilesOnly")  ; Not "workspace"
+  (setq lsp-pyright-venv-strategy "useBestEffort")
+  (setq lsp-pyright-basedpyright-inlay-hints nil)
+
+  ;; Exclude heavy directories
+  (setq lsp-pyright-exclude
+        ["**/node_modules"
+         "**/__pycache__"
+         "**/data"
+         "**/datasets"
+         "**/checkpoints"
+         "**/wandb"
+         "**/.venv"
+         "**/venv"
+         "**/*.ipynb"]))
+
+;; The switcher functions
+(defvar hypermodern/python-lsp-backend 'basedpyright
+  "Current Python LSP backend. Either 'basedpyright or 'ruff.")
+
+(defun hypermodern/python-use-basedpyright ()
+  "Configure Python to use BasedPyright LSP."
+  (interactive)
+  (setq hypermodern/python-lsp-backend 'basedpyright)
+  (setq lsp-disabled-clients '(ruff-lsp))
+  (setq lsp-enabled-clients '(pyright))
+  ;; If in a Python buffer, restart LSP
+  (when (and (derived-mode-p 'python-mode 'python-ts-mode)
+             (bound-and-true-p lsp-mode))
+    (lsp-restart-workspace))
+  (message "Switched to BasedPyright"))
+
+(defun hypermodern/python-use-ruff ()
+  "Configure Python to use Ruff LSP."
+  (interactive)
+  (setq hypermodern/python-lsp-backend 'ruff)
+  (setq lsp-disabled-clients '(pyright))
+  (setq lsp-enabled-clients '(ruff-lsp))
+  ;; If in a Python buffer, restart LSP
+  (when (and (derived-mode-p 'python-mode 'python-ts-mode)
+             (bound-and-true-p lsp-mode))
+    (lsp-restart-workspace))
+  (message "Switched to Ruff LSP"))
+
+(defun hypermodern/python-switch-lsp ()
+  "Toggle between BasedPyright and Ruff LSP."
+  (interactive)
+  (if (eq hypermodern/python-lsp-backend 'basedpyright)
+      (hypermodern/python-use-ruff)
+    (hypermodern/python-use-basedpyright)))
+
+(defun hypermodern/python-lsp-status ()
+  "Show current Python LSP backend."
+  (interactive)
+  (message "Python LSP: %s" hypermodern/python-lsp-backend))
+
+;; Smart initialization based on project size
+(defun hypermodern/python-smart-lsp-init ()
+  "Initialize appropriate LSP based on context."
+  ;; Set backend based on saved preference
+  (cond
+   ((eq hypermodern/python-lsp-backend 'ruff)
+    (setq-local lsp-disabled-clients '(pyright))
+    (setq-local lsp-enabled-clients '(ruff-lsp)))
+   (t
+    (setq-local lsp-disabled-clients '(ruff-lsp))
+    (setq-local lsp-enabled-clients '(pyright))))
+
+  ;; Only start LSP for reasonable file sizes
+  (when (< (buffer-size) (* 10 1024 1024))  ; 10MB limit
+    (lsp-deferred)))
+
+;; Hook it up
+(add-hook 'python-mode-hook #'hypermodern/python-smart-lsp-init)
+(add-hook 'python-ts-mode-hook #'hypermodern/python-smart-lsp-init)
+
+;; Global keybindings for Python LSP control
+(global-set-key (kbd "C-c p l") 'hypermodern/python-switch-lsp)
+(global-set-key (kbd "C-c p s") 'hypermodern/python-lsp-status)
+(global-set-key (kbd "C-c p b") 'hypermodern/python-use-basedpyright)
+(global-set-key (kbd "C-c p r") 'hypermodern/python-use-ruff)
+
+;; Quick restart binding when things get stuck
+(global-set-key (kbd "C-c p R")
+                (lambda ()
+                  (interactive)
+                  (when (bound-and-true-p lsp-mode)
+                    (lsp-restart-workspace))))
 
 ;; ============================================================
 ;; shell / sh-mode
