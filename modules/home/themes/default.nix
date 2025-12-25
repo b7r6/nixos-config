@@ -219,6 +219,7 @@ in
     ];
 
     hyper-modern-nixos.wallpaper.enable = true;
+
     hyper-modern-nixos.wallpaper.customize = {
       inherit (cfg.display) profile width height;
       theme = currentTheme;

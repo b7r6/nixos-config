@@ -1,2 +1,7 @@
 result
 .direnv
+.nixd.json
+.nil.toml
+.flake-info
+.devshell
+result-*
