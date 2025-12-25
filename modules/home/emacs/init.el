@@ -106,7 +106,7 @@
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 (setq frame-title-format "// %b //")
-(set-face-attribute 'default nil :height 100)
+(set-face-attribute 'default nil :height 150)
 (setq font-lock-maximum-decoration nil)
 (setq auto-save-default nil)
 (setq confirm-kill-processes nil)
@@ -351,8 +351,6 @@ with the mode-line background color."
 
   :config
   (vertico-mode)
-
-  :init
   (vertico-reverse-mode))
 
 (use-package orderless
@@ -407,22 +405,14 @@ with the mode-line background color."
 ;; ============================================================
 
 (defun hypermodern/scratch ()
-  (let ((scratch-name "*scratch*"))
-    (if (get-buffer scratch-name)
-        (get-buffer scratch-name)
-      (let ((buf (get-buffer-create scratch-name)))
-        (with-current-buffer buf
-          (emacs-lisp-mode))
-        buf))))
-
-;; (defun hypermodern/scratch ()
-;;   (let ((dir (if buffer-file-name
-;; 	         (file-name-directory buffer-file-name)
-;;                default-directory)))
-;;     (get-buffer-create (concat dir "elisp-scratch.el"))))
+  (let ((name "*scratch*"))
+    (or (get-buffer name)
+        (with-current-buffer (get-buffer-create name)
+          (emacs-lisp-mode)
+          (current-buffer)))))
 
 (defun hypermodern/other ()
-  (let ((buf (other-buffer (current-buffer))))
+  (let ((buf (other-buffer (current-buffer) t)))
     (if (or (null buf) (eq buf (current-buffer)))
         (hypermodern/scratch)
       buf)))
@@ -448,169 +438,117 @@ with the mode-line background color."
   (interactive)
   (let* ((original-buffer (current-buffer))
          (windows (window-list))
-         (buffers (mapcar 'window-buffer windows))
-         (num-windows (length windows)))
-    (when (> num-windows 1)
-      (dotimes (i num-windows)
-        (set-window-buffer
-         (nth i windows) (nth (mod (+ i 1) num-windows) buffers)))
-      (let ((original-window (get-buffer-window original-buffer t)))
-        (when original-window
-          (select-window original-window))))))
+         (buffers (mapcar #'window-buffer windows))
+         (n (length windows)))
+    (when (> n 1)
+      (dotimes (i n)
+        (set-window-buffer (nth i windows)
+                           (nth (mod (1+ i) n) buffers)))
+      (when-let ((w (get-buffer-window original-buffer t)))
+        (select-window w)))))
 
 ;; ============================================================
 ;; // mode // hacking
 ;; ============================================================
 
 (use-package paredit
-  :ensure t
   :hook ((emacs-lisp-mode lisp-mode scheme-mode) . paredit-mode))
 
 (use-package paredit-everywhere
-  :ensure t
   :after paredit
   :hook (prog-mode . paredit-everywhere-mode))
 
 (use-package direnv
-  :ensure t
-  :config
-  (direnv-mode 1))
+  :config (direnv-mode 1))
 
 ;; ============================================================
-;; magit // init
+;; magit // forge
 ;; ============================================================
 
-(defun hypermodern/magit-display-buffer-function (buffer)
-  "Display BUFFER in the rightmost window without splitting."
-  (let ((window (if (one-window-p)
-                    (selected-window)
-                  (let ((windows (window-list)))
-                    (car (last windows))))))
-    (when window
-      (select-window window)
-      (set-window-buffer window buffer)
-      window)))
+(defun hypermodern/rightmost-window ()
+  "Return the rightmost window in the current frame."
+  (let ((best (selected-window)))
+    (dolist (w (window-list))
+      (when (> (window-left-column w) (window-left-column best))
+        (setq best w)))
+    best))
 
-(defun hypermodern/magit-display-buffer-function (buffer)
-  "Display BUFFER in the rightmost window without splitting."
-  (let ((window (if (one-window-p)
-                    (selected-window)
-                  (window-at (- (frame-width) 2) 1))))
-    (select-window window)
-    (set-window-buffer window buffer)
-    window))
+(defun hypermodern/magit-display-buffer (buffer)
+  "Display Magit BUFFER in the rightmost window without splitting."
+  (let ((win (if (one-window-p)
+                 (selected-window)
+               (hypermodern/rightmost-window))))
+    (with-selected-window win
+      (switch-to-buffer buffer))
+    win))
 
 (use-package magit
-  :ensure t
   :config
-  (setq magit-display-buffer-function #'hypermodern/magit-display-buffer-function))
+  (setq magit-display-buffer-function #'hypermodern/magit-display-buffer))
+
+(use-package forge
+  :if (locate-library "forge")
+  :after magit)
 
 ;; ============================================================
-;; // edit // compile // test
+;; // terminals (vterm + eat)
 ;; ============================================================
-
-(use-package compile
-  :ensure nil
-  :config
-  (add-hook 'compilation-filter-hook 'ansi-color-compilation-filter))
-
-;; ============================================================
-;; // vterm
-;; ============================================================
-
-(defun setup-vterm ()
-  (setq vterm-keymap-exceptions '("M-/" "M-N" "M-P" "M-i" "M-z"))
-  (define-key vterm-mode-map (kbd "M-N") 'windmove-right)
-  (define-key vterm-mode-map (kbd "M-P") 'windmove-left))
 
 (use-package vterm
-  :ensure t
-  :config
+  :hook (vterm-mode . (lambda ()
+                        (setq-local global-hl-line-mode nil)
+                        ;; keep your movement keys alive
+                        (setq vterm-keymap-exceptions '("M-/" "M-N" "M-P" "M-i" "M-z"))
+                        (define-key vterm-mode-map (kbd "M-N") #'windmove-right)
+                        (define-key vterm-mode-map (kbd "M-P") #'windmove-left))))
 
-  :hook
-  (vterm-mode . (lambda ()
-                  (setq-local global-hl-line-mode nil)
-                  (setup-vterm))))
+(use-package eat
+  :if (locate-library "eat")
+  :commands (eat))
 
-;; ============================================================
-;; tmux // copy // paste
-;; ============================================================
 (use-package clipetty
-  :ensure t
+  :if (and (not (display-graphic-p)) (getenv "TMUX"))
   :hook (after-init . global-clipetty-mode))
 
 ;; ============================================================
-;; dashboard // mode
+;; dashboard
 ;; ============================================================
 
 (defvar hypermodern/gibson-quotes
-  '("he mythform is usually encountered in one of two modes. one mode
-assumes that the cyberspace matric is inhabited, or perhaps visited, by
-entities whose characteristics correspond with the primary mythoform
-of a hidden people."
-
-    "it was the style that mattered and the style was the same.
-the moderns were mercenaries, practical jokers, nihilistic technofetishists."
-
-    "all the speed he took, all the turns he'd taken and the corners he'd cut
-in night city, and still he'd see the matrix in his sleep, bright lattices
-of logic unfolding across that colorless void..."
-
-    "mirros, someone has once said, where in some way essentially
-unwholesome, constructs were more so, she decided."
-
-    "power, in case's world, meant corporate power. the zaibatsus,
-the multinationals that shaped the course of human history,
-had transcended old barriers."
-
-    "you're always building models. stone circles. cathedrals.
-pipe-organs. adding machines. i got no idea why i'm here now."
-
-    "a gothic folly. endless series of chambers linked by passages,
-by stairwells vaulted like intestines."
-
-    "senior is wealthy. senior enjoys any number of means of manifestation."
-
-    "and arranged to become a partron of the aeschmann colection. the aeschmann
-collection was restricted to the work of psychotics."
-
-    "he'd always imagined it as a gradual and willing accommodation of
-the machine, the parent organism. it was the root of street cool too, the
-knowing posture that implied connection, invisible lines up to hidden
-levels of influence."
-
-    "well if feels like i am, kid, but i'm really just a bunch of
-rom, it's one of them, ah, philosophical questions i guess. but i aint's likely
-to write you no poem, if you follow me, your ai? it just might. bit it ain't
-no way human."))
+  '("he mythform is usually encountered in one of two modes..."
+    "it was the style that mattered and the style was the same..."
+    "all the speed he took, all the turns he'd taken..."
+    "mirros, someone has once said..."
+    "power, in case's world, meant corporate power..."
+    "you're always building models..."
+    "a gothic folly..."
+    "senior is wealthy..."
+    "and arranged to become a partron..."
+    "he'd always imagined it as a gradual..."
+    "well if feels like i am, kid..."))
 
 (use-package dashboard
-  :ensure t
   :config
-
-  (defvar my-custom-banner-file
+  (defvar hypermodern/dashboard-banner-file
     (expand-file-name "dashboard-banner-0x04.txt" user-emacs-directory))
 
-  (defvar my-custom-banner-text
+  (defvar hypermodern/dashboard-banner-text
     "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                  // hypermodern
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
-  (unless (file-exists-p my-custom-banner-file)
-    (with-temp-file my-custom-banner-file
-      (insert my-custom-banner-text)))
+  (unless (file-exists-p hypermodern/dashboard-banner-file)
+    (with-temp-file hypermodern/dashboard-banner-file
+      (insert hypermodern/dashboard-banner-text)))
 
-  (setq dashboard-startup-banner my-custom-banner-file)
+  (setq dashboard-startup-banner hypermodern/dashboard-banner-file
+        dashboard-banner-logo-title
+        (nth (random (length hypermodern/gibson-quotes)) hypermodern/gibson-quotes)
+        dashboard-center-content t
+        dashboard-set-heading-icons (display-graphic-p)
+        dashboard-set-file-icons (display-graphic-p)
+        dashboard-items '((recents . 5)))
 
-  (setq dashboard-banner-logo-title
-        (nth (random (length hypermodern/gibson-quotes))
-             hypermodern/gibson-quotes))
-
-  (setq dashboard-center-content t)
-  (setq dashboard-set-heading-icons t)
-  (setq dashboard-set-file-icons t)
-
-  (setq dashboard-items '((recents . 5)))
   (dashboard-setup-startup-hook))
 
 ;; ============================================================
@@ -618,821 +556,601 @@ no way human."))
 ;; ============================================================
 
 (use-package which-key
-  :ensure t
-  :custom
-  (which-key-idle-delay 1)
-
-  :config
-  (which-key-mode))
+  :custom (which-key-idle-delay 1)
+  :config (which-key-mode 1))
 
 (use-package general
-  :ensure t
   :config
-
-  (defun hypermodern/what-face (pos)
-    "Display the face at POS."
-    (interactive "d")
-    (let ((face (or (get-char-property (point) 'read-face-name)
-                    (get-char-property (point) 'face))))
-      (if face (message "Face: %s" face) (message "No face at %d" pos))))
-
-  (defun hypermodern/show-current-file ()
-    "Print the current buffer filename to the minibuffer."
-    (interactive)
-    (message (buffer-file-name)))
-
-  (defun hypermodern/kill-current-buffer ()
-    "Kill the current buffer."
-    (interactive)
-    (kill-buffer (current-buffer)))
-
   (defun hypermodern/visit-init-file ()
     (interactive)
     (find-file user-init-file))
 
-  (defun hypermodern/format-all-buffer ()
-    "Format buffer if formatter is available, otherwise message."
+  (defun hypermodern/show-current-file ()
     (interactive)
-    (condition-case err
-        (format-all-buffer)
-      (error (message "[emacs] formatter not available: %s" err))))
+    (message (or (buffer-file-name) "<no file>")))
+
+  (defun hypermodern/kill-current-buffer ()
+    (interactive)
+    (kill-buffer (current-buffer)))
+
+  (defvar hypermodern/default-font-height 150
+    "Default font height for global font scaling.")
+
+  (defun hypermodern/refresh-vertico ()
+    "Refresh vertico display after font changes."
+    (when (and (fboundp 'vertico-reverse-mode) vertico-reverse-mode)
+      ;; Force a complete refresh of vertico
+      (vertico-mode -1)
+      (vertico-reverse-mode -1)
+      (run-with-timer 0.1 nil 
+        (lambda () 
+          (vertico-mode 1)
+          (vertico-reverse-mode 1)))))
+
+  (defun hypermodern/global-font-size-increase ()
+    "Increase font size globally across all buffers."
+    (interactive)
+    (let ((new-height (+ (face-attribute 'default :height) 10)))
+      (set-face-attribute 'default nil :height new-height)
+      (setq hypermodern/default-font-height new-height)
+      (hypermodern/refresh-vertico)
+      (message "Global font size: %d" new-height)))
+
+  (defun hypermodern/global-font-size-decrease ()
+    "Decrease font size globally across all buffers."
+    (interactive)
+    (let ((new-height (max 80 (- (face-attribute 'default :height) 10))))
+      (set-face-attribute 'default nil :height new-height)
+      (setq hypermodern/default-font-height new-height)
+      (hypermodern/refresh-vertico)
+      (message "Global font size: %d" new-height)))
+
+  (defun hypermodern/global-font-size-reset ()
+    "Reset font size to default globally."
+    (interactive)
+    (set-face-attribute 'default nil :height hypermodern/default-font-height)
+    (hypermodern/refresh-vertico)
+    (message "Global font size reset to: %d" hypermodern/default-font-height))
 
   (general-define-key
    ;; standard movement
-   "C-c q"   'join-line
-   "C-c r"   'revert-buffer
-   "C-c d"   'dashboard-open
-   "C-j"     'newline-and-indent
+   "C-c q"   #'join-line
+   "C-c r"   #'revert-buffer
+   "C-c d"   #'dashboard-open
+   "C-j"     #'newline-and-indent
 
-   ;; frame mainpulation
-   "C-x C-+" 'text-scale-increase
-   "C-x C--" 'text-scale-decrease
-   "C-x C-r" 'rg-dwim-project-dir
-   "C-x d"   'consult-recent-file
-   "C-x f"   'consult-fd
+   ;; frame manipulation
+   "C-x C-+" #'text-scale-increase
+   "C-x C--" #'text-scale-decrease
+   
+   ;; standard font size controls (like browsers/terminals) - GLOBAL
+   "C-+" #'hypermodern/global-font-size-increase
+   "C--" #'hypermodern/global-font-size-decrease
+   "C-0" #'hypermodern/global-font-size-reset
 
-   ;; `b7r6` standard keys
-   "M-/"     'undo
-   "M-N"     'windmove-right
-   "M-P"     'windmove-left
-   "M-i"     'hypermodern/visit-init-file
-   "M-z"     'hypermodern/format-all-buffer
+   ;; your standard keys
+   "M-/"     #'undo
+   "M-N"     #'windmove-right
+   "M-P"     #'windmove-left
+   "M-i"     #'hypermodern/visit-init-file
+   "M-R"     #'hypermodern/rotate-windows
 
-   ;; `hypermodern` overrides
-   "C-M-r"   'consult-ripgrep
-   "M-R"     'hypermodern/rotate-windows
-   "C-c f"   'hypermodern/show-current-file
-   "C-x 2"   'hypermodern/vsplit
-   "C-x 3"   'hypermodern/hsplit
-   "C-x k"   'hypermodern/kill-current-buffer
+   ;; buffers
+   "C-x 2"   #'hypermodern/vsplit
+   "C-x 3"   #'hypermodern/hsplit
+   "C-x k"   #'hypermodern/kill-current-buffer
+   "C-c f"   #'hypermodern/show-current-file
 
-   "C-x g"   'magit
-   ))
+   ;; git
+   "C-x g"   #'magit))
+
+;; A tiny “ops” prefix for the new candy.
+(general-create-definer hypermodern/leader
+  :prefix "C-c o")
+
+;; We'll bind these after features load.
 
 ;; ============================================================
-;; company // complete
+;; company or corfu (keep company for now, corfu optional)
 ;; ============================================================
 
 (use-package company
-  :ensure t
   :hook (after-init . global-company-mode)
-
   :config
-  (setq company-idle-delay 0.25)
-  (setq company-minimum-prefix-length 1)
-  (setq company-backends
-        '(company-capf
-          company-files
-          company-keywords
-          company-yasnippet
-          company-dabbrev-code
-          company-dabbrev))
-
-  (setq company-dabbrev-ignore-case t)
-  (setq company-dabbrev-downcase nil)
-  (setq company-show-quick-access t)
-  (setq company-tooltip-idle-delay 0.1)
-  (setq company-require-match nil)
-
+  (setq company-idle-delay 0.1
+        company-minimum-prefix-length 1
+        company-tooltip-idle-delay 0.05
+        company-require-match nil
+        company-show-quick-access t
+        company-dabbrev-ignore-case t
+        company-dabbrev-downcase nil
+        company-backends '(company-capf
+                           company-files
+                           company-keywords
+                           company-yasnippet
+                           company-dabbrev-code
+                           company-dabbrev))
   :bind (("M-TAB" . company-complete-common-or-cycle)
          ("C-M-i" . company-complete-common-or-cycle)))
 
-;; ============================================================
-;;                   hacker // essential
-;; ============================================================
+(use-package yasnippet
+  :config (yas-global-mode 1))
 
 ;; ============================================================
-;; // formatting // configuration
+;; formatting (M-z) — one key, zero fighting
 ;; ============================================================
 
 (use-package format-all
-  :ensure t
-
   :config
   (setq format-all-show-errors 'never)
-
-  ;; Force Biome to use 2-space indentation
-  (defun hypermodern/biome-args ()
-    "Return Biome formatter arguments with 2-space indentation."
-    '("format" "--stdin-file-path" filepath "--indent-width=2" "--indent-style=space"))
-
-  (setq-default format-all-formatters
-                '(("C++"          . (clang-format))
-                  ("C#"           . (clang-format))
-                  ("CSS"          . (prettier))
-                  ("F#"           . (fantomas))
-                  ("Go"           . (gofmt))
-                  ("HTML"         . (prettier))
-                  ("Haskell"      . (fourmolu))
-                  ("JavaScript"   . (biome . hypermodern/biome-args))
-                  ("JSON"         . (biome . hypermodern/biome-args))
-                  ("Markdown"     . (mdformat))
-                  ("Nix"          . (nixfmt))
-                  ("Python"       . (ruff))
-                  ("Ruby"         . (rubocop))
-                  ("Rust"         . (rustfmt))
-                  ("Shell"        . (shfmt "-i" "2"))  ; 2-space for shell too
-                  ("TypeScript"   . (biome . hypermodern/biome-args))
-                  ("TSX"          . (biome . hypermodern/biome-args))
-                  ("YAML"         . (yamlfmt))
-                  ("TOML"         . (taplo))
-                  ("Terraform"    . (terraform))
-                  ("HCL"          . (hclfmt))
-                  ("Zig"          . (zig))
-
-                  ;; TreeSit mode mappings
-                  (c-ts-mode      . (clang-format))
-                  (c++-ts-mode    . (clang-format))
-                  (csharp-ts-mode . (clang-format))
-                  (css-ts-mode    . (prettier))
-                  (go-ts-mode     . (gofmt))
-                  (html-ts-mode   . (prettier))
-                  (js-ts-mode     . (biome . hypermodern/biome-args))
-                  (json-ts-mode   . (biome . hypermodern/biome-args))
-                  (python-ts-mode . (ruff))
-                  (rust-ts-mode   . (rustfmt))
-                  (bash-ts-mode   . (shfmt "-i" "2"))
-                  (sh-mode        . (shfmt "-i" "2"))
-                  (typescript-ts-mode . (biome . hypermodern/biome-args))
-                  (tsx-ts-mode    . (biome . hypermodern/biome-args))
-                  (yaml-ts-mode   . (yamlfmt))
-                  (nix-mode       . (nixfmt))
-                  (toml-ts-mode   . (taplo))
-                  (zig-mode       . (zig))
-
-                  ;; Traditional mode mappings
-                  (c-mode         . (clang-format))
-                  (c++-mode       . (clang-format))
-                  (csharp-mode    . (clang-format))
-                  (css-mode       . (prettier))
-                  (go-mode        . (gofmt))
-                  (html-mode      . (prettier))
-                  (js-mode        . (biome . hypermodern/biome-args))
-                  (js2-mode       . (biome . hypermodern/biome-args))
-                  (json-mode      . (biome . hypermodern/biome-args))
-                  (python-mode    . (ruff))
-                  (ruby-mode      . (rubocop))
-                  (rust-mode      . (rustfmt))
-                  (typescript-mode . (biome . hypermodern/biome-args))
-                  (nix-mode       . (nixfmt))
-                  (yaml-mode      . (yamlfmt))
-                  (markdown-mode  . (mdformat))
-                  (terraform-mode . (terraform))
-                  (hcl-mode       . (hclfmt))
-                  (toml-mode      . (taplo))))
-
-  (defun hypermodern/format-haskell ()
-    "Run fourmolu then stylish-haskell for peak aesthetics."
-    (when (derived-mode-p 'haskell-mode)
-      (format-all-buffer)  ; fourmolu via format-all
-      ;; (haskell-mode-stylish-buffer)   ; then stylish
-      ))
-
-  (defun hypermodern/format-all-buffer-override ()
-    "Format buffer with special handling for Haskell."
-    (interactive)
-    (if (derived-mode-p 'haskell-mode)
-        (hypermodern/format-haskell)
-      (format-all-buffer)))
-
-  (global-set-key (kbd "M-z") 'hypermodern/format-all-buffer-override)
-
-  (defun disable-lsp-formatters ()
-    (when (and (boundp 'eglot--managed-mode) eglot--managed-mode)
-      (remove-hook 'before-save-hook #'eglot-format-buffer t))
-
-    (when (and (boundp 'lsp-mode) lsp-mode)
-      (setq-local lsp-enable-on-type-formatting nil)
-      (setq-local lsp-enable-indentation nil)
-      (setq-local lsp-enable-formatting nil)))
-
-  (add-hook 'format-all-mode-hook #'disable-lsp-formatters)
-
-  :bind ("M-z" . format-all-buffer)
   :hook (prog-mode . format-all-mode))
 
+(defun hypermodern/biome-format-2-spaces ()
+  "Format current buffer with biome, forcing 2-space indentation."
+  (interactive)
+  (unless (executable-find "biome")
+    (user-error "biome not found on PATH"))
+  (let* ((file (or (buffer-file-name) "file.js"))
+         (content (buffer-substring-no-properties (point-min) (point-max)))
+         (out (generate-new-buffer " *biome-format*"))
+         (orig (current-buffer))
+         (pt (point))
+         (win-start (window-start)))
+    (unwind-protect
+        (with-current-buffer out
+          (insert content)
+          (if (zerop (call-process-region (point-min) (point-max)
+                                          "biome" t t nil
+                                          "format"
+                                          "--stdin-file-path" file
+                                          "--indent-width=2"
+                                          "--indent-style=space"))
+              (let ((formatted (buffer-string)))
+                (with-current-buffer orig
+                  (erase-buffer)
+                  (insert formatted)
+                  (goto-char (min pt (point-max)))
+                  (set-window-start (selected-window) win-start t)
+                  (message "[biome] formatted (2 spaces)")))
+            (user-error "[biome] formatting failed")))
+      (when (buffer-live-p out) (kill-buffer out)))))
+
+(defun hypermodern/format-buffer ()
+  "Format buffer: biome for JS/TS/JSON; else format-all."
+  (interactive)
+  (cond
+   ((derived-mode-p 'js-mode 'js-ts-mode
+                    'typescript-mode 'typescript-ts-mode
+                    'tsx-ts-mode 'json-mode 'json-ts-mode)
+    (hypermodern/biome-format-2-spaces))
+   ((fboundp 'format-all-buffer)
+    (format-all-buffer))
+   (t
+    (message "[format] no formatter available"))))
+
+(global-set-key (kbd "M-z") #'hypermodern/format-buffer)
+
+;; ============================================================
+;; tree-sitter
+;; ============================================================
 
 (use-package treesit-auto
-  :ensure t
   :config
-  (setq treesit-auto-install t)
-  (global-treesit-auto-mode))
+  (setq treesit-auto-install 'prompt)
+  (global-treesit-auto-mode 1)
+  
+  ;; Auto-install common grammars
+  (dolist (lang '(bash c cpp css html javascript json python typescript tsx yaml nix))
+    (unless (treesit-language-available-p lang)
+      (ignore-errors (treesit-install-language-grammar lang)))))
 
 ;; ============================================================
-;; // lsp // init // config
+;; LSP (lsp-mode) — deduped, flymake-only diagnostics
 ;; ============================================================
+
+;; lsp-mode internals have changed over time (list vs hash-table).
+;; This helper keeps “register-if-missing” logic safe.
+(defun hypermodern/lsp-client-registered-p (id)
+  "Return non-nil if lsp-mode already has a client for server-id ID."
+  (when (boundp 'lsp-clients)
+    (cond
+     ((hash-table-p lsp-clients) (gethash id lsp-clients))
+     ((listp lsp-clients) (assoc id lsp-clients))
+     (t nil))))
 
 (use-package rainbow-mode
-  :ensure t
   :hook (prog-mode . rainbow-mode))
 
 (use-package lsp-mode
-  :ensure t
-  :commands lsp lsp-deferred
-  :hook ((c-mode . lsp-deferred)
-         (c++-mode . lsp-deferred)
-         (c-ts-mode . lsp-deferred)
-         (c++-ts-mode . lsp-deferred)
-         (csharp-ts-mode . lsp-deferred)
-         (fsharp-mode . lsp-deferred)
-         (haskell-mode . lsp-deferred)
-         (haskell-ts-mode . lsp-deferred)
-         (python-mode . lsp-deferred)
-         (python-ts-mode . lsp-deferred)
-         (js-ts-mode . lsp-deferred)
-         (tsx-ts-mode . lsp-deferred)
-         (typescript-ts-mode . lsp-deferred)
-         (nix-mode . lsp-deferred)
-         (nix-ts-mode . lsp-deferred))
-
-  :init
-  (setq lsp-keymap-prefix "C-c l")
-
+  :commands (lsp lsp-deferred)
+  :init (setq lsp-keymap-prefix "C-c l")
   :config
-  (setq lsp-idle-delay 0.5)
-  (setq lsp-completion-provider :capf)
-  (setq lsp-enable-symbol-highlighting t)
-  (setq lsp-enable-snippet nil)
-  (setq lsp-headerline-breadcrumb-enable t)
-  (setq lsp-modeline-code-actions-enable t)
-  (setq lsp-modeline-diagnostics-enable t)
-  (setq lsp-log-io nil)
+  (setq lsp-idle-delay 0.5
+        lsp-completion-provider :capf
+        lsp-enable-symbol-highlighting t
+        lsp-enable-snippet nil
+        lsp-headerline-breadcrumb-enable t
+        lsp-modeline-code-actions-enable t
+        lsp-modeline-diagnostics-enable t
+        lsp-log-io nil
 
-  (add-to-list 'lsp-disabled-clients '(nix-mode . nix-nil))
-  (add-to-list 'lsp-disabled-clients '(nix-ts-mode . nix-nil))
-  (add-to-list 'lsp-disabled-clients '(nix-mode . rnix-lsp))
-  (add-to-list 'lsp-disabled-clients '(nix-ts-mode . rnix-lsp))
+        lsp-auto-guess-root t
+        lsp-enable-file-watchers nil
+        lsp-enable-suggest-server-download nil
 
+        ;; flycheck-less life
+        lsp-diagnostics-provider :flymake
+        lsp-enable-on-type-formatting nil
+        lsp-enable-indentation nil
+        lsp-enable-formatting nil)
+
+  ;; nixd: register if present (and not already registered)
   (when (executable-find "nixd")
-    (lsp-register-client
-     (make-lsp-client :new-connection (lsp-stdio-connection "nixd")
-                      :major-modes '(nix-mode nix-ts-mode)
-                      :priority 1
-                      :server-id 'nixd)))
-
-
-  (lsp-register-client
-   (make-lsp-client :new-connection (lsp-stdio-connection "nixd")
-                    :major-modes '(nix-mode nix-ts-mode)
-                    :priority 1
-                    :server-id 'nixd))
-
-  (setq lsp-auto-guess-root t) ;; auto-detect project roots
-  (setq lsp-enable-file-watchers nil) ;; don't ask about watching files
-  (setq lsp-enable-suggest-server-download nil) ;; don't prompt to download servers
-  )
+    (unless (hypermodern/lsp-client-registered-p 'nixd)
+      (lsp-register-client
+       (make-lsp-client :new-connection (lsp-stdio-connection "nixd")
+                        :major-modes '(nix-mode nix-ts-mode)
+                        :priority 1
+                        :server-id 'nixd)))))
 
 (use-package lsp-ui
-  :ensure t
-  :commands lsp-ui-mode
-  :hook ((nix-mode . lsp-ui-mode)
-         (nix-ts-mode . lsp-ui-mode))
-
+  :after lsp-mode
+  :hook ((nix-mode nix-ts-mode) . lsp-ui-mode)
   :config
-  (setq lsp-ui-sideline-enable t) ;; sideline in the margin, not inline
-  (setq lsp-ui-sideline-show-code-actions nil)
-  (setq lsp-ui-sideline-show-symbol nil)
+  (setq lsp-ui-sideline-enable t
+        lsp-ui-sideline-show-code-actions nil
+        lsp-ui-sideline-show-symbol nil
+        lsp-ui-sideline-show-diagnostics nil
+        lsp-ui-sideline-show-hover t
+        lsp-ui-sideline-delay 1.0
+        lsp-ui-sideline-update-mode 'point
+        lsp-ui-doc-enable t
+        lsp-ui-doc-show-with-cursor nil
+        lsp-ui-doc-show-with-mouse nil
+        lsp-inlay-hint-enable nil
+        lsp-lens-enable nil))
 
-  (setq lsp-ui-sideline-show-diagnostics nil) ;; sideline the diagnostics sideline...
-  (setq lsp-ui-sideline-show-hover t) ;; sometimes contains type infosssss....sssss...
-  ;; (setq lsp-modeline-diagnostics-enable t)
+;; Flymake: fringe-only, no wavy underlines.
+(with-eval-after-load 'flymake
+  (set-face-attribute 'flymake-error nil :underline nil)
+  (set-face-attribute 'flymake-warning nil :underline nil)
+  (set-face-attribute 'flymake-note nil :underline nil)
 
-
-  ;; keep it subtle
-  (setq lsp-ui-sideline-ignore-duplicate t)
-  (setq lsp-ui-sideline-delay 1.0)  ; don't flash on every cursor move
-
-  ;; push it to the actual margin
-  (setq lsp-ui-sideline-update-mode 'point)  ; only update at point
-
-  ;; doc hover is fine but only on demand
-  (setq lsp-ui-doc-enable t)
-  (setq lsp-ui-doc-show-with-cursor nil)  ; don't auto-show
-  (setq lsp-ui-doc-show-with-mouse nil)   ; don't auto-show
-
-  ;; absolutely no inline hints
-  (setq lsp-inlay-hint-enable nil)
-  (setq lsp-lens-enable nil))  ; no codelens either, jetbrains is right there if you never ever ever want it...
-
-(use-package consult
-  :ensure t
-  :bind (("C-c c a" . (lambda ()
-                        (interactive)
-                        (if (bound-and-true-p lsp-mode)
-                            (call-interactively #'lsp-execute-code-action))))
-
-         ("C-c c r" . (lambda ()
-                        (interactive)
-                        (if (bound-and-true-p lsp-mode)
-                            (call-interactively #'lsp-rename)
-                          (call-interactively #'eglot-rename))))
-
-         ("C-c c f" . (lambda ()
-                        (interactive)
-                        (if (bound-and-true-p lsp-mode)
-                            (call-interactively #'lsp-format-buffer))))
-
-         ("C-c c d" . eldoc)))
-
-(defun setup-language-tooling (mode)
-  (add-hook mode
-            (lambda ()
-              (lsp-deferred)
-              (format-all-mode))))
-
-(mapc #'setup-language-tooling
-      '(c-mode-hook
-        c++-mode-hook
-        c-ts-mode-hook
-        c++-ts-mode-hook
-        csharp-ts-mode-hook
-        fsharp-mode-hook
-        haskell-mode-hook
-        python-ts-mode-hook
-        js-ts-mode-hook
-        typescript-ts-mode-hook
-        nix-mode-hook))
+  (setq flymake-fringe-indicator-position 'left-fringe
+        flymake-no-changes-timeout 0.5
+        flymake-start-on-save-buffer t))
 
 ;; ============================================================
-;; flymake // flycheck // subtle
+;; Python: choose basedpyright vs ruff-lsp deterministically
 ;; ============================================================
-
-;; stop the flycheck bukkake, i don't want new buffers in my face...
-
-(setq flycheck-display-errors-function nil) ;; don't auto-display error buffers
-(setq flycheck-help-echo-function nil) ;; don't show errors in echo area either
-
-;; If you still want to see errors on demand:
-(defun hypermodern/flycheck-list-errors-only-when-asked ()
-  "Only show flycheck errors when explicitly requested."
-  (interactive)
-  (flycheck-list-errors))
-
-;; Bind it to something reasonable
-(global-set-key (kbd "C-c ! l") 'hypermodern/flycheck-list-errors-only-when-asked)
-
-;; Also prevent the error list from stealing focus
-(setq flycheck-standard-error-navigation nil)
-
-;; kill the wavy underlines
-(custom-set-faces
- '(flymake-error ((t (:underline nil :background nil :foreground nil))))
- '(flymake-warning ((t (:underline nil :background nil :foreground nil))))
- '(flymake-note ((t (:underline nil :background nil :foreground nil))))
-
- ;; same for `flycheck`
- '(flycheck-error ((t (:underline nil))))
- '(flycheck-warning ((t (:underline nil))))
- '(flycheck-info ((t (:underline nil)))))
-
-;; just use fringe indicators (subtle marks in the gutter)
-(setq flymake-fringe-indicator-position 'left-fringe)
-(setq flymake-suppress-zero-counters t)
-(setq flymake-start-on-flymake-mode t)
-(setq flymake-no-changes-timeout 0.5)
-(setq flymake-start-on-save-buffer t)
-(setq flymake-proc-ignored-file-name-regexps '())
-
-;; Make the fringe marks smaller/subtler
-(define-fringe-bitmap 'flymake-double-exclamation-mark
-  [#b00000000
-   #b00000000
-   #b00000000
-   #b00001000
-   #b00001000
-   #b00001000
-   #b00001000
-   #b00000000])
-
-;; for `flycheck`
-(setq flycheck-indication-mode 'left-fringe)
-(setq flycheck-highlighting-mode nil) ;; no buffer highlighting at all
-
-;; ============================================================
-;; yasnipptet // so global
-;; ============================================================
-
-(use-package yasnippet
-  :ensure t
-  :config
-  (yas-global-mode 1))
-
-;; ============================================================
-;;                  language // specific
-;; ============================================================
-
-;; ============================================================
-;; c-sharp // mode
-;; ============================================================
-
-(use-package csharp-mode
-  :ensure t
-  :mode ("\\.cs\\'" . csharp-ts-mode))
-
-;; ============================================================
-;; f-sharp // mode
-;; ============================================================
-
-(use-package fsharp-mode
-  :ensure t
-  :mode ("\\.fs[ix]?\\'" . fsharp-mode))
-
-;; ============================================================
-;; shell // mode
-;; ============================================================
-
-(use-package sh-script
-  :mode (("\\.sh\\'" . bash-ts-mode)
-         ("\\.bash\\'" . bash-ts-mode)))
-
-;; ============================================================
-;; haskell // mode
-;; ============================================================
-
-(use-package haskell-mode
-  :ensure t
-  :mode (("\\.hs\\'" . haskell-mode)
-         ("\\.lhs\\'" . literate-haskell-mode)
-         ("\\.cabal\\'" . haskell-cabal-mode)
-         ("\\.hsc\\'" . haskell-mode))
-
-  :config
-  ;; Basic indentation settings
-  (setq haskell-indentation-layout-offset 4)
-  (setq haskell-indentation-left-offset 4)
-  (setq haskell-indentation-where-pre-offset 2)
-  (setq haskell-indentation-where-post-offset 2)
-
-  ;; Disable all the legacy interactive stuff - we have LSP
-  (setq haskell-tags-on-save nil)
-  (setq haskell-stylish-on-save nil)
-  (setq haskell-mode-stylish-haskell-path "stylish-haskell")
-
-  ;; Don't load interactive-haskell-mode, it fights with LSP
-  (setq haskell-process-type nil)
-
-  :hook
-  ((haskell-mode . haskell-indentation-mode)
-   (haskell-mode . haskell-decl-scan-mode)))
-
-(use-package lsp-haskell
-  :ensure t
-  :after (haskell-mode lsp-mode)
-
-  :init
-  ;; Clear any competing keybindings before LSP starts
-  (add-hook 'haskell-mode-hook
-            (lambda ()
-              ;; Remove ALL competing bindings
-              (local-unset-key (kbd "M-."))
-              (local-unset-key (kbd "M-,"))
-              (local-unset-key (kbd "C-c C-t")))
-            -10) ; Run early with negative priority
-
-  :config
-  ;; Use the NixOS-provided HLS
-  (setq lsp-haskell-server-path "haskell-language-server-wrapper")
-
-  ;; Modern HLS settings
-  (setq lsp-haskell-plugin-stan-global-on nil) ; Stan is noisy
-  (setq lsp-haskell-plugin-hlint-global-on t)
-  (setq lsp-haskell-plugin-eval-global-on t)
-  (setq lsp-haskell-formatting-provider "fourmolu")
-
-  ;; Completions
-  (setq lsp-haskell-plugin-ghcide-completions-config-auto-extend-on t)
-  (setq lsp-haskell-plugin-ghcide-completions-config-snippets-on t)
-
-  :hook
-  (haskell-mode . lsp-deferred))
-
-;; Ensure xref (which backs M-.) is properly configured
-(use-package xref
-  :ensure nil ; built-in
-  :after haskell-mode
-  :bind (:map haskell-mode-map
-              ("M-." . xref-find-definitions)
-              ("M-," . xref-go-back)
-              ("M-?" . xref-find-references)))
-
-;; Optional: Better haskell completions
-(use-package company-ghci
-  :ensure t
-  :after (company haskell-mode)
-  :config
-  ;; Add as fallback only, LSP is primary
-  (add-to-list 'company-backends 'company-ghci t))
-
-;; Optional: If you want REPL interaction, use comint directly
-(use-package haskell-interactive-mode
-  :ensure nil ; part of haskell-mode
-  :commands haskell-interactive-switch
-  :bind (:map haskell-mode-map
-              ("C-c C-z" . haskell-interactive-switch)
-              ("C-c C-l" . haskell-process-load-file))
-  :config
-  ;; If loaded, don't let it mess with navigation
-  (when (boundp 'haskell-interactive-mode-map)
-    (define-key haskell-interactive-mode-map (kbd "M-.") nil)
-    (define-key haskell-interactive-mode-map (kbd "M-,") nil)))
-
-;; ============================================================
-;; nix // mode
-;; ============================================================
-
-(use-package nix-mode
-  :ensure t
-  :mode "\\.nix\\'"
-  :config
-
-  (setq lsp-nix-nixd-server-path "nixd")
-
-  (setq lsp-nix-nixd-formatting-command [ "nixfmt" ])
-  (setq lsp-nix-nixd-nixpkgs-expr "import <nixpkgs> { }")
-  (setq lsp-nix-nixd-nixos-options-expr "(let pkgs = import \"${inputs.nixpkgs}\" { }; in (pkgs.lib.evalModules { modules =  (import \"${inputs.nixpkgs}/nixos/modules/module-list.nix\") ++ [ ({...}: { nixpkgs.hostPlatform = builtins.currentSystem;} ) ] ; })).options")
-  (setq lsp-nix-nixd-home-manager-options-expr "(let pkgs = import \"${inputs.nixpkgs}\" { }; lib = import \"${inputs.home-manager}/modules/lib/stdlib-extended.nix\" pkgs.lib; in (lib.evalModules { modules =  (import \"${inputs.home-manager}/modules/modules.nix\") { inherit lib pkgs; check = false; }; })).options"))
-
-;; ============================================================
-;; ts // js // mode
-;; ============================================================
-
-(use-package typescript-ts-mode
-  :ensure nil
-  :mode (("\\.ts\\'" . typescript-ts-mode)
-         ("\\.tsx\\'" . tsx-ts-mode)
-         ("\\.js\\'" . js-ts-mode)
-         ("\\.jsx\\'" . jsx-ts-mode))
-
-  :config
-  ;; Always use 2 spaces
-  (setq typescript-ts-mode-indent-offset 2)
-  (setq js-ts-mode-indent-offset 2)
-  (setq js-indent-level 2)
-  (setq typescript-indent-level 2)
-
-  ;; Nuclear biome formatter for these modes
-  (defun hypermodern/biome-format-2-spaces ()
-    "Force Biome to format with 2-space indentation, no exceptions."
-    (interactive)
-    (let* ((file (or (buffer-file-name) "file.js"))
-           (content (buffer-substring-no-properties (point-min) (point-max)))
-           (output-buffer (generate-new-buffer " *biome-format*"))
-           (orig-buffer (current-buffer))
-           (orig-point (point))  ; Save cursor position
-           (orig-window-start (window-start)))  ; Save scroll position
-      (with-current-buffer output-buffer
-        (insert content)
-        (if (zerop (call-process-region (point-min) (point-max)
-                                        "biome" t t nil
-                                        "format"
-                                        "--stdin-file-path" file
-                                        "--indent-width=2"
-                                        "--indent-style=space"))
-            (let ((formatted (buffer-string)))
-              (kill-buffer output-buffer)
-              (with-current-buffer orig-buffer
-                (erase-buffer)
-                (insert formatted)
-                (goto-char (min orig-point (point-max)))  ; Restore cursor
-                (set-window-start (selected-window) orig-window-start t)  ; Restore scroll
-                (message "[biome] formatted with 2 spaces")))
-          (kill-buffer output-buffer)
-          (message "[biome] formatting failed")))))
-
-  :hook
-  ((typescript-ts-mode js-ts-mode tsx-ts-mode) .
-   (lambda ()
-     ;; Force all indentation settings
-     (setq-local tab-width 2)
-     (setq-local indent-tabs-mode nil)
-     (setq-local js-indent-level 2)
-     (setq-local typescript-indent-level 2)
-     (setq-local standard-indent 2)
-
-     ;; NUCLEAR OVERRIDE: Hijack M-z for these modes only
-     (local-set-key (kbd "M-z") 'hypermodern/biome-format-2-spaces)
-
-     ;; Also override any format-all binding
-     (local-set-key (kbd "C-c C-f") 'hypermodern/biome-format-2-spaces)
-
-     ;; Kill any other formatting functions
-     (setq-local format-all-formatters nil)
-     (when (fboundp 'format-all-mode)
-       (format-all-mode -1)))))
-
-;; Also handle the non-tree-sitter variants
-;; (use-package js-mode
-;;   :ensure nil
-;;   :hook
-;;   ((js-mode javascript-mode) .
-;;    (lambda ()
-;;      (setq-local tab-width 2)
-;;      (setq-local indent-tabs-mode nil)
-;;      (setq-local js-indent-level 2)
-;;      (local-set-key (kbd "M-z") 'hypermodern/biome-format-2-spaces))))
-
-(use-package typescript-mode
-  :ensure t
-  :hook
-  (typescript-mode .
-                   (lambda ()
-                     (setq-local tab-width 2)
-                     (setq-local indent-tabs-mode nil)
-                     (setq-local typescript-indent-level 2)
-                     (local-set-key (kbd "M-z") 'hypermodern/biome-format-2-spaces))))
-
-;; ============================================================
-;; rust // mode
-;; ============================================================
-
-(use-package rust-ts-mode
-  :ensure nil
-  :mode (("\\.rs\\'" . rust-ts-mode))
-  )
-
-;; ============================================================
-;; python // mode
-;; ============================================================
-
-;; ============================================================
-;; python // mode
-;; ============================================================
-
-;; First, register both language servers
-(use-package lsp-mode
-  :config
-  ;; Register Ruff LSP
-  (lsp-register-client
-   (make-lsp-client
-    :new-connection (lsp-stdio-connection '("ruff" "server" "--preview"))
-    :activation-fn (lsp-activate-on "python")
-    :server-id 'ruff-lsp
-    :priority 1
-    :initialization-options
-    (lambda ()
-      '((settings . ((lint . ((enable . t)))
-                     (format . ((enable . t)))
-                     (codeAction . ((enable . t)))
-                     (completion . ((enable . t)))
-                     (definition . ((enable . t)))
-                     (hover . ((enable . t)))))))))
-
-  ;; Performance settings for large projects
-  (setq lsp-idle-delay 0.75)
-  (setq lsp-log-io nil))
 
 (use-package lsp-pyright
-  :ensure t
-  :demand t
+  :if (locate-library "lsp-pyright")
   :after lsp-mode
-
   :config
-  ;; Configure for BasedPyright (falls back to pyright if not found)
   (setq lsp-pyright-langserver-command "basedpyright-langserver")
-
-  ;; Memory settings - 24GB for Node, leaving 8GB for Emacs/OS
   (setenv "NODE_OPTIONS" "--max-old-space-size=24576")
+  (setq lsp-pyright-typechecking-mode "basic"
+        lsp-pyright-diagnostic-mode "openFilesOnly"
+        lsp-pyright-venv-strategy "useBestEffort"
+        lsp-pyright-basedpyright-inlay-hints nil
+        lsp-pyright-exclude
+        ["**/node_modules" "**/__pycache__" "**/data" "**/datasets"
+         "**/checkpoints" "**/wandb" "**/.venv" "**/venv" "**/*.ipynb"]))
 
-  ;; Reasonable performance settings
-  (setq lsp-pyright-typechecking-mode "basic")  ; Not "strict" for big projects
-  (setq lsp-pyright-diagnostic-mode "openFilesOnly")  ; Not "workspace"
-  (setq lsp-pyright-venv-strategy "useBestEffort")
-  (setq lsp-pyright-basedpyright-inlay-hints nil)
+;; Register Ruff LSP client (ruff server). Guard against double-register.
+(with-eval-after-load 'lsp-mode
+  (unless (hypermodern/lsp-client-registered-p 'ruff-lsp)
+    (lsp-register-client
+     (make-lsp-client
+      :new-connection (lsp-stdio-connection '("ruff" "server" "--preview"))
+      :activation-fn (lsp-activate-on "python")
+      :server-id 'ruff-lsp
+      :priority 1))))
 
-  ;; Exclude heavy directories
-  (setq lsp-pyright-exclude
-        ["**/node_modules"
-         "**/__pycache__"
-         "**/data"
-         "**/datasets"
-         "**/checkpoints"
-         "**/wandb"
-         "**/.venv"
-         "**/venv"
-         "**/*.ipynb"]))
-
-;; The switcher functions
 (defvar hypermodern/python-lsp-backend 'basedpyright
   "Current Python LSP backend. Either 'basedpyright or 'ruff.")
 
 (defun hypermodern/python-use-basedpyright ()
-  "Configure Python to use BasedPyright LSP."
   (interactive)
   (setq hypermodern/python-lsp-backend 'basedpyright)
-  (setq lsp-disabled-clients '(ruff-lsp))
-  (setq lsp-enabled-clients '(pyright))
-  ;; If in a Python buffer, restart LSP
-  (when (and (derived-mode-p 'python-mode 'python-ts-mode)
-             (bound-and-true-p lsp-mode))
-    (lsp-restart-workspace))
-  (message "Switched to BasedPyright"))
+  (message "Python LSP → BasedPyright")
+  (when (bound-and-true-p lsp-mode) (lsp-restart-workspace)))
 
 (defun hypermodern/python-use-ruff ()
-  "Configure Python to use Ruff LSP."
   (interactive)
   (setq hypermodern/python-lsp-backend 'ruff)
-  (setq lsp-disabled-clients '(pyright))
-  (setq lsp-enabled-clients '(ruff-lsp))
-  ;; If in a Python buffer, restart LSP
-  (when (and (derived-mode-p 'python-mode 'python-ts-mode)
-             (bound-and-true-p lsp-mode))
-    (lsp-restart-workspace))
-  (message "Switched to Ruff LSP"))
+  (message "Python LSP → Ruff")
+  (when (bound-and-true-p lsp-mode) (lsp-restart-workspace)))
 
 (defun hypermodern/python-switch-lsp ()
-  "Toggle between BasedPyright and Ruff LSP."
   (interactive)
   (if (eq hypermodern/python-lsp-backend 'basedpyright)
       (hypermodern/python-use-ruff)
     (hypermodern/python-use-basedpyright)))
 
-(defun hypermodern/python-lsp-status ()
-  "Show current Python LSP backend."
-  (interactive)
-  (message "Python LSP: %s" hypermodern/python-lsp-backend))
-
-;; Smart initialization based on project size
-(defun hypermodern/python-smart-lsp-init ()
-  "Initialize appropriate LSP based on context."
-  ;; Set backend based on saved preference
-  (cond
-   ((eq hypermodern/python-lsp-backend 'ruff)
-    (setq-local lsp-disabled-clients '(pyright))
-    (setq-local lsp-enabled-clients '(ruff-lsp)))
-   (t
-    (setq-local lsp-disabled-clients '(ruff-lsp))
-    (setq-local lsp-enabled-clients '(pyright))))
-
-  ;; Only start LSP for reasonable file sizes
-  (when (< (buffer-size) (* 10 1024 1024))  ; 10MB limit
+(defun hypermodern/python-lsp-init ()
+  "Select Python client before LSP starts."
+  (pcase hypermodern/python-lsp-backend
+    ('ruff
+     (setq-local lsp-enabled-clients '(ruff-lsp))
+     (setq-local lsp-disabled-clients '(pyright)))
+    (_
+     (setq-local lsp-enabled-clients '(pyright))
+     (setq-local lsp-disabled-clients '(ruff-lsp))))
+  (when (< (buffer-size) (* 10 1024 1024))
     (lsp-deferred)))
 
-;; Hook it up
-(add-hook 'python-mode-hook #'hypermodern/python-smart-lsp-init)
-(add-hook 'python-ts-mode-hook #'hypermodern/python-smart-lsp-init)
+(add-hook 'python-mode-hook #'hypermodern/python-lsp-init)
+(add-hook 'python-ts-mode-hook #'hypermodern/python-lsp-init)
 
-;; Global keybindings for Python LSP control
-(global-set-key (kbd "C-c p l") 'hypermodern/python-switch-lsp)
-(global-set-key (kbd "C-c p s") 'hypermodern/python-lsp-status)
-(global-set-key (kbd "C-c p b") 'hypermodern/python-use-basedpyright)
-(global-set-key (kbd "C-c p r") 'hypermodern/python-use-ruff)
-
-;; Quick restart binding when things get stuck
-(global-set-key (kbd "C-c p R")
-                (lambda ()
-                  (interactive)
-                  (when (bound-and-true-p lsp-mode)
-                    (lsp-restart-workspace))))
+(global-set-key (kbd "C-c p l") #'hypermodern/python-switch-lsp)
+(global-set-key (kbd "C-c p b") #'hypermodern/python-use-basedpyright)
+(global-set-key (kbd "C-c p r") #'hypermodern/python-use-ruff)
 
 ;; ============================================================
-;; shell / sh-mode
+;; language modes (keep your set, but fix hooks)
 ;; ============================================================
 
-(use-package sh-mode
-  :ensure nil
-  :mode (("\\.sh\\'" . sh-mode)
-         ("\\.bash\\'" . sh-mode)
-         ("\\.zsh\\'" . sh-mode))
-  :config
-  (setq sh-basic-offset 2
-        sh-indentation 2
-        sh-indent-for-case-label 0
-        sh-indent-for-case-alt '+)
-  :hook
-  (sh-mode . (lambda () (setq indent-tabs-mode nil))))
+(use-package csharp-mode
+  :mode "\\.cs\\'")
 
-(use-package bash-ts-mode
+(use-package fsharp-mode
+  :mode "\\.fs[ix]?\\'")
+
+(use-package sh-script
   :ensure nil
   :mode (("\\.sh\\'" . bash-ts-mode)
-         ("\\.bash\\'" . bash-ts-mode))
+         ("\\.bash\\'" . bash-ts-mode)))
 
-  :when (treesit-available-p)
-
+(use-package haskell-mode
+  :mode (("\\.hs\\'" . haskell-mode)
+         ("\\.lhs\\'" . literate-haskell-mode)
+         ("\\.cabal\\'" . haskell-cabal-mode)
+         ("\\.hsc\\'" . haskell-mode))
   :config
+  (setq haskell-tags-on-save nil
+        haskell-stylish-on-save nil
+        haskell-process-type nil))
 
-  (setq sh-basic-offset 2)
-  :hook
-  (bash-ts-mode . (lambda () (setq indent-tabs-mode nil))))
+(use-package lsp-haskell
+  :if (locate-library "lsp-haskell")
+  :after (haskell-mode lsp-mode)
+  :config
+  (setq lsp-haskell-server-path "haskell-language-server-wrapper"
+        lsp-haskell-plugin-stan-global-on nil
+        lsp-haskell-plugin-hlint-global-on t
+        lsp-haskell-formatting-provider "fourmolu"))
+
+(use-package nix-mode
+  :mode "\\.nix\\'")
+
+(use-package typescript-ts-mode
+  :ensure nil
+  :mode (("\\.ts\\'"  . typescript-ts-mode)
+         ("\\.tsx\\'" . tsx-ts-mode)
+         ("\\.js\\'"  . js-ts-mode)
+         ("\\.jsx\\'" . js-ts-mode))
+  :hook ((typescript-ts-mode . (lambda ()
+                                 (setq-local tab-width 2
+                                             indent-tabs-mode nil
+                                             typescript-ts-mode-indent-offset 2)))
+         (tsx-ts-mode . (lambda ()
+                          (setq-local tab-width 2
+                                      indent-tabs-mode nil
+                                      typescript-ts-mode-indent-offset 2)))
+         (js-ts-mode . (lambda ()
+                         (setq-local tab-width 2
+                                     indent-tabs-mode nil
+                                     js-ts-mode-indent-offset 2)))))
+
+(use-package typescript-mode
+  :hook (typescript-mode . (lambda ()
+                             (setq-local tab-width 2
+                                         indent-tabs-mode nil
+                                         typescript-indent-level 2))))
+
+;; Generic LSP startup (avoid python; it has special init above).
+(dolist (hook '(c-mode-hook c-ts-mode-hook
+                            c++-mode-hook c++-ts-mode-hook
+                            csharp-mode-hook csharp-ts-mode-hook
+                            fsharp-mode-hook
+                            haskell-mode-hook haskell-ts-mode-hook
+                            js-ts-mode-hook tsx-ts-mode-hook typescript-ts-mode-hook
+                            nix-mode-hook nix-ts-mode-hook
+                            sh-mode-hook bash-ts-mode-hook))
+  (add-hook hook #'lsp-deferred))
+
+;; ============================================================
+;; web (EWW + xwidget-webkit + atomic-chrome)
+;; ============================================================
+
+(use-package eww
+  :ensure nil
+  :commands (eww eww-browse-url))
+
+(defun hypermodern/webkit (url)
+  "Browse URL using xwidget-webkit if available."
+  (interactive "sURL: ")
+  (if (fboundp 'xwidget-webkit-browse-url)
+      (xwidget-webkit-browse-url url)
+    (user-error "No xwidget-webkit in this Emacs build")))
+
+(use-package atomic-chrome
+  :if (locate-library "atomic-chrome")
+  :config
+  (setq atomic-chrome-default-major-mode 'markdown-mode)
+  (atomic-chrome-start-server))
+
+;; ============================================================
+;; comms (IRC / Matrix / Telegram / Fediverse)
+;; ============================================================
+
+(use-package erc
+  :ensure nil
+  :commands (erc erc-tls)
+  :config
+  (setq erc-server "irc.libera.chat"
+        erc-nick (or (getenv "ERC_NICK") "b7r6")
+        erc-user-full-name user-full-name
+        erc-autojoin-channels-alist '(("irc.libera.chat" "#emacs" "#nixos"))
+        erc-prompt-for-nickserv-password nil
+        ;; Use auth-source for NickServ. Put it in authinfo/pass.
+        ;; machine irc.libera.chat login <nick> password <nickserv-pass>
+        erc-use-auth-source-for-nickserv-password t
+        erc-modules '(autojoin button completion fill irccontrols list
+                               match menu move-to-prompt netsplit
+                               notifications readonly ring services
+                               smiley spelling track)))
+
+(defun hypermodern/irc ()
+  (interactive)
+  (erc-tls :server "irc.libera.chat" :port 6697 :nick erc-nick))
+
+(use-package ement
+  :if (locate-library "ement")
+  :commands (ement-connect))
+
+(use-package telega
+  :if (locate-library "telega")
+  :commands (telega))
+
+(use-package mastodon
+  :if (locate-library "mastodon")
+  :commands (mastodon))
+
+;; ============================================================
+;; info (RSS) + docs (PDF/EPUB)
+;; ============================================================
+
+(use-package elfeed
+  :if (locate-library "elfeed")
+  :commands (elfeed)
+  :config
+  (setq elfeed-feeds
+        '("https://planet.emacslife.com/atom.xml"
+          "https://hnrss.org/frontpage"
+          "https://nixos.org/blog/announcements-rss.xml")))
+
+(use-package pdf-tools
+  :if (locate-library "pdf-tools")
+  :mode ("\\.pdf\\'" . pdf-view-mode)
+  :config
+  ;; On Nix this is usually already built; harmless if re-run.
+  (condition-case err
+      (pdf-tools-install)
+    (error (message "[pdf-tools] install failed: %s" err))))
+
+(use-package nov
+  :if (locate-library "nov")
+  :mode ("\\.epub\\'" . nov-mode))
+
+;; ============================================================
+;; R2 password-store backup (rclone) — manual trigger from Emacs
+;; ============================================================
+
+(defun hypermodern/r2-password-store-backup ()
+  "Backup ~/.password-store to rclone remote `r2crypt:password-store`."
+  (interactive)
+  (compile "rclone sync ~/.password-store r2crypt:password-store --checksum --fast-list --create-empty-src-dirs"))
+
+;; ============================================================
+;; ops leader keys
+;; ============================================================
+
+
+(defun hypermodern/call-or-warn (fn label)
+  "Call FN interactively if it exists, else complain with LABEL."
+  (if (fboundp fn)
+      (call-interactively fn)
+    (user-error "[hypermodern] %s not available (missing package?)" label)))
+
+(defun hypermodern/ement ()
+  (interactive)
+  (hypermodern/call-or-warn 'ement-connect "ement"))
+
+(defun hypermodern/telega ()
+  (interactive)
+  (hypermodern/call-or-warn 'telega "telega"))
+
+(defun hypermodern/elfeed ()
+  (interactive)
+  (hypermodern/call-or-warn 'elfeed "elfeed"))
+
+(defun hypermodern/mastodon ()
+  (interactive)
+  (hypermodern/call-or-warn 'mastodon "mastodon"))
+
+(hypermodern/leader
+  "w"  #'eww
+  "W"  #'hypermodern/webkit
+  "i"  #'hypermodern/irc
+  "m"  #'hypermodern/ement
+  "t"  #'hypermodern/telega
+  "M"  #'hypermodern/mastodon
+  "f"  #'hypermodern/elfeed
+  "p"  #'hypermodern/r2-password-store-backup)
+
+;; ============================================================
+;; // tramp // fixes
+;; ============================================================
+
+(use-package tramp
+  :ensure nil
+  :config
+  ;; Use simpler method for local edits
+  (setq tramp-default-method "ssh")
+  
+  ;; Disable ControlMaster which can cause issues
+  (setq tramp-use-ssh-controlmaster-options nil)
+  
+  ;; Don't save history
+  (setq tramp-histfile-override nil)
+  
+  ;; Simpler prompt detection
+  (setq tramp-shell-prompt-pattern 
+        "\\(?:^\\|\r\\)[^]#$%>\n]*#?[]#$%>].* *\\(^[\\[[0-9;]*[a-zA-Z] *\\)*")
+  
+  ;; Don't use VC on remote files (faster)
+  (setq vc-ignore-dir-regexp
+        (format "\\(%s\\)\\|\\(%s\\)"
+                vc-ignore-dir-regexp
+                tramp-file-name-regexp))
+  
+  ;; Backup settings
+  (setq tramp-backup-directory-alist backup-directory-alist)
+  
+  ;; Auto-save settings  
+  (setq tramp-auto-save-directory temporary-file-directory))
+
+;; Clean connections before trying
+(defun hypermodern/tramp-cleanup ()
+  "Clean all TRAMP connections."
+  (interactive)
+  (tramp-cleanup-all-connections)
+  (tramp-cleanup-all-buffers)
+  (message "TRAMP connections cleaned"))
+
+(global-set-key (kbd "C-c t c") #'hypermodern/tramp-cleanup)
+
+(require 'hypermodern-ui nil 'noerror)
+(when (featurep 'hypermodern-ui)
+  ;; default: your minimal taste, with a subtle glow layer
+  (setq hypermodern/ui-theme 'base16-ono-sendai-blue-tuned
+        hypermodern/ui-density 'tight
+        hypermodern/ui-signal 'minimal
+        hypermodern/ui-font-preset 'auto
+
+        ;; glow-up defaults (still disciplined)
+        hypermodern/ui-glow-level 'subtle
+        hypermodern/ui-glow-halo 'auto
+        hypermodern/ui-enable-pulse t
+        hypermodern/ui-cursor-style nil)
+
+  ;; Try to ensure the theme is available before initializing
+  (ignore-errors (require 'base16-ono-sendai-blue-tuned-theme))
+  (hypermodern/ui-init)
+  (global-set-key (kbd "C-c o u") #'hypermodern/ui-menu))
 
 (provide 'init)
 ;;; init.el ends here
