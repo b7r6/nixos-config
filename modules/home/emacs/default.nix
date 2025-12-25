@@ -2,197 +2,255 @@
   config,
   lib,
   pkgs,
-  stylix,
   ...
 }:
-let
-  initialInitEl = builtins.readFile ./init.el;
 
-  localLibs = pkgs.symlinkJoin {
-    name = "emacs-local-libs";
-    paths = lib.mapAttrsToList (
-      name: _value:
-      pkgs.writeTextFile {
-        inherit name;
-        text = builtins.readFile (./lib + "/${name}");
-        destination = "/share/emacs/site-lisp/${name}";
-      }
-    ) (lib.filterAttrs (n: _v: lib.hasSuffix ".el" n) (builtins.readDir ./lib));
-  };
+let
+  initEl      = builtins.readFile ./init.el;
+  earlyInitEl = builtins.readFile ./early-init.el;
+
+  # Helper: include package if it exists (keeps builds resilient).
+  maybe = epkgs: name:
+    if builtins.hasAttr name epkgs then [ (builtins.getAttr name epkgs) ] else [ ];
+
+      mkLean4Mode = epkgs: epkgs.trivialBuild {
+        pname = "lean4-mode";
+        version = "2025-01-09";
+
+        src = pkgs.fetchFromGitHub {
+          owner = "leanprover";
+          repo = "lean4-mode";
+          rev = "1388f9d1429e38a39ab913c6daae55f6ce799479";
+          hash = "sha256-6XFcyqSTx1CwNWqQvIc25cuQMwh3YXnbgr5cDiOCxBk=";
+        };
+
+        packageRequires = with epkgs; [ dash f flycheck lsp-mode magit-section s ];
+
+        postInstall = ''
+          cp -r $src/data $out/share/emacs/site-lisp/
+        '';
+      };
+
 in
 {
-  stylix.targets.emacs.enable = true;
+  # Disable stylix for Emacs - we have our own theme engine
+  stylix.targets.emacs.enable = false;
+
+  # Make sure Emacs sees early-init in both common locations.
+  xdg.configFile."emacs/early-init.el".text = earlyInitEl;
+  home.file.".emacs.d/early-init.el".text = earlyInitEl;
 
   programs.emacs = {
     enable = true;
 
-    package = (pkgs.emacsPackagesFor pkgs.emacs30-pgtk).emacsWithPackages (
-      epkgs: with epkgs; [
-        (epkgs.trivialBuild (
-          with config.lib.stylix.colors.withHashtag;
-          {
-            pname = "base16-stylix-theme";
-            version = "0.1.0";
+    package = (pkgs.emacsPackagesFor pkgs.emacs30-pgtk).emacsWithPackages (epkgs:
+      let
+        core = with epkgs; [
+          # UI / modeline
+          doom-modeline
+          nerd-icons
+          dashboard
 
-            src = pkgs.writeText "base16-stylix-theme.el" ''
-              (require 'base16-theme)
-              (defvar base16-stylix-theme-colors
-                '(:base00 "${base00}"
-                  :base01 "${base01}"
-                  :base02 "${base02}"
-                  :base03 "${base03}"
-                  :base04 "${base04}"
-                  :base05 "${base05}"
-                  :base06 "${base06}"
-                  :base07 "${base07}"
-                  :base08 "${base08}"
-                  :base09 "${base09}"
-                  :base0A "${base0A}"
-                  :base0B "${base0B}"
-                  :base0C "${base0C}"
-                  :base0D "${base0D}"
-                  :base0E "${base0E}"
-                  :base0F "${base0F}")
-                "All colors for Base16 stylix are defined here.")
-              ;; Define the theme
-              (deftheme base16-stylix)
-              ;; Add all the faces to the theme
-              (base16-theme-define 'base16-stylix base16-stylix-theme-colors)
-              ;; Mark the theme as provided
-              (provide-theme 'base16-stylix)
-              ;; Add path to theme to theme-path
-              (add-to-list 'custom-theme-load-path
-                  (file-name-directory
-                      (file-truename load-file-name)))
-              (provide 'base16-stylix-theme)
-            '';
+          # minibuffer / completion
+          vertico
+          orderless
+          marginalia
+          consult
+          embark
+          embark-consult
+          general
+          which-key
+          popper
+          shackle
+          company
+          yasnippet
 
-            packageRequires = [ epkgs.base16-theme ];
-          }
-        ))
+          # icons
+          all-the-icons
+          all-the-icons-completion
+          nerd-icons-completion
 
-        all-the-icons
-        all-the-icons-completion
-        apheleia
-        autothemer
-        base16-theme
-        bazel
-        bind-key
-        breadcrumb
-        clang-format
-        clipetty
-        cmake-mode
-        company
-        company-ghci
-        consult
-        consult-eglot
-        corfu
-        csv-mode
-        cuda-mode
-        dashboard
-        direnv
-        dirvish
-        dockerfile-mode
-        doom-modeline
-        eglot
-        eldoc-box
-        expand-region
-        f
-        flycheck
-        flycheck
-        flycheck-haskell
-        flymake-diagnostic-at-point
-        fontify-face
-        format-all
-        fsharp-mode
-        fzf
-        general
-        gptel
-        haskell-mode
-        hcl-mode
-        ht
-        iter2
-        json-mode
-        just-mode
-        language-id
-        llama
-        lsp-haskell
-        lsp-mode
-        lsp-python-ms
-        lsp-pyright
-        lsp-treemacs
-        lsp-ui
-        lua-mode
-        lv
-        magit
-        marginalia
-        markdown-mode
-        multiple-cursors
-        mustache-mode
-        nerd-icons
-        nerd-icons-completion
-        nix-mode
-        nix-ts-mode
-        nixpkgs-fmt
-        nvm
-        orderless
-        org-bullets
-        paredit
-        paredit-everywhere
-        popper
-        posframe
-        prettier
-        prisma-mode
-        projectile
-        protobuf-mode
-        py-isort
-        python
-        rainbow-delimiters
-        rainbow-mode
-        reformatter
-        rg
-        ruff-format
-        s
-        shackle
-        shrink-path
-        sideline
-        sideline-flymake
-        sideline-lsp
-        spinner
-        swift-mode
-        terraform-mode
-        treesit-auto
-        treesit-grammars.with-all-grammars
-        typescript-mode
-        vertico
-        vterm
-        wgrep
-        which-key
-        with-editor
-        yaml-mode
-        yapfify
-        yasnippet
-        zig-mode
-      ]
+          # UI extras
+          rainbow-mode
+          dimmer
+          ligature
+
+          # git
+          magit
+          forge
+
+          # terminals
+          vterm
+          eat
+
+          # programming - LSP
+          lsp-mode
+          lsp-ui
+          lsp-pyright
+          lsp-haskell
+
+          # programming - languages
+          nix-mode
+          haskell-mode
+          rust-mode
+          typescript-mode
+          js2-mode
+          web-mode
+          yaml-mode
+          markdown-mode
+          json-mode
+          dockerfile-mode
+          csharp-mode
+          fsharp-mode
+          cuda-mode
+          bazel  # just the mode, buildifier formatter, let projects provide bazel binary
+
+          # lisp
+          paredit
+          paredit-everywhere
+
+          # tree-sitter
+          treesit-auto
+
+          # navigation / search
+          rg
+          fzf
+          avy
+          ace-window
+          projectile
+
+          # editing
+          undo-tree
+          expand-region
+          multiple-cursors
+          format-all
+
+          # tools
+          direnv
+          exec-path-from-shell
+          helpful
+
+          # AI
+          gptel
+
+          # misc
+          transient
+        ] ++ [ (mkLean4Mode epkgs) ];
+
+        optional = (maybe epkgs "lean4-mode")
+                ++ (maybe epkgs "atomic-chrome")
+                ++ (maybe epkgs "elfeed")
+                ++ (maybe epkgs "ement")
+                ++ (maybe epkgs "telega")
+                ++ (maybe epkgs "mastodon")
+                ++ (maybe epkgs "pdf-tools")
+                ++ (maybe epkgs "nov")
+                ++ (maybe epkgs "clipetty");
+
+      in
+        core ++ optional
     );
 
     extraConfig = ''
-      ${initialInitEl}
-
-      ;; Add local libs directory to load-path
-      (add-to-list 'load-path "${localLibs}/share/emacs/site-lisp")
-
-      ;; Load all .el files from local libs
-      (dolist (file (directory-files "${localLibs}/share/emacs/site-lisp" t "\\.el$"))
-        (load file))
+      ;; ------------------------------------------------------------
+      ;; init.el (inline themes, no external deps)
+      ;; ------------------------------------------------------------
+      ${initEl}
     '';
   };
 
-  home.packages = [
-    pkgs.basedpyright
-    pkgs.csharp-ls
-    pkgs.emacs-all-the-icons-fonts
-    pkgs.emacs-lsp-booster
-    localLibs
+  home.packages = with pkgs; [
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # Tree-sitter grammars (all of them)
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    emacs.pkgs.treesit-grammars.with-all-grammars
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # Language Servers (from hypermodern/language-registry)
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    nixd                                      # Nix
+    haskell-language-server                   # Haskell
+    rust-analyzer                             # Rust
+    pyright                                   # Python
+    clang-tools                               # C/C++/CUDA (clangd + clang-tidy)
+    nodePackages.typescript-language-server   # TypeScript/JavaScript
+    nodePackages.vscode-langservers-extracted # JSON, HTML, CSS, ESLint LSP
+    nodePackages.yaml-language-server         # YAML
+    nodePackages.bash-language-server         # Bash
+
+    # Lean 4
+    elan                          # Lean version manager (provides lean, lake)
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # Formatters (from hypermodern/language-registry)
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    nixpkgs-fmt                   # Nix
+    haskellPackages.fourmolu      # Haskell
+    rustfmt                       # Rust
+    ruff                          # Python (replaces black)
+    nodePackages.prettier         # TypeScript/JavaScript/JSON/YAML
+    shfmt                         # Bash
+    buildifier                    # Bazel
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # Linters (from hypermodern/language-registry)
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    haskellPackages.hlint         # Haskell
+    clippy                        # Rust
+    ruff                          # Python (same as formatter, does both)
+    nodePackages.eslint           # TypeScript/JavaScript
+    yamllint                      # YAML
+    shellcheck                    # Bash
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # Rust toolchain
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    rustc
+    cargo
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # Build tools
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    cmake
+    gnumake
+    ninja
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # CLI tools Emacs expects
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    ripgrep
+    fd
+    fzf
+    git
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # Misc tools
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    rclone
+    pass
+    gnupg
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # Fonts
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    # berkeley-mono                 # if you have it packaged
+    iosevka
+    jetbrains-mono
+    inter
+    nerd-fonts.iosevka
+    nerd-fonts.jetbrains-mono
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # Icons
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    emacs-all-the-icons-fonts
   ];
 }
