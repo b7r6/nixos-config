@@ -6,11 +6,11 @@
 }:
 with lib;
 let
-  cfg = config.hyper-modern-nixos.usb;
+  cfg = config.hypermodern.usb;
 in
 {
-  options.hyper-modern-nixos.usb = {
-    enable = mkEnableOption "hyper-modern-nixos.usb" // {
+  options.hypermodern.usb = {
+    enable = mkEnableOption "hypermodern.usb" // {
       default = true;
     };
   };

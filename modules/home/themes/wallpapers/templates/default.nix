@@ -36,7 +36,7 @@ let
 
         # Content
         hostname = config.networking.hostName or "nixos";
-        workdir = "~/hyper-modern-nixos";
+        workdir = "~/hypermodern";
         command = "cat nix/modules/themes.nix";
 
         # Code content with proper templating
@@ -44,7 +44,7 @@ let
           <tspan x="0" dy="18">{ <tspan fill="@BASE0E@">config</tspan>, <tspan fill="@BASE0E@">lib</tspan>, <tspan fill="@BASE0E@">flake</tspan>, ... }:</tspan>
           <tspan x="0" dy="18"><tspan fill="@BASE0A@" font-weight="600">let</tspan></tspan>
           <tspan x="0" dy="18">  <tspan fill="@BASE0A@">inherit</tspan> (flake) inputs;</tspan>
-          <tspan x="0" dy="18">  cfg = config.hyper-modern-nixos.themes;</tspan>
+          <tspan x="0" dy="18">  cfg = config.hypermodern.themes;</tspan>
           <tspan x="0" dy="18"><tspan fill="@BASE0A@" font-weight="600">in</tspan> {</tspan>
           <tspan x="0" dy="18">  config = lib.mkIf cfg.enable {</tspan>
           <tspan x="0" dy="18">    stylix = {</tspan>
@@ -158,7 +158,7 @@ let
     };
 in
 {
-  options.hyper-modern-nixos.wallpaper = {
+  options.hypermodern.wallpaper = {
     enable = mkOption {
       type = types.bool;
       default = true;
@@ -167,12 +167,12 @@ in
     package = mkOption {
       type = types.package;
       default = mkWallpaper {
-        theme = config.hyper-modern-nixos.themes.palette;
-        berkeleyMonoPath = config.hyper-modern-nixos.themes.fonts.monospace.package;
-        displayProfile = config.hyper-modern-nixos.display.profile or "generic";
-        width = config.hyper-modern-nixos.display.width or 2560;
-        height = config.hyper-modern-nixos.display.height or 1440;
-        dpi = config.hyper-modern-nixos.display.dpi or 96;
+        theme = config.hypermodern.themes.palette;
+        berkeleyMonoPath = config.hypermodern.themes.fonts.monospace.package;
+        displayProfile = config.hypermodern.display.profile or "generic";
+        width = config.hypermodern.display.width or 2560;
+        height = config.hypermodern.display.height or 1440;
+        dpi = config.hypermodern.display.dpi or 96;
       };
     };
   };

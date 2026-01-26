@@ -9,7 +9,7 @@ motd = '''
 in night city, and still he'd see the matrix in his sleep, bright lattices
 of logic unfolding across that colorless void...
 '''
-packages = ["nh"]
+packages = ["nh", "ast-grep"]
 
 [[commands]]
 name = "switch-os"
@@ -40,3 +40,15 @@ name = "list-tailscale-networks"
 help = "Alias for somewhat non-obvious command"
 category = "network"
 command = "sudo tailscale switch --list"
+
+[[commands]]
+name = "sg"
+help = "ast-grep: structural search/replace (sg -p 'pattern' or sg scan)"
+category = "development"
+command = "ast-grep $@"
+
+[[commands]]
+name = "refactor"
+help = "ast-grep replace: refactor 'old_pattern' 'new_pattern' --lang nix"
+category = "development"
+command = "ast-grep --pattern \"$1\" --rewrite \"$2\" ${3:---lang nix} --update-all"

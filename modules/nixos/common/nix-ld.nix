@@ -6,11 +6,11 @@
 }:
 with lib;
 let
-  cfg = config.hyper-modern-nixos.nix-ld;
+  cfg = config.hypermodern.nix-ld;
 in
 {
-  options.hyper-modern-nixos.nix-ld = {
-    enable = mkEnableOption "hyper-modern-nixos.nix-ld" // {
+  options.hypermodern.nix-ld = {
+    enable = mkEnableOption "hypermodern.nix-ld" // {
       default = true;
     };
   };

@@ -362,7 +362,7 @@ in
         # Launcher
         (lib.getAttr cfg.launcher {
           inherit wofi;
-          rofi = rofi-wayland;
+          inherit rofi;
           inherit tofi;
           inherit fuzzel;
           inherit anyrun;

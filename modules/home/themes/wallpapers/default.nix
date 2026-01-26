@@ -6,7 +6,7 @@
 }:
 let
   inherit (lib) mkOption types mkIf;
-  cfg = config.hyper-modern-nixos;
+  cfg = config.hypermodern;
 
   mkWallpaper =
     args:
@@ -156,7 +156,7 @@ let
     };
 in
 {
-  options.hyper-modern-nixos.wallpaper = {
+  options.hypermodern.wallpaper = {
     enable = mkOption {
       type = types.bool;
       default = true;
@@ -180,6 +180,6 @@ in
   };
 
   config = mkIf cfg.wallpaper.enable {
-    hyper-modern-nixos.wallpaper.package = mkWallpaper cfg.wallpaper.customize;
+    hypermodern.wallpaper.package = mkWallpaper cfg.wallpaper.customize;
   };
 }

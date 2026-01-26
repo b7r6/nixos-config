@@ -6,11 +6,11 @@
 }:
 with lib;
 let
-  cfg = config.hyper-modern-nixos.network;
+  cfg = config.hypermodern.network;
 in
 {
-  options.hyper-modern-nixos.network = {
-    enable = mkEnableOption "hyper-modern-nixos.network" // {
+  options.hypermodern.network = {
+    enable = mkEnableOption "hypermodern.network" // {
       default = true;
     };
 

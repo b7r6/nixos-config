@@ -6,10 +6,10 @@
 }:
 with lib;
 let
-  cfg = config.hyper-modern-nixos.nvidia;
+  cfg = config.hypermodern.nvidia;
 in
 {
-  options.hyper-modern-nixos.nvidia.enable = mkEnableOption "hyper-modern-nixos.nvidia" // {
+  options.hypermodern.nvidia.enable = mkEnableOption "hypermodern.nvidia" // {
     default = false;
   };
 
@@ -23,7 +23,7 @@ in
       enable32Bit = true;
       extraPackages = with pkgs; [
         nvidia-vaapi-driver
-        vaapiVdpau
+        libva-vdpau-driver
         libvdpau-va-gl
       ];
     };

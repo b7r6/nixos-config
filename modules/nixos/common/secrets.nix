@@ -1,11 +1,11 @@
 { config, lib, ... }:
 with lib;
 let
-  cfg = config.hyper-modern-nixos.secrets;
+  cfg = config.hypermodern.secrets;
 in
 {
-  options.hyper-modern-nixos.secrets = {
-    enable = mkEnableOption "hyper-modern-nixos.secrets" // {
+  options.hypermodern.secrets = {
+    enable = mkEnableOption "hypermodern.secrets" // {
       default = false;
     };
   };

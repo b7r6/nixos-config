@@ -6,10 +6,10 @@
 }:
 with lib;
 let
-  cfg = config.hyper-modern-nixos.radeon;
+  cfg = config.hypermodern.radeon;
 in
 {
-  options.hyper-modern-nixos.radeon = {
+  options.hypermodern.radeon = {
     enable = mkEnableOption "AMD GPU support with ROCm" // {
       default = false;
     };

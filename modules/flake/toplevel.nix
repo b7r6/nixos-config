@@ -6,7 +6,8 @@
     inputs.nixos-unified.flakeModules.default
     inputs.nixos-unified.flakeModules.autoWire
     inputs.devshell.flakeModule
-    ./fmt.nix
+    inputs.aleph.modules.flake.formatter
+    inputs.aleph.modules.flake.lint
   ];
 
   perSystem =
@@ -26,7 +27,10 @@
           allowUnfreePredicate = _: true;
         };
 
-        overlays = [ inputs.devshell.overlays.default ];
+        overlays = [
+          inputs.devshell.overlays.default
+          inputs.aleph.overlays.default
+        ];
       };
 
       devshells.default.imports = [ (pkgs.devshell.importTOML ../../devshell.toml) ];

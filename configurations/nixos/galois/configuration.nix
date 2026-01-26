@@ -2,7 +2,7 @@
 {
   imports = [ ./hardware-configuration.nix ];
 
-  hyper-modern-nixos.radeon = {
+  hypermodern.radeon = {
     enable = true;
     rocm.enable = true;
     strixHalo = true;

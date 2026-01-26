@@ -16,7 +16,7 @@ let
     types
     ;
 
-  cfg = config.hyper-modern-nixos.themes;
+  cfg = config.hypermodern.themes;
 
   themes = {
     ono-sendai = import ./palettes/ono-sendai-blue.nix;
@@ -78,7 +78,7 @@ in
     ./wallpapers
   ];
 
-  options.hyper-modern-nixos.themes = {
+  options.hypermodern.themes = {
     enable = mkEnableOption "hyper-modern theming system" // {
       default = true;
     };
@@ -167,10 +167,10 @@ in
 
       # Use generated wallpaper if enabled, fallback to static
       image =
-        if config.hyper-modern-nixos.wallpaper.enable then
-          "${config.hyper-modern-nixos.wallpaper.package}/wallpaper.png"
+        if config.hypermodern.wallpaper.enable then
+          "${config.hypermodern.wallpaper.package}/wallpaper.png"
         else
-          ./assets/hyper-modern-nixos-wallpaper-0x01.png;
+          ./assets/hypermodern-wallpaper-0x01.png;
 
       # Stylix wants just the color values
       base16Scheme = currentTheme.palette;
@@ -181,7 +181,7 @@ in
         serif = fontConfig.monospace;
 
         emoji = {
-          package = pkgs.noto-fonts-emoji;
+          package = pkgs.noto-fonts-color-emoji;
           name = "Noto Color Emoji";
         };
 
@@ -218,9 +218,9 @@ in
       })
     ];
 
-    hyper-modern-nixos.wallpaper.enable = true;
+    hypermodern.wallpaper.enable = true;
 
-    hyper-modern-nixos.wallpaper.customize = {
+    hypermodern.wallpaper.customize = {
       inherit (cfg.display) profile width height;
       theme = currentTheme;
       dpi = if cfg.display.highDPI then 192 else 96;

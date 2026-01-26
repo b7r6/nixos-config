@@ -2,11 +2,11 @@
 {
   imports = [ ./hardware-configuration.nix ];
 
-  hyper-modern-nixos.hyper-wayland = {
+  hypermodern.hyper-wayland = {
     enable = true;
   };
 
-  hyper-modern-nixos.nvidia = {
+  hypermodern.nvidia = {
     enable = true;
   };
 

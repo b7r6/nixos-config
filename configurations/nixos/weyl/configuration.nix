@@ -22,7 +22,7 @@ in
   # TODO[b7r6]: we've got to either converge or diverge on
   # `autowire`, this in-between isn't working out...
 
-  hyper-modern-nixos.nvidia.enable = true;
+  hypermodern.nvidia.enable = true;
 
   programs.hyprland = {
     enable = true;

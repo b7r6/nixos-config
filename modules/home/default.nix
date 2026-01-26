@@ -26,7 +26,7 @@
     ./vscode
   ];
 
-  hyper-modern-nixos.themes = {
+  hypermodern.themes = {
     enable = true;
     theme = "ono-sendai";
     variant = "chiba";

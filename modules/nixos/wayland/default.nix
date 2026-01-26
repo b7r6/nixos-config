@@ -6,11 +6,11 @@
 }:
 with lib;
 let
-  cfg = config.hyper-modern-nixos.hyper-wayland;
+  cfg = config.hypermodern.hyper-wayland;
 in
 {
-  options.hyper-modern-nixos.hyper-wayland = {
-    enable = mkEnableOption "hyper-modern-nixos.wayland" // {
+  options.hypermodern.hyper-wayland = {
+    enable = mkEnableOption "hypermodern.wayland" // {
       default = false;
     };
   };

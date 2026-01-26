@@ -24,6 +24,9 @@ in
 
   nix.nixPath = [ "nixpkgs=${inputs.nixpkgs}" ];
   nixpkgs.config.allowUnfree = true;
+  nixpkgs.config.permittedInsecurePackages = [
+    "qtwebengine-5.15.19"
+  ];
   home-manager.useUserPackages = true;
   home-manager.useGlobalPkgs = true;
   home-manager.backupFileExtension = "hm-backup";
@@ -33,7 +36,7 @@ in
   programs.ssh.startAgent = true;
   programs.nh.enable = true;
 
-  hyper-modern-nixos.network = {
+  hypermodern.network = {
     enable = true;
     tailnet.domain = "risk-nunki.ts.net";
     firewall.enable = false;
@@ -112,9 +115,9 @@ in
 
     pciutils
 
-    python311Full
-    python312Full
-    python313Full
+    python312
+    python313
+    python314
 
     nvtopPackages.full
 
@@ -221,7 +224,7 @@ in
 
   users.groups.adbusers = { };
   users.groups.wireshark = { };
-  programs.adb.enable = true;
+  # programs.adb.enable removed in nixpkgs - systemd 258 handles uaccess rules automatically
   users.users.b7r6.extraGroups = [ "wireshark" ];
   # If using android-nixpkgs, you can include this part
   # This assumes you have android-nixpkgs set up in your imports

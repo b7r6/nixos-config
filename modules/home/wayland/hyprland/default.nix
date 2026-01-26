@@ -937,7 +937,7 @@ in
     wlr-randr
     wofi
 
-    rofi-wayland
+    rofi
 
     # Enhanced utilities
     cliphist

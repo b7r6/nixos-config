@@ -1,10 +1,10 @@
 { config, lib, ... }:
 with lib;
 let
-  cfg = config.hyper-modern-nixos.terminals;
+  cfg = config.hypermodern.terminals;
 in
 {
-  options.hyper-modern-nixos.terminals = {
+  options.hypermodern.terminals = {
     font = {
       name = mkOption {
         type = types.str;

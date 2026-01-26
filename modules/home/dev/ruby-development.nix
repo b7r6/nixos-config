@@ -2,7 +2,7 @@
 {
   home.packages = with pkgs; [
     rubocop
-    ruby_3_1
+    ruby_3_3
     solargraph
   ];
 }

@@ -9,8 +9,12 @@
     };
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs?ref=nixpkgs-unstable";
-    flake-parts.url = "github:hercules-ci/flake-parts";
+    # aleph is the source of truth for core inputs
+    aleph.url = "github:straylight-software/aleph?ref=b7r6/continuity-0x07";
+
+    nixpkgs.follows = "aleph/nixpkgs";
+    flake-parts.follows = "aleph/flake-parts";
+    treefmt-nix.follows = "aleph/treefmt-nix";
 
     agenix.url = "github:ryantm/agenix";
     agenix.inputs.nixpkgs.follows = "nixpkgs";
@@ -25,7 +29,8 @@
     disko.inputs.nixpkgs.follows = "nixpkgs";
 
     hyprland.url = "github:hyprwm/Hyprland";
-    hyprland.inputs.nixpkgs.follows = "nixpkgs";
+    # Don't follow nixpkgs - hyprland needs specific Qt6 versions
+    # hyprland.inputs.nixpkgs.follows = "nixpkgs";
 
     hyprland-plugins.url = "github:hyprwm/hyprland-plugins";
     hyprland-plugins.inputs.hyprland.follows = "hyprland";
@@ -36,11 +41,7 @@
     nixos-unified.url = "github:srid/nixos-unified";
     nixid.url = "github:srid/nixid";
 
-    treefmt-nix.url = "github:numtide/treefmt-nix";
-    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
-
-    home-manager.url = "github:nix-community/home-manager";
-    home-manager.inputs.nixpkgs.follows = "nixpkgs";
+    home-manager.follows = "aleph/nix2gpu/home-manager";
 
     nix-index-database.url = "github:nix-community/nix-index-database";
     nix-index-database.inputs.nixpkgs.follows = "nixpkgs";

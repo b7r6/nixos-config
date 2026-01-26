@@ -6,11 +6,11 @@
 }:
 with lib;
 let
-  cfg = config.hyper-modern-nixos.libvirt;
+  cfg = config.hypermodern.libvirt;
 in
 {
-  options.hyper-modern-nixos.libvirt = {
-    enable = mkEnableOption "hyper-modern-nixos.libvirt" // {
+  options.hypermodern.libvirt = {
+    enable = mkEnableOption "hypermodern.libvirt" // {
       default = true;
     };
   };
