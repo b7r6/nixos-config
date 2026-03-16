@@ -1,0 +1,10 @@
+name = "ono-sendai-gen"
+version = "1.0.0"
+defaultTargets = ["OnoSendaiGen"]
+
+[[lean_lib]]
+name = "OnoSendaiGen"
+
+[[executable]]
+name = "ono-sendai-gen"
+root = "Main"

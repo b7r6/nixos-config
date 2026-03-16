@@ -109,9 +109,17 @@ in
   plugin = lib.mkIf cfg.enableHy3 {
     hy3 = {
       tabs = {
-        border_width = 1;
-        "col.active_border" = lib.mkForce "rgba(${base0D}ee) rgba(${base0E}ee) 45deg";
-        "col.inactive_border" = lib.mkForce "rgba(${base02}aa)";
+        height = 20;
+        padding = 4;
+        radius = 0;
+        border_width = 2;
+        render_text = true;
+        text_height = 8;
+
+        "col.active" = "rgba(${base0D}ff)";
+        "col.active.border" = "rgba(${base0D}ee)";
+        "col.inactive" = "rgba(${base02}40)";
+        "col.inactive.border" = "rgba(${base02}aa)";
       };
       autotile = {
         enable = true;
@@ -200,9 +208,9 @@ in
       else if cfg.screenshotTool == "swappy" then
         '', Print, exec, grim -g "$(slurp)" - | swappy -f -''
       else if cfg.screenshotTool == "hyprshot" then
-        '', Print, exec, hyprshot -m region''
+        ", Print, exec, hyprshot -m region"
       else if cfg.screenshotTool == "grimblast" then
-        '', Print, exec, grimblast copy area''
+        ", Print, exec, grimblast copy area"
       else
         ""
     )

@@ -3,9 +3,12 @@
 ;; Fast, clean startup (esp. pgtk)
 (setq gc-cons-threshold most-positive-fixnum
       gc-cons-percentage 0.6
-      package-enable-at-startup nil
       frame-inhibit-implied-resize t
       inhibit-compacting-font-caches t)
+
+;; Enable package.el for Nix-provided packages (autoloads)
+;; straight.el handles additional packages
+(setq package-enable-at-startup t)
 
 (menu-bar-mode -1)
 (tool-bar-mode -1)

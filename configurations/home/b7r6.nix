@@ -6,8 +6,13 @@ in
 {
   imports = [
     inputs.agenix.homeManagerModules.default
+    inputs.impurity.homeManagerModules.default
+    # impermanence home-manager module is auto-imported by nixos module now
     self.homeModules.default
   ];
+
+  # impurity.nix - set configRoot, enable via -impure variant
+  impurity.configRoot = self;
 
   me = {
     username = "b7r6";

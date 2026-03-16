@@ -7,6 +7,8 @@ in
     ./bluetooth.nix
     ./cachix.nix
     ./docker.nix
+    ./impermanence.nix
+    ./impurity.nix
     ./libvirt.nix
     ./myusers.nix
     ./network.nix
@@ -80,6 +82,7 @@ in
   programs.firefox.enable = true;
   environment.systemPackages = with pkgs; [
     # Base utilities
+    android-tools
     atuin
     bat
     btop
@@ -221,8 +224,11 @@ in
 
   users.groups.adbusers = { };
   users.groups.wireshark = { };
-  programs.adb.enable = true;
-  users.users.b7r6.extraGroups = [ "wireshark" ];
+  # programs.adb is deprecated in systemd 258+, android-tools added to main systemPackages list above
+  users.users.b7r6.extraGroups = [
+    "wireshark"
+    "adbusers"
+  ];
   # If using android-nixpkgs, you can include this part
   # This assumes you have android-nixpkgs set up in your imports
   # android-nixpkgs.androidenv = {

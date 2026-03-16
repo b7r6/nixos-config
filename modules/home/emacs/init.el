@@ -48,31 +48,53 @@
 (setq x-gtk-use-system-tooltips nil)
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // package // management
+;; // package loading (straight.el + Nix hybrid)
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;;
+;; Portable config: works on NixOS (packages preloaded) and vanilla emacs.
+;; - On Nix: packages are preloaded, straight.el available for extras
+;; - On vanilla: straight.el fetches everything
+;;
 
-(require 'package)
+;; Detect if we're running under Nix-managed emacs with packages
+(defvar hypermodern/nix-emacs-p
+  (and (getenv "NIX_PROFILES")
+       (locate-library "vertico"))  ; test for a Nix-provided package
+  "Non-nil if running Nix-managed Emacs with preloaded packages.")
 
-(setq package-archives
-      '(("gnu" . "https://elpa.gnu.org/packages/")
-        ("nongnu" . "https://elpa.nongnu.org/nongnu/")
-        ("melpa" . "https://melpa.org/packages/")
-        ("melpa-stable" . "https://stable.melpa.org/packages/")))
+;; Bootstrap straight.el (always available for ad-hoc packages)
+;; Suppress warning about package.el - we intentionally use both:
+;; - package.el for Nix-provided packages (autoloads)
+;; - straight.el for additional packages not in Nix
+(setq straight-package--warning-displayed t)
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el"
+                         (or (getenv "EMACSDIR") user-emacs-directory)))
+      (bootstrap-version 7))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
 
-(setq package-archive-priorities
-      '(("melpa" . 99)
-        ("nongnu" . 80)
-        ("gnu" . 70)
-        ("melpa-stable" . 60)))
+;; Integrate straight.el with use-package
+(straight-use-package 'use-package)
 
-(package-initialize)
+;; Configure use-package + straight.el behavior
+;; - On Nix: packages preloaded, straight available but won't auto-fetch
+;; - On vanilla: straight fetches packages automatically
+(if hypermodern/nix-emacs-p
+    (setq straight-use-package-by-default nil
+          use-package-always-ensure nil)
+  (setq straight-use-package-by-default t
+        use-package-always-ensure nil))
 
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
-
-(require 'use-package)
-(setq use-package-always-ensure t)
+(setq use-package-verbose nil
+      use-package-expand-minimally t)
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;; // forward // declarations
@@ -96,6 +118,9 @@
 (declare-function lsp-stdio-connection "lsp-mode" (command))
 (declare-function tramp-cleanup-all-connections "tramp" ())
 (declare-function tramp-cleanup-all-buffers "tramp" ())
+(declare-function password-store-dir "password-store" ())
+(declare-function password-store--file-to-entry "password-store" (file))
+(declare-function auth-source-pass-enable "auth-source-pass" ())
 (declare-function ffap-file-at-point "ffap" ())
 (declare-function general-define-key "general" (&rest maps))
 (declare-function direnv-mode "direnv" (&optional arg))
@@ -393,6 +418,14 @@
       (corfu-border ((,class (:background ,bg-hl))))
       (corfu-annotations ((,class (:foreground ,fg-alt))))
 
+      ;; Codeium
+      (codeium-overlay-face ((,class (:foreground ,fg-alt :slant italic))))
+
+      ;; gptel
+      (gptel-context-face ((,class (:background ,bg-alt :extend t))))
+      (gptel-prompt-face ((,class (:foreground ,hero :weight bold))))
+      (gptel-response-face ((,class (:foreground ,fg))))
+
       ;; Vertico
       (vertico-current ((,class (:background ,bg-hl :foreground ,fg-light :extend t))))
       (vertico-group-title ((,class (:foreground ,hero :weight bold))))
@@ -642,7 +675,27 @@
       (lean4-goal-face ((,class (:foreground ,fg))))
       (lean4-error-face ((,class (:foreground ,ice :weight bold))))
       (lean4-warning-face ((,class (:foreground ,sky))))
-      (lean4-info-face ((,class (:foreground ,matrix)))))))
+      (lean4-info-face ((,class (:foreground ,matrix))))
+
+      ;; Vterm ANSI colors - map to palette to prevent rogue reds/greens
+      ;; Normal colors (0-7)
+      (vterm-color-black ((,class (:foreground ,bg-alt :background ,bg-alt))))
+      (vterm-color-red ((,class (:foreground ,ice :background ,ice))))
+      (vterm-color-green ((,class (:foreground ,deep :background ,deep))))
+      (vterm-color-yellow ((,class (:foreground ,sky :background ,sky))))
+      (vterm-color-blue ((,class (:foreground ,link :background ,link))))
+      (vterm-color-magenta ((,class (:foreground ,soft :background ,soft))))
+      (vterm-color-cyan ((,class (:foreground ,matrix :background ,matrix))))
+      (vterm-color-white ((,class (:foreground ,fg :background ,fg))))
+      ;; Bright colors (8-15) - use lighter/more saturated variants
+      (vterm-color-bright-black ((,class (:foreground ,comment :background ,comment))))
+      (vterm-color-bright-red ((,class (:foreground ,ice :background ,ice))))
+      (vterm-color-bright-green ((,class (:foreground ,deep :background ,deep))))
+      (vterm-color-bright-yellow ((,class (:foreground ,hero :background ,hero))))
+      (vterm-color-bright-blue ((,class (:foreground ,link :background ,link))))
+      (vterm-color-bright-magenta ((,class (:foreground ,soft :background ,soft))))
+      (vterm-color-bright-cyan ((,class (:foreground ,matrix :background ,matrix))))
+      (vterm-color-bright-white ((,class (:foreground ,fg-light :background ,fg-light)))))))
 
 (defun hypermodern/apply-theme (theme-name)
   "Apply THEME-NAME from hypermodern palettes."
@@ -1003,36 +1056,136 @@
 (show-paren-mode 1)
 (fset 'yes-or-no-p 'y-or-n-p)
 
-(use-package nerd-icons :ensure t)
-
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;; // frame // discipline
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-;; (use-package shackle
-;;   :ensure t
-;;   :config
-;;   (shackle-mode 1)
-;;   (setq shackle-rules
-;;         '((help-mode :other t :select t)
-;;           ("\\*Help\\*" :other t :select t)
-;;           ("\\*info\\*" :other t :select t)
-;;           (vterm-mode :other t :select t)
-;;           (compilation-mode :other t :select nil)
-;;           ("\\*Warnings\\*" :align below :size 0.15 :select nil)
-;;           ("\\*Backtrace\\*" :align below :size 0.25 :select t))))
+;; ── Shackle: No popup without permission ───────────────────────────
+;; Controls WHERE buffers appear. Strict rules = no surprises.
+(use-package shackle
+  :demand t
+  :config
+  (setq shackle-default-rule '(:select nil :inhibit-window-quit nil)
+        shackle-default-size 0.3
+        shackle-default-alignment 'below
+        shackle-rules
+        '(;; ─ Never show these automatically ─────────────────────────
+          ("\\*Warnings\\*"           :ignore t)
+          ("\\*Async Shell Command\\*" :ignore t)
+          ("\\*Async-native-compile-log\\*" :ignore t)
+          ("\\*Native-compile-Log\\*" :ignore t)
+          ("\\*straight-process\\*"   :ignore t)
+          ("\\*flycheck errors\\*"    :ignore t)  ; use consult-flycheck
+          ("\\*Flymake diagnostics.*" :ignore t)
+          ("\\*lsp-log\\*"            :ignore t)
+          ("\\*nixd.*"                :ignore t)
+          ("\\*tramp.*"               :ignore t)
+          ("\\*Deletions\\*"          :ignore t)
+          ("\\*Quail Completions\\*"  :ignore t)
 
+          ;; ─ Bottom panel (no steal focus) ──────────────────────────
+          (compilation-mode           :align below :size 0.25 :select nil :popup t)
+          ("\\*compilation\\*"        :align below :size 0.25 :select nil :popup t)
+          ("\\*Compile-Log\\*"        :align below :size 0.2 :select nil :popup t)
+          ("\\*Messages\\*"           :align below :size 0.2 :select nil :popup t)
+          ("\\*Backtrace\\*"          :align below :size 0.3 :select nil :popup t)
+          ("\\*vc-diff\\*"            :align below :size 0.3 :select nil :popup t)
+          ("\\*vc-change-log\\*"      :align below :size 0.3 :select nil :popup t)
+          ("\\*Shell Command Output\\*" :align below :size 0.25 :select nil :popup t)
+          ("\\*Pp Eval Output\\*"     :align below :size 0.25 :select nil :popup t)
+
+          ;; ─ Bottom panel (select) ──────────────────────────────────
+          ("\\*rg\\*"                 :align below :size 0.4 :select t :popup t)
+          ("\\*xref\\*"               :align below :size 0.3 :select t :popup t)
+          ("\\*grep\\*"               :align below :size 0.4 :select t :popup t)
+          ("\\*Occur\\*"              :align below :size 0.3 :select t :popup t)
+          ("\\*eshell\\*"             :align below :size 0.3 :select t :popup t)
+          (eshell-mode                :align below :size 0.3 :select t :popup t)
+          (vterm-mode                 :align below :size 0.35 :select t :popup t)
+          (term-mode                  :align below :size 0.35 :select t :popup t)
+
+          ;; ─ Right side (reference material) ────────────────────────
+          (help-mode                  :align right :size 0.4 :select t :popup t)
+          (helpful-mode               :align right :size 0.4 :select t :popup t)
+          ("\\*Help\\*"               :align right :size 0.4 :select t :popup t)
+          ("\\*helpful.*"             :align right :size 0.4 :select t :popup t)
+          (Info-mode                  :align right :size 0.45 :select t :popup t)
+          ("\\*info\\*"               :align right :size 0.45 :select t :popup t)
+          ("\\*Man.*"                 :align right :size 0.4 :select t :popup t)
+          ("\\*eldoc\\*"              :align right :size 0.35 :select nil :popup t)
+          ("\\*devdocs\\*"            :align right :size 0.45 :select t :popup t)
+
+          ;; ─ AI buffers ─────────────────────────────────────────────
+          ("\\*gptel\\*"              :align right :size 0.45 :select t :popup t)
+          ("\\*Claude\\*"             :align right :size 0.45 :select t :popup t)
+          ("\\*ChatGPT\\*"            :align right :size 0.45 :select t :popup t)
+          (gptel-mode                 :align right :size 0.45 :select t :popup t)
+          ("\\*aider.*"               :align below :size 0.35 :select t :popup t)
+
+          ;; ─ Magit (special handling) ───────────────────────────────
+          (magit-status-mode          :same t :select t)
+          (magit-log-mode             :same t :select t)
+          (magit-diff-mode            :align below :size 0.5 :select nil :popup t)
+          (magit-process-mode         :align below :size 0.2 :select nil :popup t)
+          ("\\*magit-.*popup\\*"      :align below :size 0.35 :select t :popup t)
+          ("COMMIT_EDITMSG"           :align below :size 0.4 :select t :popup t)
+
+          ;; ─ Org/capture ────────────────────────────────────────────
+          ("\\*Org Agenda\\*"         :align right :size 0.4 :select t :popup t)
+          ("\\*Org Select\\*"         :align below :size 0.3 :select t :popup t)
+          (org-capture-mode           :align below :size 0.35 :select t :popup t)
+
+          ;; ─ Completion (never steal focus) ─────────────────────────
+          ("\\*Completions\\*"        :align below :size 0.3 :select nil :popup t)
+          ("\\*company-.*"            :ignore t)))
+  (shackle-mode 1))
+
+;; ── Popper: Toggle popups with C-\ ─────────────────────────────────
+;; Controls popup LIFECYCLE. Toggle visibility, cycle through them.
 (use-package popper
-  :ensure t
-  :bind (("C-\\" . popper-toggle)
-         ("M-\\" . popper-cycle))
+  :demand t
+  :after shackle
+  :bind (("C-\\"   . popper-toggle)       ; Toggle last popup
+         ("C-M-\\" . popper-cycle)        ; Cycle through popups
+         ("C-c \\" . popper-kill-latest)) ; Kill popup
   :init
   (setq popper-reference-buffers
-        '("\\*Messages\\*" "\\*compilation\\*" "\\*Backtrace\\*"
-          "\\*rg\\*" help-mode compilation-mode))
+        '(;; By mode
+          compilation-mode
+          help-mode
+          helpful-mode
+          Info-mode
+          vterm-mode
+          eshell-mode
+          term-mode
+          gptel-mode
+          magit-process-mode
+          magit-diff-mode
+          ;; By name pattern
+          "\\*Messages\\*"
+          "\\*compilation\\*"
+          "\\*Compile-Log\\*"
+          "\\*Backtrace\\*"
+          "\\*rg\\*"
+          "\\*grep\\*"
+          "\\*xref\\*"
+          "\\*Occur\\*"
+          "\\*Help\\*"
+          "\\*helpful.*"
+          "\\*info\\*"
+          "\\*Man.*"
+          "\\*gptel\\*"
+          "\\*Claude\\*"
+          "\\*aider.*"
+          "\\*vc-.*"
+          "\\*Shell Command Output\\*"
+          "\\*Pp Eval Output\\*"
+          "\\*Org Agenda\\*"
+          "COMMIT_EDITMSG"))
   :config
-  ;; (setq popper-display-control nil)  ;; shackle controls placement
-  (popper-mode))
+  ;; Let shackle control placement
+  (setq popper-display-control nil)
+  (popper-mode 1))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;; // window // movement
@@ -1062,7 +1215,7 @@
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (use-package doom-modeline
-  :ensure t
+  :demand t
   :hook (after-init . doom-modeline-mode)
   :config
   (setq doom-modeline-height 20
@@ -1071,94 +1224,893 @@
         doom-modeline-buffer-encoding nil))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // ai - API key from env
+;; // ai - gptel with passage auth + openrouter
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+(defun hypermodern/gptel--netrc-get (host)
+  "Get password for HOST from netrc via auth-source."
+  (require 'auth-source)
+  (when-let ((found (car (auth-source-search :host host :max 1))))
+    (let ((secret (plist-get found :secret)))
+      (if (functionp secret) (funcall secret) secret))))
+
+(defvar hypermodern/gptel--current-key nil
+  "Cached OpenRouter API key for this session.")
+
+(defun hypermodern/gptel--passage-get (entry)
+  "Get secret from passage store for ENTRY."
+  (let ((result (string-trim
+                 (shell-command-to-string
+                  (format "passage show %s 2>/dev/null" entry)))))
+    (unless (string-empty-p result) result)))
+
+(defun hypermodern/gptel--passage-insert (entry value)
+  "Store VALUE in passage at ENTRY using rage directly.
+Passage insert is broken when age isn't in PATH, so we use rage."
+  (let* ((store-dir (expand-file-name "~/.passage/store"))
+         (recipients-file (expand-file-name ".age-recipients" store-dir))
+         (entry-file (expand-file-name (concat entry ".age") store-dir))
+         (entry-dir (file-name-directory entry-file)))
+    ;; Ensure directory exists
+    (make-directory entry-dir t)
+    ;; Encrypt with rage
+    (with-temp-buffer
+      (insert value)
+      (if (zerop (call-process-region (point-min) (point-max) "rage"
+                                       nil nil nil
+                                       "-R" recipients-file
+                                       "-o" entry-file))
+          t
+        (error "Failed to encrypt with rage")))))
+
+(defun hypermodern/gptel-get-api-key ()
+  "Get OpenRouter API key. Checks in order:
+1. Session cache
+2. passage:api/openrouter-emacs (provisioned keys)
+3. netrc:fuck.yuou.openrouter.ai
+4. OPENROUTER_API_KEY env var"
+  (or hypermodern/gptel--current-key
+      (setq hypermodern/gptel--current-key
+            (or (hypermodern/gptel--passage-get "api/openrouter-emacs")
+                (hypermodern/gptel--netrc-get "fuck.yuou.openrouter.ai")
+                (getenv "OPENROUTER_API_KEY")))))
+
+(defun hypermodern/gptel-refresh-key ()
+  "Clear cached key and re-read from netrc."
+  (interactive)
+  (setq hypermodern/gptel--current-key nil)
+  (hypermodern/gptel-get-api-key)
+  (message "[gptel] Key refreshed from netrc"))
+
+(defun hypermodern/gptel-provision-key ()
+  "Provision a new OpenRouter API key and store in passage.
+Uses the provisioning key from passage (api/openrouter-provisioning) or netrc."
+  (interactive)
+  (require 'url)
+  (require 'json)
+  (let* ((provisioning-key (or (hypermodern/gptel--passage-get "api/openrouter-provisioning")
+                               (hypermodern/gptel--netrc-get "provisioning.openrouter.ai"))))
+    (unless provisioning-key
+      (user-error "No provisioning key found. Add to passage:api/openrouter-provisioning"))
+    (message "Provisioning new OpenRouter key...")
+    (let* ((url-request-method "POST")
+           (url-request-extra-headers
+            `(("Authorization" . ,(concat "Bearer " provisioning-key))
+              ("Content-Type" . "application/json")))
+           (url-request-data
+            (json-encode `((name . ,(format "emacs-%s-%s"
+                                            (system-name)
+                                            (format-time-string "%Y%m%d"))))))
+           (buffer (url-retrieve-synchronously "https://openrouter.ai/api/v1/keys" t t 30)))
+      (if (not buffer)
+          (user-error "Failed to connect to OpenRouter API")
+        (unwind-protect
+            (with-current-buffer buffer
+              (goto-char (point-min))
+              ;; Check HTTP status
+              (unless (looking-at-p "HTTP/[0-9.]+ 2[0-9][0-9]")
+                (user-error "OpenRouter API error: %s"
+                            (buffer-substring (point) (line-end-position))))
+              ;; Parse response
+              (when (re-search-forward "\n\n" nil t)
+                (let* ((json-object-type 'plist)
+                       (response (json-read))
+                       (new-key (plist-get response :key)))
+                  (if (not new-key)
+                      (user-error "No key in response: %s" response)
+                    ;; Store in passage using rage directly
+                    (hypermodern/gptel--passage-insert "api/openrouter-emacs" new-key)
+                    (setq hypermodern/gptel--current-key new-key)
+                    (message "New key provisioned and stored in passage:api/openrouter-emacs")))))
+          (kill-buffer buffer))))))
+
+;; ── Models organized by capability ─────────────────────────────────
+(defvar hypermodern/gptel-models nil
+  "Available models via OpenRouter. Populated dynamically on startup.")
+
+(defvar hypermodern/gptel-models-cache-file
+  (expand-file-name "gptel-models-cache.el" user-emacs-directory)
+  "File to cache OpenRouter models list.")
+
+(defvar hypermodern/gptel-models-cache-ttl 86400
+  "Cache TTL in seconds (default 24 hours).")
+
+;; BYOK providers that this key routes through (via GCP Vertex AI)
+;; Determined by testing which model prefixes actually work with our key
+;; Set to nil to show all models (for non-BYOK keys)
+(defvar hypermodern/gptel-allowed-providers
+  '("anthropic" "google" "deepseek" "meta-llama" "qwen" "moonshotai")
+  "List of provider prefixes that work with our BYOK key.
+Models are filtered to only show those from these providers.
+Set to nil to show all models.")
+
+(defvar hypermodern/gptel-preferred-models
+  '(anthropic/claude-sonnet-4.5    ; Fast + capable (default)
+    anthropic/claude-sonnet-4.6
+    anthropic/claude-opus-4.5      ; Most capable
+    anthropic/claude-opus-4.6
+    anthropic/claude-haiku-4.5     ; Fastest
+    google/gemini-3.1-pro-preview
+    deepseek/deepseek-chat)
+  "Preferred models to try as default, in order of preference.")
+
+(defvar hypermodern/gptel-provider-routing
+  '(("google-vertex" . 1))  ; Prefer Google Vertex for BYOK
+  "Provider routing preferences for OpenRouter.
+Passed as X-Provider-Routing header.")
+
+(defun hypermodern/gptel-fetch-models ()
+  "Fetch available models from OpenRouter API.
+Filters to only models from `hypermodern/gptel-allowed-providers' if set."
+  (require 'url)
+  (require 'json)
+  (let* ((api-key (hypermodern/gptel-get-api-key))
+         (url-request-extra-headers
+          `(("Authorization" . ,(concat "Bearer " api-key))))
+         (buffer (url-retrieve-synchronously
+                  "https://openrouter.ai/api/v1/models" t t 10)))
+    (when buffer
+      (unwind-protect
+          (with-current-buffer buffer
+            (goto-char (point-min))
+            (when (re-search-forward "\n\n" nil t)
+              (let* ((json-object-type 'alist)
+                     (json-array-type 'list)
+                     (response (json-read))
+                     (all-models (alist-get 'data response))
+                     (filtered-models
+                      (if hypermodern/gptel-allowed-providers
+                          (seq-filter
+                           (lambda (m)
+                             (let* ((id (alist-get 'id m))
+                                    (provider (car (split-string id "/"))))
+                               (member provider hypermodern/gptel-allowed-providers)))
+                           all-models)
+                        all-models)))
+                (mapcar (lambda (m)
+                          (let ((id (alist-get 'id m)))
+                            (cons (hypermodern/gptel--model-display-name id)
+                                  (intern id))))
+                        filtered-models))))
+        (kill-buffer buffer)))))
+
+(defun hypermodern/gptel--model-display-name (model-id)
+  "Convert MODEL-ID to a human-readable display name."
+  (let* ((parts (split-string model-id "/"))
+         (provider (car parts))
+         (model (cadr parts)))
+    (format "%s (%s)"
+            (capitalize (replace-regexp-in-string "[-_]" " " (or model model-id)))
+            provider)))
+
+(defun hypermodern/gptel-load-models ()
+  "Load models from cache or fetch from API."
+  (let ((cache-valid (and (file-exists-p hypermodern/gptel-models-cache-file)
+                          (< (float-time
+                              (time-subtract
+                               (current-time)
+                               (file-attribute-modification-time
+                                (file-attributes hypermodern/gptel-models-cache-file))))
+                             hypermodern/gptel-models-cache-ttl))))
+    (if cache-valid
+        ;; Load from cache
+        (with-temp-buffer
+          (insert-file-contents hypermodern/gptel-models-cache-file)
+          (setq hypermodern/gptel-models (read (current-buffer))))
+      ;; Fetch fresh and cache
+      (message "[gptel] Fetching available models from OpenRouter...")
+      (let ((models (hypermodern/gptel-fetch-models)))
+        (when models
+          (setq hypermodern/gptel-models models)
+          ;; Write cache
+          (with-temp-file hypermodern/gptel-models-cache-file
+            (prin1 models (current-buffer)))
+          (message "[gptel] Loaded %d models" (length models))))))
+  hypermodern/gptel-models)
+
+(defun hypermodern/gptel-refresh-models ()
+  "Force refresh models from OpenRouter API."
+  (interactive)
+  (when (file-exists-p hypermodern/gptel-models-cache-file)
+    (delete-file hypermodern/gptel-models-cache-file))
+  (hypermodern/gptel-load-models)
+  ;; Update backend
+  (when gptel-backend
+    (setf (gptel-backend-models gptel-backend)
+          (mapcar #'cdr hypermodern/gptel-models)))
+  (message "[gptel] Refreshed %d models" (length hypermodern/gptel-models)))
+
+;; ── System prompts library ─────────────────────────────────────────
+(defvar hypermodern/gptel-prompts
+  '(("Default" . nil)
+    ("Concise" . "You are a helpful assistant. Be concise and direct. No preamble.")
+    ("Coder" . "You are an expert programmer. Write clean, idiomatic code with minimal explanation. Prefer functional patterns. No markdown unless asked.")
+    ("Code Review" . "You are a senior engineer doing code review. Be constructive but thorough. Point out bugs, suggest improvements, note good patterns.")
+    ("Explain" . "You are a patient teacher. Explain concepts clearly with examples. Build up from fundamentals.")
+    ("Emacs Lisp" . "You are an Emacs Lisp expert. Write idiomatic elisp. Use cl-lib, seq, and map functions. Prefer lexical binding.")
+    ("Nix" . "You are a NixOS/Nix expert. Write idiomatic Nix expressions. Prefer flakes and modern patterns. Explain tradeoffs.")
+    ("Haskell" . "You are a Haskell expert. Write idiomatic, type-safe code. Use appropriate abstractions (Functor, Monad, etc). Explain type signatures.")
+    ("Rust" . "You are a Rust expert. Write idiomatic, safe Rust. Explain ownership/borrowing when relevant. Use iterators over loops.")
+    ("Debug" . "Help me debug this issue. Ask clarifying questions. Think step by step. Consider edge cases.")
+    ("Rewrite" . "Rewrite the following to be clearer and more concise. Preserve meaning. No explanation needed.")
+    ("Summarize" . "Summarize the following concisely. Use bullet points for key takeaways."))
+  "System prompt presets for different tasks.")
+
 (use-package gptel
-  :ensure t
-  :config
-  (let ((api-key (getenv "OPENROUTER_API_KEY")))
-    (unless api-key
-      (message "[gptel] Warning: OPENROUTER_API_KEY not set"))
-
-    (setq gptel-model 'anthropic/claude-opus-4)
-
-    (if (fboundp 'gptel-make-openai)
-        (setq gptel-backend
-              (gptel-make-openai "openrouter"
-                :host "openrouter.ai"
-                :endpoint "/api/v1/chat/completions"
-                :stream t
-                :key "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["
-                :models '(anthropic/claude-opus-4
-                          anthropic/claude-sonnet-4
-                          moonshotai/kimi-k2
-                          qwen/qwen3-coder)))
-      (message "[gptel] Your gptel version lacks gptel-make-openai; please update.")))
-
-  (defun hypermodern/gptel-switch-model ()
-    (interactive)
-    (let* ((models '(("Opus 4" . anthropic/claude-opus-4)
-                     ("Sonnet 4" . anthropic/claude-sonnet-4)
-                     ("Kimi K2" . moonshotai/kimi-k2)
-                     ("Qwen Coder" . qwen/qwen3-coder)))
-           (choice (completing-read "Model: " (mapcar #'car models))))
-      (setq gptel-model (cdr (assoc choice models)))
-      (message "Model: %s" choice)))
-
   :bind (("C-c g g" . gptel)
+         ("C-c g s" . gptel-send)
+         ("C-c g k" . gptel-abort)
          ("C-c g m" . gptel-menu)
          ("C-c g a" . hypermodern/gptel-switch-model)
-         ("C-c g s" . gptel-send)
-         ("C-c g k" . gptel-abort)))
+         ("C-c g p" . hypermodern/gptel-switch-prompt)
+         ("C-c g r" . hypermodern/gptel-rewrite-region)
+         ("C-c g e" . hypermodern/gptel-explain-region)
+         ("C-c g c" . hypermodern/gptel-code-region)
+         ("C-c g b" . hypermodern/gptel-send-buffer)
+         ("C-c g t" . hypermodern/gptel-toggle-tools)
+         ("C-c g T" . hypermodern/gptel-agent-task)
+         ("C-c g K" . hypermodern/gptel-refresh-key)
+         ("C-c g M" . hypermodern/gptel-refresh-models)
+         ("C-c g P" . hypermodern/gptel-provision-key))
+  :config
+  ;; Get API key from netrc
+  (let ((api-key (hypermodern/gptel-get-api-key)))
+    (unless api-key
+      (message "[gptel] No API key found. Add to netrc: machine fuck.yuou.openrouter.ai"))
 
-(setenv "OPENROUTER_API_KEY" )
+    ;; Load available models (from cache or API)
+    (hypermodern/gptel-load-models)
+
+    ;; Configure OpenRouter backend with dynamically fetched models
+    (setq gptel-backend
+          (gptel-make-openai "openrouter"
+            :host "openrouter.ai"
+            :endpoint "/api/v1/chat/completions"
+            :stream t
+            :key (lambda () (hypermodern/gptel-get-api-key))
+            :models (mapcar #'cdr hypermodern/gptel-models)))
+
+    ;; Default to first available preferred model
+    (setq gptel-model
+          (or (seq-find (lambda (m) (member m (mapcar #'cdr hypermodern/gptel-models)))
+                        hypermodern/gptel-preferred-models)
+              (cdar hypermodern/gptel-models))))
+
+  ;; Enable tool use by default
+  (setq gptel-use-tools t)
+
+  ;; Sensible defaults
+  (setq gptel-default-mode 'org-mode
+        gptel-display-buffer-action '(display-buffer-pop-up-window)
+        gptel-prompt-prefix-alist '((org-mode . "* ")
+                                    (markdown-mode . "## ")
+                                    (text-mode . ""))
+        gptel-response-prefix-alist '((org-mode . "** ")
+                                      (markdown-mode . "### ")
+                                      (text-mode . "\n")))
+
+  ;; ── Interactive commands ───────────────────────────────────────────
+
+  (defun hypermodern/gptel-switch-model ()
+    "Switch gptel model with completion."
+    (interactive)
+    (let* ((choice (completing-read "Model: " (mapcar #'car hypermodern/gptel-models) nil t))
+           (model (cdr (assoc choice hypermodern/gptel-models))))
+      (setq gptel-model model)
+      (message "Model: %s" choice)))
+
+  (defun hypermodern/gptel-switch-prompt ()
+    "Switch system prompt with completion."
+    (interactive)
+    (let* ((choice (completing-read "Prompt: " (mapcar #'car hypermodern/gptel-prompts) nil t))
+           (prompt (cdr (assoc choice hypermodern/gptel-prompts))))
+      (setq gptel--system-message prompt)
+      (message "Prompt: %s" (if prompt choice "Default"))))
+
+  (defun hypermodern/gptel-rewrite-region (start end)
+    "Rewrite selected region to be clearer."
+    (interactive "r")
+    (let ((gptel--system-message "Rewrite the following to be clearer and more concise. Output only the rewritten text, no explanation."))
+      (gptel-send start end)))
+
+  (defun hypermodern/gptel-explain-region (start end)
+    "Explain selected code/text."
+    (interactive "r")
+    (let ((gptel--system-message "Explain the following clearly and concisely."))
+      (gptel-send start end)))
+
+  (defun hypermodern/gptel-code-region (start end)
+    "Generate/improve code for selected region."
+    (interactive "r")
+    (let ((gptel--system-message "You are an expert programmer. Write clean, idiomatic code. No markdown fences unless necessary."))
+      (gptel-send start end)))
+
+  (defun hypermodern/gptel-send-buffer ()
+    "Send entire buffer to gptel."
+    (interactive)
+    (gptel-send (point-min) (point-max)))
+
+  (defvar hypermodern/gptel-tools-enabled t
+    "Whether gptel tools are enabled.")
+
+  (defun hypermodern/gptel-toggle-tools ()
+    "Toggle gptel tool use."
+    (interactive)
+    (setq hypermodern/gptel-tools-enabled (not hypermodern/gptel-tools-enabled))
+    (setq gptel-use-tools hypermodern/gptel-tools-enabled)
+    (message "Tools: %s" (if hypermodern/gptel-tools-enabled "enabled" "disabled")))
+
+  ;; ── Tool definitions ───────────────────────────────────────────────
+  ;; Register tools using gptel-make-tool API for agentic capabilities
+
+  (setq gptel-tools
+        (list
+         ;; ── Filesystem: Read ─────────────────────────────────────────
+         (gptel-make-tool
+          :name "read_file"
+          :function (lambda (filepath)
+                      (let ((path (expand-file-name filepath)))
+                        (if (file-exists-p path)
+                            (with-temp-buffer
+                              (insert-file-contents path)
+                              (buffer-string))
+                          (format "File not found: %s" path))))
+          :description "Read and display the contents of a file"
+          :args '((:name "filepath"
+                   :type string
+                   :description "Path to the file to read. Supports relative paths and ~."))
+          :category "filesystem")
+
+         (gptel-make-tool
+          :name "list_directory"
+          :function (lambda (directory)
+                      (let ((path (expand-file-name directory)))
+                        (if (file-directory-p path)
+                            (mapconcat #'identity (directory-files path nil "^[^.]") "\n")
+                          (format "Not a directory: %s" path))))
+          :description "List the contents of a given directory"
+          :args '((:name "directory"
+                   :type string
+                   :description "The path to the directory to list"))
+          :category "filesystem")
+
+         (gptel-make-tool
+          :name "find_files"
+          :function (lambda (directory pattern)
+                      (shell-command-to-string
+                       (format "fd -t f %s %s 2>/dev/null | head -100"
+                               (shell-quote-argument pattern)
+                               (shell-quote-argument (expand-file-name directory)))))
+          :description "Find files matching a pattern recursively"
+          :args '((:name "directory"
+                   :type string
+                   :description "The directory to search in")
+                  (:name "pattern"
+                   :type string
+                   :description "The pattern to match (glob or regex)"))
+          :category "filesystem")
+
+         ;; ── Filesystem: Write ────────────────────────────────────────
+         (gptel-make-tool
+          :name "create_file"
+          :function (lambda (path filename content)
+                      (let ((full-path (expand-file-name filename path)))
+                        (with-temp-buffer
+                          (insert content)
+                          (write-file full-path))
+                        (format "Created file %s" full-path)))
+          :description "Create a new file with the specified content"
+          :args '((:name "path"
+                   :type string
+                   :description "The directory where to create the file")
+                  (:name "filename"
+                   :type string
+                   :description "The name of the file to create")
+                  (:name "content"
+                   :type string
+                   :description "The content to write to the file"))
+          :category "filesystem"
+          :confirm t)
+
+         (gptel-make-tool
+          :name "edit_file"
+          :function (lambda (filepath old_string new_string)
+                      (let ((path (expand-file-name filepath)))
+                        (if (not (file-exists-p path))
+                            (format "File not found: %s" path)
+                          (with-current-buffer (find-file-noselect path)
+                            (let ((case-fold-search nil))
+                              (goto-char (point-min))
+                              (if (search-forward old_string nil t)
+                                  (progn
+                                    (replace-match new_string t t)
+                                    (save-buffer)
+                                    (format "Successfully edited %s" path))
+                                (format "Could not find text to replace in %s" path)))))))
+          :description "Edit a file by replacing old_string with new_string. The old_string must match exactly."
+          :args '((:name "filepath"
+                   :type string
+                   :description "Path to the file to edit")
+                  (:name "old_string"
+                   :type string
+                   :description "The exact text to find and replace")
+                  (:name "new_string"
+                   :type string
+                   :description "The text to replace old_string with"))
+          :category "filesystem"
+          :confirm t)
+
+         (gptel-make-tool
+          :name "append_to_file"
+          :function (lambda (filepath content)
+                      (let ((path (expand-file-name filepath)))
+                        (with-temp-buffer
+                          (insert content)
+                          (append-to-file (point-min) (point-max) path))
+                        (format "Appended to %s" path)))
+          :description "Append content to the end of a file"
+          :args '((:name "filepath"
+                   :type string
+                   :description "Path to the file to append to")
+                  (:name "content"
+                   :type string
+                   :description "The content to append"))
+          :category "filesystem"
+          :confirm t)
+
+         ;; ── Search ───────────────────────────────────────────────────
+         (gptel-make-tool
+          :name "grep_codebase"
+          :function (lambda (pattern &optional directory file_pattern)
+                      (let ((dir (or directory default-directory))
+                            (glob (or file_pattern "*")))
+                        (shell-command-to-string
+                         (format "rg --no-heading -n --glob %s %s %s 2>/dev/null | head -100"
+                                 (shell-quote-argument glob)
+                                 (shell-quote-argument pattern)
+                                 (shell-quote-argument (expand-file-name dir))))))
+          :description "Search for a pattern in files using ripgrep"
+          :args '((:name "pattern"
+                   :type string
+                   :description "The regex pattern to search for")
+                  (:name "directory"
+                   :type string
+                   :description "Directory to search in (defaults to current)"
+                   :optional t)
+                  (:name "file_pattern"
+                   :type string
+                   :description "Glob pattern for files to search (e.g. *.py)"
+                   :optional t))
+          :category "search")
+
+         ;; ── Shell ────────────────────────────────────────────────────
+         (gptel-make-tool
+          :name "run_command"
+          :function (lambda (command &optional working_dir)
+                      (let ((default-directory (if (and working_dir (not (string= working_dir "")))
+                                                   (expand-file-name working_dir)
+                                                 default-directory)))
+                        (shell-command-to-string command)))
+          :description "Run a shell command and return output. Use for builds, tests, git, etc."
+          :args '((:name "command"
+                   :type string
+                   :description "The shell command to execute")
+                  (:name "working_dir"
+                   :type string
+                   :description "Directory to run command in (defaults to current)"
+                   :optional t))
+          :category "shell"
+          :confirm t)
+
+         ;; ── Emacs/Buffer ─────────────────────────────────────────────
+         (gptel-make-tool
+          :name "read_buffer"
+          :function (lambda (buffer_name)
+                      (if (buffer-live-p (get-buffer buffer_name))
+                          (with-current-buffer buffer_name
+                            (buffer-substring-no-properties (point-min) (point-max)))
+                        (format "Buffer not found: %s" buffer_name)))
+          :description "Read the contents of an open Emacs buffer"
+          :args '((:name "buffer_name"
+                   :type string
+                   :description "The name of the buffer to read"))
+          :category "emacs")
+
+         (gptel-make-tool
+          :name "list_buffers"
+          :function (lambda ()
+                      (mapconcat (lambda (b)
+                                   (format "%s (%s)"
+                                           (buffer-name b)
+                                           (with-current-buffer b
+                                             (symbol-name major-mode))))
+                                 (buffer-list) "\n"))
+          :description "List all open Emacs buffers with their major modes"
+          :args '()
+          :category "emacs")
+
+         (gptel-make-tool
+          :name "edit_buffer"
+          :function (lambda (buffer_name old_string new_string)
+                      (if (not (buffer-live-p (get-buffer buffer_name)))
+                          (format "Buffer not found: %s" buffer_name)
+                        (with-current-buffer buffer_name
+                          (let ((case-fold-search nil))
+                            (goto-char (point-min))
+                            (if (search-forward old_string nil t)
+                                (progn
+                                  (replace-match new_string t t)
+                                  (format "Successfully edited buffer %s" buffer_name))
+                              (format "Could not find text in buffer %s" buffer_name))))))
+          :description "Edit an open buffer by replacing old_string with new_string"
+          :args '((:name "buffer_name"
+                   :type string
+                   :description "Name of the buffer to edit")
+                  (:name "old_string"
+                   :type string
+                   :description "Text to find and replace")
+                  (:name "new_string"
+                   :type string
+                   :description "Text to replace with"))
+          :category "emacs"
+          :confirm t)
+
+         ;; ── Git ──────────────────────────────────────────────────────
+         (gptel-make-tool
+          :name "git_status"
+          :function (lambda (&optional directory)
+                      (let ((default-directory (or directory default-directory)))
+                        (shell-command-to-string "git status --short")))
+          :description "Get git status for the repository"
+          :args '((:name "directory"
+                   :type string
+                   :description "Repository directory (defaults to current)"
+                   :optional t))
+          :category "git")
+
+         (gptel-make-tool
+          :name "git_diff"
+          :function (lambda (&optional file directory)
+                      (let ((default-directory (or directory default-directory)))
+                        (if file
+                            (shell-command-to-string (format "git diff -- %s" (shell-quote-argument file)))
+                          (shell-command-to-string "git diff"))))
+          :description "Get git diff for changes"
+          :args '((:name "file"
+                   :type string
+                   :description "Specific file to diff (optional)"
+                   :optional t)
+                  (:name "directory"
+                   :type string
+                   :description "Repository directory (defaults to current)"
+                   :optional t))
+          :category "git")
+
+         (gptel-make-tool
+          :name "git_log"
+          :function (lambda (&optional count directory)
+                      (let ((default-directory (or directory default-directory))
+                            (n (or count 10)))
+                        (shell-command-to-string
+                         (format "git log --oneline -n %d" n))))
+          :description "Get recent git commits"
+          :args '((:name "count"
+                   :type integer
+                   :description "Number of commits to show (default 10)"
+                   :optional t)
+                  (:name "directory"
+                   :type string
+                   :description "Repository directory (defaults to current)"
+                   :optional t))
+          :category "git")))
+
+  ;; ── Streaming polish ───────────────────────────────────────────────
+
+  ;; Visual indicator while streaming
+  (defvar hypermodern/gptel--spinner-frames '("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏"))
+  (defvar hypermodern/gptel--spinner-index 0)
+  (defvar hypermodern/gptel--spinner-timer nil)
+
+  (defun hypermodern/gptel--spinner-start ()
+    "Start spinner in mode line during streaming."
+    (setq hypermodern/gptel--spinner-index 0)
+    (setq hypermodern/gptel--spinner-timer
+          (run-with-timer 0 0.1
+                          (lambda ()
+                            (setq hypermodern/gptel--spinner-index
+                                  (mod (1+ hypermodern/gptel--spinner-index)
+                                       (length hypermodern/gptel--spinner-frames)))
+                            (force-mode-line-update t)))))
+
+  (defun hypermodern/gptel--spinner-stop ()
+    "Stop spinner."
+    (when hypermodern/gptel--spinner-timer
+      (cancel-timer hypermodern/gptel--spinner-timer)
+      (setq hypermodern/gptel--spinner-timer nil)
+      (force-mode-line-update t)))
+
+  (defun hypermodern/gptel--spinner-string ()
+    "Return current spinner frame or empty string."
+    (if hypermodern/gptel--spinner-timer
+        (concat " " (nth hypermodern/gptel--spinner-index hypermodern/gptel--spinner-frames) " ")
+      ""))
+
+  ;; Add spinner to mode line
+  (unless (memq 'hypermodern/gptel--mode-line-construct mode-line-misc-info)
+    (push '(:eval (hypermodern/gptel--spinner-string)) mode-line-misc-info))
+
+  ;; Hook into gptel's streaming lifecycle
+  (defun hypermodern/gptel--before-send (&rest _)
+    "Called before sending request."
+    (hypermodern/gptel--spinner-start)
+    (message "Sending to %s..." gptel-model))
+
+  (defun hypermodern/gptel--after-response (beg end)
+    "Called after response completes."
+    (hypermodern/gptel--spinner-stop)
+    (let ((tokens (- end beg)))
+      (message "Response complete (%d chars)" tokens))
+    ;; Pulse the response region briefly
+    (when (and (fboundp 'pulse-momentary-highlight-region) (< (- end beg) 10000))
+      (pulse-momentary-highlight-region beg end 'highlight)))
+
+  (add-hook 'gptel-pre-request-hook #'hypermodern/gptel--before-send)
+  (add-hook 'gptel-post-response-functions #'hypermodern/gptel--after-response)
+
+  ;; ── Response formatting ────────────────────────────────────────────
+
+  ;; Auto-wrap long lines in responses
+  (defun hypermodern/gptel--format-response (beg end)
+    "Format response region for readability."
+    (save-excursion
+      (goto-char beg)
+      ;; Ensure code blocks are properly highlighted
+      (when (derived-mode-p 'org-mode)
+        (font-lock-ensure beg end))))
+
+  (add-hook 'gptel-post-response-functions #'hypermodern/gptel--format-response)
+
+  ;; ── Quick actions on responses ─────────────────────────────────────
+
+  (defun hypermodern/gptel-copy-last-response ()
+    "Copy the last gptel response to kill ring."
+    (interactive)
+    (save-excursion
+      (when (re-search-backward gptel-response-prefix-alist nil t)
+        (let ((beg (point)))
+          (if (re-search-forward "^\\*+ " nil t)
+              (kill-ring-save beg (match-beginning 0))
+            (kill-ring-save beg (point-max)))
+          (message "Response copied")))))
+
+  (defun hypermodern/gptel-yank-code-block ()
+    "Extract and copy first code block from last response."
+    (interactive)
+    (save-excursion
+      (when (re-search-backward "```" nil t 2)
+        (forward-line 1)
+        (let ((beg (point)))
+          (re-search-forward "```" nil t)
+          (forward-line 0)
+          (kill-ring-save beg (point))
+          (message "Code block copied")))))
+
+  ;; ── Agentic mode ───────────────────────────────────────────────────
+  ;; When enabled, auto-confirms safe tools and continues tool loops
+
+  (defvar hypermodern/gptel-agent-mode nil
+    "When non-nil, operate in agent mode with auto-confirmation of safe tools.")
+
+  (defun hypermodern/gptel-toggle-agent-mode ()
+    "Toggle agent mode for auto-confirming safe tool calls."
+    (interactive)
+    (setq hypermodern/gptel-agent-mode (not hypermodern/gptel-agent-mode))
+    (if hypermodern/gptel-agent-mode
+        (progn
+          ;; In agent mode: auto-confirm read-only tools, prompt for writes
+          (setq gptel-confirm-tool-calls 'confirm-dangerous)
+          (message "Agent mode: ON (auto-confirm reads, prompt for writes)"))
+      (progn
+        ;; Normal mode: confirm all tool calls
+        (setq gptel-confirm-tool-calls t)
+        (message "Agent mode: OFF (confirm all tools)"))))
+
+  (defun hypermodern/gptel-agent-task (task)
+    "Start an agentic task. TASK is a description of what to accomplish.
+Opens a new gptel buffer with agent mode enabled and tools available."
+    (interactive "sTask: ")
+    (let ((buf (gptel (format "*gptel-agent: %s*" (truncate-string-to-width task 30)))))
+      (with-current-buffer buf
+        (setq-local hypermodern/gptel-agent-mode t)
+        (setq-local gptel-confirm-tool-calls 'confirm-dangerous)
+        (setq-local gptel--system-message
+                    "You are an expert software engineer with access to tools.
+Use tools to explore the codebase, make edits, and run commands.
+Work step by step. After each tool call, analyze the result and decide the next action.
+When you've completed the task or need clarification, say so clearly.")
+        (insert task)
+        (gptel-send))))
+
+  :bind (:map gptel-mode-map
+              ("C-c g y" . hypermodern/gptel-copy-last-response)
+              ("C-c g Y" . hypermodern/gptel-yank-code-block)
+              ("C-c g A" . hypermodern/gptel-toggle-agent-mode)
+              ("C-c g T" . hypermodern/gptel-agent-task)))
+
+;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; // aider - AI pair programming
+;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+(use-package aider
+  :straight '(:host github :repo "tninja/aider.el")
+  :config
+  ;; Get OpenRouter key from netrc
+  (defun hypermodern/aider-get-api-key ()
+    "Get OpenRouter API key for aider from netrc."
+    (require 'auth-source)
+    (when-let ((found (car (auth-source-search :host "fuck.yuou.openrouter.ai" :max 1))))
+      (let ((secret (plist-get found :secret)))
+        (if (functionp secret) (funcall secret) secret))))
+
+  ;; Configure aider to use OpenRouter
+  (setq aider-args
+        '("--openrouter"
+          "--model" "openrouter/anthropic/claude-sonnet-4"
+          "--dark-mode"
+          "--auto-commits"
+          "--stream"))
+
+  ;; Set the API key in process environment
+  (setq aider-process-environment
+        `(,(concat "OPENROUTER_API_KEY=" (or (hypermodern/aider-get-api-key) ""))))
+
+  ;; Keybindings
+  :bind (("C-c i i" . aider-transient-menu)
+         ("C-c i a" . aider-add-current-file)
+         ("C-c i r" . aider-region-mode)
+         ("C-c i c" . aider-code-change)
+         ("C-c i q" . aider-ask-question)
+         ("C-c i f" . aider-fix-failing-test-under-cursor)
+         ("C-c i u" . aider-undo-last-change)
+         ("C-c i R" . aider-reset)))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;; // minibuffer // completion
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (use-package vertico
-  :ensure t
+  :demand t
   :config
   (vertico-mode 1)
   (setq vertico-count 15
-        vertico-cycle t)
-  (unless hypermodern/is-pgtk
-    (vertico-reverse-mode 1)))
+        vertico-cycle t))
+
+;; vertico-reverse is a separate extension
+(use-package vertico-reverse
+  :after vertico
+  :demand t
+  :config
+  (vertico-reverse-mode 1))
 
 (use-package orderless
-  :ensure t
+  :demand t
   :custom
   (completion-styles '(orderless basic))
   (completion-category-overrides '((file (styles partial-completion)))))
 
 (use-package marginalia
-  :ensure t
+  :demand t
   :config (marginalia-mode 1))
 
 (use-package consult
-  :ensure t
+  :demand t
   :bind (("C-x b" . consult-buffer)
+         ("C-x C-r" . consult-recent-file)  ; better than recentf-open-files
          ;; ("C-s" . consult-line)
          ("M-g g" . consult-goto-line)
-         ("M-s r" . consult-ripgrep)))
+         ("M-s r" . consult-ripgrep)
+         ("M-s l" . consult-line)           ; search in buffer
+         ("M-s L" . consult-line-multi)     ; search across buffers
+         ("M-y" . consult-yank-pop)))
 
 (use-package embark
-  :ensure t
   :bind ("C-." . embark-act))
 
 (use-package embark-consult
-  :ensure t
   :after (embark consult))
+
+;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; // history & memory
+;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+;; Save minibuffer history (M-x commands, search strings, etc.)
+(use-package savehist
+  :demand t
+  :config
+  (setq savehist-file (expand-file-name "savehist" user-emacs-directory)
+        savehist-save-minibuffer-history t
+        savehist-additional-variables '(kill-ring
+                                        search-ring
+                                        regexp-search-ring
+                                        compile-command
+                                        shell-command-history
+                                        extended-command-history
+                                        file-name-history
+                                        read-expression-history
+                                        command-history
+                                        query-replace-history))
+  (savehist-mode 1))
+
+;; Enhanced recentf - remember recent files
+(use-package recentf
+  :demand t
+  :config
+  (setq recentf-max-saved-items 500
+        recentf-max-menu-items 25
+        recentf-auto-cleanup 'never  ; don't clean on mode start (slow)
+        recentf-save-file (expand-file-name "recentf" user-emacs-directory)
+        recentf-exclude '("/tmp/" "/ssh:" "/sudo:" "\\.git/" "COMMIT_EDITMSG"
+                          "\\.elc$" "/nix/store/" "\\.cache/"))
+  ;; Save recentf periodically (every 5 mins) and on quit
+  (run-at-time nil (* 5 60) 'recentf-save-list)
+  (recentf-mode 1))
+
+;; Prescient - frequency + recency sorting for completions
+(use-package prescient
+  :demand t
+  :config
+  (setq prescient-save-file (expand-file-name "prescient-save.el" user-emacs-directory)
+        prescient-sort-full-matches-first t
+        prescient-history-length 1000)
+  (prescient-persist-mode 1))
+
+;; Vertico integration - sort candidates by frecency
+(use-package vertico-prescient
+  :after (vertico prescient)
+  :demand t
+  :config
+  (setq vertico-prescient-enable-filtering nil  ; use orderless for filtering
+        vertico-prescient-enable-sorting t)     ; use prescient for sorting
+  (vertico-prescient-mode 1))
+
+;; Company integration - sort completions by frecency
+(use-package company-prescient
+  :after (company prescient)
+  :demand t
+  :config
+  (company-prescient-mode 1))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;; // company
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (use-package company
-  :ensure t
+  :demand t
   :hook (after-init . global-company-mode)
+  :bind (("M-TAB" . company-complete-common-or-cycle)
+         ("C-M-i" . company-complete-common-or-cycle)
+         ("<M-tab>" . company-complete-common-or-cycle)
+         ("C-c f" . hypermodern/company-files))
   :config
   (setq company-idle-delay 0.1
         company-minimum-prefix-length 1
@@ -1169,23 +2121,62 @@
     "Complete filenames using company-files backend."
     (interactive)
     (let ((company-backends '(company-files)))
-      (company-complete)))
-
-  :bind (("M-TAB" . company-complete-common-or-cycle)
-         ("C-M-i" . company-complete-common-or-cycle)
-         ("<M-tab>" . company-complete-common-or-cycle)
-         ("C-c f" . hypermodern/company-files)))
+      (company-complete))))
 
 (use-package yasnippet
-  :ensure t
+  :demand t
   :config (yas-global-mode 1))
+
+;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; // codeium - AI code completion (FIM)
+;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+(use-package codeium
+  :straight '(:host github :repo "Exafunction/codeium.el")
+  :defer t
+  :commands (codeium-complete codeium-install codeium-diagnose)
+  :init
+  ;; Mode line indicator
+  (setq codeium-mode-line-enable
+        (lambda (api) (not (memq api '(CancelRequest Heartbeat AcceptCompletion)))))
+
+  ;; Get codeium status
+  (defun hypermodern/codeium-status ()
+    "Show codeium connection status."
+    (interactive)
+    (require 'codeium)
+    (codeium-diagnose))
+
+  ;; Auto-install language server if missing
+  (defun hypermodern/codeium-ensure-installed ()
+    "Install codeium language server if not present."
+    (interactive)
+    (require 'codeium)
+    (unless (file-exists-p (expand-file-name "~/.emacs.d/codeium/codeium_language_server"))
+      (codeium-install)))
+
+  ;; Setup keybindings after codeium loads
+  (with-eval-after-load 'codeium
+    (when (boundp 'codeium-completion-map)
+      (define-key codeium-completion-map (kbd "TAB") #'codeium-completion-accept)
+      (define-key codeium-completion-map (kbd "<tab>") #'codeium-completion-accept)
+      (define-key codeium-completion-map (kbd "M-]") #'codeium-completion-next)
+      (define-key codeium-completion-map (kbd "M-[") #'codeium-completion-prev)
+      (define-key codeium-completion-map (kbd "C-g") #'codeium-completion-cancel))
+    ;; Add mode line after load
+    (add-to-list 'mode-line-format '(:eval (car-safe codeium-mode-line)) t))
+
+  :bind
+  ("C-c a c" . codeium-complete)           ; Trigger completion
+  ("C-c a i" . hypermodern/codeium-ensure-installed)  ; Install/check
+  ("C-c a s" . hypermodern/codeium-status))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;; // tree-sitter
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (use-package treesit-auto
-  :ensure t
+  :demand t
   :config
   (setq treesit-auto-install 'prompt)
   (global-treesit-auto-mode 1))
@@ -1195,7 +2186,6 @@
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (use-package lsp-mode
-  :ensure t
   :commands (lsp lsp-deferred)
   :init (setq lsp-keymap-prefix "C-c l")
   :config
@@ -1210,7 +2200,6 @@
         lsp-log-io nil))
 
 (use-package lsp-ui
-  :ensure t
   :after lsp-mode
   :config
   (setq lsp-ui-sideline-enable nil
@@ -1510,45 +2499,48 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (use-package nix-mode
-  :ensure t
   :mode "\\.nix\\'"
   :hook (nix-mode . lsp-deferred))
 
 (use-package haskell-mode
-  :ensure t
   :mode "\\.hs\\'"
   :hook (haskell-mode . lsp-deferred))
 
 (use-package lsp-haskell
-  :ensure t
   :after (haskell-mode lsp-mode))
 
 (use-package rust-mode
-  :ensure t
   :mode "\\.rs\\'"
   :hook (rust-mode . lsp-deferred))
 
 (use-package cuda-mode
-  :ensure t
   :mode (("\\.cu\\'" . cuda-mode)
          ("\\.cuh\\'" . cuda-mode))
   :hook (cuda-mode . lsp-deferred))
 
 (use-package python-mode
-  :ensure nil
   :mode "\\.py\\'"
   :hook (python-mode . lsp-deferred))
 
 (use-package typescript-ts-mode
-  :ensure nil
   :mode (("\\.ts\\'" . typescript-ts-mode)
          ("\\.tsx\\'" . tsx-ts-mode))
   :hook ((typescript-ts-mode . lsp-deferred)
          (tsx-ts-mode . lsp-deferred)))
 
-;; Lean 4
+(use-package markdown-mode
+  :mode (("\\.md\\'" . markdown-mode)
+         ("\\.markdown\\'" . markdown-mode)
+         ("README\\.md\\'" . gfm-mode))
+  :init
+  (setq markdown-command "pandoc"
+        markdown-fontify-code-blocks-natively t
+        markdown-asymmetric-header t))
+
+(use-package dhall-mode
+  :mode "\\.dhall\\'")
+
 (use-package lean4-mode
-  :ensure t
   :commands lean4-mode
   :mode "\\.lean\\'"
   :config
@@ -1559,7 +2551,6 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
       (define-key lean4-mode-map (kbd "C-c C-i") toggle-fn))))
 
 (use-package bazel
-  :ensure t
   :mode (("\\.bazel\\'" . bazel-mode)
          ("\\.bzl\\'" . bazel-mode)
          ("\\.star\\'" . bazel-mode)
@@ -1573,49 +2564,60 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 ;; // formatting
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+(defun hypermodern/format-buffer ()
+  "Format buffer if in prog-mode and formatter is available."
+  (interactive)
+  (if (derived-mode-p 'prog-mode 'text-mode)
+      (progn
+        (require 'format-all)
+        (condition-case err
+            (format-all-buffer nil)
+          (error (message "[hypermodern] formatter not available: %s" err))))
+    (message "[hypermodern] M-z: not in a formattable buffer")))
+
 (use-package format-all
-  :ensure t
+  :commands (format-all-buffer format-all-mode)
+  :hook (prog-mode . format-all-mode)
   :config
-  (setq format-all-show-errors 'warnings)
+  (setq format-all-show-errors 'never)
 
-  ;; Automatically configure formatters from hypermodern/language-registry
-  (setq format-all-formatters
-        (let ((formatters '()))
-          (dolist (entry hypermodern/language-registry)
-            (let* ((config (cdr entry))
-                   (mode (plist-get config :mode))
-                   (formatter (plist-get config :format-all-formatter))
-                   (extra-modes (plist-get config :extra-modes)))
-              ;; Add formatter for primary mode
-              (when (and mode formatter)
-                (push (cons mode formatter) formatters))
-              ;; Add formatter for extra modes (e.g., tsx-ts-mode for typescript)
-              (when extra-modes
-                (dolist (extra-mode extra-modes)
-                  (when formatter
-                    (push (cons extra-mode formatter) formatters))))))
-          formatters))
-
-  (defun hypermodern/format-buffer ()
-    "Format buffer without prompting for formatter."
-    (interactive)
-    (format-all-buffer nil))
-
-  :bind ("M-z" . hypermodern/format-buffer))
+  ;; format-all-formatters uses LANGUAGE NAMES (strings), not mode names
+  ;; The format is: ("Language Name" . (formatter-symbol args...))
+  (setq-default format-all-formatters
+                '(("Bazel"        . (buildifier))
+                  ("C"            . (clang-format))
+                  ("C++"          . (clang-format))
+                  ("C#"           . (clang-format))
+                  ("CSS"          . (prettier))
+                  ("Dhall"        . (dhall))
+                  ("Emacs Lisp"   . (emacs-lisp))
+                  ("F#"           . (fantomas))
+                  ("Go"           . (gofmt))
+                  ("Haskell"      . (fourmolu))
+                  ("HTML"         . (prettier))
+                  ("JavaScript"   . (prettier))
+                  ("JSON"         . (prettier))
+                  ("JSX"          . (prettier))
+                  ("Markdown"     . (prettier))
+                  ("Nix"          . (nixpkgs-fmt))
+                  ("Protocol Buffer" . (clang-format))
+                  ("Python"       . (ruff))
+                  ("Rust"         . (rustfmt))
+                  ("Shell"        . (shfmt "-i" "2"))
+                  ("TOML"         . (taplo))
+                  ("TSX"          . (prettier))
+                  ("TypeScript"   . (prettier))
+                  ("YAML"         . (prettier))
+                  ("Zig"          . (zig)))))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;; // magit
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-(use-package transient
-  :ensure t)
-
 (use-package magit
-  :ensure t
   :bind ("C-x g" . magit))
 
 (use-package forge
-  :ensure t
   :after magit)
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1623,7 +2625,6 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (use-package vterm
-  :ensure t
   :commands vterm
   :config
   (setq vterm-environment '("COLORTERM=truecolor"))
@@ -1633,15 +2634,88 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
                         (define-key vterm-mode-map (kbd "M-P") #'windmove-left))))
 
 (use-package eat
-  :ensure t
   :commands eat)
+
+;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; // passage - age-based password store
+;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+;; Configure password-store to use passage (age instead of GPG)
+(use-package password-store
+  :demand t
+  :config
+  ;; Point to passage instead of pass
+  (setq password-store-executable "passage")
+
+  ;; Use passage's directory structure
+  (setq auth-source-pass-filename
+        (or (getenv "PASSAGE_DIR")
+            (expand-file-name "~/.passage/store"))))
+
+;; OTP support (works with passage via pass-otp)
+(use-package password-store-otp
+  :after password-store)
+
+;; pass.el - nice UI for browsing the store
+(use-package pass
+  :after password-store
+  :commands pass
+  :config
+  ;; Override the file extension check for .age files
+  (defun hypermodern/pass--tree (&optional subdir)
+    "Return a tree of all entries in SUBDIR for passage (.age files)."
+    (unless subdir (setq subdir ""))
+    (let ((path (f-join (password-store-dir) subdir)))
+      (if (f-directory? path)
+          (unless (string= (f-filename subdir) ".git")
+            (cons (f-filename path)
+                  (delq nil
+                        (mapcar 'hypermodern/pass--tree
+                                (f-entries path)))))
+        (when (and (equal (f-ext path) "age")
+                   (not (backup-file-name-p path)))
+          (password-store--file-to-entry path)))))
+
+  ;; Patch pass--tree to use .age extension
+  (advice-add 'pass--tree :override #'hypermodern/pass--tree)
+
+  ;; Fix file-to-entry for .age
+  (defun hypermodern/password-store--file-to-entry (file)
+    "Return entry name corresponding to FILE (.age extension)."
+    (file-name-sans-extension (file-relative-name file (password-store-dir))))
+
+  (advice-add 'password-store--file-to-entry :override #'hypermodern/password-store--file-to-entry)
+
+  ;; Fix entry-to-file for .age
+  (defun hypermodern/password-store--entry-to-file (entry)
+    "Return file name corresponding to ENTRY (.age extension)."
+    (concat (expand-file-name entry (password-store-dir)) ".age"))
+
+  (advice-add 'password-store--entry-to-file :override #'hypermodern/password-store--entry-to-file)
+
+  ;; Auto-mode for viewing .age files in the store
+  (add-to-list 'auto-mode-alist
+               (cons (format "%s/.*\\.age\\'"
+                             (expand-file-name (password-store-dir)))
+                     'pass-view-mode)))
+
+;; Enable auth-source-pass for seamless credential lookup
+(use-package auth-source-pass
+  :demand t
+  :config
+  (auth-source-pass-enable))
+
+;; Keybindings for passage
+(global-set-key (kbd "C-c p p") #'pass)
+(global-set-key (kbd "C-c p c") #'password-store-copy)
+(global-set-key (kbd "C-c p g") #'password-store-generate)
+(global-set-key (kbd "C-c p i") #'password-store-insert)
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;; // tramp - bulletproof sshx
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (use-package tramp
-  :ensure nil
   :config
   (setq tramp-default-method "sshx"
         tramp-use-ssh-controlmaster-options nil
@@ -1668,22 +2742,34 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (use-package rainbow-mode
-  :ensure t
   :hook (prog-mode . rainbow-mode))
 
 (use-package which-key
-  :ensure t
+  :demand t
   :config
   (setq which-key-idle-delay 0.8)
   (which-key-mode 1))
 
 (use-package direnv
-  :ensure t
+  :demand t
   :config (direnv-mode 1))
 
 (use-package paredit
-  :ensure t
   :hook ((emacs-lisp-mode lisp-mode scheme-mode) . paredit-mode))
+
+;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; // icons
+;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+(use-package nerd-icons
+  :demand t)
+
+(use-package nerd-icons-completion
+  :after marginalia
+  :demand t
+  :config
+  (nerd-icons-completion-mode)
+  (add-hook 'marginalia-mode-hook #'nerd-icons-completion-marginalia-setup))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;; // dashboard
@@ -1731,8 +2817,8 @@ to write you no poem, if you follow me, your ai? it just might. bit it ain't
 no way human."))
 
 (use-package dashboard
-  :ensure t
-
+  :demand t
+  :after nerd-icons
   :config
   (defvar hypermodern/dashboard-banner-file
     (expand-file-name "dashboard-banner-0x04.txt" user-emacs-directory))
@@ -1749,6 +2835,10 @@ no way human."))
         dashboard-banner-logo-title (nth (random (length hypermodern/gibson-quotes))
                                          hypermodern/gibson-quotes)
         dashboard-center-content t
+        dashboard-display-icons-p t
+        dashboard-icon-type 'nerd-icons
+        dashboard-set-heading-icons t
+        dashboard-set-file-icons t
         dashboard-items '((recents . 5)))
   (dashboard-setup-startup-hook))
 
@@ -1757,10 +2847,15 @@ no way human."))
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (use-package general
-  :ensure t
+  :demand t
   :config
   (defun hypermodern/visit-init () (interactive) (find-file user-init-file))
   (defun hypermodern/kill-buffer () (interactive) (kill-buffer (current-buffer)))
+
+  (defun hypermodern/show-current-file ()
+    "Print the current buffer filename to the minibuffer."
+    (interactive)
+    (message (or (buffer-file-name) "[no file]")))
 
   (defun hypermodern/goto-definition-or-file ()
     "Go to definition of symbol, or open file at point.
@@ -1778,22 +2873,48 @@ to finding files at point (supports relative paths, absolute paths, etc)."
            ;; If no file found, show error
            (user-error "No definition or file found at point"))))))
 
+  (defun hypermodern/join-line-below ()
+    "Join the next line to the current line (like vim's J).
+Moves to end of current line, deletes newline, and collapses whitespace."
+    (interactive)
+    (end-of-line)
+    (delete-indentation 1))
+
   (general-define-key
+   ;; editing essentials
    "M-/" #'undo
+   "C-c q" #'hypermodern/join-line-below
+   "C-j" #'newline-and-indent
+   "M-z" #'hypermodern/format-buffer
+
+   ;; window navigation
    "M-N" #'windmove-right
    "M-P" #'windmove-left
-   "M-i" #'hypermodern/visit-init
    "M-R" #'hypermodern/rotate-windows
-;  "M-." #'hypermodern/goto-definition-or-file
-
    "C-x 2" #'hypermodern/vsplit
    "C-x 3" #'hypermodern/hsplit
    "C-x k" #'hypermodern/kill-buffer
+
+   ;; file/buffer operations
+   "M-i" #'hypermodern/visit-init
    "C-c r" #'revert-buffer
-   
+   "C-c d" #'dashboard-open
+   "C-c f" #'hypermodern/show-current-file
+
+   ;; search/navigation
+   "C-x C-r" #'consult-ripgrep
+   "C-x C-d" #'consult-recent-file
+   "C-x C-i" #'consult-info
+   "C-x C-m" #'consult-man
+   "C-x d" #'consult-recent-file
+   "C-x f" #'consult-fd
+   "C-M-r" #'consult-ripgrep
+
+   ;; language info
    "C-c L i" #'hypermodern/language-info
    "C-c L r" #'hypermodern/show-language-registry
 
+   ;; theme controls
    "C-c t t" #'hypermodern/apply-theme
    "C-c t d" #'hypermodern/switch-dark
    "C-c t l" #'hypermodern/switch-light
@@ -1803,11 +2924,6 @@ to finding files at point (supports relative paths, absolute paths, etc)."
    "C-c t g" #'hypermodern/ui-toggle-glow
    "C-c t p" #'hypermodern/ui-toggle-pulse
    "C-c t m" #'hypermodern/ui-menu
-
-   "C-x C-r" #'consult-ripgrep
-   "C-x C-d" #'consult-recent-file
-   "C-x C-i" #'consult-info
-   "C-x C-m" #'consult-man
    ))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1821,10 +2937,7 @@ to finding files at point (supports relative paths, absolute paths, etc)."
   (hypermodern/apply-theme 'ono-sendai-razorgirl)
   (hypermodern/ui-apply)
   (hypermodern/css-reset)
-  (recentf-mode)
-  (vertico-reverse-mode)
-  (global-clipetty-mode)
-  )
+  (global-clipetty-mode))
 
 (add-hook 'after-init-hook #'hypermodern/initialization-hook)
 

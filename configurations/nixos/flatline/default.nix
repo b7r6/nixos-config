@@ -7,7 +7,6 @@ in
   imports = [
     self.nixosModules.default
     self.nixosModules.common
-    self.nixosModules.gui
     ./configuration.nix
   ];
 }

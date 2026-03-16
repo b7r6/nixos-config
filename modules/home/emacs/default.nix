@@ -1,256 +1,188 @@
+# Hypermodern Emacs - Sane Mutable Configuration
+#
+# Philosophy:
+#   - Nix provides: emacs binary, packages, language servers, fonts
+#   - User owns: ~/.emacs.d (init.el, custom.el, eln-cache, recentf, etc)
+#   - init.el uses `use-package-always-ensure nil` since packages come from Nix
+#
+# With impermanence: add .emacs.d to persisted directories
+#
 {
   config,
   lib,
   pkgs,
+  impurity,
   ...
 }:
 
 let
-  initEl      = builtins.readFile ./init.el;
-  earlyInitEl = builtins.readFile ./early-init.el;
+  cfg = config.hyper-modern-nixos.emacs;
 
-  # Helper: include package if it exists (keeps builds resilient).
-  maybe = epkgs: name:
-    if builtins.hasAttr name epkgs then [ (builtins.getAttr name epkgs) ] else [ ];
-
-      mkLean4Mode = epkgs: epkgs.trivialBuild {
-        pname = "lean4-mode";
-        version = "2025-01-09";
-
-        src = pkgs.fetchFromGitHub {
-          owner = "leanprover";
-          repo = "lean4-mode";
-          rev = "1388f9d1429e38a39ab913c6daae55f6ce799479";
-          hash = "sha256-6XFcyqSTx1CwNWqQvIc25cuQMwh3YXnbgr5cDiOCxBk=";
-        };
-
-        packageRequires = with epkgs; [ dash f flycheck lsp-mode magit-section s ];
-
-        postInstall = ''
-          cp -r $src/data $out/share/emacs/site-lisp/
-        '';
-      };
-
+  mkHypermodernEmacs = import ./mk-hypermodern-emacs.nix;
 in
 {
-  # Disable stylix for Emacs - we have our own theme engine
-  stylix.targets.emacs.enable = false;
+  options.hyper-modern-nixos.emacs = {
+    enable = lib.mkEnableOption "Hypermodern Emacs (Nix-managed packages, mutable config)";
 
-  # Make sure Emacs sees early-init in both common locations.
-  xdg.configFile."emacs/early-init.el".text = earlyInitEl;
-  home.file.".emacs.d/early-init.el".text = earlyInitEl;
+    emacsPackage = lib.mkOption {
+      type = lib.types.package;
+      default = pkgs.emacs30-pgtk;
+      description = "Base Emacs derivation (e.g. emacs30-pgtk, emacs-git)";
+    };
 
-  programs.emacs = {
-    enable = true;
+    package = lib.mkOption {
+      type = lib.types.package;
+      default = mkHypermodernEmacs {
+        inherit pkgs;
+        emacs = pkgs.emacs30-pgtk;
+      };
+      defaultText = "hypermodern-emacs (emacsWithPackages)";
+      description = "The final Emacs package with all elisp packages bundled.";
+    };
 
-    package = (pkgs.emacsPackagesFor pkgs.emacs30-pgtk).emacsWithPackages (epkgs:
-      let
-        core = with epkgs; [
-          # UI / modeline
-          doom-modeline
-          nerd-icons
-          dashboard
+    languageServers.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Install language servers for LSP support";
+    };
 
-          # minibuffer / completion
-          vertico
-          orderless
-          marginalia
-          consult
-          embark
-          embark-consult
-          general
-          which-key
-          popper
-          shackle
-          company
-          yasnippet
+    haskell.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable Haskell language server (heavy ~1GB, disabled by default)";
+    };
 
-          # icons
-          all-the-icons
-          all-the-icons-completion
-          nerd-icons-completion
+    rust.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable Rust toolchain and language server";
+    };
 
-          # UI extras
-          rainbow-mode
-          dimmer
-          ligature
+    lean4.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable Lean 4 theorem prover (heavy ~500MB, disabled by default)";
+    };
 
-          # git
-          magit
-          forge
+    fonts.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Install programming fonts for Emacs";
+    };
 
-          # terminals
-          vterm
-          eat
-
-          # programming - LSP
-          lsp-mode
-          lsp-ui
-          lsp-pyright
-          lsp-haskell
-
-          # programming - languages
-          nix-mode
-          haskell-mode
-          rust-mode
-          typescript-mode
-          js2-mode
-          web-mode
-          yaml-mode
-          markdown-mode
-          json-mode
-          dockerfile-mode
-          csharp-mode
-          fsharp-mode
-          cuda-mode
-          bazel  # just the mode, buildifier formatter, let projects provide bazel binary
-
-          # lisp
-          paredit
-          paredit-everywhere
-
-          # tree-sitter
-          treesit-auto
-
-          # navigation / search
-          rg
-          fzf
-          avy
-          ace-window
-          projectile
-
-          # editing
-          undo-tree
-          expand-region
-          multiple-cursors
-          format-all
-
-          # tools
-          direnv
-          exec-path-from-shell
-          helpful
-
-          # AI
-          gptel
-
-          # misc
-          transient
-        ] ++ [ (mkLean4Mode epkgs) ];
-
-        optional = (maybe epkgs "lean4-mode")
-                ++ (maybe epkgs "atomic-chrome")
-                ++ (maybe epkgs "elfeed")
-                ++ (maybe epkgs "ement")
-                ++ (maybe epkgs "telega")
-                ++ (maybe epkgs "mastodon")
-                ++ (maybe epkgs "pdf-tools")
-                ++ (maybe epkgs "nov")
-                ++ (maybe epkgs "clipetty");
-
-      in
-        core ++ optional
-    );
-
-    extraConfig = ''
-      ;; ------------------------------------------------------------
-      ;; init.el (inline themes, no external deps)
-      ;; ------------------------------------------------------------
-      ${initEl}
-    '';
+    # Seed config if ~/.emacs.d is empty/missing
+    # Default false - manage ~/.emacs.d manually with symlinks for live editing
+    seedConfig = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Seed ~/.emacs.d with hypermodern init.el (breaks live editing)";
+    };
   };
 
-  home.packages = with pkgs; [
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Tree-sitter grammars (all of them)
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    emacs.pkgs.treesit-grammars.with-all-grammars
+  config = lib.mkIf cfg.enable {
+    # Disable stylix for emacs if present
+    stylix.targets.emacs.enable = lib.mkDefault false;
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Language Servers (from hypermodern/language-registry)
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    programs.emacs = {
+      enable = true;
+      package = cfg.package;
+      # Don't use extraConfig - let user manage ~/.emacs.d/init.el
+    };
 
-    nixd                                      # Nix
-    haskell-language-server                   # Haskell
-    rust-analyzer                             # Rust
-    pyright                                   # Python
-    clang-tools                               # C/C++/CUDA (clangd + clang-tidy)
-    nodePackages.typescript-language-server   # TypeScript/JavaScript
-    nodePackages.vscode-langservers-extracted # JSON, HTML, CSS, ESLint LSP
-    nodePackages.yaml-language-server         # YAML
-    nodePackages.bash-language-server         # Bash
+    # Emacs config files - use impurity.link for live editing
+    xdg.configFile."emacs/early-init.el" = lib.mkIf cfg.seedConfig {
+      source = impurity.link ./early-init.el;
+    };
+    home.file.".emacs.d/early-init.el" = lib.mkIf cfg.seedConfig {
+      source = impurity.link ./early-init.el;
+    };
 
-    # Lean 4
-    elan                          # Lean version manager (provides lean, lake)
+    xdg.configFile."emacs/init.el" = lib.mkIf cfg.seedConfig {
+      source = impurity.link ./init.el;
+    };
+    home.file.".emacs.d/init.el" = lib.mkIf cfg.seedConfig {
+      source = impurity.link ./init.el;
+    };
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Formatters (from hypermodern/language-registry)
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    nixpkgs-fmt                   # Nix
-    haskellPackages.fourmolu      # Haskell
-    rustfmt                       # Rust
-    ruff                          # Python (replaces black)
-    nodePackages.prettier         # TypeScript/JavaScript/JSON/YAML
-    shfmt                         # Bash
-    buildifier                    # Bazel
+    home.packages =
+      with pkgs;
+      lib.flatten [
+        # Tree-sitter grammars
+        emacs.pkgs.treesit-grammars.with-all-grammars
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Linters (from hypermodern/language-registry)
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # Core Language Servers (lightweight)
+        (lib.optionals cfg.languageServers.enable [
+          nixd
+          pyright
+          llvmPackages_19.clang-tools
+          nodePackages.typescript-language-server
+          nodePackages.vscode-langservers-extracted
+          nodePackages.yaml-language-server
+          nodePackages.bash-language-server
+        ])
 
-    haskellPackages.hlint         # Haskell
-    clippy                        # Rust
-    ruff                          # Python (same as formatter, does both)
-    nodePackages.eslint           # TypeScript/JavaScript
-    yamllint                      # YAML
-    shellcheck                    # Bash
+        # Haskell (heavy ~1GB)
+        (lib.optionals cfg.haskell.enable [
+          haskell-language-server
+          haskellPackages.fourmolu
+          haskellPackages.hlint
+        ])
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Rust toolchain
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # Rust toolchain
+        (lib.optionals cfg.rust.enable [
+          rustc
+          cargo
+          rust-analyzer
+          rustfmt
+          clippy
+        ])
 
-    rustc
-    cargo
+        # Lean 4 (heavy ~500MB)
+        (lib.optional cfg.lean4.enable elan)
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Build tools
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # Formatters
+        (lib.optionals cfg.languageServers.enable [
+          nixpkgs-fmt
+          ruff
+          nodePackages.prettier
+          shfmt
+          buildifier
+        ])
 
-    cmake
-    gnumake
-    ninja
+        # Linters
+        (lib.optionals cfg.languageServers.enable [
+          nodePackages.eslint
+          yamllint
+          shellcheck
+        ])
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # CLI tools Emacs expects
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # Build tools
+        cmake
+        gnumake
+        ninja
 
-    ripgrep
-    fd
-    fzf
-    git
+        # CLI tools Emacs expects
+        ripgrep
+        fd
+        fzf
+        git
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Misc tools
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # Misc tools
+        rclone
+        pass
+        gnupg
 
-    rclone
-    pass
-    gnupg
+        # Fonts
+        (lib.optionals cfg.fonts.enable [
+          iosevka
+          jetbrains-mono
+          inter
+          nerd-fonts.iosevka
+          nerd-fonts.jetbrains-mono
+        ])
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Fonts
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-    # berkeley-mono                 # if you have it packaged
-    iosevka
-    jetbrains-mono
-    inter
-    nerd-fonts.iosevka
-    nerd-fonts.jetbrains-mono
-
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # Icons
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-    emacs-all-the-icons-fonts
-  ];
+        # Icons
+        emacs-all-the-icons-fonts
+      ];
+  };
 }

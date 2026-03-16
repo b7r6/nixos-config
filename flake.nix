@@ -24,13 +24,15 @@
     disko.url = "github:nix-community/disko";
     disko.inputs.nixpkgs.follows = "nixpkgs";
 
-    hyprland.url = "github:hyprwm/Hyprland";
-    hyprland.inputs.nixpkgs.follows = "nixpkgs";
+    impermanence.url = "github:nix-community/impermanence";
 
-    hyprland-plugins.url = "github:hyprwm/hyprland-plugins";
-    hyprland-plugins.inputs.hyprland.follows = "hyprland";
+    impurity.url = "git+file:/home/b7r6/src/impurity.nix";
 
-    hy3.url = "github:outfoxxed/hy3";
+    # Hyprland 0.53.0 with matching hy3 hl0.53.0.1
+    # (hy3 hasn't caught up to 0.54.0 yet)
+    hyprland.url = "github:hyprwm/Hyprland?ref=v0.53.0&submodules=1";
+
+    hy3.url = "github:outfoxxed/hy3?ref=hl0.53.0.1";
     hy3.inputs.hyprland.follows = "hyprland";
 
     nixos-unified.url = "github:srid/nixos-unified";
@@ -59,5 +61,8 @@
     xremap-flake.url = "github:xremap/nix-flake?ref=master";
     xremap-flake.inputs.nixpkgs.follows = "nixpkgs";
     xremap-flake.inputs.home-manager.follows = "home-manager";
+
+    nix-compile.url = "git+ssh://git@github.com/straylight-software/nix-compile?ref=dev";
+    nix-compile.inputs.nixpkgs.follows = "nixpkgs";
   };
 }

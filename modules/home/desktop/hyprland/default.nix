@@ -196,13 +196,14 @@ in
     };
   };
 
-  imports = [ inputs.hyprland.homeManagerModules.default ];
+  # Using hyprland from flake input with matching hy3 plugin
 
   config = mkIf cfg.enable {
     wayland.windowManager.hyprland = {
       enable = true;
       systemd.enable = true;
-      plugins = mkIf cfg.enableHy3 [ inputs.hy3.outputs.packages.${pkgs.stdenv.system}.hy3 ];
+      package = inputs.hyprland.packages.${pkgs.stdenv.system}.hyprland;
+      plugins = mkIf cfg.enableHy3 [ inputs.hy3.packages.${pkgs.stdenv.system}.hy3 ];
       settings = import ./settings.nix { inherit config lib cfg; };
     };
 
@@ -362,7 +363,7 @@ in
         # Launcher
         (lib.getAttr cfg.launcher {
           inherit wofi;
-          rofi = rofi-wayland;
+          inherit rofi;
           inherit tofi;
           inherit fuzzel;
           inherit anyrun;
