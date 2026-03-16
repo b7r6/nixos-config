@@ -6,8 +6,23 @@
     inputs.nixos-unified.flakeModules.default
     inputs.nixos-unified.flakeModules.autoWire
     inputs.devshell.flakeModule
+    inputs.nix-compile.flakeModules.default
     ./fmt.nix
+    ./themes
+    # ./impure-variants.nix  # TODO: needs different approach to avoid recursion
   ];
+
+  # nix-compile static analysis configuration
+  nix-compile = {
+    enable = true;
+    profile = "strict";
+    layout = "none";
+    paths = [
+      "modules"
+      "configurations"
+    ];
+    pre-commit.enable = true;
+  };
 
   perSystem =
     {

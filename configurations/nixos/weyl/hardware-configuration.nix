@@ -50,7 +50,7 @@
 
   services.asusd = {
     enable = true;
-    enableUserService = true;
+    # enableUserService is no longer required (removed in recent nixpkgs)
   };
 
   environment.systemPackages = with pkgs; [ ryzenadj ];

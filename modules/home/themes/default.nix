@@ -1,3 +1,15 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#                                              // hyper-modern-nixos // themes
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+# Ono-Sendai theme system with two modes:
+#   1. Computed palettes via HSL color math (hero-hue + axis-hue)
+#   2. Legacy pre-baked palettes (theme + variant)
+#
+# 211° hue-locked grayscale ramp with two degrees of freedom:
+#   - hero-hue: controls accent colors (base0A-0F)
+#   - axis-hue: controls variable/integer colors (base08-09)
+#
 {
   flake,
   config,
@@ -7,7 +19,6 @@
 }:
 let
   inherit (flake) inputs;
-
   inherit (lib)
     mkOption
     mkEnableOption
@@ -18,59 +29,58 @@ let
 
   cfg = config.hyper-modern-nixos.themes;
 
-  themes = {
+  # Import color math library
+  color-lib = import ../../../lib/ono-sendai.nix { inherit lib; };
+
+  # Legacy pre-baked palettes (backward compatibility)
+  legacyThemes = {
     ono-sendai = import ./palettes/ono-sendai-blue.nix;
     ono-sendai-tactical = import ./palettes/ono-sendai-tactical.nix;
   };
 
-  themeVariants = lib.unique (
-    lib.flatten (lib.mapAttrsToList (_: theme: lib.attrNames theme) themes)
+  legacyVariants = lib.unique (
+    lib.flatten (lib.mapAttrsToList (_: theme: lib.attrNames theme) legacyThemes)
   );
 
+  # Resolve the current theme
+  currentTheme =
+    if cfg.mode == "computed" then
+      color-lib.mk-theme {
+        level = cfg.level;
+        hero-hue = cfg.hero-hue;
+        axis-hue = cfg.axis-hue;
+      }
+    else
+      legacyThemes.${cfg.theme}.${cfg.variant};
+
+  # Font configuration
   berkeleyMono = pkgs.callPackage ./fonts/berkeley-mono { };
-  currentTheme = themes.${cfg.theme}.${cfg.variant};
 
-  fontConfig = rec {
-    package = berkeleyMono;
-    name = "Berkeley Mono";
-
-    weights = {
-      light = "${name} Light";
-      regular = "${name} Regular";
-      medium = "${name} Medium";
-      semibold = "${name} SemiBold";
-      bold = "${name} Bold";
-    };
-
-    monospace = {
-      inherit package;
-      name =
-        if cfg.display.highDPI && cfg.display.width >= 3840 then
-          weights.semibold
-        else if cfg.display.highDPI then
-          weights.semibold
-        else
-          weights.semibold;
-    };
-
-    sizes =
-      let
-        baseSizes = {
-          desktop = 16;
-          applications = 16;
-          terminal = 14;
-          popups = 16;
-        };
-
-        scaleFactor = 1.0;
-      in
-      lib.mapAttrs (_: size: lib.toInt (size * scaleFactor)) baseSizes;
-
-    sansSerif = {
-      inherit package;
-      name = weights.medium;
-    };
+  fontWeights = {
+    light = "Berkeley Mono Light";
+    regular = "Berkeley Mono";
+    medium = "Berkeley Mono Medium";
+    semibold = "Berkeley Mono SemiBold";
+    bold = "Berkeley Mono Bold";
   };
+
+  # Select font weight based on display profile
+  selectFontWeight =
+    profile: dpi:
+    if profile == "oled" || profile == "lg-ultragear-oled" then
+      fontWeights.semibold
+    else if dpi >= 192 then
+      fontWeights.semibold
+    else
+      fontWeights.medium;
+
+  baseFontSizes = {
+    desktop = 16;
+    applications = 16;
+    terminal = 14;
+    popups = 16;
+  };
+
 in
 {
   imports = [
@@ -83,17 +93,68 @@ in
       default = true;
     };
 
+    # Mode selection: computed vs legacy
+    mode = mkOption {
+      type = types.enum [
+        "computed"
+        "legacy"
+      ];
+      default = "legacy";
+      description = ''
+        Theme mode:
+          computed - Generate palette from HSL color math (hero-hue + axis-hue)
+          legacy   - Use pre-baked palette (theme + variant)
+      '';
+    };
+
+    # ── Computed mode options ──────────────────────────────────────────────────
+
+    level = mkOption {
+      type = types.enum [
+        "void"
+        "deep"
+        "night"
+        "carbon"
+        "github"
+      ];
+      default = "carbon";
+      description = ''
+        Black level variant (computed mode):
+          void   - L=0%  (true black, kills thin fonts)
+          deep   - L=4%  (hand-tuned dark)
+          night  - L=8%  (OLED safe threshold)
+          carbon - L=11% (recommended default)
+          github - L=16% (matches GitHub dark mode)
+      '';
+    };
+
+    hero-hue = mkOption {
+      type = types.ints.between 0 359;
+      default = 211;
+      description = "Hero accent hue (0-359). Controls base0A-0F.";
+    };
+
+    axis-hue = mkOption {
+      type = types.ints.between 0 359;
+      default = 201;
+      description = "Axis accent hue (0-359). Controls base08-09.";
+    };
+
+    # ── Legacy mode options ────────────────────────────────────────────────────
+
     theme = mkOption {
-      type = types.enum (lib.attrNames themes);
+      type = types.enum (lib.attrNames legacyThemes);
       default = "ono-sendai";
-      description = "Theme family to use";
+      description = "Theme family (legacy mode)";
     };
 
     variant = mkOption {
-      type = types.enum themeVariants;
-      default = "chiba";
-      description = "Theme variant within the family";
+      type = types.enum legacyVariants;
+      default = "razorgirl";
+      description = "Theme variant within the family (legacy mode)";
     };
+
+    # ── Computed outputs (read-only) ───────────────────────────────────────────
 
     palette = mkOption {
       type = types.attrs;
@@ -103,10 +164,18 @@ in
       default = currentTheme.palette;
     };
 
-    # font rendering and wallpaper generation
+    resolved = mkOption {
+      type = types.attrs;
+      description = "The full resolved theme configuration";
+      internal = true;
+      readOnly = true;
+      default = currentTheme;
+    };
+
+    # ── Display configuration ──────────────────────────────────────────────────
+
     display = {
       profile = mkOption {
-
         type = types.enum [
           "generic"
           "oled"
@@ -114,15 +183,20 @@ in
           "lg-ultragear-oled"
           "high-contrast"
         ];
-
         default = "generic";
-        description = "Display profile for optimizations";
+        description = "Display profile for font/opacity tuning";
       };
 
       highDPI = mkOption {
         type = types.bool;
         default = false;
         description = "Enable high-DPI adjustments";
+      };
+
+      dpi = mkOption {
+        type = types.int;
+        default = if cfg.display.highDPI then 192 else 96;
+        description = "Display DPI";
       };
 
       width = mkOption {
@@ -138,7 +212,8 @@ in
       };
     };
 
-    # Override options for fine-tuning
+    # ── Override options ───────────────────────────────────────────────────────
+
     overrides = {
       fontSizes = mkOption {
         type = types.attrsOf types.int;
@@ -176,54 +251,67 @@ in
       base16Scheme = currentTheme.palette;
 
       fonts = {
-        inherit (fontConfig) monospace;
-        inherit (fontConfig) sansSerif;
-        serif = fontConfig.monospace;
+        monospace = {
+          package = berkeleyMono;
+          name = selectFontWeight cfg.display.profile cfg.display.dpi;
+        };
+
+        sansSerif = {
+          package = berkeleyMono;
+          name = fontWeights.medium;
+        };
+
+        serif = {
+          package = berkeleyMono;
+          name = fontWeights.regular;
+        };
 
         emoji = {
-          package = pkgs.noto-fonts-emoji;
+          package = pkgs.noto-fonts-color-emoji;
           name = "Noto Color Emoji";
         };
 
-        sizes = fontConfig.sizes // cfg.overrides.fontSizes;
+        sizes = baseFontSizes // cfg.overrides.fontSizes;
       };
 
       opacity = {
-        terminal = if cfg.display.profile == "oled" then 0.98 else 0.95;
+        terminal =
+          if cfg.display.profile == "oled" || cfg.display.profile == "lg-ultragear-oled" then 0.98 else 0.95;
         desktop = 0.95;
         popups = 0.95;
       }
       // cfg.overrides.opacity;
     };
 
+    # Display-profile-specific environment variables
     home.sessionVariables = mkMerge [
-      (mkIf (cfg.enable && cfg.display.profile == "samsung-e6") {
+      (mkIf (cfg.display.profile == "samsung-e6") {
         FREETYPE_PROPERTIES = "cff:no-stem-darkening=0 autofitter:no-stem-darkening=0 truetype:interpreter-version=40";
       })
 
-      (mkIf (cfg.enable && cfg.display.profile == "lg-ultragear-oled") {
+      (mkIf (cfg.display.profile == "lg-ultragear-oled") {
         FREETYPE_PROPERTIES = "cff:no-stem-darkening=0 autofitter:no-stem-darkening=0 truetype:interpreter-version=40 lcdfilter:lcddefault";
         COLORTERM = "truecolor";
         __GL_YIELD = "USLEEP";
         MESA_VK_WSI_PRESENT_MODE = "immediate";
       })
 
-      (mkIf (cfg.enable && cfg.display.profile == "oled") {
+      (mkIf (cfg.display.profile == "oled") {
         FREETYPE_PROPERTIES = "truetype:interpreter-version=40 lcdfilter:lcdnone";
         COLORTERM = "truecolor";
       })
 
-      (mkIf (cfg.enable && cfg.display.profile == "high-contrast") {
+      (mkIf (cfg.display.profile == "high-contrast") {
         FREETYPE_PROPERTIES = "cff:no-stem-darkening=1 autofitter:no-stem-darkening=1 truetype:interpreter-version=35";
       })
     ];
 
+    # Enable wallpaper generation
     hyper-modern-nixos.wallpaper.enable = true;
-
     hyper-modern-nixos.wallpaper.customize = {
       inherit (cfg.display) profile width height;
       theme = currentTheme;
-      dpi = if cfg.display.highDPI then 192 else 96;
+      dpi = cfg.display.dpi;
     };
   };
 }
