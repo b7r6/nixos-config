@@ -6,6 +6,7 @@ in
 {
   imports = [
     self.nixosModules.common
+    ./dgx-spark
     ./wayland
   ];
 }

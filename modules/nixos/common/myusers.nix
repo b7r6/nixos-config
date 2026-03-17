@@ -50,6 +50,7 @@ in
           "docker"
           "adbusers"
           "libvirtd"
+          "wireshark"
         ];
       }
     );

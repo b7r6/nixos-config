@@ -1,11 +1,18 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                           // hyper-modern-nixos // databases
+#                                            // hyper-modern-nixos // greetd
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-# Database services: PostgreSQL and Redis.
+# Greetd login manager with tuigreet for Hyprland.
 #
-{ ... }:
+{ pkgs, ... }:
 {
-  services.postgresql.enable = true;
-  services.redis.servers."".enable = true;
+  services.greetd = {
+    enable = true;
+    settings = {
+      default_session = {
+        command = "${pkgs.greetd.tuigreet}/bin/tuigreet --time --cmd Hyprland";
+        user = "greeter";
+      };
+    };
+  };
 }

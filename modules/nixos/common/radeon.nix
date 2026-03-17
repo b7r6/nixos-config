@@ -36,13 +36,12 @@ in
 
     hardware.opengl = {
       enable = true;
-      # driSupport = true;
       driSupport32Bit = true;
 
+      # RADV is now the default Vulkan driver; amdvlk has been removed
       extraPackages =
         with pkgs;
-        [ amdvlk ]
-        ++ (optionals cfg.rocm.enable [
+        optionals cfg.rocm.enable [
           rocmPackages.clr
           rocmPackages.clr.icd
           rocmPackages.rocm-runtime
@@ -51,9 +50,7 @@ in
           rocmPackages.rocfft
           rocmPackages.rocrand
           rocmPackages.hipblas
-        ]);
-
-      extraPackages32 = with pkgs.pkgsi686Linux; [ amdvlk ];
+        ];
     };
 
     # ROCm specific configuration
@@ -64,7 +61,7 @@ in
         rocmPackages.rocm-smi
         clinfo
         vulkan-tools
-        glxinfo
+        mesa-demos # glxinfo
       ];
 
     systemd.tmpfiles.rules = optionals cfg.rocm.enable [

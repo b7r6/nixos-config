@@ -162,8 +162,8 @@
     # Qt apps (to test Qt theming)
     libsForQt5.qt5ct
     qt6Packages.qt6ct
-    libsForQt5.dolphin
-    libsForQt5.konsole
+    kdePackages.dolphin
+    kdePackages.konsole
 
     # Terminal
     foot
