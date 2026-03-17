@@ -1257,9 +1257,9 @@ Passage insert is broken when age isn't in PATH, so we use rage."
     (with-temp-buffer
       (insert value)
       (if (zerop (call-process-region (point-min) (point-max) "rage"
-                                       nil nil nil
-                                       "-R" recipients-file
-                                       "-o" entry-file))
+                                      nil nil nil
+                                      "-R" recipients-file
+                                      "-o" entry-file))
           t
         (error "Failed to encrypt with rage")))))
 
@@ -1338,8 +1338,11 @@ Uses the provisioning key from passage (api/openrouter-provisioning) or netrc."
 ;; BYOK providers that this key routes through (via GCP Vertex AI)
 ;; Determined by testing which model prefixes actually work with our key
 ;; Set to nil to show all models (for non-BYOK keys)
+;; (defvar hypermodern/gptel-allowed-providers
+;;   '("anthropic" "google" "deepseek" "meta-llama" "qwen" "moonshotai")
+
 (defvar hypermodern/gptel-allowed-providers
-  '("anthropic" "google" "deepseek" "meta-llama" "qwen" "moonshotai")
+  nil
   "List of provider prefixes that work with our BYOK key.
 Models are filtered to only show those from these providers.
 Set to nil to show all models.")
@@ -1355,7 +1358,7 @@ Set to nil to show all models.")
   "Preferred models to try as default, in order of preference.")
 
 (defvar hypermodern/gptel-provider-routing
-  '(("google-vertex" . 1))  ; Prefer Google Vertex for BYOK
+  '()  ; Prefer Google Vertex for BYOK
   "Provider routing preferences for OpenRouter.
 Passed as X-Provider-Routing header.")
 
@@ -1577,8 +1580,8 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
                           (format "File not found: %s" path))))
           :description "Read and display the contents of a file"
           :args '((:name "filepath"
-                   :type string
-                   :description "Path to the file to read. Supports relative paths and ~."))
+                         :type string
+                         :description "Path to the file to read. Supports relative paths and ~."))
           :category "filesystem")
 
          (gptel-make-tool
@@ -1590,8 +1593,8 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
                           (format "Not a directory: %s" path))))
           :description "List the contents of a given directory"
           :args '((:name "directory"
-                   :type string
-                   :description "The path to the directory to list"))
+                         :type string
+                         :description "The path to the directory to list"))
           :category "filesystem")
 
          (gptel-make-tool
@@ -1603,11 +1606,11 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
                                (shell-quote-argument (expand-file-name directory)))))
           :description "Find files matching a pattern recursively"
           :args '((:name "directory"
-                   :type string
-                   :description "The directory to search in")
+                         :type string
+                         :description "The directory to search in")
                   (:name "pattern"
-                   :type string
-                   :description "The pattern to match (glob or regex)"))
+                         :type string
+                         :description "The pattern to match (glob or regex)"))
           :category "filesystem")
 
          ;; ── Filesystem: Write ────────────────────────────────────────
@@ -1621,14 +1624,14 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
                         (format "Created file %s" full-path)))
           :description "Create a new file with the specified content"
           :args '((:name "path"
-                   :type string
-                   :description "The directory where to create the file")
+                         :type string
+                         :description "The directory where to create the file")
                   (:name "filename"
-                   :type string
-                   :description "The name of the file to create")
+                         :type string
+                         :description "The name of the file to create")
                   (:name "content"
-                   :type string
-                   :description "The content to write to the file"))
+                         :type string
+                         :description "The content to write to the file"))
           :category "filesystem"
           :confirm t)
 
@@ -1649,14 +1652,14 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
                                 (format "Could not find text to replace in %s" path)))))))
           :description "Edit a file by replacing old_string with new_string. The old_string must match exactly."
           :args '((:name "filepath"
-                   :type string
-                   :description "Path to the file to edit")
+                         :type string
+                         :description "Path to the file to edit")
                   (:name "old_string"
-                   :type string
-                   :description "The exact text to find and replace")
+                         :type string
+                         :description "The exact text to find and replace")
                   (:name "new_string"
-                   :type string
-                   :description "The text to replace old_string with"))
+                         :type string
+                         :description "The text to replace old_string with"))
           :category "filesystem"
           :confirm t)
 
@@ -1670,11 +1673,11 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
                         (format "Appended to %s" path)))
           :description "Append content to the end of a file"
           :args '((:name "filepath"
-                   :type string
-                   :description "Path to the file to append to")
+                         :type string
+                         :description "Path to the file to append to")
                   (:name "content"
-                   :type string
-                   :description "The content to append"))
+                         :type string
+                         :description "The content to append"))
           :category "filesystem"
           :confirm t)
 
@@ -1691,16 +1694,16 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
                                  (shell-quote-argument (expand-file-name dir))))))
           :description "Search for a pattern in files using ripgrep"
           :args '((:name "pattern"
-                   :type string
-                   :description "The regex pattern to search for")
+                         :type string
+                         :description "The regex pattern to search for")
                   (:name "directory"
-                   :type string
-                   :description "Directory to search in (defaults to current)"
-                   :optional t)
+                         :type string
+                         :description "Directory to search in (defaults to current)"
+                         :optional t)
                   (:name "file_pattern"
-                   :type string
-                   :description "Glob pattern for files to search (e.g. *.py)"
-                   :optional t))
+                         :type string
+                         :description "Glob pattern for files to search (e.g. *.py)"
+                         :optional t))
           :category "search")
 
          ;; ── Shell ────────────────────────────────────────────────────
@@ -1713,12 +1716,12 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
                         (shell-command-to-string command)))
           :description "Run a shell command and return output. Use for builds, tests, git, etc."
           :args '((:name "command"
-                   :type string
-                   :description "The shell command to execute")
+                         :type string
+                         :description "The shell command to execute")
                   (:name "working_dir"
-                   :type string
-                   :description "Directory to run command in (defaults to current)"
-                   :optional t))
+                         :type string
+                         :description "Directory to run command in (defaults to current)"
+                         :optional t))
           :category "shell"
           :confirm t)
 
@@ -1732,8 +1735,8 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
                         (format "Buffer not found: %s" buffer_name)))
           :description "Read the contents of an open Emacs buffer"
           :args '((:name "buffer_name"
-                   :type string
-                   :description "The name of the buffer to read"))
+                         :type string
+                         :description "The name of the buffer to read"))
           :category "emacs")
 
          (gptel-make-tool
@@ -1764,14 +1767,14 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
                               (format "Could not find text in buffer %s" buffer_name))))))
           :description "Edit an open buffer by replacing old_string with new_string"
           :args '((:name "buffer_name"
-                   :type string
-                   :description "Name of the buffer to edit")
+                         :type string
+                         :description "Name of the buffer to edit")
                   (:name "old_string"
-                   :type string
-                   :description "Text to find and replace")
+                         :type string
+                         :description "Text to find and replace")
                   (:name "new_string"
-                   :type string
-                   :description "Text to replace with"))
+                         :type string
+                         :description "Text to replace with"))
           :category "emacs"
           :confirm t)
 
@@ -1783,9 +1786,9 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
                         (shell-command-to-string "git status --short")))
           :description "Get git status for the repository"
           :args '((:name "directory"
-                   :type string
-                   :description "Repository directory (defaults to current)"
-                   :optional t))
+                         :type string
+                         :description "Repository directory (defaults to current)"
+                         :optional t))
           :category "git")
 
          (gptel-make-tool
@@ -1797,13 +1800,13 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
                           (shell-command-to-string "git diff"))))
           :description "Get git diff for changes"
           :args '((:name "file"
-                   :type string
-                   :description "Specific file to diff (optional)"
-                   :optional t)
+                         :type string
+                         :description "Specific file to diff (optional)"
+                         :optional t)
                   (:name "directory"
-                   :type string
-                   :description "Repository directory (defaults to current)"
-                   :optional t))
+                         :type string
+                         :description "Repository directory (defaults to current)"
+                         :optional t))
           :category "git")
 
          (gptel-make-tool
@@ -1815,13 +1818,13 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
                          (format "git log --oneline -n %d" n))))
           :description "Get recent git commits"
           :args '((:name "count"
-                   :type integer
-                   :description "Number of commits to show (default 10)"
-                   :optional t)
+                         :type integer
+                         :description "Number of commits to show (default 10)"
+                         :optional t)
                   (:name "directory"
-                   :type string
-                   :description "Repository directory (defaults to current)"
-                   :optional t))
+                         :type string
+                         :description "Repository directory (defaults to current)"
+                         :optional t))
           :category "git")))
 
   ;; ── Streaming polish ───────────────────────────────────────────────

@@ -24,11 +24,7 @@
 
   hardware.opengl = {
     enable = true;
-    extraPackages = with pkgs; [
-      amdvlk
-      # rocm-opencl-icd
-      # rocm-opencl-runtime
-    ];
+    # RADV is now the default Vulkan driver
   };
 
   time.timeZone = "America/New_York";

@@ -220,9 +220,12 @@ in
     # GSettings/dconf (required for GTK apps to read settings)
     programs.dconf.enable = true;
 
-    # GNOME keyring for secrets portal
+    # GNOME keyring for secrets portal (also provides SSH agent via gcr)
     services.gnome.gnome-keyring.enable = true;
     security.pam.services.login.enableGnomeKeyring = true;
+
+    # Disable standard ssh-agent since gnome-keyring provides gcr-ssh-agent
+    programs.ssh.startAgent = false;
 
     # ── Polkit (required for many desktop operations) ──────────────────────────
 
