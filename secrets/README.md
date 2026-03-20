@@ -1,187 +1,205 @@
-# // psv4 // secrets // bootstrap key and other secrets management
+# // hyper-modern-nixos // secrets
 
 ## Overview
 
-This is the secrets management environment for `ps-v4`. We use `age` for encryption because:
+Two complementary systems for secrets management:
 
-- It's simpler than most alternatives (SOPS and GPG are powerful but complex)
-- It works with SSH keys (which everyone already has)
-- It supports Yubikeys (which we should star using)
+1. **Agenix** - Declarative secrets deployed by NixOS/home-manager at activation time
+2. **Passage** - Interactive password store for emacs/CLI use (age-based `pass` alternative)
+
+Both use `age` encryption with your SSH keys.
+
+## Directory Structure
+
+```
+secrets/
+├── keys.nix                    # Public keys for users and hosts
+├── secrets.nix                 # Agenix rules (what's encrypted to whom)
+├── agenix/                     # NixOS-deployed secrets
+│   ├── machines/               # Machine-level secrets (Tailscale, etc.)
+│   │   └── tailscale-auth-key.*.age
+│   └── users/                  # User secrets deployed to $HOME
+│       └── b7r6/
+│           ├── netrc.age       # API credentials for CLI tools
+│           ├── atuin-key.age   # Shell history sync key
+│           └── ...
+└── passage-store/              # Interactive secrets (emacs/CLI)
+    ├── .age-recipients         # Who can decrypt (SSH pub keys)
+    └── api/                    # API keys for emacs gptel, etc.
+        └── openrouter-*.age
+```
 
 ## Quick Start
 
 ```bash
 # Enter the secrets shell
-cd secrets            # if you have direnv installed
-nix develop .#secrets # if you want to do things manually and nest shells or whatever
+cd secrets
+# (direnv auto-activates, or: nix develop ..#secrets)
 
-# see what secrets exist
+# List all secrets
 list-secrets
 
-# view a secret
-view-secret secrets/prod/database-url.age
+# View an agenix secret
+view-secret agenix/users/b7r6/netrc.age
 
-# edit a secret
-edit-secret secrets/prod/database-url.age
+# Edit an agenix secret
+edit-secret agenix/users/b7r6/netrc.age
 
-# create a new secret
-new-secret secrets/prod/new-api-key.age
-
-# update/rekey the secrets to have new readers or
-# exclude old readers from new secrets (e.g. we're rotating a tailscale key)
-rekey-secret secrets/prod/new-api-key.age
+# Use passage for interactive secrets
+passage list
+passage show api/openrouter-emacs
+passage insert api/new-key
 ```
 
-## How It Works
+## Agenix (NixOS-Deployed Secrets)
 
-### Keys
+Secrets in `agenix/` are deployed by NixOS at activation time:
+- Machine secrets → `/run/agenix/<name>`
+- User secrets → `$HOME/.config/agenix/<name>` (via home-manager)
 
-- Public keys live in `keys.json` (or `keys.nix`)
-- Your SSH key is your identity
-- Secrets are encrypted to multiple recipients
+### Adding a New Agenix Secret
 
-### File Structure
-
-```
-secrets/
-├── cc1
-│   ├── accounts.json.age
-│   ├── agiti.docker.compose.yaml.age
-│   ├── ...
-│   └── venue-keys.age
-├── cc7
-│   ├── accounts.json.age
-│   ├── ...
-│   └── venue-keys.age
-├── datadog-psv4-service-account-credentials.json.age
-├── datadog-psv4-service-account-key.txt.age
-├── haruko-api-credentials.json.age
-├── ...
-├── tardis-keys-kosta-master.json.age
-└── tardis-key-tokyo-dev.txt.age
-```
-
-## Common Tasks
-
-### Adding a New Team Member
-
-1. Get their SSH public key
-2. Add to `keys.json`:
-   ```json
-   {
-     "users": {
-       "newperson": "ssh-ed25519 AAAAC3..."
-     }
-   }
+1. Create the secret file:
+   ```bash
+   new-agenix-secret agenix/users/b7r6/new-secret.age
    ```
-3. Run `sync-json-keys-to-nix`
-4. Run `rekey-secrets` to give them access
 
-### Rotating a Secret
+2. Add to `secrets.nix`:
+   ```nix
+   "agenix/users/b7r6/new-secret.age".publicKeys = b7r6Everywhere;
+   ```
 
+3. Reference in your NixOS/home-manager config:
+   ```nix
+   age.secrets.new-secret = {
+     file = ../../../secrets/agenix/users/b7r6/new-secret.age;
+     path = "${config.home.homeDirectory}/.new-secret";
+   };
+   ```
+
+### Adding a New Host
+
+1. Get the host's SSH key:
+   ```bash
+   scan-host-key hostname
+   # or on the host: cat /etc/ssh/ssh_host_ed25519_key.pub
+   ```
+
+2. Add to `keys.nix`:
+   ```nix
+   hosts = {
+     hostname = [
+       "ssh-ed25519 AAAAC3..."
+     ];
+   };
+   ```
+
+3. Rekey secrets so the host can decrypt:
+   ```bash
+   rekey-secrets
+   ```
+
+## Passage (Interactive Secrets)
+
+Passage secrets in `passage-store/` are for interactive use - emacs, CLI tools, etc.
+
+The store is checked into git and read directly from the repo (no symlinks).
+
+### Environment Setup
+
+Your shell sets these automatically via home-manager:
 ```bash
-# Creates timestamped backup and opens editor
-rotate-secret secrets/prod/api-key.age
+PASSAGE_DIR=~/src/nixos-config/secrets/passage-store
+PASSAGE_IDENTITIES_FILE=~/.passage/identities
 ```
 
-### Checking What Changed
+### Emacs Integration
+
+Emacs uses passage for:
+- **gptel** - OpenRouter API keys (`api/openrouter-emacs`)
+- **auth-source-pass** - Generic credential lookup
+- **password-store.el** - Browse/copy/insert passwords
+
+Keybindings:
+- `C-c p p` - Browse password store
+- `C-c p c` - Copy password
+- `C-c p g` - Generate password
+- `C-c p i` - Insert new password
+
+### Adding Passage Secrets
 
 ```bash
-# See what secrets changed in last commit
-diff-secrets HEAD~1
+# From CLI
+passage insert api/new-service
 
-# Validate all secrets still decrypt
-validate-secrets
+# From emacs
+M-x password-store-insert
 ```
 
-### Integration with NixOS
+## Key Management
+
+### keys.nix Structure
 
 ```nix
-# In your NixOS configuration
-age.secrets.database-url = {
-  file = ../../secrets/prod/database-url.age;
-  owner = "myapp";
-  group = "myapp";
-};
+{
+  users = {
+    b7r6 = [
+      "ssh-ed25519 AAAAC3..." # id_ed25519
+      "ssh-ed25519 AAAAC3..." # id_ed25519_b7r6
+    ];
+  };
 
-# Then use it
-services.myapp = {
-  environmentFile = config.age.secrets.database-url.path;
-};
+  hosts = {
+    weyl = [ "ssh-ed25519 AAAAC3..." ];
+    shimmer = [ "ssh-ed25519 AAAAC3..." ];
+    # ...
+  };
+}
 ```
 
-### Emergency Access
+### Who Can Decrypt What
 
-If you can't decrypt a secret but have the repo:
-
-1. Ask in `#security`, someone will have the DevOps 1Password (search "psv4 user - o\\perator master
-   ssh key")
-
-## Security Model
-
-- **Five Dollar Wrench Guy**: if it's easier to get access with a wrench, that's your threat model
-- **Handle Your Laptop Rule**: realistic attacks with computers will be stolen or breached laptops
-- **Encryption**: `age` with `SSH` keys, it's already how you log in
-- **Access Control**: Via key management in `keys.json`, this is for hosts so that a compromised
-  host can't jack the tailnet
-- **Audit**: `git` history shows all changes / TailScale netlogs document everything
-- **Backup**: `git` = distributed and centralized backup
-- **Recovery**: multiple team members can decrypt and the master key is in `1password`
-
-## GUIDELINES
-
-- most "secrets" aren't, we're better off being careful with a few than sloppy with 100 or 1000
-- if access requires breaching the SSO of TailScale, it's not a secret.
-- don't write your own crypto: use the tools done by people who work at security companies
-- the only `SSL` library that isn't backdoored by 9 different countries is `libressl`, and it's
-  compatible with everything
-- if you're able to use the tailnet, plaintext is fine and actually better because the netlogs will
-  be transparent
-- if you're not able to use the tailnet, then use `TLS` via `HTTPS` and `letsencrypt` certs
-  auto-issued by `funnel` or `serve`
-- if you're not able to use the tailnet or `HTTPS` with a TailScale-issued `TLS` certificate, use
-  `libsodium`.
-- if you're doing something unsupported by `libsodium`, stop.
-
-### Actual Secrets
-
-**Real Secrets** (protect these):
-
-- The 1Password master key
-- TailScale Auth Keys with Pre-Existing Access Tags
-- Private `SSH` Keys of Operators and Hosts
-- API *secrets* and *passphrases* for venues *only*, the key is a `UUID`
-
-**Not Secrets**
-
-- 1. Anything in environment variables on a host (easiest `pwn` evar)
-- 2. That's everything
+- **User secrets** (`agenix/users/b7r6/*`): User's SSH keys + all configured hosts
+- **Machine secrets** (`agenix/machines/*`): User's SSH keys + relevant hosts
+- **Passage secrets**: Only user's SSH keys (defined in `.age-recipients`)
 
 ## Troubleshooting
 
 ### "Failed to decrypt"
 
-- Are you using the right SSH key? Check `ssh-add -l`
-- Were you added to keys.json? Ask someone to rekey-secrets
-- Is your SSH key password-protected? `ssh-add` first
+```bash
+# Check your SSH keys are loaded
+ssh-add -l
 
-### "Secret not found"
+# Verify you can decrypt
+rage -d -i ~/.ssh/id_ed25519 agenix/users/b7r6/netrc.age
 
-- Check the path: `list-secrets`
-- Maybe it's in a different environment (prod vs dev)
+# Check identities file
+cat ~/.passage/identities
+```
 
-### "Permission denied"
+### Passage not finding secrets
 
-- The secrets shell needs access to your SSH key
-- Try: `ssh-add ~/.ssh/id_ed25519`
+```bash
+# Check PASSAGE_DIR
+echo $PASSAGE_DIR
 
-## Philosophy
+# Should point to repo, not ~/.passage/store
+# If wrong, re-run home-manager switch
+```
 
-We keep secrets management simple because:
+### After adding a host key
 
-1. Complex systems breed workarounds
-2. If it's annoying, people won't use it
-3. Git + age is auditable and recoverable
-4. Your SSH key is already your identity
+```bash
+# Rekey so the host can decrypt its secrets
+cd secrets
+rekey-secrets
+git add -A && git commit -m "rekey for new host"
+```
 
-Remember: The best secret is one that can be rotated easily.
+## Security Notes
+
+- SSH keys are your identity - protect them
+- Passage store is checked into git - only put non-critical secrets there
+- Critical secrets (Tailscale auth, etc.) go in agenix with proper host scoping
+- The master decryption capability is your SSH private key

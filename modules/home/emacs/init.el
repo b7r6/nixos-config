@@ -1244,10 +1244,15 @@
                   (format "passage show %s 2>/dev/null" entry)))))
     (unless (string-empty-p result) result)))
 
+(defun hypermodern/gptel--passage-store-dir ()
+  "Return the passage store directory from env or default."
+  (or (getenv "PASSAGE_DIR")
+      (expand-file-name "~/src/nixos-config/secrets/passage-store")))
+
 (defun hypermodern/gptel--passage-insert (entry value)
   "Store VALUE in passage at ENTRY using rage directly.
 Passage insert is broken when age isn't in PATH, so we use rage."
-  (let* ((store-dir (expand-file-name "~/.passage/store"))
+  (let* ((store-dir (hypermodern/gptel--passage-store-dir))
          (recipients-file (expand-file-name ".age-recipients" store-dir))
          (entry-file (expand-file-name (concat entry ".age") store-dir))
          (entry-dir (file-name-directory entry-file)))
@@ -2650,10 +2655,10 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
   ;; Point to passage instead of pass
   (setq password-store-executable "passage")
 
-  ;; Use passage's directory structure
+  ;; Use passage's directory structure - read from repo, not ~/.passage
   (setq auth-source-pass-filename
         (or (getenv "PASSAGE_DIR")
-            (expand-file-name "~/.passage/store"))))
+            (expand-file-name "~/src/nixos-config/secrets/passage-store"))))
 
 ;; OTP support (works with passage via pass-otp)
 (use-package password-store-otp

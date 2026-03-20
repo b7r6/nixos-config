@@ -150,7 +150,7 @@ in
   config = lib.mkIf cfg.enable {
     age.secrets = lib.mkIf cfg.secrets.enable {
       netrc = {
-        file = ../../../secrets/b7r6/.netrc.age;
+        file = ../../../secrets/agenix/users/b7r6/netrc.age;
         path = "${config.home.homeDirectory}/.netrc";
         mode = "600";
       };
