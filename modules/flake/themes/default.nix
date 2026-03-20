@@ -225,10 +225,7 @@ in
             };
           })
 
-          # The Lean4 generator binary (always available)
-          {
-            ono-sendai-generator = pkgs.callPackage ../../../packages/ono-sendai-generator { };
-          }
+          # NOTE: ono-sendai-generator is auto-wired from packages/ by nixos-unified
 
           # Emacs theme package (if enabled)
           (lib.mkIf (cfg.enable && cfg.editors.emacs) {

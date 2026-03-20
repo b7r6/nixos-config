@@ -58,10 +58,8 @@ in
     };
 
     # Docker with NVIDIA support (if needed)
-    virtualisation.docker = {
-      enable = true;
-      enableNvidia = true;
-    };
+    virtualisation.docker.enable = true;
+    hardware.nvidia-container-toolkit.enable = true;
 
     # Ensure kernel modules are loaded
     boot.kernelModules = [

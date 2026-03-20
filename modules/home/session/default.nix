@@ -65,8 +65,8 @@ in
 
         # Extra directories (non-standard but useful)
         extraConfig = {
-          XDG_PROJECTS_DIR = "${config.home.homeDirectory}/src";
-          XDG_SCREENSHOTS_DIR = "${config.home.homeDirectory}/Pictures/Screenshots";
+          PROJECTS = "${config.home.homeDirectory}/src";
+          SCREENSHOTS = "${config.home.homeDirectory}/Pictures/Screenshots";
         };
       };
 
@@ -149,10 +149,12 @@ in
     # SSH configuration
     programs.ssh = lib.mkIf cfg.ssh.enable {
       enable = true;
-      forwardAgent = true;
+      # Disable legacy default config to silence warning
+      enableDefaultConfig = false;
 
       matchBlocks = {
         "*" = {
+          forwardAgent = true;
           extraOptions = {
             AddKeysToAgent = "yes";
             StrictHostKeyChecking = "accept-new";

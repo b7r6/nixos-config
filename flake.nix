@@ -9,7 +9,10 @@
     };
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs?ref=nixpkgs-unstable";
+    # TODO: revert to nixpkgs-unstable once docutils fix is merged upstream
+    # PR: https://github.com/NixOS/nixpkgs/pull/PENDING
+    # Issue: docutils 0.22.4 + Python docs monkey-patch = TypeError
+    nixpkgs.url = "github:b7r6/nixpkgs?ref=fix/docutils-none-converter";
     flake-parts.url = "github:hercules-ci/flake-parts";
 
     agenix.url = "github:ryantm/agenix";
@@ -56,11 +59,12 @@
 
     stylix.url = "github:danth/stylix";
     stylix.inputs.nixpkgs.follows = "nixpkgs";
-    stylix.inputs.home-manager.follows = "home-manager";
 
     xremap-flake.url = "github:xremap/nix-flake?ref=master";
     xremap-flake.inputs.nixpkgs.follows = "nixpkgs";
-    xremap-flake.inputs.home-manager.follows = "home-manager";
+
+    nixos-generators.url = "github:nix-community/nixos-generators";
+    nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
 
     nix-compile.url = "git+ssh://git@github.com/straylight-software/nix-compile?ref=dev";
     nix-compile.inputs.nixpkgs.follows = "nixpkgs";

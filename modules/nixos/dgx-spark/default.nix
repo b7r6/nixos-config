@@ -102,11 +102,11 @@ in
   };
 
   config = mkIf cfg.enable {
-    # Use the NVIDIA kernel if enabled, otherwise use explicit 6.17 kernel
+    # Use the NVIDIA kernel if enabled, otherwise use latest kernel
     # NOTE: The standard NixOS kernel does not include the r8127 driver for the
     # Realtek RTL8127 10GbE controller. You will need to build and load r8127 as
     # an out-of-tree module separately for working Ethernet with the standard kernel.
-    boot.kernelPackages = if cfg.useNvidiaKernel then nvidiaKernel else pkgs.linuxPackages_6_17;
+    boot.kernelPackages = if cfg.useNvidiaKernel then nvidiaKernel else pkgs.linuxPackages_latest;
 
     boot.kernelParams = [
       # TH500 early console - REQUIRED for any output before full driver init

@@ -10,7 +10,7 @@ let
 in
 {
   imports = [
-    flake.inputs.nix-index-database.hmModules.nix-index
+    flake.inputs.nix-index-database.homeModules.nix-index
   ];
 
   options.hyper-modern-nixos.nix = {
@@ -40,7 +40,7 @@ in
       with pkgs;
       [
         nixd
-        nixfmt-rfc-style
+        nixfmt
         manix
         statix
         treefmt
