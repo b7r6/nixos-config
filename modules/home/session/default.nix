@@ -29,6 +29,12 @@ in
       description = "Enable secrets management tools (agenix, yubikey)";
     };
 
+    secrets.repoPath = lib.mkOption {
+      type = lib.types.str;
+      default = "${config.home.homeDirectory}/src/nixos-config";
+      description = "Path to the nixos-config repository (for passage store)";
+    };
+
     editor = lib.mkOption {
       type = lib.types.str;
       default = "nvim";
@@ -140,8 +146,9 @@ in
         SAVEHIST = "50000";
       }
       (lib.mkIf cfg.secrets.enable {
-        # Passage (age-based pass)
-        PASSAGE_DIR = "${config.home.homeDirectory}/.passage/store";
+        # Passage (age-based pass) - read directly from repo, no symlinks
+        # This ensures secrets are accessible from any clone of the repo
+        PASSAGE_DIR = "${cfg.secrets.repoPath}/secrets/passage-store";
         PASSAGE_IDENTITIES_FILE = "${config.home.homeDirectory}/.passage/identities";
       })
     ];
@@ -190,23 +197,22 @@ in
       ]
     );
 
-    # Passage store - symlink from repo to ~/.passage/store
-    home.file.".passage/store" = lib.mkIf cfg.secrets.enable {
-      source = ../../../secrets/passage-store;
-    };
-
     # Symlink rage as age (passage expects 'age' in PATH)
     home.file.".local/bin/age" = lib.mkIf cfg.secrets.enable {
       source = "${pkgs.rage}/bin/rage";
     };
 
-    # Passage identities - activation script to symlink SSH key
+    # Passage identities - create file listing SSH keys that can decrypt
+    # Uses both id_ed25519 and id_ed25519_b7r6 for flexibility
     home.activation.passageIdentities = lib.mkIf cfg.secrets.enable (
       lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-        if [ -f "$HOME/.ssh/id_ed25519_b7r6" ]; then
-          mkdir -p "$HOME/.passage"
-          ln -sf "$HOME/.ssh/id_ed25519_b7r6" "$HOME/.passage/identities"
-        fi
+        mkdir -p "$HOME/.passage"
+        : > "$HOME/.passage/identities"
+        for key in "$HOME/.ssh/id_ed25519" "$HOME/.ssh/id_ed25519_b7r6"; do
+          if [ -f "$key" ]; then
+            echo "$key" >> "$HOME/.passage/identities"
+          fi
+        done
       ''
     );
   };
