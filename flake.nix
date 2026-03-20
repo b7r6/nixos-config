@@ -29,7 +29,7 @@
 
     impermanence.url = "github:nix-community/impermanence";
 
-    impurity.url = "git+file:/home/b7r6/src/impurity.nix";
+    impurity.url = "github:b7r6/impurity.nix";
 
     # Hyprland 0.53.0 with matching hy3 hl0.53.0.1
     # (hy3 hasn't caught up to 0.54.0 yet)
