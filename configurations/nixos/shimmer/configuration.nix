@@ -43,11 +43,11 @@ let
     readline
     sqlite
     stdenv.cc.cc.lib
-    xorg.libX11
-    xorg.libXext
-    xorg.libXfixes
-    xorg.libXi
-    xorg.libXrender
+    libx11
+    libxext
+    libxfixes
+    libxi
+    libxrender
     xz
     zlib
 
@@ -66,13 +66,13 @@ let
     nss
     pipewire
     libpulseaudio
-    xorg.libXcomposite
-    xorg.libXdamage
-    xorg.libXrandr
-    xorg.libxcb
-    xorg.libXcursor
-    xorg.libXtst
-    xorg.libXScrnSaver
+    libxcomposite
+    libxdamage
+    libxrandr
+    libxcb
+    libxcursor
+    libxtst
+    libxscrnsaver
   ];
 in
 {

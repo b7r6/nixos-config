@@ -40,3 +40,9 @@ name = "list-tailscale-networks"
 help = "Alias for somewhat non-obvious command"
 category = "network"
 command = "sudo tailscale switch --list"
+
+[[commands]]
+name = "build-usb"
+help = "Build USB installer (aarch64-minimal|aarch64-gnome|x86_64-minimal|x86_64-gnome) [device]"
+category = "installer"
+command = "./scripts/build-usb.sh"

@@ -258,7 +258,7 @@ in
     '';
 
     # Zsh: shared shell init + zsh-specific completions
-    programs.zsh.initExtra = lib.mkIf config.programs.zsh.enable ''
+    programs.zsh.initContent = lib.mkIf config.programs.zsh.enable ''
       ${shellInit}
 
       # Zsh-specific: Claude Code autocompletion

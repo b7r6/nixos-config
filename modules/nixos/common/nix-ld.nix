@@ -64,11 +64,11 @@ in
       ffmpeg
 
       # X11 libraries that might be needed
-      xorg.libX11
-      xorg.libXext
-      xorg.libXrender
-      xorg.libXi
-      xorg.libXfixes
+      libx11
+      libxext
+      libxrender
+      libxi
+      libxfixes
     ];
   };
 }
