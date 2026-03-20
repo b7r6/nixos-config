@@ -944,15 +944,15 @@
       "locked": {
         "lastModified": 1772585765,
         "narHash": "sha256-qqWHNOVayLF45jCY6lIfYHPVxijY9849G3u3cukg088=",
-        "ref": "refs/heads/main",
+        "owner": "b7r6",
+        "repo": "impurity.nix",
         "rev": "1d2190ea51116e98c209ab9428e2b832b30e67e5",
-        "revCount": 1,
-        "type": "git",
-        "url": "file:/home/b7r6/src/impurity.nix"
+        "type": "github"
       },
       "original": {
-        "type": "git",
-        "url": "file:/home/b7r6/src/impurity.nix"
+        "owner": "b7r6",
+        "repo": "impurity.nix",
+        "type": "github"
       }
     },
     "mnw": {
