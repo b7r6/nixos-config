@@ -1140,6 +1140,31 @@
           ("\\*company-.*"            :ignore t)))
   (shackle-mode 1))
 
+;; ── Dashboard protection ───────────────────────────────────────────
+;; Shackle handles popups. This handles protecting the dashboard from
+;; being replaced by regular file visits.
+
+(defun hypermodern/protect-dashboard ()
+  "Mark the dashboard window as dedicated so nothing can replace it."
+  (when (and (boundp 'dashboard-buffer-name)
+             (string= (buffer-name) dashboard-buffer-name))
+    (set-window-dedicated-p (selected-window) t)))
+
+(add-hook 'dashboard-after-initialize-hook #'hypermodern/protect-dashboard)
+
+;; When something tries to use a dedicated window, pop a new one
+(setq switch-to-buffer-in-dedicated-window 'pop)
+
+;; Quick toggle for side windows (works with shackle's popups)
+(defun hypermodern/toggle-side-windows ()
+  "Toggle all side windows."
+  (interactive)
+  (if (window-with-parameter 'window-side)
+      (window-toggle-side-windows)
+    (message "No side windows to toggle")))
+
+(global-set-key (kbd "C-c w s") #'hypermodern/toggle-side-windows)
+
 ;; ── Popper: Toggle popups with C-\ ─────────────────────────────────
 ;; Controls popup LIFECYCLE. Toggle visibility, cycle through them.
 (use-package popper
