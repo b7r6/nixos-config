@@ -14,8 +14,7 @@ in
   };
 
   config = mkIf cfg.enable {
-    # Allow unfree packages (NVIDIA drivers are proprietary)
-    nixpkgs.config.allowUnfree = true;
+    # nixpkgs.config.allowUnfree is set in common/default.nix
 
     # Graphics configuration
     hardware.graphics = {
@@ -23,7 +22,7 @@ in
       enable32Bit = true;
       extraPackages = with pkgs; [
         nvidia-vaapi-driver
-        vaapiVdpau
+        libva-vdpau-driver
         libvdpau-va-gl
       ];
     };
@@ -58,10 +57,8 @@ in
     };
 
     # Docker with NVIDIA support (if needed)
-    virtualisation.docker = {
-      enable = true;
-      enableNvidia = true;
-    };
+    virtualisation.docker.enable = true;
+    hardware.nvidia-container-toolkit.enable = true;
 
     # Ensure kernel modules are loaded
     boot.kernelModules = [

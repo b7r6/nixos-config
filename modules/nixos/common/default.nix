@@ -24,6 +24,10 @@ in
 
   nix.nixPath = [ "nixpkgs=${inputs.nixpkgs}" ];
   nixpkgs.config.allowUnfree = true;
+  nixpkgs.config.permittedInsecurePackages = [
+    # TODO: Remove this when we eliminate qt5 dependencies
+    "qtwebengine-5.15.19"
+  ];
   home-manager.useUserPackages = true;
   home-manager.useGlobalPkgs = true;
   home-manager.backupFileExtension = "hm-backup";
@@ -44,7 +48,7 @@ in
     enable = true;
     settings = {
       default_session = {
-        command = "${pkgs.greetd.tuigreet}/bin/tuigreet --time --cmd Hyprland";
+        command = "${pkgs.tuigreet}/bin/tuigreet --time --cmd Hyprland";
         user = "greeter";
       };
     };
@@ -72,7 +76,7 @@ in
     };
   };
 
-  services.redis.enable = true;
+  services.redis.servers."".enable = true;
   services.postgresql.enable = true;
 
   security.sudo.wheelNeedsPassword = false;
@@ -112,9 +116,8 @@ in
 
     pciutils
 
-    python311Full
-    python312Full
-    python313Full
+    python312
+    python313
 
     nvtopPackages.full
 
@@ -221,7 +224,6 @@ in
 
   users.groups.adbusers = { };
   users.groups.wireshark = { };
-  programs.adb.enable = true;
   users.users.b7r6.extraGroups = [ "wireshark" ];
   # If using android-nixpkgs, you can include this part
   # This assumes you have android-nixpkgs set up in your imports

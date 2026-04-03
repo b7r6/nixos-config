@@ -2,27 +2,10 @@
 {
   imports = [ ./hardware-configuration.nix ];
 
-  fileSystems."/" = {
-    device = "/dev/disk/by-uuid/8d797692-927e-46c4-8047-0c9ea975a41f";
-    fsType = "btrfs";
-    options = [
-      "subvol=@"
-      "compress=zstd:1"
-      "noatime"
-      "space_cache=v2"
-      "ssd"
-      "discard=async"
-    ];
-  };
+  # Disable system-level emacs service (emacs is managed by home-manager)
+  services.emacs.enable = false;
 
-  fileSystems."/boot" = {
-    device = "/dev/disk/by-uuid/8959-4D56";
-    fsType = "vfat";
-    options = [
-      "fmask=0077"
-      "dmask=0077"
-    ];
-  };
+  # fileSystems are defined in hardware-configuration.nix
 
   hyper-modern-nixos.hyper-wayland = {
     enable = true;
@@ -34,33 +17,12 @@
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.kernelPackages = pkgs.linuxPackages_testing;
-
-  hardware.enableRedistributableFirmware = true;
-
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-    wireplumber.enable = true;
-  };
-
-  # Bluetooth management GUI
-  services.blueman.enable = true;
-
-  # CPU and system optimizations
-  boot.kernelParams = [ "pcie_aspm=off" ];
-  powerManagement.cpuFreqGovernor = "performance";
-  hardware.cpu.amd.updateMicrocode = true;
+  # boot.kernelPackages is defined in hardware-configuration.nix
 
   networking.hostName = "ultraviolence";
   networking.networkmanager.enable = true;
 
-  hardware.bluetooth = {
-    enable = true;
-    powerOnBoot = true;
-  };
+  # hardware.bluetooth is defined in hardware-configuration.nix
 
   services.thermald.enable = true;
 

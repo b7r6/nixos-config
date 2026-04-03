@@ -21,7 +21,6 @@ in
       dconf
       xdg-utils
       qt6.qtwayland
-      libsForQt5.qt5.qtwayland
       wl-clipboard
       hicolor-icon-theme
       adwaita-icon-theme

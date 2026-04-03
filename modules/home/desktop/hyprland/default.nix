@@ -362,7 +362,7 @@ in
         # Launcher
         (lib.getAttr cfg.launcher {
           inherit wofi;
-          rofi = rofi-wayland;
+          inherit rofi;
           inherit tofi;
           inherit fuzzel;
           inherit anyrun;
@@ -395,7 +395,7 @@ in
         # Polkit agent
         (
           if cfg.polkitAgent == "polkit-kde-agent" then
-            libsForQt5.polkit-kde-agent
+            kdePackages.polkit-kde-agent-1
           else if cfg.polkitAgent == "lxpolkit" then
             lxde.lxpolkit
           else

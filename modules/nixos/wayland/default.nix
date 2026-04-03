@@ -22,9 +22,8 @@ in
       xdg-utils
       glib
       wl-clipboard
-      # Qt/KDE support
+      # Qt/KDE support (Qt6 only - Qt5 has security issues)
       qt6.qtwayland
-      libsForQt5.qt5.qtwayland
       kdePackages.qtwayland
       # Fixed: use kdePackages namespace
       kdePackages.plasma-wayland-protocols

@@ -54,10 +54,8 @@
 
     stylix.url = "github:danth/stylix";
     stylix.inputs.nixpkgs.follows = "nixpkgs";
-    stylix.inputs.home-manager.follows = "home-manager";
 
     xremap-flake.url = "github:xremap/nix-flake?ref=master";
     xremap-flake.inputs.nixpkgs.follows = "nixpkgs";
-    xremap-flake.inputs.home-manager.follows = "home-manager";
   };
 }

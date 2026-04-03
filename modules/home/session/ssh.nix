@@ -1,11 +1,12 @@
 _: {
   programs.ssh = {
     enable = true;
-    forwardAgent = true;
+    enableDefaultConfig = false;
 
     matchBlocks = {
       # Default settings for all hosts
       "*" = {
+        forwardAgent = true;
         extraOptions = {
           AddKeysToAgent = "yes";
           StrictHostKeyChecking = "accept-new";

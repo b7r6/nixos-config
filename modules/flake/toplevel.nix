@@ -24,6 +24,8 @@
         config = {
           allowUnfree = true;
           allowUnfreePredicate = _: true;
+          # TODO: Remove when qt5 dependencies are eliminated
+          permittedInsecurePackages = [ "qtwebengine-5.15.19" ];
         };
 
         overlays = [ inputs.devshell.overlays.default ];

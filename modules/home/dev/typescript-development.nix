@@ -2,7 +2,7 @@
 {
   home.packages = with pkgs; [
     # future-looking typescript environment...
-    biome
+    # biome
     bun
     typescript
 

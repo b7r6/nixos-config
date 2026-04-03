@@ -1,7 +1,7 @@
 { pkgs, ... }:
 {
   home.packages = with pkgs; [
-    clang-tools_19
+    llvmPackages_19.clang-tools
     gcc
     gnumake
     zig

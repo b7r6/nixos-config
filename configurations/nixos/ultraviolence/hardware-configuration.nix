@@ -20,11 +20,11 @@
   boot.kernelModules = [
     "kvm-amd"
     "btusb"
-    "mt7921e"
+    "mt7925e"
   ];
 
   boot.extraModulePackages = [ ];
-  boot.kernelPackages = pkgs.linuxPackages_testing;
+  boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # Enable firmware
   hardware.enableRedistributableFirmware = true;
@@ -35,26 +35,23 @@
     powerOnBoot = true;
   };
 
-  # boot.kernelPatches = [
-  #   {
-  #     name = "btusb-mt7927-support";
-  #     patch = pkgs.writeText "btusb-mt7927.patch" ''
-  #       --- a/drivers/bluetooth/btusb.c
-  #       +++ b/drivers/bluetooth/btusb.c
-  #       @@ -613,6 +613,10 @@ static const struct usb_device_id quirks_table[] = {
-  #        	{ USB_DEVICE(0x04ca, 0x3801), .driver_info = BTUSB_MEDIATEK |
-  #        						     BTUSB_WIDEBAND_SPEECH },
-
-  #       +	/* MediaTek MT7927 */
-  #       +	{ USB_DEVICE(0x0489, 0xe13a), .driver_info = BTUSB_MEDIATEK |
-  #       +						     BTUSB_WIDEBAND_SPEECH },
-  #       +
-  #        	/* Additional MediaTek MT7668 Bluetooth devices */
-  #        	{ USB_DEVICE(0x043e, 0x3109), .driver_info = BTUSB_MEDIATEK |
-  #        						     BTUSB_WIDEBAND_SPEECH },
-  #     '';
-  #   }
-  # ];
+  boot.kernelPatches = [
+    {
+      name = "mt7925-mt7927-pci-id";
+      patch = pkgs.writeText "mt7925-mt7927-pci-id.patch" ''
+        --- a/drivers/net/wireless/mediatek/mt76/mt7925/pci.c
+        +++ b/drivers/net/wireless/mediatek/mt76/mt7925/pci.c
+        @@ -15,6 +15,8 @@ static const struct pci_device_id mt7925_pci_device_table[] = {
+         		.driver_data = (kernel_ulong_t)MT7925_FIRMWARE_WM },
+         	{ PCI_DEVICE(PCI_VENDOR_ID_MEDIATEK, 0x0717),
+         		.driver_data = (kernel_ulong_t)MT7925_FIRMWARE_WM },
+        +	{ PCI_DEVICE(PCI_VENDOR_ID_MEDIATEK, 0x7927),
+        +		.driver_data = (kernel_ulong_t)MT7925_FIRMWARE_WM },
+         	{ },
+         };
+      '';
+    }
+  ];
 
   services.pipewire = {
     enable = true;
