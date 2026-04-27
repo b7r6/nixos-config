@@ -546,11 +546,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1773681856,
-        "narHash": "sha256-+bRqxoFCJFO9ZTFhcCkzNXbDT3b8AEk88fyjB7Is6eo=",
+        "lastModified": 1777295000,
+        "narHash": "sha256-xzWerLYQG2W+VGJfaZ+8/Puswbok1o8Tix6/6hIW1rY=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "57d5560ee92a424fb71fde800acd6ed2c725dfce",
+        "rev": "b408d49b845167add697937761a89c41c996ac7a",
         "type": "github"
       },
       "original": {
@@ -1237,16 +1237,16 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1773779222,
-        "narHash": "sha256-kgUPP4eCkRB2YdiQqQb5wb18NhGoxlVn7Ar7XlUu3pA=",
-        "owner": "b7r6",
+        "lastModified": 1776949667,
+        "narHash": "sha256-GMSVw35Q+294GlrTUKlx087E31z7KurReQ1YHSKp5iw=",
+        "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "9c408d780fa9868334898d6fbd30ef392407b9cd",
+        "rev": "01fbdeef22b76df85ea168fbfe1bfd9e63681b30",
         "type": "github"
       },
       "original": {
-        "owner": "b7r6",
-        "ref": "fix/docutils-none-converter",
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
         "repo": "nixpkgs",
         "type": "github"
       }

@@ -136,11 +136,11 @@ in
           biome
           bun
           typescript
-          nodePackages.fixjson
-          nodePackages.nodejs
-          nodePackages.prettier
-          nodePackages.typescript-language-server
-          nodePackages.yarn
+          fixjson
+          nodejs
+          prettier
+          typescript-language-server
+          yarn
         ])
 
         # Systems development (C/C++, Zig)

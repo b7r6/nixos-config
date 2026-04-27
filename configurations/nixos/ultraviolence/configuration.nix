@@ -77,5 +77,49 @@
     LC_TIME = "en_US.UTF-8";
   };
 
+  # ── Per-host monitor & display config ──────────────────────────────────────
+  home-manager.users.b7r6 = {
+    hyper-modern-nixos = {
+      hyprland.monitors = {
+        left = {
+          description = "ASUSTek COMPUTER INC PG32UCDP SCLMQS022729";
+          resolution = "3840x2160";
+          refreshRate = 240;
+          position = "0x0";
+          scale = 1.5;
+          workspaces = [
+            1
+            2
+            3
+            4
+            5
+          ];
+          primary = true;
+        };
+        right = {
+          description = "ASUSTek COMPUTER INC PG32UCDP T1LMQS044820";
+          resolution = "3840x2160";
+          refreshRate = 240;
+          position = "2560x0";
+          scale = 1.5;
+          workspaces = [
+            6
+            7
+            8
+            9
+            10
+          ];
+        };
+      };
+
+      themes.display = {
+        profile = "lg-ultragear-oled";
+        highDPI = true;
+        width = 3840;
+        height = 2160;
+      };
+    };
+  };
+
   system.stateVersion = "25.05";
 }

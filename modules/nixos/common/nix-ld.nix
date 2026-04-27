@@ -40,9 +40,7 @@ in
       libGL
       libGLU
 
-      cudatoolkit
-      cudaPackages.cudnn
-      cudaPackages.nccl
+      # CUDA libs managed via nvidia-sdk containers
       linuxPackages.nvidia_x11
 
       # Add these for OpenCV support

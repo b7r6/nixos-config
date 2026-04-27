@@ -178,7 +178,8 @@ in
     hardware.enableRedistributableFirmware = true;
 
     nixpkgs.config.allowUnfree = true;
-    nixpkgs.config.cudaSupport = true;
+    # CUDA is managed via nvidia-sdk containers, not nixpkgs
+    # nixpkgs.config.cudaSupport = true;
 
     # TODO: firefox doesn't build with CUDA 13 yet (issues with cudnn-frontend and
     # onnxruntime)
