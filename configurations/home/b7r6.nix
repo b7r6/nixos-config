@@ -6,7 +6,7 @@ in
 {
   imports = [
     inputs.agenix.homeManagerModules.default
-    inputs.impurity.homeManagerModules.default
+    inputs.impurity.nixosModules.default
     # impermanence home-manager module is auto-imported by nixos module now
     self.homeModules.default
   ];
