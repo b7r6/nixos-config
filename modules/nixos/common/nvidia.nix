@@ -44,18 +44,7 @@ in
       powerManagement.finegrained = false;
     };
 
-    # CUDA support
-    environment.systemPackages = with pkgs; [
-      cudatoolkit
-      cudaPackages.cudnn
-      # nvtop # GPU monitoring
-      # nvidia-smi
-    ];
-
-    environment.sessionVariables = {
-      CUDA_PATH = "${pkgs.cudatoolkit}";
-      CUDA_HOME = "${pkgs.cudatoolkit}";
-    };
+    # CUDA is managed via nvidia-sdk containers, not nixpkgs
 
     # Docker with NVIDIA support (if needed)
     virtualisation.docker.enable = true;

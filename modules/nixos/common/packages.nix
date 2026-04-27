@@ -44,11 +44,11 @@
     pciutils
 
     # ── Python ────────────────────────────────────────────────────────────────
-    python312
+    # python312 -- disabled: doc output broken upstream (docutils 0.22.4 + sphinx)
     python313
 
     # ── GPU monitoring ────────────────────────────────────────────────────────
-    nvtopPackages.full
+    nvtopPackages.nvidia
 
     # ── Network analysis ──────────────────────────────────────────────────────
     wireshark

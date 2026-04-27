@@ -160,5 +160,49 @@ in
     libsecret # For Electron apps
   ];
 
+  # ── Per-host monitor & display config ──────────────────────────────────────
+  home-manager.users.b7r6 = {
+    hyper-modern-nixos = {
+      hyprland.monitors = {
+        center = {
+          description = "AOC CU34G2XP 1Q1QBHA003180";
+          resolution = "3440x1440";
+          refreshRate = 100;
+          position = "0x0";
+          scale = 1.0;
+          workspaces = [
+            1
+            2
+            3
+            4
+            5
+          ];
+          primary = true;
+        };
+        right = {
+          description = "LG Electronics LG ULTRAGEAR+ 502NTMX7E483";
+          resolution = "3840x2160";
+          refreshRate = 240;
+          position = "3440x0";
+          scale = 1.5;
+          workspaces = [
+            6
+            7
+            8
+            9
+            10
+          ];
+        };
+      };
+
+      themes.display = {
+        profile = "lg-ultragear-oled";
+        highDPI = false; # primary is the 1440p ultrawide at 1.0x
+        width = 3440;
+        height = 1440;
+      };
+    };
+  };
+
   system.stateVersion = "25.11";
 }

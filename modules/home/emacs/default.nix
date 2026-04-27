@@ -115,10 +115,10 @@ in
           nixd
           pyright
           llvmPackages_19.clang-tools
-          nodePackages.typescript-language-server
-          nodePackages.vscode-langservers-extracted
-          nodePackages.yaml-language-server
-          nodePackages.bash-language-server
+          typescript-language-server
+          vscode-langservers-extracted
+          yaml-language-server
+          bash-language-server
         ])
 
         # Haskell (heavy ~1GB)
@@ -144,14 +144,14 @@ in
         (lib.optionals cfg.languageServers.enable [
           nixpkgs-fmt
           ruff
-          nodePackages.prettier
+          prettier
           shfmt
           buildifier
         ])
 
         # Linters
         (lib.optionals cfg.languageServers.enable [
-          nodePackages.eslint
+          eslint
           yamllint
           shellcheck
         ])

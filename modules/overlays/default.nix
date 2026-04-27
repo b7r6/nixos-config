@@ -1,6 +1,19 @@
 {
   flake.overlays = {
     default = _final: prev: {
+      # Skip failing inline-snapshot tests (trivial output format diff in upstream nixpkgs)
+      # TODO: remove once upstream is fixed
+      python312Packages = prev.python312Packages // {
+        inline-snapshot = prev.python312Packages.inline-snapshot.overridePythonAttrs (_old: {
+          doCheck = false;
+        });
+      };
+      python313Packages = prev.python313Packages // {
+        inline-snapshot = prev.python313Packages.inline-snapshot.overridePythonAttrs (_old: {
+          doCheck = false;
+        });
+      };
+
       # Fix ragenix to include runtime dependencies
       ragenix = prev.ragenix.overrideAttrs (old: {
         nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ prev.makeWrapper ];

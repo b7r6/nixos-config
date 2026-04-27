@@ -9,10 +9,7 @@
     };
 
   inputs = {
-    # TODO: revert to nixpkgs-unstable once docutils fix is merged upstream
-    # PR: https://github.com/NixOS/nixpkgs/pull/PENDING
-    # Issue: docutils 0.22.4 + Python docs monkey-patch = TypeError
-    nixpkgs.url = "github:b7r6/nixpkgs?ref=fix/docutils-none-converter";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
 
     agenix.url = "github:ryantm/agenix";

@@ -688,12 +688,14 @@ in
               "$mod, period, focusmonitor, +1"
               "$mod SHIFT, comma, movewindow, mon:-1"
               "$mod SHIFT, period, movewindow, mon:+1"
-              "$mod $alt, S, swapactiveworkspaces, 0 1"
+              "$mod $alt, comma, movecurrentworkspacetomonitor, -1"
+              "$mod $alt, period, movecurrentworkspacetomonitor, +1"
+              "$mod $alt, S, swapactiveworkspaces, +1 current"
 
               # ── Screenshots ───────────────────────────────────────────────
               "$mod, S, exec, grimblast copy area"
               "$mod SHIFT, S, exec, grimblast save area ~/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
-              "$mod $alt, S, exec, grimblast copy screen"
+              "$mod SHIFT $alt, S, exec, grimblast copy screen"
 
               # ── Media ─────────────────────────────────────────────────────
               ", XF86AudioRaiseVolume, exec, wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+"
