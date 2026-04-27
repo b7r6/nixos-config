@@ -41,6 +41,15 @@
 
   services.thermald.enable = true;
 
+  security.sudo.wheelNeedsPassword = false;
+
+  users.users.b7r6 = {
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINbn+XF6n9v9VKLFGLBVz+G1LyL6GlcgZbIwhP89PPsp"
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ1ptqyz5C3YCcMgh3LUbXtjeS1rIZ5/6RHnH7D93Nqf" # 1password id_ed25519_b7r6
+    ];
+  };
+
   time.timeZone = "America/New_York";
 
   i18n.extraLocaleSettings = {
