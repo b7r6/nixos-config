@@ -942,15 +942,15 @@
     },
     "impurity": {
       "locked": {
-        "lastModified": 1772585765,
-        "narHash": "sha256-qqWHNOVayLF45jCY6lIfYHPVxijY9849G3u3cukg088=",
-        "owner": "b7r6",
+        "lastModified": 1689836741,
+        "narHash": "sha256-82KeRg2sAqDXCdzVs8P8GoqVaPsZjkWgrfsj6kgOLTY=",
+        "owner": "outfoxxed",
         "repo": "impurity.nix",
-        "rev": "1d2190ea51116e98c209ab9428e2b832b30e67e5",
+        "rev": "bbc41b69ab5485cd55aa315d08cff865781d3913",
         "type": "github"
       },
       "original": {
-        "owner": "b7r6",
+        "owner": "outfoxxed",
         "repo": "impurity.nix",
         "type": "github"
       }
