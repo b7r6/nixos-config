@@ -18,7 +18,7 @@ in
 
     persistPath = lib.mkOption {
       type = lib.types.str;
-      default = "/persist/home";
+      default = "/persist";
       description = "Path to persistent home storage";
     };
 
@@ -82,18 +82,12 @@ in
       description = "User files to persist";
     };
 
-    allowOther = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Allow other users to access bind mounts (requires user_allow_other in /etc/fuse.conf)";
-    };
   };
 
   config = lib.mkIf cfg.enable {
-    home.persistence."${cfg.persistPath}/${config.home.username}" = {
+    home.persistence."${cfg.persistPath}" = {
       directories = cfg.directories;
       files = cfg.files;
-      allowOther = cfg.allowOther;
     };
   };
 }
