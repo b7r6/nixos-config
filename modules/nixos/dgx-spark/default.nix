@@ -191,7 +191,6 @@ in
     # Set up podman for NVIDIA containers (use mkDefault so docker.nix can override)
     virtualisation.podman = {
       enable = lib.mkDefault true;
-      dockerCompat = lib.mkDefault true;
       defaultNetwork.settings.dns_enabled = lib.mkDefault true;
     };
 
