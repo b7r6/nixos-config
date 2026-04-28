@@ -1,8 +1,7 @@
-{
-  config,
-  pkgs,
-  lib,
-  ...
+{ config
+, pkgs
+, lib
+, ...
 }:
 with lib;
 let
@@ -20,7 +19,7 @@ in
     # Graphics configuration
     hardware.graphics = {
       enable = true;
-      enable32Bit = true;
+      enable32Bit = false;
       extraPackages = with pkgs; [
         nvidia-vaapi-driver
         libva-vdpau-driver

@@ -4,11 +4,10 @@
 #
 # DGX Spark (GB10 Grace Blackwell) - Primary inference development workstation
 #
-{
-  config,
-  pkgs,
-  lib,
-  ...
+{ config
+, pkgs
+, lib
+, ...
 }:
 let
   libraries = with pkgs; [
@@ -94,6 +93,24 @@ in
   # Wayland/Hyprland
   hyper-modern-nixos.wayland.enable = true;
 
+  # hyper-modern-nixos.nvidia = {
+  #   enable = true;
+  # };
+
+  # Enable NVIDIA open driver
+  services.xserver.videoDrivers = [ "nvidia" ];
+
+  hardware.nvidia = {
+    modesetting.enable = true;
+    open = true; # Use the open-source NVIDIA driver
+    nvidiaPersistenced = true;
+    nvidiaSettings = true;
+    package = config.boot.kernelPackages.nvidiaPackages.production;
+  };
+
+  hardware.enableRedistributableFirmware = true;
+
+
   # Static IP for ConnectX-7 QSFP direct link to gossamer
   networking.interfaces.enP2p1s0f1np1 = {
     ipv4.addresses = [
@@ -147,6 +164,7 @@ in
 
   # Audio (PipeWire)
   security.rtkit.enable = true;
+
   services.pipewire = {
     enable = true;
     alsa.enable = true;
@@ -155,12 +173,14 @@ in
   };
 
   # Shimmer-specific packages
+
   environment.systemPackages = with pkgs; [
     emacs30-pgtk
     libsecret # For Electron apps
   ];
 
   # ── Per-host monitor & display config ──────────────────────────────────────
+
   home-manager.users.b7r6 = {
     hyper-modern-nixos = {
       hyprland.monitors = {
