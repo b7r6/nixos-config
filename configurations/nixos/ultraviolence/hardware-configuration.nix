@@ -107,20 +107,6 @@
     "net.ipv4.tcp_wmem" = "4096 65536 134217728";
   };
 
-  environment.systemPackages = with pkgs; [
-    ryzenadj
-  ];
-
-  systemd.services.ryzen-power-limit = {
-    description = "Set Ryzen power limits";
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = "${pkgs.ryzenadj}/bin/ryzenadj --tctl-temp=85 --stapm-limit=120000 --fast-limit=140000 --slow-limit=130000";
-    };
-  };
-
   services.fwupd.enable = true;
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }

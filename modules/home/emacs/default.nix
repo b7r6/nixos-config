@@ -11,7 +11,6 @@
   config,
   lib,
   pkgs,
-  impurity,
   ...
 }:
 
@@ -89,20 +88,30 @@ in
       # Don't use extraConfig - let user manage ~/.emacs.d/init.el
     };
 
-    # Emacs config files - use impurity.link for live editing
+    # Emacs config files managed by Nix (XDG path)
     xdg.configFile."emacs/early-init.el" = lib.mkIf cfg.seedConfig {
-      source = impurity.link ./early-init.el;
+      source = ./early-init.el;
     };
-    home.file.".emacs.d/early-init.el" = lib.mkIf cfg.seedConfig {
-      source = impurity.link ./early-init.el;
+    xdg.configFile."emacs/init.el" = lib.mkIf cfg.seedConfig {
+      source = ./init.el;
     };
 
-    xdg.configFile."emacs/init.el" = lib.mkIf cfg.seedConfig {
-      source = impurity.link ./init.el;
-    };
-    home.file.".emacs.d/init.el" = lib.mkIf cfg.seedConfig {
-      source = impurity.link ./init.el;
-    };
+    # Symlink early-init/init into ~/.emacs.d so emacs finds them
+    # (emacs only falls back to XDG_CONFIG_HOME if ~/.emacs.d doesn't exist)
+    home.activation.emacsInitSymlinks = lib.mkIf cfg.seedConfig (
+      lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        target="$HOME/.emacs.d/init.el"
+        link="$XDG_CONFIG_HOME/emacs/init.el"
+        if [ -f "$link" ] && [ ! "$(readlink "$target" 2>/dev/null)" = "$link" ]; then
+          ln -sf "$link" "$target"
+        fi
+        target="$HOME/.emacs.d/early-init.el"
+        link="$XDG_CONFIG_HOME/emacs/early-init.el"
+        if [ -f "$link" ] && [ ! "$(readlink "$target" 2>/dev/null)" = "$link" ]; then
+          ln -sf "$link" "$target"
+        fi
+      ''
+    );
 
     home.packages =
       with pkgs;
