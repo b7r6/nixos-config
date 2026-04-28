@@ -100,6 +100,7 @@ in
     # (emacs only falls back to XDG_CONFIG_HOME if ~/.emacs.d doesn't exist)
     home.activation.emacsInitSymlinks = lib.mkIf cfg.seedConfig (
       lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        mkdir -p "$HOME/.emacs.d"
         target="$HOME/.emacs.d/init.el"
         link="$XDG_CONFIG_HOME/emacs/init.el"
         if [ -f "$link" ] && [ ! "$(readlink "$target" 2>/dev/null)" = "$link" ]; then
