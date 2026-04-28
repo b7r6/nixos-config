@@ -283,11 +283,11 @@
         "rev": "549f2762aebeff29a2e5ece7a7dc0f955281a1d1",
         "revCount": 92,
         "type": "git",
-        "url": "https://git.lix.systems/lix-project/flake-compat.git"
+        "url": "git+https://git.lix.systems/lix-project/flake-compat.git"
       },
       "original": {
         "type": "git",
-        "url": "https://git.lix.systems/lix-project/flake-compat.git"
+        "url": "git+https://git.lix.systems/lix-project/flake-compat.git"
       }
     },
     "flake-parts": {
@@ -1237,11 +1237,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1773779222,
-        "narHash": "sha256-kgUPP4eCkRB2YdiQqQb5wb18NhGoxlVn7Ar7XlUu3pA=",
+        "lastModified": 1774444096,
+        "narHash": "sha256-Sh6q4G+9ZTq3hxOQUaxjHAwn+0te2pS6a+TrvwuUDLM=",
         "owner": "b7r6",
         "repo": "nixpkgs",
-        "rev": "9c408d780fa9868334898d6fbd30ef392407b9cd",
+        "rev": "2df857679710127a8fecc89ac44d53f23d5369ab",
         "type": "github"
       },
       "original": {

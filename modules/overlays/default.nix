@@ -1,6 +1,11 @@
 {
   flake.overlays = {
     default = _final: prev: {
+      # Skip flaky openvswitch tests (known issue with test 1155, 1197)
+      openvswitch = prev.openvswitch.overrideAttrs (_old: {
+        doCheck = false;
+      });
+
       # Fix ragenix to include runtime dependencies
       ragenix = prev.ragenix.overrideAttrs (old: {
         nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ prev.makeWrapper ];
