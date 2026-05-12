@@ -1,8 +1,7 @@
-{
-  config,
-  pkgs,
-  lib,
-  ...
+{ config
+, pkgs
+, lib
+, ...
 }:
 with lib;
 let
@@ -47,8 +46,8 @@ in
     # CUDA is managed via nvidia-sdk containers, not nixpkgs
 
     # Docker with NVIDIA support (if needed)
-    virtualisation.docker.enable = true;
-    hardware.nvidia-container-toolkit.enable = true;
+    # virtualisation.docker.enable = true;
+    # hardware.nvidia-container-toolkit.enable = true;
 
     # Ensure kernel modules are loaded
     boot.kernelModules = [

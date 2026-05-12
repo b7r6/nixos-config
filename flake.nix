@@ -30,10 +30,10 @@
 
     # Hyprland 0.53.0 with matching hy3 hl0.53.0.1
     # (hy3 hasn't caught up to 0.54.0 yet)
-    hyprland.url = "github:hyprwm/Hyprland?ref=v0.53.0&submodules=1";
+    # hyprland.url = "github:hyprwm/Hyprland?ref=v0.53.0&submodules=1";
 
-    hy3.url = "github:outfoxxed/hy3?ref=hl0.53.0.1";
-    hy3.inputs.hyprland.follows = "hyprland";
+    # hy3.url = "github:outfoxxed/hy3?ref=hl0.53.0.1";
+    # hy3.inputs.hyprland.follows = "hyprland";
 
     nixos-unified.url = "github:srid/nixos-unified";
     nixid.url = "github:srid/nixid";
