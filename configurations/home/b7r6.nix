@@ -12,7 +12,7 @@ in
   ];
 
   # impurity.nix - set configRoot, enable via -impure variant
-  impurity.configRoot = self;
+  # impurity.configRoot = self;
 
   me = {
     username = "b7r6";

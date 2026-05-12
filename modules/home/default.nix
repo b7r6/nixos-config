@@ -19,7 +19,6 @@
 
     # session management
     ./desktop
-    ./impermanence
     ./session
     ./wayland
     ./vscode
@@ -58,7 +57,7 @@
 
     # Cloud tools (AWS enabled by default, heavy ones disabled)
     cloud = {
-      enable = true;
+      enable = false;
       aws.enable = true;
       flyctl.enable = true;
       # Heavy toolchains - enable explicitly when needed:
@@ -68,7 +67,7 @@
 
     # Development environment
     dev = {
-      enable = true;
+      enable = false;
       python.enable = true;
       typescript.enable = true;
       systems.enable = true;
@@ -79,7 +78,7 @@
     };
 
     # LLM/AI tools
-    llm.enable = true;
+    llm.enable = false;
 
     # Nix development
     nix.enable = true;
@@ -96,8 +95,9 @@
       # haskell.enable = true;  # ~1GB
       # lean4.enable = true;    # ~500MB
     };
+
     neovim.enable = true;
-    vscode.enable = true;
+    vscode.enable = false;
 
     # Session management
     session.enable = true;
@@ -215,7 +215,7 @@
     };
 
     launchers = {
-      enable = true;
+      enable = false;
       default = "wofi";
       wofi = {
         enable = true;
