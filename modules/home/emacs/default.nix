@@ -11,7 +11,6 @@
   config,
   lib,
   pkgs,
-  impurity,
   ...
 }:
 
@@ -89,19 +88,19 @@ in
       # Don't use extraConfig - let user manage ~/.emacs.d/init.el
     };
 
-    # Emacs config files - use impurity.link for live editing
+    # Emacs config files - managed by Nix
     xdg.configFile."emacs/early-init.el" = lib.mkIf cfg.seedConfig {
-      source = impurity.link ./early-init.el;
+      source = ./early-init.el;
     };
     home.file.".emacs.d/early-init.el" = lib.mkIf cfg.seedConfig {
-      source = impurity.link ./early-init.el;
+      source = ./early-init.el;
     };
 
     xdg.configFile."emacs/init.el" = lib.mkIf cfg.seedConfig {
-      source = impurity.link ./init.el;
+      source = ./init.el;
     };
     home.file.".emacs.d/init.el" = lib.mkIf cfg.seedConfig {
-      source = impurity.link ./init.el;
+      source = ./init.el;
     };
 
     home.packages =

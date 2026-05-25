@@ -19,7 +19,7 @@
 
     # session management
     ./desktop
-    # ./impermanence  # Enable when impermanence is configured
+    ./impermanence
     ./session
     ./wayland
     ./vscode
@@ -27,6 +27,8 @@
 
   # Enable all hyper-modern-nixos modules
   hyper-modern-nixos = {
+    impermanence.enable = true;
+
     # Theming - now with computed palettes!
     themes = {
       enable = true;
@@ -88,6 +90,7 @@
     # Editors
     emacs = {
       enable = true;
+      seedConfig = true;
       rust.enable = true;
       # Heavy language servers - enable explicitly when needed:
       # haskell.enable = true;  # ~1GB
