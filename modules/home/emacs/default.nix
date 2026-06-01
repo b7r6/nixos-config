@@ -7,11 +7,10 @@
 #
 # With impermanence: add .emacs.d to persisted directories
 #
-{
-  config,
-  lib,
-  pkgs,
-  ...
+{ config
+, lib
+, pkgs
+, ...
 }:
 
 let

@@ -16,7 +16,7 @@
 (require 'seq)
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // memory // performance // optimization
+;;                            // memory // performance // optimization
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (defvar hypermodern--file-name-handler-alist file-name-handler-alist)
@@ -30,7 +30,7 @@
                   gc-cons-threshold (* 128 1024 1024))))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // early frame seeding (prevent PGTK pink flash)
+;;                   // early frame seeding // prevent PGTK pink flash
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (setq default-frame-alist
@@ -68,6 +68,7 @@
 ;; - straight.el for additional packages not in Nix
 (setq straight-package--warning-displayed t)
 (defvar bootstrap-version)
+
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el"
                          (or (getenv "EMACSDIR") user-emacs-directory)))
@@ -687,6 +688,7 @@
       (vterm-color-magenta ((,class (:foreground ,soft :background ,soft))))
       (vterm-color-cyan ((,class (:foreground ,matrix :background ,matrix))))
       (vterm-color-white ((,class (:foreground ,fg :background ,fg))))
+
       ;; Bright colors (8-15) - use lighter/more saturated variants
       (vterm-color-bright-black ((,class (:foreground ,comment :background ,comment))))
       (vterm-color-bright-red ((,class (:foreground ,ice :background ,ice))))
@@ -1019,7 +1021,7 @@
 ;; (add-hook 'flymake-mode-hook (lambda () (flymake-mode -1)))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // reinit // user // interface
+;;                                      // reinit // user // interface
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (setq inhibit-startup-screen t
@@ -1057,13 +1059,14 @@
 (fset 'yes-or-no-p 'y-or-n-p)
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // frame // discipline
+;;                                              // frame // discipline
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ;; ── Shackle: No popup without permission ───────────────────────────
 ;; Controls WHERE buffers appear. Strict rules = no surprises.
 (use-package shackle
   :demand t
+
   :config
   (setq shackle-default-rule '(:select nil :inhibit-window-quit nil)
         shackle-default-size 0.3
@@ -1130,6 +1133,11 @@
           ("\\*magit-.*popup\\*"      :align below :size 0.35 :select t :popup t)
           ("COMMIT_EDITMSG"           :align below :size 0.4 :select t :popup t)
 
+          ;; ─ lean4 ──────────────────────────────────────────────────
+          ("\\*Lean 4.*"             :align right :size 0.35 :select nil :popup t)
+          ("\\*Lean Goals\\*"        :align right :size 0.35 :select nil :popup t)
+          ("\\*Lean Info\\*"         :align right :size 0.35 :select nil :popup t)
+
           ;; ─ Org/capture ────────────────────────────────────────────
           ("\\*Org Agenda\\*"         :align right :size 0.4 :select t :popup t)
           ("\\*Org Select\\*"         :align below :size 0.3 :select t :popup t)
@@ -1141,11 +1149,10 @@
   (shackle-mode 1))
 
 ;; ── Dashboard protection ───────────────────────────────────────────
-;; Shackle handles popups. This handles protecting the dashboard from
-;; being replaced by regular file visits.
 
 (defun hypermodern/protect-dashboard ()
   "Mark the dashboard window as dedicated so nothing can replace it."
+
   (when (and (boundp 'dashboard-buffer-name)
              (string= (buffer-name) dashboard-buffer-name))
     (set-window-dedicated-p (selected-window) t)))
@@ -1159,6 +1166,7 @@
 (defun hypermodern/toggle-side-windows ()
   "Toggle all side windows."
   (interactive)
+
   (if (window-with-parameter 'window-side)
       (window-toggle-side-windows)
     (message "No side windows to toggle")))
@@ -1166,7 +1174,7 @@
 (global-set-key (kbd "C-c w s") #'hypermodern/toggle-side-windows)
 
 ;; ── Popper: Toggle popups with C-\ ─────────────────────────────────
-;; Controls popup LIFECYCLE. Toggle visibility, cycle through them.
+
 (use-package popper
   :demand t
   :after shackle
@@ -1206,6 +1214,9 @@
           "\\*Shell Command Output\\*"
           "\\*Pp Eval Output\\*"
           "\\*Org Agenda\\*"
+          "\\*Lean 4.*"
+          "\\*Lean Goals\\*"
+          "\\*Lean Info\\*"
           "COMMIT_EDITMSG"))
   :config
   ;; Let shackle control placement
@@ -1249,12 +1260,13 @@
         doom-modeline-buffer-encoding nil))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // ai - gptel with passage auth + openrouter
+;;                                   // gptel // passage // openrouter
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (defun hypermodern/gptel--netrc-get (host)
   "Get password for HOST from netrc via auth-source."
   (require 'auth-source)
+
   (when-let ((found (car (auth-source-search :host host :max 1))))
     (let ((secret (plist-get found :secret)))
       (if (functionp secret) (funcall secret) secret))))
@@ -1271,12 +1283,14 @@
 
 (defun hypermodern/gptel--passage-store-dir ()
   "Return the passage store directory from env or default."
+
   (or (getenv "PASSAGE_DIR")
       (expand-file-name "~/src/nixos-config/secrets/passage-store")))
 
 (defun hypermodern/gptel--passage-insert (entry value)
   "Store VALUE in passage at ENTRY using rage directly.
 Passage insert is broken when age isn't in PATH, so we use rage."
+
   (let* ((store-dir (hypermodern/gptel--passage-store-dir))
          (recipients-file (expand-file-name ".age-recipients" store-dir))
          (entry-file (expand-file-name (concat entry ".age") store-dir))
@@ -1315,14 +1329,19 @@ Passage insert is broken when age isn't in PATH, so we use rage."
 (defun hypermodern/gptel-provision-key ()
   "Provision a new OpenRouter API key and store in passage.
 Uses the provisioning key from passage (api/openrouter-provisioning) or netrc."
+
   (interactive)
+
   (require 'url)
   (require 'json)
+
   (let* ((provisioning-key (or (hypermodern/gptel--passage-get "api/openrouter-provisioning")
                                (hypermodern/gptel--netrc-get "provisioning.openrouter.ai"))))
     (unless provisioning-key
       (user-error "No provisioning key found. Add to passage:api/openrouter-provisioning"))
+
     (message "Provisioning new OpenRouter key...")
+
     (let* ((url-request-method "POST")
            (url-request-extra-headers
             `(("Authorization" . ,(concat "Bearer " provisioning-key))
@@ -1332,6 +1351,7 @@ Uses the provisioning key from passage (api/openrouter-provisioning) or netrc."
                                             (system-name)
                                             (format-time-string "%Y%m%d"))))))
            (buffer (url-retrieve-synchronously "https://openrouter.ai/api/v1/keys" t t 30)))
+
       (if (not buffer)
           (user-error "Failed to connect to OpenRouter API")
         (unwind-protect
@@ -1395,8 +1415,10 @@ Passed as X-Provider-Routing header.")
 (defun hypermodern/gptel-fetch-models ()
   "Fetch available models from OpenRouter API.
 Filters to only models from `hypermodern/gptel-allowed-providers' if set."
+
   (require 'url)
   (require 'json)
+
   (let* ((api-key (hypermodern/gptel-get-api-key))
          (url-request-extra-headers
           `(("Authorization" . ,(concat "Bearer " api-key))))
@@ -1429,6 +1451,7 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
 
 (defun hypermodern/gptel--model-display-name (model-id)
   "Convert MODEL-ID to a human-readable display name."
+
   (let* ((parts (split-string model-id "/"))
          (provider (car parts))
          (model (cadr parts)))
@@ -1438,6 +1461,7 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
 
 (defun hypermodern/gptel-load-models ()
   "Load models from cache or fetch from API."
+
   (let ((cache-valid (and (file-exists-p hypermodern/gptel-models-cache-file)
                           (< (float-time
                               (time-subtract
@@ -1464,8 +1488,10 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
 (defun hypermodern/gptel-refresh-models ()
   "Force refresh models from OpenRouter API."
   (interactive)
+
   (when (file-exists-p hypermodern/gptel-models-cache-file)
     (delete-file hypermodern/gptel-models-cache-file))
+
   (hypermodern/gptel-load-models)
   ;; Update backend
   (when gptel-backend
@@ -1957,6 +1983,7 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
   (defun hypermodern/gptel-toggle-agent-mode ()
     "Toggle agent mode for auto-confirming safe tool calls."
     (interactive)
+
     (setq hypermodern/gptel-agent-mode (not hypermodern/gptel-agent-mode))
     (if hypermodern/gptel-agent-mode
         (progn
@@ -1994,38 +2021,38 @@ When you've completed the task or need clarification, say so clearly.")
 ;; // aider - AI pair programming
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-(use-package aider
-  :straight '(:host github :repo "tninja/aider.el")
-  :config
-  ;; Get OpenRouter key from netrc
-  (defun hypermodern/aider-get-api-key ()
-    "Get OpenRouter API key for aider from netrc."
-    (require 'auth-source)
-    (when-let ((found (car (auth-source-search :host "fuck.yuou.openrouter.ai" :max 1))))
-      (let ((secret (plist-get found :secret)))
-        (if (functionp secret) (funcall secret) secret))))
+;; (use-package aider
+;;   :straight '(:host github :repo "tninja/aider.el")
+;;   :config
+;;   ;; Get OpenRouter key from netrc
+;;   (defun hypermodern/aider-get-api-key ()
+;;     "Get OpenRouter API key for aider from netrc."
+;;     (require 'auth-source)
+;;     (when-let ((found (car (auth-source-search :host "fuck.yuou.openrouter.ai" :max 1))))
+;;       (let ((secret (plist-get found :secret)))
+;;         (if (functionp secret) (funcall secret) secret))))
 
-  ;; Configure aider to use OpenRouter
-  (setq aider-args
-        '("--openrouter"
-          "--model" "openrouter/anthropic/claude-sonnet-4"
-          "--dark-mode"
-          "--auto-commits"
-          "--stream"))
+;;   ;; Configure aider to use OpenRouter
+;;   (setq aider-args
+;;         '("--openrouter"
+;;           "--model" "openrouter/anthropic/claude-sonnet-4"
+;;           "--dark-mode"
+;;           "--auto-commits"
+;;           "--stream"))
 
-  ;; Set the API key in process environment
-  (setq aider-process-environment
-        `(,(concat "OPENROUTER_API_KEY=" (or (hypermodern/aider-get-api-key) ""))))
+;;   ;; Set the API key in process environment
+;;   (setq aider-process-environment
+;;         `(,(concat "OPENROUTER_API_KEY=" (or (hypermodern/aider-get-api-key) ""))))
 
-  ;; Keybindings
-  :bind (("C-c i i" . aider-transient-menu)
-         ("C-c i a" . aider-add-current-file)
-         ("C-c i r" . aider-region-mode)
-         ("C-c i c" . aider-code-change)
-         ("C-c i q" . aider-ask-question)
-         ("C-c i f" . aider-fix-failing-test-under-cursor)
-         ("C-c i u" . aider-undo-last-change)
-         ("C-c i R" . aider-reset)))
+;;   ;; Keybindings
+;;   :bind (("C-c i i" . aider-transient-menu)
+;;          ("C-c i a" . aider-add-current-file)
+;;          ("C-c i r" . aider-region-mode)
+;;          ("C-c i c" . aider-code-change)
+;;          ("C-c i q" . aider-ask-question)
+;;          ("C-c i f" . aider-fix-failing-test-under-cursor)
+;;          ("C-c i u" . aider-undo-last-change)
+;;          ("C-c i R" . aider-reset)))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;; // minibuffer // completion
@@ -2073,7 +2100,7 @@ When you've completed the task or need clarification, say so clearly.")
   :after (embark consult))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // history & memory
+;;                                                // history // memory
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ;; Save minibuffer history (M-x commands, search strings, etc.)
@@ -2239,6 +2266,22 @@ When you've completed the task or need clarification, say so clearly.")
         lsp-ui-doc-enable t
         lsp-ui-doc-show-with-cursor nil))
 
+(with-eval-after-load 'lsp-mode
+  ;; Alternatively, if the above doesn't work (depends on lsp-mode version):
+  (add-to-list 'lsp-language-id-configuration '(lean4-mode . "lean4"))
+  )
+
+;; (with-eval-after-load 'lsp-mode
+;;   (setq lsp-warn-no-matched-clients nil))
+
+(with-eval-after-load 'lsp-mode
+  ;; Suppress "Unknown request method: workspace/inlayHint/refresh"
+  ;; lean4-server sends this; lsp-mode doesn't handle it. Harmless.
+  (advice-add 'lsp-warn :around
+              (lambda (orig &rest args)
+                (unless (and (car args)
+                             (string-match-p "Unknown request method" (car args)))
+                  (apply orig args)))))
 
 (with-eval-after-load 'lsp-mode
   (lsp-register-client
@@ -2395,18 +2438,13 @@ When you've completed the task or need clarification, say so clearly.")
     (lean4
      :mode lean4-mode
      :extensions ("\\.lean\\'")
-     :backend lsp
-     :server lean
+     :backend nil              ;; n.b. ← was 'lsp, but lean4-mode has built-in LSP
+     :server lean              ;; lean4-mode handles this internally
      :formatter nil
      :format-all-formatter nil
      :linter nil
      :type-checker lean
-     :extra-config (lambda ()
-                     (let ((toggle-fn (or (and (fboundp 'lean4-toggle-info) 'lean4-toggle-info)
-                                          (and (fboundp 'lean4-info-toggle) 'lean4-info-toggle)
-                                          (and (fboundp 'lean4-info-buffer-toggle) 'lean4-info-buffer-toggle))))
-                       (when toggle-fn
-                         (define-key lean4-mode-map (kbd "C-c C-i") toggle-fn)))))
+     :notes "lean4-mode has built-in LSP client; do NOT use lsp-mode")
 
     (bazel
      :mode bazel-mode
@@ -2416,6 +2454,7 @@ When you've completed the task or need clarification, say so clearly.")
                   ("WORKSPACE\\'" . bazel-mode)
                   ("WORKSPACE\\.bazel\\'" . bazel-mode)
                   ("BUILD\\'" . bazel-mode)
+                  ("BUCK\\'" . bazel-mode)
                   ("BUILD\\.bazel\\'" . bazel-mode)
                   ("\\.BUILD\\'" . bazel-mode))
      :backend nil
@@ -2466,6 +2505,7 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 (defun hypermodern/language-info ()
   "Show configuration for current language."
   (interactive)
+
   (let* ((mode major-mode)
          (entry (seq-find (lambda (e)
                             (let ((plist (cdr e)))
@@ -2480,6 +2520,7 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
                (formatter (plist-get config :formatter))
                (linter (plist-get config :linter))
                (type-checker (plist-get config :type-checker)))
+
           (message "[%s] backend=%s server=%s fmt=%s lint=%s type=%s"
                    name
                    (or backend "—")
@@ -2487,11 +2528,13 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
                    (or formatter "—")
                    (or linter "—")
                    (or type-checker "—")))
+
       (message "No language configuration found for %s" mode))))
 
 (defun hypermodern/show-language-registry ()
   "Display the language registry in a buffer."
   (interactive)
+
   (with-current-buffer (get-buffer-create "*Language Registry*")
     (let ((inhibit-read-only t))
       (erase-buffer)
@@ -2525,10 +2568,11 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
       (insert (format "Eglot: %d languages\n" (length (hypermodern/languages-using-eglot))))
       (goto-char (point-min))
       (special-mode))
+
     (pop-to-buffer (current-buffer))))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // languages
+;;                                                        // languages
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (use-package nix-mode
@@ -2573,15 +2617,27 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 (use-package dhall-mode
   :mode "\\.dhall\\'")
 
+;; lean4-mode has its own LSP client built in. It does NOT use lsp-mode.
+;; The workspace/inlayHint/refresh spam is lsp-mode trying to attach
+;; to .lean buffers alongside lean4-mode's own LSP — two clients talking
+;; to one server. Kill lsp-mode for lean buffers.
+
 (use-package lean4-mode
   :commands lean4-mode
   :mode "\\.lean\\'"
+
+  :hook (lean4-mode . (lambda ()
+                        ;; Unicode input: \to → →, \lam → λ, \forall → ∀, etc.
+                        (set-input-method "Lean")))
+
   :config
+  ;; Info buffer toggle — the function name has changed across versions
   (let ((toggle-fn (or (and (fboundp 'lean4-toggle-info) 'lean4-toggle-info)
                        (and (fboundp 'lean4-info-toggle) 'lean4-info-toggle)
                        (and (fboundp 'lean4-info-buffer-toggle) 'lean4-info-buffer-toggle))))
     (when toggle-fn
-      (define-key lean4-mode-map (kbd "C-c C-i") toggle-fn))))
+      (define-key lean4-mode-map (kbd "C-c C-i") toggle-fn)
+      (define-key lean4-mode-map (kbd "C-c i") toggle-fn))))
 
 (use-package bazel
   :mode (("\\.bazel\\'" . bazel-mode)
@@ -2600,12 +2656,14 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 (defun hypermodern/format-buffer ()
   "Format buffer if in prog-mode and formatter is available."
   (interactive)
+
   (if (derived-mode-p 'prog-mode 'text-mode)
       (progn
         (require 'format-all)
         (condition-case err
             (format-all-buffer nil)
           (error (message "[hypermodern] formatter not available: %s" err))))
+
     (message "[hypermodern] M-z: not in a formattable buffer")))
 
 (use-package format-all
@@ -2670,7 +2728,7 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
   :commands eat)
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // passage - age-based password store
+;;                           // passage // age-based // password store
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ;; Configure password-store to use passage (age instead of GPG)
@@ -2745,7 +2803,7 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 (global-set-key (kbd "C-c p i") #'password-store-insert)
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // tramp - bulletproof sshx
+;; // tramp // bulletproof sshx
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (use-package tramp
@@ -2771,7 +2829,7 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 (global-set-key (kbd "C-c T c") #'hypermodern/tramp-cleanup)
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // misc
+;;                                                             // misc
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (use-package rainbow-mode
@@ -2791,7 +2849,7 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
   :hook ((emacs-lisp-mode lisp-mode scheme-mode) . paredit-mode))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // icons
+;;                                                            // icons
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (use-package nerd-icons
@@ -2805,7 +2863,20 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
   (add-hook 'marginalia-mode-hook #'nerd-icons-completion-marginalia-setup))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // dashboard
+;;                                         // COMINT // ANSI // COLORS
+;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+(add-hook 'comint-preoutput-filter-functions 'ansi-color-process-output)
+
+;; Or more broadly, for compilation buffers too:
+(require 'ansi-color)
+(add-hook 'compilation-filter-hook 'ansi-color-compilation-filter)
+
+
+(setq ansi-color-for-comint-mode t)
+
+;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;;                                                        // dashboard
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (defvar hypermodern/gibson-quotes
@@ -2876,7 +2947,7 @@ no way human."))
   (dashboard-setup-startup-hook))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // keybindings
+;;                                                      // keybindings
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (use-package general
@@ -2916,7 +2987,7 @@ Moves to end of current line, deletes newline, and collapses whitespace."
   (general-define-key
    ;; editing essentials
    "M-/" #'undo
-   "C-c q" #'hypermodern/join-line-below
+   "C-c q" #'join-line
    "C-j" #'newline-and-indent
    "M-z" #'hypermodern/format-buffer
 
@@ -2960,7 +3031,7 @@ Moves to end of current line, deletes newline, and collapses whitespace."
    ))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // startup
+;;                                                          // startup
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (add-hook 'after-make-frame-functions
