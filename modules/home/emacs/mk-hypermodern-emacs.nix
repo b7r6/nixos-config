@@ -3,10 +3,10 @@
 # Build emacs with all packages pre-installed via Nix.
 # init.el lives in ~/.emacs.d and uses `use-package-always-ensure nil`.
 #
-{
-  pkgs,
-  emacs ? pkgs.emacs30-pgtk,
-  extraPackages ? (_: [ ]),
+{ pkgs
+, emacs ? pkgs.emacs30-pgtk
+, extraPackages ? (_: [ ])
+,
 }:
 
 let

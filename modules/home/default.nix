@@ -193,6 +193,7 @@
     };
 
     # ── Supporting Tools ──────────────────────────────────────────────────────
+
     waybar = {
       enable = true;
       position = "top";
@@ -215,13 +216,15 @@
     };
 
     launchers = {
-      enable = false;
+      enable = true;
       default = "wofi";
+
       wofi = {
         enable = true;
         width = 600;
         height = 450;
       };
+
       rofi.enable = true;
     };
 
