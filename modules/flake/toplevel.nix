@@ -9,6 +9,7 @@
     inputs.nix-compile.flakeModules.default
     ./fmt.nix
     ./themes
+
     # ./impure-variants.nix  # TODO: needs different approach to avoid recursion
   ];
 
@@ -17,20 +18,21 @@
     enable = true;
     profile = "strict";
     layout = "none";
+
     paths = [
       "modules"
       "configurations"
     ];
+
     pre-commit.enable = true;
   };
 
   perSystem =
-    {
-      self',
-      config,
-      pkgs,
-      system,
-      ...
+    { self'
+    , config
+    , pkgs
+    , system
+    , ...
     }:
     {
       _module.args.pkgs = import inputs.nixpkgs {
@@ -48,6 +50,7 @@
       devshells.secrets.imports = [ (pkgs.devshell.importTOML ../../secrets/devshell.toml) ];
 
       # ── Apps ──────────────────────────────────────────────────────────────────
+
       apps.build-usb = {
         type = "app";
         program = "${self}/scripts/build-usb.sh";
@@ -60,8 +63,10 @@
         }
 
         # ── USB Installer Images ─────────────────────────────────────────────────
+
         # Build with: nix build .#usb-aarch64-minimal
         #         or: nix build .#usb-x86_64-gnome
+
         (inputs.nixpkgs.lib.mkIf (system == "aarch64-linux") {
           usb-aarch64-minimal = inputs.nixos-generators.nixosGenerate {
             system = "aarch64-linux";

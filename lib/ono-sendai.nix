@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                                  // ono-sendai // color-math
+#                                                    // ono-sendai // color-math
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # Pure Nix implementation mirroring the Lean4 reference (nix/packages/ono-sendai-generator/)
@@ -143,10 +143,10 @@ let
   # Generate a complete base16 palette
   # Matches Lean's makePalette in OnoSendaiGen.lean:136-154
   make-palette =
-    {
-      level ? "carbon",
-      hero-hue ? 211,
-      axis-hue ? 201,
+    { level ? "carbon"
+    , hero-hue ? 211
+    , axis-hue ? 201
+    ,
     }:
     let
       L = black-levels.${level} or 11;
@@ -197,10 +197,10 @@ let
 
   # Create a theme attrset suitable for stylix
   mk-theme =
-    {
-      level,
-      hero-hue ? 211,
-      axis-hue ? 201,
+    { level
+    , hero-hue ? 211
+    , axis-hue ? 201
+    ,
     }:
     let
       palette = make-palette { inherit level hero-hue axis-hue; };

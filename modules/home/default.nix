@@ -24,11 +24,11 @@
     ./vscode
   ];
 
-  # Enable all hyper-modern-nixos modules
+  # enable all hyper-modern-nixos modules...
   hyper-modern-nixos = {
     # impermanence.enable = true;
 
-    # Theming - now with computed palettes!
+    # theming - now with computed palettes...
     themes = {
       enable = true;
 
@@ -44,7 +44,6 @@
       # variant = "razorgirl";
 
       # Display config is per-host (set in configurations/nixos/<host>/configuration.nix)
-
       overrides = {
         fontSizes = {
           desktop = 16;
@@ -60,6 +59,7 @@
       enable = false;
       aws.enable = true;
       flyctl.enable = true;
+
       # Heavy toolchains - enable explicitly when needed:
       # gcp.enable = true;       # ~500MB
       # terraform.enable = true; # ~200MB
@@ -91,13 +91,14 @@
       enable = true;
       seedConfig = true;
       rust.enable = true;
+
       # Heavy language servers - enable explicitly when needed:
       # haskell.enable = true;  # ~1GB
       # lean4.enable = true;    # ~500MB
     };
 
     neovim.enable = true;
-    vscode.enable = false;
+    vscode.enable = true;
 
     # Session management
     session.enable = true;
@@ -106,7 +107,9 @@
     desktop.enable = true;
 
     # ── Hyprland Window Manager ───────────────────────────────────────────────
+
     # Monitor config is per-host (set in configurations/nixos/<host>/configuration.nix)
+
     hyprland = {
       enable = true;
 
@@ -123,19 +126,23 @@
           inner = 4;
           outer = 8;
         };
+
         border = {
           size = 2;
           radius = 0;
         };
+
         opacity = {
           active = 1.0;
           inactive = 0.85;
         };
+
         blur = {
           enable = true;
           size = 8;
           passes = 2;
         };
+
         animations = {
           enable = true;
           speed = "fast";
@@ -147,10 +154,12 @@
           layout = "us";
           options = "ctrl:nocaps";
         };
+
         mouse = {
           sensitivity = 0.0;
           accelProfile = "flat";
         };
+
         touchpad = {
           naturalScroll = true;
           tapToClick = true;

@@ -62,6 +62,12 @@ in
       description = "Enable Lean 4 theorem prover (heavy ~500MB, disabled by default)";
     };
 
+    dhall.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable Dhall tooling";
+    };
+
     fonts.enable = lib.mkOption {
       type = lib.types.bool;
       default = true;
@@ -148,6 +154,15 @@ in
 
         # Lean 4 (heavy ~500MB)
         (lib.optional cfg.lean4.enable elan)
+
+        # Dhall
+        (lib.optional cfg.dhall.enable [
+          dhall
+          dhall-lsp-server
+          dhall-nix
+          dhall-nixpkgs
+          dhall-bash
+        ])
 
         # Formatters
         (lib.optionals cfg.languageServers.enable [

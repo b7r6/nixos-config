@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                          // hyper-modern-nixos // flake/themes
+#                                       // hyper-modern-nixos // flake // themes
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # Flake-level theme configuration module (flake-parts)
@@ -28,10 +28,10 @@ let
   # Build an Emacs theme package using the Lean generator
   mkEmacsTheme =
     pkgs:
-    {
-      level,
-      hero-hue,
-      axis-hue,
+    { level
+    , hero-hue
+    , axis-hue
+    ,
     }:
     let
       generator = pkgs.callPackage ../../../packages/ono-sendai-generator { };
@@ -45,10 +45,10 @@ let
   # Build a Neovim theme package using the Lean generator
   mkNeovimTheme =
     pkgs:
-    {
-      level,
-      hero-hue,
-      axis-hue,
+    { level
+    , hero-hue
+    , axis-hue
+    ,
     }:
     let
       generator = pkgs.callPackage ../../../packages/ono-sendai-generator { };
@@ -65,10 +65,10 @@ let
   # Build an SVG wallpaper
   mkWallpaper =
     pkgs:
-    {
-      palette,
-      width ? 3840,
-      height ? 2160,
+    { palette
+    , width ? 3840
+    , height ? 2160
+    ,
     }:
     pkgs.runCommand "ono-sendai-wallpaper" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
       mkdir -p $out
@@ -194,10 +194,10 @@ in
 
       # Convenience: get resolved theme for given params
       resolve =
-        {
-          level,
-          hero-hue ? 211,
-          axis-hue ? 201,
+        { level
+        , hero-hue ? 211
+        , axis-hue ? 201
+        ,
         }:
         color-lib.mk-theme { inherit level hero-hue axis-hue; };
     };

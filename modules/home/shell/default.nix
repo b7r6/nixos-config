@@ -1,8 +1,7 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
+{ config
+, lib
+, pkgs
+, ...
 }:
 let
   cfg = config.hyper-modern-nixos.shell;
@@ -17,26 +16,28 @@ let
       b = builtins.substring 5 2 hex;
       hexToDec =
         h:
-        builtins.foldl' (
-          acc: c:
-          acc * 16
-          + (
-            if c == "a" || c == "A" then
-              10
-            else if c == "b" || c == "B" then
-              11
-            else if c == "c" || c == "C" then
-              12
-            else if c == "d" || c == "D" then
-              13
-            else if c == "e" || c == "E" then
-              14
-            else if c == "f" || c == "F" then
-              15
-            else
-              builtins.fromJSON c
-          )
-        ) 0 (lib.stringToCharacters h);
+        builtins.foldl'
+          (
+            acc: c:
+            acc * 16
+            + (
+              if c == "a" || c == "A" then
+                10
+              else if c == "b" || c == "B" then
+                11
+              else if c == "c" || c == "C" then
+                12
+              else if c == "d" || c == "D" then
+                13
+              else if c == "e" || c == "E" then
+                14
+              else if c == "f" || c == "F" then
+                15
+              else
+                builtins.fromJSON c
+            )
+          ) 0
+          (lib.stringToCharacters h);
     in
     "38;2;${toString (hexToDec r)};${toString (hexToDec g)};${toString (hexToDec b)}";
 
@@ -106,15 +107,19 @@ in
     programs.bash = lib.mkIf cfg.bash.enable {
       enable = true;
       enableCompletion = true;
+
       initExtra = ''
         # Custom bash profile goes here
       '';
+
       historyControl = [
         "ignoredups"
         "erasedups"
       ];
+
       historyFileSize = 10000;
       historySize = 10000;
+
       sessionVariables = {
         TERM = "xterm-256color";
         COLORTERM = "TRUECOLOR";
@@ -278,6 +283,7 @@ in
 
     programs.starship = lib.mkIf cfg.cliTools.enable {
       enable = true;
+
       settings = {
         username = {
           style_user = "blue bold";
@@ -286,6 +292,7 @@ in
           disabled = false;
           show_always = true;
         };
+
         hostname = {
           ssh_only = false;
           ssh_symbol = "🌐 ";
@@ -306,6 +313,7 @@ in
       [
         bat
         btop
+        cachix
         direnv
         duf
         dust
@@ -313,20 +321,19 @@ in
         fd
         git
         glow
+        gnumake
         htop
         jq
+        less
+        nix-info
+        nixd
+        nixpkgs-fmt
         ripgrep
         sd
         tree
-        gnumake
         viddy
         vivid
         zoxide
-        less
-        cachix
-        nixd
-        nix-info
-        nixpkgs-fmt
       ]
     );
   };
