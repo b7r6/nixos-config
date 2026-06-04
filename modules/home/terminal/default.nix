@@ -26,6 +26,7 @@ in
 
       features = mkOption {
         type = types.listOf types.str;
+
         default = [
           "liga"
           "calt"
@@ -33,6 +34,7 @@ in
           "ss02"
           "ss03"
         ];
+
         description = "Font features to enable";
       };
     };
@@ -48,6 +50,7 @@ in
     programs.wezterm = {
       enable = true;
       enableBashIntegration = true;
+
       extraConfig = ''
         local wezterm = require 'wezterm'
         local config = {}
@@ -83,6 +86,7 @@ in
     programs.ghostty = {
       enable = true;
       enableBashIntegration = true;
+
       settings = {
         # Force Wayland backend
         window-decoration = true; # Use client-side decorations

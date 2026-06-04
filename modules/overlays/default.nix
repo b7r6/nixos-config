@@ -35,24 +35,33 @@
       # TODO[b7r6]: no way we need both, probably don't need either...
       agenix =
         if prev ? agenix then
-          prev.agenix.overrideAttrs (old: {
-            nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ prev.makeWrapper ];
-            postInstall = (old.postInstall or "") + ''
-              wrapProgram $out/bin/agenix \
-                --prefix PATH : ${
-                  prev.lib.makeBinPath [
-                    prev.coreutils
-                    prev.findutils
-                    prev.gnugrep
-                    prev.gnused
-                    prev.rage
-                    prev.age
-                  ]
-                }
-            '';
-          })
+          prev.agenix.overrideAttrs
+            (old: {
+              nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ prev.makeWrapper ];
+              postInstall = (old.postInstall or "") + ''
+                wrapProgram $out/bin/agenix \
+                  --prefix PATH : ${
+                    prev.lib.makeBinPath [
+                      prev.coreutils
+                      prev.findutils
+                      prev.gnugrep
+                      prev.gnused
+                      prev.rage
+                      prev.age
+                    ]
+                  }
+              '';
+            })
         else
           prev.agenix or null;
+
+      # Fix nvidia driver disallowedReferences issue on aarch64
+      # The nvidia-x11 package has disallowedReferences = [ kernel.dev ] which breaks on aarch64
+      linuxPackages = prev.linuxPackages.extend (lpfinal: lpprev: {
+        nvidia_x11 = lpprev.nvidia_x11.overrideAttrs (old: {
+          disallowedReferences = [];
+        });
+      });
     };
   };
 }

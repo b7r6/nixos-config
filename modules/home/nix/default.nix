@@ -1,9 +1,8 @@
-{
-  flake,
-  config,
-  lib,
-  pkgs,
-  ...
+{ flake
+, config
+, lib
+, pkgs
+, ...
 }:
 let
   cfg = config.hyper-modern-nixos.nix;

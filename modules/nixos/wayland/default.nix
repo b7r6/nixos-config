@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                       // hyper-modern-nixos // nixos/wayland
+#                                      // hyper-modern-nixos // nixos // wayland
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # Consolidated Wayland + XDG Portal configuration for Hyprland
@@ -11,11 +11,10 @@
 #   - Qt apps follow GTK theme via qt5ct/qt6ct
 #   - Electron apps use native Wayland (NIXOS_OZONE_WL)
 #
-{
-  pkgs,
-  lib,
-  config,
-  ...
+{ pkgs
+, lib
+, config
+, ...
 }:
 
 let
@@ -64,6 +63,7 @@ in
   };
 
   config = mkIf cfg.enable {
+
     # ── Core Wayland packages ──────────────────────────────────────────────────
 
     environment.systemPackages = with pkgs; [
@@ -105,6 +105,7 @@ in
     ];
 
     # ── XDG Portal Configuration ───────────────────────────────────────────────
+
     #
     # Best practices for Hyprland:
     #   - Use xdg-desktop-portal-hyprland for Wayland-specific features
@@ -259,11 +260,13 @@ in
     fonts.fontconfig = {
       enable = true;
       antialias = true;
+
       hinting = {
         enable = true;
         autohint = false;
         style = "slight";
       };
+
       subpixel = {
         # For OLED, disable subpixel (it causes color fringing)
         rgba = "none";

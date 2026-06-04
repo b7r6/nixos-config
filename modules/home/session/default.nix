@@ -159,17 +159,14 @@ in
       # Disable legacy default config to silence warning
       enableDefaultConfig = false;
 
-      matchBlocks = {
+      settings = {
         "*" = {
-          forwardAgent = true;
-          extraOptions = {
-            AddKeysToAgent = "yes";
-            StrictHostKeyChecking = "accept-new";
-          };
+          ForwardAgent = "yes";
+          AddKeysToAgent = "yes";
+          StrictHostKeyChecking = "accept-new";
         };
-
         "github.com" = {
-          user = "git";
+          User = "git";
         };
       };
     };

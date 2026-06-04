@@ -78,6 +78,7 @@
   };
 
   # ── Per-host monitor & display config ──────────────────────────────────────
+
   home-manager.users.b7r6 = {
     hyper-modern-nixos = {
       hyprland.monitors = {

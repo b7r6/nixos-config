@@ -16,7 +16,7 @@ let
   # Import generated NVIDIA DGX configuration
   dgxKernelConfig = import ./kernel-configs/nvidia-dgx-spark-6.17.1.nix { inherit lib; };
 
-  nvidiaKernel = pkgs.linuxPackagesFor (
+  nvidiaKernelBase = pkgs.linuxPackagesFor (
     baseKernel.override {
       argsOverride = rec {
         # Use the NVIDIA kernel source
@@ -89,6 +89,26 @@ let
       };
     }
   );
+
+  # Apply overlay to fix nvidia driver allowedReferences issue when the
+  # NVIDIA kernel is in use. Disabled by default; enable alongside
+  # `hardware.dgx-spark.useNvidiaKernel = true`.
+  nvidiaKernel = nvidiaKernelBase.extend (
+    final: prev: {
+      nvidiaPackages = prev.nvidiaPackages // {
+        production = prev.nvidiaPackages.production.overrideAttrs (old: {
+          passthru = old.passthru // {
+            mod = prev.nvidiaPackages.production.mod.overrideAttrs (oldMod: {
+              allowedReferences = [
+                prev.kernel.dev
+                prev.kernel
+              ];
+            });
+          };
+        });
+      };
+    }
+  );
 in
 {
   options.hardware.dgx-spark = {
@@ -96,7 +116,7 @@ in
 
     useNvidiaKernel = mkOption {
       type = types.bool;
-      default = true;
+      default = false; # Temporarily disabled to test
       description = "Whether to use the NVIDIA kernel instead of the standard NixOS kernel";
     };
   };
@@ -165,19 +185,23 @@ in
       "coresight_etm4x" # ARM CoreSight debugging (can cause overhead on DGX)
     ];
 
-    # Enable NVIDIA open driver
+    # Enable NVIDIA driver
     services.xserver.videoDrivers = [ "nvidia" ];
+
     hardware.nvidia = {
       modesetting.enable = true;
-      open = true; # Use the open-source NVIDIA driver
+      # FIXME: nvidia-open has build issues on aarch64 with wrong ELF types
+      # Disabling open driver to use proprietary driver which has better aarch64 support
+      open = false; # Use the proprietary NVIDIA driver for now on aarch64
       nvidiaPersistenced = true;
       nvidiaSettings = true;
-      package = config.boot.kernelPackages.nvidiaPackages.production;
+      package = config.boot.kernelPackages.nvidia_x11;
     };
 
     hardware.enableRedistributableFirmware = true;
 
     nixpkgs.config.allowUnfree = true;
+
     # CUDA is managed via nvidia-sdk containers, not nixpkgs
     # nixpkgs.config.cudaSupport = true;
 
@@ -193,5 +217,6 @@ in
     };
 
     hardware.nvidia-container-toolkit.enable = lib.mkDefault true;
+
   };
 }

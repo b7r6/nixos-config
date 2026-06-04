@@ -84,6 +84,15 @@ in
 
   # Enable DGX Spark hardware support (custom NVIDIA kernel, watchdog, etc.)
   hardware.dgx-spark.enable = true;
+  # NOTE: useNvidiaKernel=true (6.17.1 NVIDIA kernel) is broken until nixpkgs/HM
+  # fix the nvidia-kernel-modules allowedReferences issue for non-default kernels.
+  # The standard kernel works fine — it includes r8127 for the on-board 10GbE.
+  hardware.dgx-spark.useNvidiaKernel = false;
+
+  # nvidia-container-toolkit's CDI generator fails on this host (driver/library
+  # version mismatch with the standard kernel); keep the package available but
+  # don't try to generate specs at boot.
+  hardware.nvidia-container-toolkit.enable = false;
 
   # Use podman instead of docker for NVIDIA containers on DGX Spark
   hyper-modern-nixos.docker.enable = false;

@@ -7,6 +7,7 @@ in
   imports = [
     inputs.agenix.homeManagerModules.default
     inputs.impurity.nixosModules.default
+
     # impermanence home-manager module is auto-imported by nixos module now
     self.homeModules.default
   ];
@@ -23,4 +24,5 @@ in
   # TODO[b7r6]: this probably belongs in a central place
   nix.nixPath = [ "nixpkgs=${inputs.nixpkgs}" ];
   home.stateVersion = "25.05";
+  home.enableNixpkgsReleaseCheck = false;
 }
