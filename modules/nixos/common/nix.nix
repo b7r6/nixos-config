@@ -42,12 +42,24 @@ in
       linuxPackages = prev.linuxPackages.extend (lpfinal: lpprev: {
         nvidia_x11 = lpprev.nvidia_x11.overrideAttrs (old: {
           disallowedReferences = [];
+          # Also override the kernel modules
+          passthru = old.passthru // {
+            kernelModule = old.passthru.kernelModule.overrideAttrs (moduleOld: {
+              disallowedReferences = [];
+            });
+          };
         });
       });
 
       linuxPackages_latest = prev.linuxPackages_latest.extend (lpfinal: lpprev: {
         nvidia_x11 = lpprev.nvidia_x11.overrideAttrs (old: {
           disallowedReferences = [];
+          # Also override the kernel modules
+          passthru = old.passthru // {
+            kernelModule = old.passthru.kernelModule.overrideAttrs (moduleOld: {
+              disallowedReferences = [];
+            });
+          };
         });
       });
     })

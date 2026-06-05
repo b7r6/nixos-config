@@ -93,9 +93,11 @@ let
 
   # Apply overlay to fix nvidia driver disallowedReferences issue
   nvidiaKernel = nvidiaKernelBase.extend (final: prev: {
-    nvidia_x11 = prev.nvidia_x11.overrideAttrs (old: {
-      disallowedReferences = [];
-    });
+    nvidia_x11 = import ./nvidia-modules-fixed.nix {
+      inherit (prev) kernel;
+      inherit (pkgs) stdenv;
+      nvidia_x11 = prev.nvidia_x11;
+    };
   });
 in
 {
@@ -104,7 +106,7 @@ in
 
     useNvidiaKernel = mkOption {
       type = types.bool;
-      default = true;
+      default = false; # Temporarily disabled to test
       description = "Whether to use the NVIDIA kernel instead of the standard NixOS kernel";
     };
   };
@@ -205,5 +207,6 @@ in
     };
 
     hardware.nvidia-container-toolkit.enable = lib.mkDefault true;
+
   };
 }
