@@ -63,7 +63,7 @@
     nixos-generators.url = "github:nix-community/nixos-generators";
     nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
 
-    nix-compile.url = "git+ssh://git@github.com/straylight-software/nix-compile?ref=dev";
+    nix-compile.url = "github:sensenet-ai/nix-compile";
     nix-compile.inputs.nixpkgs.follows = "nixpkgs";
   };
 }
