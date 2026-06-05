@@ -107,7 +107,8 @@ in
     # NOTE: The standard NixOS kernel does not include the r8127 driver for the
     # Realtek RTL8127 10GbE controller. You will need to build and load r8127 as
     # an out-of-tree module separately for working Ethernet with the standard kernel.
-    boot.kernelPackages = if cfg.useNvidiaKernel then nvidiaKernel else pkgs.linuxPackages_latest;
+    # FIXME: Temporarily use standard kernel to debug nvidia driver issues
+    boot.kernelPackages = pkgs.linuxPackages_latest; # if cfg.useNvidiaKernel then nvidiaKernel else pkgs.linuxPackages_latest;
 
     boot.kernelParams = [
       # TH500 early console - REQUIRED for any output before full driver init
