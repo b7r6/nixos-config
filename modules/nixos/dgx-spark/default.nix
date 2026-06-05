@@ -15,7 +15,7 @@ let
   # Import generated NVIDIA DGX configuration
   dgxKernelConfig = import ./kernel-configs/nvidia-dgx-spark-6.17.1.nix { inherit lib; };
 
-  nvidiaKernel = pkgs.linuxPackagesFor (
+  nvidiaKernelBase = pkgs.linuxPackagesFor (
     baseKernel.override {
       argsOverride = rec {
         # Use the NVIDIA kernel source
@@ -90,6 +90,13 @@ let
       };
     }
   );
+
+  # Apply overlay to fix nvidia driver disallowedReferences issue
+  nvidiaKernel = nvidiaKernelBase.extend (final: prev: {
+    nvidia_x11 = prev.nvidia_x11.overrideAttrs (old: {
+      disallowedReferences = [];
+    });
+  });
 in
 {
   options.hardware.dgx-spark = {
@@ -152,10 +159,10 @@ in
       "usbhid"
       "hid_generic"
       "uas"
-      # NVIDIA GPU modules disabled until driver issues are resolved
-      # "nvidia"
-      # "nvidia-modeset"
-      # "nvidia-drm"
+      # NVIDIA GPU (for modeset)
+      "nvidia"
+      "nvidia-modeset"
+      "nvidia-drm"
       # ConnectX-7 networking
       "mlx5_core"
     ];
@@ -167,11 +174,9 @@ in
     ];
 
     # Enable NVIDIA driver
-    services.xserver.videoDrivers = lib.mkDefault [ "modesetting" ]; # Use modesetting for now
+    services.xserver.videoDrivers = [ "nvidia" ];
 
-    # Temporarily disable nvidia driver to get ethernet working
-    # TODO: Fix nvidia driver compatibility with custom kernel
-    hardware.nvidia = lib.mkIf false {
+    hardware.nvidia = {
       modesetting.enable = true;
       # FIXME: nvidia-open has build issues on aarch64 with wrong ELF types
       # Disabling open driver to use proprietary driver which has better aarch64 support
@@ -199,7 +204,6 @@ in
       defaultNetwork.settings.dns_enabled = lib.mkDefault true;
     };
 
-    # Disabled while nvidia drivers are disabled
-    hardware.nvidia-container-toolkit.enable = lib.mkDefault false;
+    hardware.nvidia-container-toolkit.enable = lib.mkDefault true;
   };
 }

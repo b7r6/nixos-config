@@ -54,6 +54,14 @@
             })
         else
           prev.agenix or null;
+
+      # Fix nvidia driver disallowedReferences issue on aarch64
+      # The nvidia-x11 package has disallowedReferences = [ kernel.dev ] which breaks on aarch64
+      linuxPackages = prev.linuxPackages.extend (lpfinal: lpprev: {
+        nvidia_x11 = lpprev.nvidia_x11.overrideAttrs (old: {
+          disallowedReferences = [];
+        });
+      });
     };
   };
 }

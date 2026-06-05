@@ -35,4 +35,21 @@ in
 
   nixpkgs.config.allowUnfree = true;
 
+  nixpkgs.overlays = [
+    # Fix nvidia driver disallowedReferences issue on aarch64
+    (_final: prev: {
+      # The nvidia-x11 package has disallowedReferences = [ kernel.dev ] which breaks on aarch64
+      linuxPackages = prev.linuxPackages.extend (lpfinal: lpprev: {
+        nvidia_x11 = lpprev.nvidia_x11.overrideAttrs (old: {
+          disallowedReferences = [];
+        });
+      });
+
+      linuxPackages_latest = prev.linuxPackages_latest.extend (lpfinal: lpprev: {
+        nvidia_x11 = lpprev.nvidia_x11.overrideAttrs (old: {
+          disallowedReferences = [];
+        });
+      });
+    })
+  ];
 }
