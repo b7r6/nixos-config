@@ -107,8 +107,7 @@ in
     # NOTE: The standard NixOS kernel does not include the r8127 driver for the
     # Realtek RTL8127 10GbE controller. You will need to build and load r8127 as
     # an out-of-tree module separately for working Ethernet with the standard kernel.
-    # FIXME: Temporarily use standard kernel to debug nvidia driver issues
-    boot.kernelPackages = pkgs.linuxPackages_latest; # if cfg.useNvidiaKernel then nvidiaKernel else pkgs.linuxPackages_latest;
+    boot.kernelPackages = if cfg.useNvidiaKernel then nvidiaKernel else pkgs.linuxPackages_latest;
 
     boot.kernelParams = [
       # TH500 early console - REQUIRED for any output before full driver init
@@ -153,10 +152,10 @@ in
       "usbhid"
       "hid_generic"
       "uas"
-      # NVIDIA GPU (for modeset)
-      "nvidia"
-      "nvidia-modeset"
-      "nvidia-drm"
+      # NVIDIA GPU modules disabled until driver issues are resolved
+      # "nvidia"
+      # "nvidia-modeset"
+      # "nvidia-drm"
       # ConnectX-7 networking
       "mlx5_core"
     ];
@@ -168,9 +167,11 @@ in
     ];
 
     # Enable NVIDIA driver
-    services.xserver.videoDrivers = [ "nvidia" ];
+    services.xserver.videoDrivers = lib.mkDefault [ "modesetting" ]; # Use modesetting for now
 
-    hardware.nvidia = {
+    # Temporarily disable nvidia driver to get ethernet working
+    # TODO: Fix nvidia driver compatibility with custom kernel
+    hardware.nvidia = lib.mkIf false {
       modesetting.enable = true;
       # FIXME: nvidia-open has build issues on aarch64 with wrong ELF types
       # Disabling open driver to use proprietary driver which has better aarch64 support
@@ -198,6 +199,7 @@ in
       defaultNetwork.settings.dns_enabled = lib.mkDefault true;
     };
 
-    hardware.nvidia-container-toolkit.enable = lib.mkDefault true;
+    # Disabled while nvidia drivers are disabled
+    hardware.nvidia-container-toolkit.enable = lib.mkDefault false;
   };
 }
