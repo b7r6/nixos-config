@@ -166,12 +166,14 @@ in
       "coresight_etm4x" # ARM CoreSight debugging (can cause overhead on DGX)
     ];
 
-    # Enable NVIDIA open driver
+    # Enable NVIDIA driver
     services.xserver.videoDrivers = [ "nvidia" ];
 
     hardware.nvidia = {
       modesetting.enable = true;
-      open = true; # Use the open-source NVIDIA driver
+      # FIXME: nvidia-open has build issues on aarch64 with wrong ELF types
+      # Disabling open driver to use proprietary driver which has better aarch64 support
+      open = false; # Use the proprietary NVIDIA driver for now on aarch64
       nvidiaPersistenced = true;
       nvidiaSettings = true;
       package = config.boot.kernelPackages.nvidiaPackages.production;
