@@ -4,11 +4,10 @@
 #
 # DGX Spark (GB10 Grace Blackwell) - Primary inference development workstation
 #
-{
-  config,
-  pkgs,
-  lib,
-  ...
+{ config
+, pkgs
+, lib
+, ...
 }:
 let
   libraries = with pkgs; [
@@ -82,6 +81,8 @@ in
 
   networking.hostName = "shimmer";
 
+  time.timeZone = "America/Puerto_Rico";
+
   # Enable DGX Spark hardware support (custom NVIDIA kernel, watchdog, etc.)
   hardware.dgx-spark.enable = true;
   # NOTE: useNvidiaKernel=true (6.17.1 NVIDIA kernel) is broken until nixpkgs/HM
@@ -119,12 +120,12 @@ in
     inherit libraries;
   };
 
-  system.activationScripts.nix-ld-cache = ''
-    if [ -e /run/current-system/sw/bin/ldconfig ]; then
-      echo "Updating nix-ld cache..."
-      /run/current-system/sw/bin/ldconfig || true
-    fi
-  '';
+  # system.activationScripts.nix-ld-cache = ''
+  #   if [ -e /run/current-system/sw/bin/ldconfig ]; then
+  #     echo "Updating nix-ld cache..."
+  #     /run/current-system/sw/bin/ldconfig || true
+  #   fi
+  # '';
 
   environment.sessionVariables = {
     NIX_LD_LIBRARY_PATH = lib.mkForce (lib.makeLibraryPath libraries);
