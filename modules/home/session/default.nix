@@ -58,6 +58,7 @@ in
       userDirs = {
         enable = true;
         createDirectories = true;
+        setSessionVariables = false;
 
         # Standard XDG directories
         desktop = "${config.home.homeDirectory}/Desktop";
@@ -159,17 +160,14 @@ in
       # Disable legacy default config to silence warning
       enableDefaultConfig = false;
 
-      matchBlocks = {
+      settings = {
         "*" = {
-          forwardAgent = true;
-          extraOptions = {
-            AddKeysToAgent = "yes";
-            StrictHostKeyChecking = "accept-new";
-          };
+          ForwardAgent = true;
+          AddKeysToAgent = "yes";
+          StrictHostKeyChecking = "accept-new";
         };
-
         "github.com" = {
-          user = "git";
+          User = "git";
         };
       };
     };

@@ -78,7 +78,7 @@
     };
 
     # LLM/AI tools
-    llm.enable = false;
+    llm.enable = true;
 
     # Nix development
     nix.enable = true;
@@ -179,24 +179,7 @@
         "tailscale-systray"
       ];
 
-      windowRules = [
-        {
-          match = "class:^(brave|Brave)$";
-          rules = [ "workspace 4" ];
-        }
-        {
-          match = "class:^(firefox)$";
-          rules = [ "workspace 5" ];
-        }
-        {
-          match = "class:^(discord|Discord)$";
-          rules = [ "workspace 6" ];
-        }
-        {
-          match = "class:^(Spotify|spotify)$";
-          rules = [ "workspace 10" ];
-        }
-      ];
+      windowRules = [ ];
 
       plugins.hy3.enable = true;
     };

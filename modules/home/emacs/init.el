@@ -882,17 +882,25 @@
     (doom-modeline-mode 1) (force-mode-line-update t)))
 
 (defun hypermodern/ui--apply-glow ()
+
   (let* ((palette (hypermodern/get-palette hypermodern/current-theme))
          (bg (or (plist-get palette :base00) "#000000"))
          (accent (hypermodern/ui--accent-color))
          (a (hypermodern/ui--glow-alpha))
          (halo (and (> a 0.0) (hypermodern/ui--color-blend accent bg a)))
-         (cursor (pcase hypermodern/ui-glow-level ('off nil) ('subtle (hypermodern/ui--color-blend accent bg 0.85)) ('neon accent) (_ nil))))
+         (cursor (pcase hypermodern/ui-glow-level
+                   ('off nil)
+                   ('subtle (hypermodern/ui--color-blend accent bg 0.85))
+                   ('neon accent)
+                   (_ nil))))
+
     (when (and (display-graphic-p) halo)
       (when (facep 'internal-border) (set-face-background 'internal-border halo))
       (when (facep 'fringe) (set-face-background 'fringe (hypermodern/ui--color-blend halo bg 0.55))))
+
     (when cursor
-      (ignore-errors (set-face-background 'cursor cursor) (set-cursor-color cursor)))))
+      (ignore-errors (set-face-background 'cursor cursor) (set-cursor-color cursor))))
+  )
 
 ;; pulse system
 (defvar hypermodern/ui--pulse-hook-installed nil)
@@ -904,6 +912,7 @@
              (bg (plist-get palette :base00))
              (accent (hypermodern/ui--accent-color))
              (pulse-color (hypermodern/ui--color-blend accent bg 0.15)))
+
         (when pulse-color
           (let ((_pulse-iterations 8)
                 (_pulse-delay 0.04))
@@ -924,6 +933,7 @@
 (defun hypermodern/reinit-vertical-divider (&optional _sync-with-mode-line)
   "Modern, non-destructive dividers. GUI uses window-divider; TTY uses │."
   (interactive "P")
+
   ;; GUI: thin dividers using built-ins
   (when (display-graphic-p)
     (setq window-divider-default-right-width 1
@@ -942,13 +952,19 @@
 (defun hypermodern/ui-apply ()
   "Apply all UI settings."
   (interactive)
+
   (hypermodern/ui--apply-density)
   (hypermodern/ui--apply-fonts)
   (hypermodern/ui--apply-transparency)
   (hypermodern/ui--apply-modeline)
   (hypermodern/ui--apply-glow)
+
   (hypermodern/reinit-vertical-divider)
-  (if hypermodern/ui-enable-pulse (hypermodern/ui--pulse-enable) (hypermodern/ui--pulse-disable))
+
+  (if hypermodern/ui-enable-pulse
+      (hypermodern/ui--pulse-enable)
+    (hypermodern/ui--pulse-disable))
+
   (when (and hypermodern/ui-enable-dim (require 'dimmer nil 'noerror))
     (setq dimmer-fraction 0.20) (dimmer-mode 1)))
 
@@ -964,24 +980,30 @@
 
 (defun hypermodern/toggle-dark-light ()
   (interactive)
+
   (if (eq 'dark (hypermodern/theme-variant hypermodern/current-theme))
       (hypermodern/apply-theme 'maas-neoform)
     (hypermodern/apply-theme 'ono-sendai-razorgirl))
+
   (hypermodern/ui-apply))
 
 (defun hypermodern/cycle-theme ()
   (interactive)
+
   (let* ((all (mapcar #'car hypermodern/palettes))
          (pos (seq-position all hypermodern/current-theme))
          (next (mod (1+ (or pos -1)) (length all))))
     (hypermodern/apply-theme (nth next all))
+
     (hypermodern/ui-apply)))
 
 (defun hypermodern/ui-style ()
   (interactive)
+
   (let* ((names (mapcar (lambda (p) (plist-get p :name)) hypermodern/ui--style-presets))
          (choice (completing-read "Style: " names nil t))
          (preset (seq-find (lambda (p) (string= (plist-get p :name) choice)) hypermodern/ui--style-presets)))
+
     (when preset
       (when (plist-member preset :theme) (hypermodern/apply-theme (plist-get preset :theme)))
       (when (plist-member preset :density) (setq hypermodern/ui-density (plist-get preset :density)))
@@ -990,16 +1012,19 @@
       (when (plist-member preset :pulse) (setq hypermodern/ui-enable-pulse (plist-get preset :pulse)))
       (when (plist-member preset :dim) (setq hypermodern/ui-enable-dim (plist-get preset :dim)))
       (when (plist-member preset :trans) (setq hypermodern/ui-enable-transparency (plist-get preset :trans))))
+
     (hypermodern/ui-apply)))
 
 (defun hypermodern/ui-toggle-glow ()
   (interactive)
+
   (setq hypermodern/ui-glow-level (pcase hypermodern/ui-glow-level ('off 'subtle) ('subtle 'neon) (_ 'off)))
   (hypermodern/ui-apply)
   (message "Glow: %s" hypermodern/ui-glow-level))
 
 (defun hypermodern/ui-toggle-pulse ()
   (interactive)
+
   (setq hypermodern/ui-enable-pulse (not hypermodern/ui-enable-pulse))
   (hypermodern/ui-apply)
   (message "Pulse: %s" (if hypermodern/ui-enable-pulse "on" "off")))
@@ -1009,7 +1034,7 @@
   (call-interactively 'hypermodern/ui-style))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // disable // flymake // squiggles
+;;                                  // disable // flymake // squiggles
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ;; Disable flymake globally
@@ -1045,8 +1070,9 @@
       cursor-in-non-selected-windows nil
       resize-mini-windows 'grow-only)
 
-(setq-default indent-tabs-mode nil
-              tab-width 2)
+(setq-default
+ indent-tabs-mode nil
+ tab-width 2)
 
 (menu-bar-mode -1)
 (tool-bar-mode -1)
@@ -1063,7 +1089,7 @@
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ;; ── Shackle: No popup without permission ───────────────────────────
-;; Controls WHERE buffers appear. Strict rules = no surprises.
+
 (use-package shackle
   :demand t
 
@@ -1178,9 +1204,11 @@
 (use-package popper
   :demand t
   :after shackle
-  :bind (("C-\\"   . popper-toggle)       ; Toggle last popup
-         ("C-M-\\" . popper-cycle)        ; Cycle through popups
-         ("C-c \\" . popper-kill-latest)) ; Kill popup
+
+  :bind (("C-\\"   . popper-toggle)       ; toggle last popup
+         ("C-M-\\" . popper-cycle)        ; cycle through popups
+         ("C-c \\" . popper-kill-latest)) ; kill popup
+
   :init
   (setq popper-reference-buffers
         '(;; By mode
@@ -1218,13 +1246,13 @@
           "\\*Lean Goals\\*"
           "\\*Lean Info\\*"
           "COMMIT_EDITMSG"))
+
   :config
-  ;; Let shackle control placement
-  (setq popper-display-control nil)
+  (setq popper-display-control nil) ;; n.b. let shackle control placement...
   (popper-mode 1))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // window // movement
+;;                                               // window // movement
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (defun hypermodern/hsplit ()
@@ -1247,12 +1275,13 @@
         (set-window-buffer (nth i windows) (nth (mod (1+ i) n) buffers))))))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // mode // line
+;;                                                     // mode // line
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (use-package doom-modeline
   :demand t
   :hook (after-init . doom-modeline-mode)
+
   :config
   (setq doom-modeline-height 20
         doom-modeline-bar-width 3
@@ -1265,6 +1294,7 @@
 
 (defun hypermodern/gptel--netrc-get (host)
   "Get password for HOST from netrc via auth-source."
+
   (require 'auth-source)
 
   (when-let ((found (car (auth-source-search :host host :max 1))))
@@ -1276,6 +1306,7 @@
 
 (defun hypermodern/gptel--passage-get (entry)
   "Get secret from passage store for ENTRY."
+
   (let ((result (string-trim
                  (shell-command-to-string
                   (format "passage show %s 2>/dev/null" entry)))))
@@ -1313,6 +1344,7 @@ Passage insert is broken when age isn't in PATH, so we use rage."
 2. passage:api/openrouter-emacs (provisioned keys)
 3. netrc:fuck.yuou.openrouter.ai
 4. OPENROUTER_API_KEY env var"
+
   (or hypermodern/gptel--current-key
       (setq hypermodern/gptel--current-key
             (or (hypermodern/gptel--passage-get "api/openrouter-emacs")
@@ -2161,7 +2193,7 @@ When you've completed the task or need clarification, say so clearly.")
   (company-prescient-mode 1))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // company
+;;                                                          // company
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (use-package company
@@ -2650,7 +2682,7 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
          ("\\.BUILD\\'" . bazel-mode)))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // formatting
+;;                                                       // formatting
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (defun hypermodern/format-buffer ()
@@ -2863,7 +2895,7 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
   (add-hook 'marginalia-mode-hook #'nerd-icons-completion-marginalia-setup))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                                         // COMINT // ANSI // COLORS
+;;                                         // comint // asni // colors
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (add-hook 'comint-preoutput-filter-functions 'ansi-color-process-output)
@@ -2985,6 +3017,7 @@ Moves to end of current line, deletes newline, and collapses whitespace."
     (delete-indentation 1))
 
   (general-define-key
+
    ;; editing essentials
    "M-/" #'undo
    "C-c q" #'join-line

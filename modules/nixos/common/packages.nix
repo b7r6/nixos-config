@@ -1,6 +1,7 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                           // hyper-modern-nixos // packages
+#                                              // hyper-modern-nixos // packages
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 #
 # System-wide packages available to all users.
 #
@@ -10,6 +11,7 @@
 
   environment.systemPackages = with pkgs; [
     # ── Core utilities ────────────────────────────────────────────────────────
+
     cacert
     curl
     wget
@@ -21,10 +23,12 @@
     jq
 
     # ── Editors ───────────────────────────────────────────────────────────────
+
     vim
     neovim
 
     # ── Modern CLI tools ──────────────────────────────────────────────────────
+
     bat
     btop
     fd
@@ -38,19 +42,22 @@
     tmux
 
     # ── System tools ──────────────────────────────────────────────────────────
+
     home-manager
     dbus
     dconf
     pciutils
 
     # ── Python ────────────────────────────────────────────────────────────────
-    # python312 -- disabled: doc output broken upstream (docutils 0.22.4 + sphinx)
-    python313
+
+    python312
 
     # ── GPU monitoring ────────────────────────────────────────────────────────
+
     nvtopPackages.nvidia
 
     # ── Network analysis ──────────────────────────────────────────────────────
+
     wireshark
     wireshark-cli
   ];

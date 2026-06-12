@@ -77,7 +77,7 @@
     LC_TIME = "en_US.UTF-8";
   };
 
-  # ── Per-host monitor & display config ──────────────────────────────────────
+  # ── Per-host display config ────────────────────────────────────────────────
 
   home-manager.users.b7r6 = {
     hyper-modern-nixos = {
@@ -85,7 +85,7 @@
         left = {
           description = "ASUSTek COMPUTER INC PG32UCDP SCLMQS022729";
           resolution = "3840x2160";
-          refreshRate = 240;
+          refreshRate = 120;
           position = "0x0";
           scale = 1.5;
           workspaces = [
@@ -95,12 +95,11 @@
             4
             5
           ];
-          primary = true;
         };
-        right = {
+        center = {
           description = "ASUSTek COMPUTER INC PG32UCDP T1LMQS044820";
           resolution = "3840x2160";
-          refreshRate = 240;
+          refreshRate = 120;
           position = "2560x0";
           scale = 1.5;
           workspaces = [
@@ -109,6 +108,21 @@
             8
             9
             10
+          ];
+          primary = true;
+        };
+        right = {
+          description = "LG Electronics LG ULTRAGEAR+ 502NTMX7E483";
+          resolution = "3840x2160";
+          refreshRate = 144;
+          position = "5120x0";
+          scale = 1.5;
+          workspaces = [
+            11
+            12
+            13
+            14
+            15
           ];
         };
       };

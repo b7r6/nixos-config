@@ -97,6 +97,11 @@ in
         font-size = cfg.font.size;
         font-feature = cfg.font.features;
 
+        # Cursor
+        cursor-style = "block";
+        cursor-style-blink = true;
+        # shell-integration-features = [ "no-cursor" ]; # uncomment to keep block at shell prompts
+
         # Padding
         window-padding-x = cfg.padding;
         window-padding-y = cfg.padding;

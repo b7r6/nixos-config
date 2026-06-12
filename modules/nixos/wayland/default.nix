@@ -11,10 +11,11 @@
 #   - Qt apps follow GTK theme via qt5ct/qt6ct
 #   - Electron apps use native Wayland (NIXOS_OZONE_WL)
 #
-{ pkgs
-, lib
-, config
-, ...
+{
+  pkgs,
+  lib,
+  config,
+  ...
 }:
 
 let

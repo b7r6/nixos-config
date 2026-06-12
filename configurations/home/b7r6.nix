@@ -1,4 +1,4 @@
-{ flake, ... }:
+{ flake, lib, ... }:
 let
   inherit (flake) inputs;
   inherit (inputs) self;
@@ -8,8 +8,12 @@ in
     inputs.agenix.homeManagerModules.default
     inputs.impurity.nixosModules.default
 
-    # impermanence home-manager module is auto-imported by nixos module now
     self.homeModules.default
+
+    # nh home switch evaluates standalone, so per-machine monitors must be
+    # imported here too. See configurations/nixos/<host>/configuration.nix
+    # for the equivalent NixOS-level override.
+    ./monitors/ultraviolence.nix
   ];
 
   # impurity.nix - set configRoot, enable via -impure variant

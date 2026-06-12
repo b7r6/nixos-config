@@ -1,9 +1,11 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #                                              // hyper-modern-nixos // hyprland
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 #
 # Hyprland window manager configuration with high-level abstractions.
 #
+
 { flake
 , config
 , lib
@@ -309,10 +311,12 @@ in
     enable = mkEnableOption "Hyprland window manager";
 
     # ── Monitors ──────────────────────────────────────────────────────────────
+
     monitors = mkOption {
       type = types.attrsOf monitorType;
       default = { };
       description = "Monitor configurations";
+
       example = {
         left = {
           description = "ASUSTek COMPUTER INC PG32UCDP SCLMQS022729";
@@ -371,6 +375,7 @@ in
     };
 
     # ── Window Rules ──────────────────────────────────────────────────────────
+
     windowRules = mkOption {
       type = types.listOf windowRuleType;
       default = [ ];
@@ -391,6 +396,7 @@ in
     };
 
     # ── Autostart ─────────────────────────────────────────────────────────────
+
     autostart = mkOption {
       type = types.listOf types.str;
       default = [
@@ -403,6 +409,7 @@ in
     };
 
     # ── Keybinding Preset ─────────────────────────────────────────────────────
+
     keybindings = {
       preset = mkOption {
         type = types.enum [
@@ -428,6 +435,7 @@ in
     };
 
     # ── Plugins ───────────────────────────────────────────────────────────────
+
     plugins = {
       hy3.enable = mkOption {
         type = types.bool;
@@ -437,6 +445,7 @@ in
     };
 
     # ── Advanced ──────────────────────────────────────────────────────────────
+
     extraConfig = mkOption {
       type = types.attrsOf types.anything;
       default = { };
@@ -449,6 +458,7 @@ in
 
     wayland.windowManager.hyprland = {
       enable = true;
+      configType = "hyprlang";
       systemd.enable = true;
       package = pkgs.hyprland;
 
@@ -457,13 +467,16 @@ in
       settings = mkMerge [
         {
           # ── Monitors ────────────────────────────────────────────────────────
+
           monitor = mapAttrsToList mkMonitorConfig cfg.monitors;
           workspace = mkWorkspaceBindings cfg.monitors;
 
           # ── Autostart ───────────────────────────────────────────────────────
+
           exec-once = cfg.autostart;
 
           # ── General ─────────────────────────────────────────────────────────
+
           general = {
             border_size = cfg.appearance.border.size;
             gaps_in = cfg.appearance.gaps.inner;
@@ -477,6 +490,7 @@ in
           };
 
           # ── Decoration ──────────────────────────────────────────────────────
+
           decoration = {
             rounding = cfg.appearance.border.radius;
 
@@ -495,13 +509,14 @@ in
           };
 
           # ── Animations ──────────────────────────────────────────────────────
+
           animations = {
             enabled = cfg.appearance.animations.enable;
 
             bezier = [
-              "easeOutQuint, 0.22, 1, 0.36, 1"
+              "easeOutQuint,   0.22, 1, 0.36, 1"
               "easeInOutQuint, 0.83, 0, 0.17, 1"
-              "easeOutExpo, 0.16, 1, 0.3, 1"
+              "easeOutExpo,    0.16, 1, 0.3,  1"
             ];
 
             animation =
@@ -509,16 +524,17 @@ in
                 speed = animationSpeed.${cfg.appearance.animations.speed};
               in
               [
-                "windows, 1, ${toString speed}, easeOutExpo, popin 80%"
-                "windowsOut, 1, ${toString speed}, easeOutExpo, popin 80%"
-                "border, 1, ${toString (speed + 2)}, easeOutQuint"
-                "fade, 1, ${toString speed}, easeInOutQuint"
-                "workspaces, 1, ${toString speed}, easeOutExpo, slide"
-                "specialWorkspace, 1, ${toString speed}, easeOutExpo, slidevert"
+                "windows,          1, ${toString speed},       easeOutExpo, popin 80%"
+                "windowsOut,       1, ${toString speed},       easeOutExpo, popin 80%"
+                "border,           1, ${toString (speed + 2)}, easeOutQuint"
+                "fade,             1, ${toString speed},       easeInOutQuint"
+                "workspaces,       1, ${toString speed},       easeOutExpo, slide"
+                "specialWorkspace, 1, ${toString speed},       easeOutExpo, slidevert"
               ];
           };
 
           # ── Input ───────────────────────────────────────────────────────────
+
           input = {
             kb_layout = cfg.input.keyboard.layout;
             kb_options = cfg.input.keyboard.options;
@@ -537,6 +553,7 @@ in
           };
 
           # ── Gestures ────────────────────────────────────────────────────────
+
           gestures = {
             # workspace_swipe = true;
             # workspace_swipe_fingers = 3;
@@ -546,6 +563,7 @@ in
           };
 
           # ── Misc ────────────────────────────────────────────────────────────
+
           misc = {
             force_default_wallpaper = 0;
             animate_mouse_windowdragging = false;
@@ -555,13 +573,13 @@ in
             focus_on_activate = true;
             disable_hyprland_logo = true;
             disable_splash_rendering = true;
-            vfr = true;
             vrr = 1;
             mouse_move_enables_dpms = true;
             key_press_enables_dpms = true;
           };
 
           # ── hy3 Plugin ──────────────────────────────────────────────────────
+
           "plugin:hy3" = mkIf cfg.plugins.hy3.enable {
             tabs = {
               height = 20;
@@ -586,6 +604,7 @@ in
           };
 
           # ── Variables ───────────────────────────────────────────────────────
+
           "$mod" = cfg.keybindings.mod;
           "$alt" = "ALT";
           "$terminal" = cfg.apps.terminal;
@@ -595,6 +614,7 @@ in
           "$lockScreen" = cfg.apps.lockScreen;
 
           # ── Keybindings ─────────────────────────────────────────────────────
+
           bind =
             let
               # Navigation keys based on preset
@@ -606,12 +626,14 @@ in
                     up = "K";
                     right = "L";
                   };
+
                   emacs = {
                     left = "B";
                     down = "N";
                     up = "P";
                     right = "F";
                   };
+
                   arrows = {
                     left = "Left";
                     down = "Down";
@@ -626,6 +648,7 @@ in
             in
             [
               # ── Core ──────────────────────────────────────────────────────
+
               "$mod, Return, exec, $terminal"
               "$mod, E, exec, $fileManager"
               "$mod, W, exec, $browser"
@@ -635,6 +658,7 @@ in
               "$mod, Escape, exec, $lockScreen"
 
               # ── Window States ─────────────────────────────────────────────
+
               "$mod, F, fullscreen, 0"
               "$mod SHIFT, F, fullscreen, 1"
               "$mod, D, togglefloating"
@@ -642,18 +666,21 @@ in
               "$mod, C, centerwindow"
 
               # ── Navigation ────────────────────────────────────────────────
+
               "$mod, ${nav.left}, ${moveFocus "l"}"
               "$mod, ${nav.right}, ${moveFocus "r"}"
               "$mod, ${nav.up}, ${moveFocus "u"}"
               "$mod, ${nav.down}, ${moveFocus "d"}"
 
               # ── Move Windows ──────────────────────────────────────────────
+
               "$mod SHIFT, ${nav.left}, ${moveWindow "l"}"
               "$mod SHIFT, ${nav.right}, ${moveWindow "r"}"
               "$mod SHIFT, ${nav.up}, ${moveWindow "u"}"
               "$mod SHIFT, ${nav.down}, ${moveWindow "d"}"
 
               # ── Resize Windows ────────────────────────────────────────────
+
               "$mod $alt, ${nav.left}, resizeactive, -30 0"
               "$mod $alt, ${nav.right}, resizeactive, 30 0"
               "$mod $alt, ${nav.up}, resizeactive, 0 -30"
@@ -681,6 +708,20 @@ in
               "$mod SHIFT, 8, movetoworkspace, 8"
               "$mod SHIFT, 9, movetoworkspace, 9"
               "$mod SHIFT, 0, movetoworkspace, 10"
+
+              # ── Workspaces 11-15 (right monitor) ───────────────────────
+
+              "$mod CTRL, 1, workspace, 11"
+              "$mod CTRL, 2, workspace, 12"
+              "$mod CTRL, 3, workspace, 13"
+              "$mod CTRL, 4, workspace, 14"
+              "$mod CTRL, 5, workspace, 15"
+
+              "$mod SHIFT CTRL, 1, movetoworkspace, 11"
+              "$mod SHIFT CTRL, 2, movetoworkspace, 12"
+              "$mod SHIFT CTRL, 3, movetoworkspace, 13"
+              "$mod SHIFT CTRL, 4, movetoworkspace, 14"
+              "$mod SHIFT CTRL, 5, movetoworkspace, 15"
 
               "$mod, Tab, workspace, m+1"
               "$mod SHIFT, Tab, workspace, m-1"
@@ -747,33 +788,35 @@ in
     };
 
     # ── Packages ──────────────────────────────────────────────────────────────
+
     home.packages = with pkgs; [
+      blueman
       brightnessctl
+      cliphist
       grim
       grimblast
       hyprpaper
       hyprpicker
       jq
       libnotify
+      networkmanagerapplet
       pamixer
       pavucontrol
       playerctl
       slurp
       swappy
       swaybg
-      wev
-      wl-clipboard
-      wlr-randr
-      cliphist
-      networkmanagerapplet
       swayidle
       wdisplays
-      wlsunset
+      wev
       wf-recorder
-      blueman
+      wl-clipboard
+      wlr-randr
+      wlsunset
     ];
 
     # ── Hyprpaper ─────────────────────────────────────────────────────────────
+
     xdg.configFile."hypr/hyprpaper.conf".text = ''
       preload = ~/.config/wallpaper.png
       wallpaper = ,~/.config/wallpaper.png

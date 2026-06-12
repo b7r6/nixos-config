@@ -159,9 +159,11 @@ in
       with pkgs;
       lib.flatten [
         (lib.optionals cfg.llm-cli.enable [
-          (python313.withPackages (ps: [
+          (python312.withPackages (ps: [
             ps.llm
             ps.llm-anthropic
+            ps.llm-deepseek
+            ps.llm-openrouter
             ps.typing-extensions
             ps.setuptools
           ]))

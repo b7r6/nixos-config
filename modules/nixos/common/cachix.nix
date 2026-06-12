@@ -17,11 +17,11 @@
     };
   };
 
-  services.cachix-agent = {
-    enable = true;
-
-    # TODO[b7r6]: configure vault...
-    # name = "your-cache-name";
-    # credentialsFile = "/etc/cachix-agent.token";
-  };
+  # services.cachix-agent = {
+  #   enable = true;
+  #
+  #   # TODO[b7r6]: configure vault...
+  #   # name = "your-cache-name";
+  #   # credentialsFile = "/etc/cachix-agent.token";
+  # };
 }

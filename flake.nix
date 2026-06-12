@@ -65,5 +65,7 @@
 
     nix-compile.url = "github:sensenet-ai/nix-compile";
     nix-compile.inputs.nixpkgs.follows = "nixpkgs";
+
+    nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
   };
 }

@@ -22,6 +22,8 @@ in
     programs.neovim = {
       enable = true;
       defaultEditor = cfg.defaultEditor;
+      withRuby = false;
+      withPython3 = false;
       viAlias = true;
       vimAlias = true;
     };

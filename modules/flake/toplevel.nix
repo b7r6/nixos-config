@@ -6,7 +6,7 @@
     inputs.nixos-unified.flakeModules.default
     inputs.nixos-unified.flakeModules.autoWire
     inputs.devshell.flakeModule
-    inputs.nix-compile.flakeModules.default
+    # inputs.nix-compile.flakeModules.default  # Not available in new sensenet-ai version
     ./fmt.nix
     ./themes
 
@@ -14,18 +14,15 @@
   ];
 
   # nix-compile static analysis configuration
-  nix-compile = {
-    enable = true;
-    profile = "strict";
-    layout = "none";
-
-    paths = [
-      "modules"
-      "configurations"
-    ];
-
-    pre-commit.enable = true;
-  };
+  # NOTE: New sensenet-ai/nix-compile version does not provide flakeModules
+  # Static analysis integration needs to be re-implemented manually if needed
+  # nix-compile = {
+  #   enable = false;
+  #   profile = "strict";
+  #   layout = "none";
+  #   paths = [ "modules" "configurations" ];
+  #   pre-commit.enable = true;
+  # };
 
   perSystem =
     { self'
@@ -43,7 +40,10 @@
           allowUnfreePredicate = _: true;
         };
 
-        overlays = [ inputs.devshell.overlays.default ];
+        overlays = [
+          inputs.devshell.overlays.default
+          inputs.nix-vscode-extensions.overlays.default
+        ];
       };
 
       devshells.default.imports = [ (pkgs.devshell.importTOML ../../devshell.toml) ];
