@@ -18,6 +18,19 @@ in
         "root"
         "@wheel"
       ];
+
+      # Binary caches. The private/broken weyl-ai + hyprland cachix caches were
+      # removed (they no longer work reliably); keep only the official NixOS
+      # cache and the reliable nix-community cache.
+      substituters = [
+        "https://cache.nixos.org"
+        "https://nix-community.cachix.org"
+      ];
+
+      trusted-public-keys = [
+        "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+        "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+      ];
     };
 
     gc = {
@@ -30,6 +43,12 @@ in
   nixpkgs.config.allowUnfree = true;
 
   nixpkgs.overlays = [
+    # Our own overlay (ragenix/agenix runtime-dep wrapping, inline-snapshot fix).
+    # Previously defined as `flake.overlays.default` but never applied anywhere;
+    # wiring it here makes it actually take effect on every NixOS system (and,
+    # via home-manager.useGlobalPkgs, on their home-manager pkgs too).
+    flake.self.overlays.default
+
     inputs.nix-vscode-extensions.overlays.default
     # python312 doc build broken (Sphinx/docutils 0.22 on py3.13)
     (

@@ -1,5 +1,4 @@
-{ inputs, self, ... }:
-{
+{ inputs, self, ... }: {
   debug = true;
 
   imports = [
@@ -8,6 +7,7 @@
     inputs.devshell.flakeModule
     # inputs.nix-compile.flakeModules.default  # Not available in new sensenet-ai version
     ./fmt.nix
+    ./overlays.nix
     ./themes
 
     # ./impure-variants.nix  # TODO: needs different approach to avoid recursion
@@ -25,11 +25,11 @@
   # };
 
   perSystem =
-    { self'
-    , config
-    , pkgs
-    , system
-    , ...
+    {
+      self',
+      pkgs,
+      system,
+      ...
     }:
     {
       _module.args.pkgs = import inputs.nixpkgs {
@@ -41,6 +41,13 @@
         };
 
         overlays = [
+          # Our overlay — this perSystem pkgs is what mkHomeConfiguration passes
+          # into standalone homeConfigurations (and what devshells/packages use),
+          # so applying it here gives standalone `nh home switch` the overlay
+          # WITHOUT setting home-manager nixpkgs.overlays (which warns under
+          # useGlobalPkgs). NixOS systems get it via modules/nixos/common/nix.nix.
+          self.overlays.default
+
           inputs.devshell.overlays.default
           inputs.nix-vscode-extensions.overlays.default
         ];
@@ -91,17 +98,13 @@
           usb-x86_64-minimal = inputs.nixos-generators.nixosGenerate {
             system = "x86_64-linux";
             format = "iso";
-            modules = [
-              "${self}/configurations/installer/x86_64-minimal.nix"
-            ];
+            modules = [ "${self}/configurations/installer/x86_64-minimal.nix" ];
           };
 
           usb-x86_64-gnome = inputs.nixos-generators.nixosGenerate {
             system = "x86_64-linux";
             format = "iso";
-            modules = [
-              "${self}/configurations/installer/x86_64-gnome.nix"
-            ];
+            modules = [ "${self}/configurations/installer/x86_64-gnome.nix" ];
           };
         })
       ];

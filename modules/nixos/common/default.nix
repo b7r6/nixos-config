@@ -4,8 +4,7 @@
 #
 # Common NixOS configuration shared across all hosts.
 #
-{ ... }:
-{
+{ ... }: {
   imports = [
     # Core system
     ./base.nix
@@ -38,7 +37,6 @@
     ./nix-ld.nix
 
     # Special
-    ./cachix.nix
     ./impermanence.nix
     ./impurity.nix
     ./xremap.nix
