@@ -1,15 +1,14 @@
-{ config
-, lib
-, pkgs
-, ...
+{
+  config,
+  lib,
+  pkgs,
+  ...
 }:
 let
   cfg = config.hyper-modern-nixos.dev;
 in
 {
-  imports = [
-    ./git.nix
-  ];
+  imports = [ ./git.nix ];
 
   options.hyper-modern-nixos.dev = {
     enable = lib.mkEnableOption "development tools and environment";
@@ -124,8 +123,11 @@ in
         ])
 
         # Python development
+        # NB: do NOT add a bare `python312` here — the llm module installs
+        # `python312.withPackages(...)`, and two python3 closures in one profile
+        # collide on bin/2to3 etc. Use `uv` for project interpreters; basedpyright
+        # bundles its own runtime.
         (lib.optionals cfg.python.enable [
-          python312
           basedpyright # superset of pyright, no need for both
           ruff
           uv

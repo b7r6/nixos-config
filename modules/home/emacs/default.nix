@@ -81,12 +81,22 @@ in
       description = "Install programming fonts for Emacs";
     };
 
-    # Seed config if ~/.emacs.d is empty/missing
-    # Default false - manage ~/.emacs.d manually with symlinks for live editing
+    # Seed config into ~/.emacs.d as REAL, EDITABLE files (not store symlinks).
+    #
+    # Rationale: XDG config that lives read-only in the nix store cannot be
+    # live-edited, which is intolerable for an emacs config you iterate on.
+    # When enabled, activation copies init.el/early-init.el/lib/themes into
+    # ~/.emacs.d as writable files using last-writer-wins semantics:
+    #   - file absent            -> copy the nix version
+    #   - file == last-seeded    -> you haven't touched it; update to new version
+    #   - file != last-seeded    -> you edited it; LEAVE IT ALONE (back up nix
+    #                               version alongside as <file>.nix-new)
+    # A per-file marker under ~/.emacs.d/.hypermodern-seed/ records the hash of
+    # what we last wrote, so we can tell "unchanged" from "user-edited".
     seedConfig = lib.mkOption {
       type = lib.types.bool;
-      default = false;
-      description = "Seed ~/.emacs.d with hypermodern init.el (breaks live editing)";
+      default = true;
+      description = "Seed ~/.emacs.d with editable copies of the hypermodern config (LWW, preserves your edits)";
     };
   };
 
@@ -100,25 +110,54 @@ in
       # Don't use extraConfig - let user manage ~/.emacs.d/init.el
     };
 
-    # Emacs config files managed by Nix (XDG path)
-    xdg.configFile."emacs/early-init.el" = lib.mkIf cfg.seedConfig { source = ./early-init.el; };
-    xdg.configFile."emacs/init.el" = lib.mkIf cfg.seedConfig { source = ./init.el; };
-
-    # Symlink early-init/init into ~/.emacs.d so emacs finds them
-    # (emacs only falls back to XDG_CONFIG_HOME if ~/.emacs.d doesn't exist)
-    home.activation.emacsInitSymlinks = lib.mkIf cfg.seedConfig (
+    # Seed ~/.emacs.d with EDITABLE copies (see seedConfig option for rationale
+    # and the last-writer-wins semantics). We copy out of this store path; emacs
+    # then loads ~/.emacs.d/init.el normally (it only falls back to XDG when
+    # ~/.emacs.d is absent, which it won't be once seeded).
+    home.activation.emacsSeedConfig = lib.mkIf cfg.seedConfig (
       lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-        mkdir -p "$HOME/.emacs.d"
-        target="$HOME/.emacs.d/init.el"
-        link="$XDG_CONFIG_HOME/emacs/init.el"
-        if [ -f "$link" ] && [ ! "$(readlink "$target" 2>/dev/null)" = "$link" ]; then
-          ln -sf "$link" "$target"
-        fi
-        target="$HOME/.emacs.d/early-init.el"
-        link="$XDG_CONFIG_HOME/emacs/early-init.el"
-        if [ -f "$link" ] && [ ! "$(readlink "$target" 2>/dev/null)" = "$link" ]; then
-          ln -sf "$link" "$target"
-        fi
+        emacs_dir="$HOME/.emacs.d"
+        marker_dir="$emacs_dir/.hypermodern-seed"
+        run mkdir -p "$emacs_dir" "$marker_dir"
+
+        # seed_file <store-source-path> <dest-relative-under-.emacs.d>
+        seed_file() {
+          src="$1"
+          dest="$emacs_dir/$2"
+          marker="$marker_dir/$(echo "$2" | tr '/' '_').sha256"
+          [ -f "$src" ] || return 0
+          run mkdir -p "$(dirname "$dest")"
+
+          src_hash="$(sha256sum "$src" | cut -d' ' -f1)"
+
+          if [ ! -e "$dest" ]; then
+            # absent: take the nix version
+            run cp -f "$src" "$dest"
+            run chmod u+w "$dest"
+            echo "$src_hash" > "$marker"
+          else
+            dest_hash="$(sha256sum "$dest" | cut -d' ' -f1)"
+            last_hash="$(cat "$marker" 2>/dev/null || echo none)"
+            if [ "$dest_hash" = "$src_hash" ]; then
+              : # already up to date
+            elif [ "$dest_hash" = "$last_hash" ]; then
+              # unchanged since we last seeded -> safe to update
+              run cp -f "$src" "$dest"
+              run chmod u+w "$dest"
+              echo "$src_hash" > "$marker"
+            else
+              # user-edited: never clobber. Drop the new nix version alongside.
+              run cp -f "$src" "$dest.nix-new"
+              run chmod u+w "$dest.nix-new"
+              warnEcho "[emacs] $2 has local edits; new version written to $2.nix-new"
+            fi
+          fi
+        }
+
+        # Only the files emacs actually loads. (lib/*.el and themes/*.el are
+        # not referenced by the active init.el; don't seed dead files.)
+        seed_file ${./init.el}       init.el
+        seed_file ${./early-init.el} early-init.el
       ''
     );
 
@@ -132,7 +171,9 @@ in
         (lib.optionals cfg.languageServers.enable [
           nixd
           pyright
-          llvmPackages_19.clang-tools
+          # keep in lockstep with modules/home/dev (llvmPackages_22) — two
+          # different clang-tools in one profile collide on bin/clang-*.
+          llvmPackages_22.clang-tools
           typescript-language-server
           vscode-langservers-extracted
           yaml-language-server
