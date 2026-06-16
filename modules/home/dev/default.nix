@@ -1,8 +1,7 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
+{ config
+, lib
+, pkgs
+, ...
 }:
 let
   cfg = config.hyper-modern-nixos.dev;
@@ -31,6 +30,12 @@ in
       type = lib.types.bool;
       default = false;
       description = "Enable Ruby development tools";
+    };
+
+    purescript.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable Purescript development tools";
     };
 
     typescript.enable = lib.mkOption {
@@ -67,6 +72,7 @@ in
   config = lib.mkIf cfg.enable {
     programs.gh = {
       enable = true;
+
       settings = {
         editor = "nvim";
         git_protocol = "ssh";
@@ -119,6 +125,7 @@ in
 
         # Python development
         (lib.optionals cfg.python.enable [
+          python312
           basedpyright # superset of pyright, no need for both
           ruff
           uv
@@ -133,19 +140,25 @@ in
 
         # TypeScript/JavaScript development
         (lib.optionals cfg.typescript.enable [
+          spago
+          purescript
+        ])
+
+        # TypeScript/JavaScript development
+        (lib.optionals cfg.typescript.enable [
           biome
           bun
           typescript
           fixjson
           nodejs
           prettier
+          typescript
           typescript-language-server
-          yarn
         ])
 
         # Systems development (C/C++, Zig)
         (lib.optionals cfg.systems.enable [
-          llvmPackages_19.clang-tools
+          llvmPackages_22.clang-tools
           gcc
           gnumake
           zig

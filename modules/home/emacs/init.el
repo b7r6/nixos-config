@@ -2467,6 +2467,17 @@ When you've completed the task or need clarification, say so clearly.")
      :builtin t
      :notes "bash-language-server integrates shellcheck")
 
+    (purescript
+     :mode purescript-mode
+     :extensions ("\\.purs\\'")
+     :backend lsp
+     :server purescript-language-server
+     :formatter purs-tidy
+     :format-all-formatter purs-tidy
+     :linter nil
+     :type-checker purescript-language-server
+     :notes "lsp-mode ships a built-in client (server-id pursls); purs/spago resolved from PATH")
+
     (lean4
      :mode lean4-mode
      :extensions ("\\.lean\\'")
@@ -2637,6 +2648,17 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
   :hook ((typescript-ts-mode . lsp-deferred)
          (tsx-ts-mode . lsp-deferred)))
 
+(use-package purescript-mode
+  :mode "\\.purs\\'"
+  :hook ((purescript-mode . lsp-deferred)
+         (purescript-mode . turn-on-purescript-indentation))
+  :config
+  ;; lsp-mode ships a built-in PureScript client (lsp-purescript, server-id
+  ;; 'pursls) that shells out to `purescript-language-server` on PATH. Make
+  ;; sure it's loaded so lsp-deferred finds the client.
+  (with-eval-after-load 'lsp-mode
+    (require 'lsp-purescript nil t)))
+
 (use-package markdown-mode
   :mode (("\\.md\\'" . markdown-mode)
          ("\\.markdown\\'" . markdown-mode)
@@ -2724,6 +2746,7 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
                   ("Markdown"     . (prettier))
                   ("Nix"          . (nixpkgs-fmt))
                   ("Protocol Buffer" . (clang-format))
+                  ("PureScript"   . (purs-tidy))
                   ("Python"       . (ruff))
                   ("Rust"         . (rustfmt))
                   ("Shell"        . (shfmt "-i" "2"))

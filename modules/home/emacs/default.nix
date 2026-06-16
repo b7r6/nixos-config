@@ -7,10 +7,11 @@
 #
 # With impermanence: add .emacs.d to persisted directories
 #
-{ config
-, lib
-, pkgs
-, ...
+{
+  config,
+  lib,
+  pkgs,
+  ...
 }:
 
 let
@@ -68,6 +69,12 @@ in
       description = "Enable Dhall tooling";
     };
 
+    purescript.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable PureScript toolchain (purs, spago, language server, purs-tidy)";
+    };
+
     fonts.enable = lib.mkOption {
       type = lib.types.bool;
       default = true;
@@ -89,17 +96,13 @@ in
 
     programs.emacs = {
       enable = true;
-      package = cfg.package;
+      inherit (cfg) package;
       # Don't use extraConfig - let user manage ~/.emacs.d/init.el
     };
 
     # Emacs config files managed by Nix (XDG path)
-    xdg.configFile."emacs/early-init.el" = lib.mkIf cfg.seedConfig {
-      source = ./early-init.el;
-    };
-    xdg.configFile."emacs/init.el" = lib.mkIf cfg.seedConfig {
-      source = ./init.el;
-    };
+    xdg.configFile."emacs/early-init.el" = lib.mkIf cfg.seedConfig { source = ./early-init.el; };
+    xdg.configFile."emacs/init.el" = lib.mkIf cfg.seedConfig { source = ./init.el; };
 
     # Symlink early-init/init into ~/.emacs.d so emacs finds them
     # (emacs only falls back to XDG_CONFIG_HOME if ~/.emacs.d doesn't exist)
@@ -162,6 +165,16 @@ in
           dhall-nix
           dhall-nixpkgs
           dhall-bash
+        ])
+
+        # PureScript
+        # purs/spago come from nixpkgs; the language server and purs-tidy are
+        # npm-distributed and not in nixpkgs, so we package them locally.
+        (lib.optionals cfg.purescript.enable [
+          purescript
+          spago
+          (pkgs.callPackage ./pkgs/purescript-language-server { })
+          (pkgs.callPackage ./pkgs/purs-tidy { })
         ])
 
         # Formatters

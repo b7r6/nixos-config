@@ -8,14 +8,9 @@
 -- a NixOS/home-manager configuration that must interface with nixpkgs APIs
 -- which use camelCase and snake_case conventions.
 --
-
 let Severity = < Error | Warning | Info | Off >
 
-let RuleOverride =
-      { id : Text
-      , severity : Severity
-      , reason : Optional Text
-      }
+let RuleOverride = { id : Text, severity : Severity, reason : Optional Text }
 
 let override =
       \(id : Text) ->
@@ -29,42 +24,28 @@ let override-with-reason =
         { id, severity, reason = Some reason } : RuleOverride
 
 in  { profile = "strict"
-    , extra-ignores =
-      [ ".direnv/**"
-      , "result"
-      , "result-*"
-      ]
+    , extra-ignores = [ ".direnv/**", "result", "result-*" ]
     , overrides =
-      [ -- Disable lisp-case enforcement for NixOS config
-        -- We must use nixpkgs/home-manager APIs which use camelCase
-        override-with-reason
+      [ override-with-reason
           "non-lisp-case"
           Severity.Off
           "NixOS config must interface with nixpkgs/home-manager APIs"
-
-        -- Disable raw derivation checks since we use standard nixpkgs patterns
       , override-with-reason
           "no-raw-mkderivation"
           Severity.Off
           "Standard nixpkgs patterns for NixOS config"
-
       , override-with-reason
           "no-raw-runcommand"
           Severity.Off
           "Standard nixpkgs patterns for NixOS config"
-
       , override-with-reason
           "no-raw-writeshellapplication"
           Severity.Off
           "Standard nixpkgs patterns for NixOS config"
-
-        -- Disable prelude enforcement
       , override-with-reason
           "no-translate-attrs-outside-prelude"
           Severity.Off
           "No prelude layer in this config repo"
-
-        -- Disable substituteAll check (we use standard nix templating)
       , override-with-reason
           "no-substitute-all"
           Severity.Off

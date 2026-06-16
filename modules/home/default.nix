@@ -67,13 +67,14 @@
 
     # Development environment
     dev = {
-      enable = false;
+      enable = true;
       python.enable = true;
       typescript.enable = true;
       systems.enable = true;
       shell.enable = true;
+
       # Heavy toolchains - enable explicitly when needed:
-      # dhall.enable = true;   # ~200MB
+      dhall.enable = true; # ~200MB
       # dotnet.enable = true;  # ~1GB
     };
 

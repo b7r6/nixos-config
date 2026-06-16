@@ -30,7 +30,7 @@ in
 
     communication.enable = lib.mkOption {
       type = lib.types.bool;
-      default = false;
+      default = true;
       description = "Enable communication apps (Slack, etc.)";
     };
 
@@ -58,12 +58,17 @@ in
           firefox
         ])
 
-        (lib.optional cfg.fileManager.enable nemo)
-        (lib.optional cfg.audio.enable pavucontrol)
+        (lib.optional cfg.fileManager.enable
+          nemo)
+
+        (lib.optional cfg.audio.enable
+          pavucontrol)
 
         (lib.optionals cfg.communication.enable [
+          slack
           slack-term
           spotify-cli-linux
+          telegram-desktop
         ])
       ];
   };

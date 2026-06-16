@@ -3,14 +3,14 @@
 # Build emacs with all packages pre-installed via Nix.
 # init.el lives in ~/.emacs.d and uses `use-package-always-ensure nil`.
 #
-{ pkgs
-, emacs ? pkgs.emacs30-pgtk
-, extraPackages ? (_: [ ])
-,
+{
+  pkgs,
+  emacs ? pkgs.emacs30-pgtk,
+  extraPackages ? (_: [ ]),
 }:
 
 let
-  lib = pkgs.lib;
+  inherit (pkgs) lib;
 
   # Helper: include package if it exists (keeps builds resilient).
   maybe = epkgs: name: if lib.hasAttr name epkgs then [ epkgs.${name} ] else [ ];
@@ -109,6 +109,7 @@ emacsPkgs.emacsWithPackages (
         yaml-mode
         markdown-mode
         dhall-mode
+        purescript-mode
         json-mode
         dockerfile-mode
         csharp-mode
