@@ -80,7 +80,7 @@
     ];
 
     ultraviolence = [
-      # TODO: ssh-keyscan -t ed25519 ultraviolence
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIByLBDrGF8XgGFi9TdWS65haJBZYGEbAHLSu+q3LaGP5 root@ultraviolence"
     ];
   };
 }

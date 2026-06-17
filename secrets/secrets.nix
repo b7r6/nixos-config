@@ -38,6 +38,15 @@ in
   "agenix/machines/tailscale-auth-key.straylight-evaluation.age".publicKeys = b7r6Everywhere;
   "agenix/machines/tailscale-auth-key.v4.surf.age".publicKeys = b7r6Everywhere;
 
+  # restic repository password (consumed by modules/nixos/common/backup.nix when
+  # hyper-modern-nixos.backup.enable is set on a host).
+  "agenix/machines/restic-password.age".publicKeys = b7r6Everywhere;
+
+  # atticd RS256 JWT signing secret env file (consumed by attic.nix when
+  # hyper-modern-nixos.attic.enable is set). Contents:
+  #   ATTIC_SERVER_TOKEN_RS256_SECRET="$(openssl genrsa -traditional 4096)"
+  "agenix/machines/atticd-rs256.age".publicKeys = b7r6Everywhere;
+
   # ── User Secrets (agenix-deployed) ───────────────────────────────────────────
   # Deployed to user's home via home-manager agenix module
   # Encrypted to: user keys + hosts where that user exists

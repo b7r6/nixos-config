@@ -30,6 +30,9 @@
 
     # Services
     ./postgres.nix
+    ./backup.nix
+    ./attic.nix
+    ./nativelink.nix
 
     # Development
     ./android.nix
