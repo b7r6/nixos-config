@@ -1,7 +1,8 @@
-{ config
-, lib
-, pkgs
-, ...
+{
+  config,
+  lib,
+  pkgs,
+  ...
 }:
 let
   cfg = config.hyper-modern-nixos.llm;
@@ -44,7 +45,7 @@ let
       export TOGETHER_API_KEY=$(${readNetrcEntry "api.together.xyz"})
 
       # OpenRouter API key
-      export OPENROUTER_API_KEY=$(${readNetrcEntry "api.openrouter.ai"})
+      export OPENROUTER_API_KEY=$(${readNetrcEntry "openrouter.ai"})
 
       # OpenRouter Provisioning API key
       export OPENROUTER_PROVISIONING_API_KEY=$(${readNetrcEntry "provisioning.openrouter.ai"})
@@ -75,13 +76,13 @@ let
       claude-code explain "$@"
     }
 
-    # Aider helpers - uses OpenRouter via the fuck.yuou key
+    # Aider helpers - uses OpenRouter key from netrc
     ai() {
       # Get the working OpenRouter key from netrc
       local key
-      key=$(grep -A 2 "machine fuck.yuou.openrouter.ai" "$HOME/.netrc" 2>/dev/null | grep "password" | awk '{print $2}')
+      key=$(grep -A 2 "machine openrouter.ai" "$HOME/.netrc" 2>/dev/null | grep "password" | awk '{print $2}')
       if [ -z "$key" ]; then
-        echo "Error: No OpenRouter key found in .netrc (fuck.yuou.openrouter.ai)" >&2
+        echo "Error: No OpenRouter key found in .netrc (machine openrouter.ai)" >&2
         return 1
       fi
       OPENROUTER_API_KEY="$key" aider "$@"

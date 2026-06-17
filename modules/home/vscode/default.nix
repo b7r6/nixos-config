@@ -17,10 +17,11 @@
 # dir — none of the userSettings/keybindings/extensions here apply to it. If
 # Cursor is your daily driver, you need a parallel home.file block targeting that
 # path (or drop cursor.enable and commit to VS Code). Flagged, not solved.
-{ config
-, lib
-, pkgs
-, ...
+{
+  config,
+  lib,
+  pkgs,
+  ...
 }:
 let
   cfg = config.hyper-modern-nixos.vscode;
@@ -139,8 +140,8 @@ in
         ++ lib.optional (cfg.pythonChecker == "pyrefly") marketplace.meta.pyrefly
         ++ lib.optional (cfg.pythonChecker == "ty") marketplace.astral-sh.ty;
 
-      # Keep the 42crunch / dotnet marketplace pins you already had; these are the
-      # ones you hand-hashed. (Migrate them to `marketplace.*` to drop the hashes.)
+      # All extensions above come from nixpkgs `vscode-extensions` or the
+      # `nix-vscode-extensions` marketplace overlay — no hand-maintained hashes.
       profiles.default.userSettings = {
         # ---- Nix ----
         "nix.enableLanguageServer" = true;

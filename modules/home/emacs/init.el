@@ -1342,13 +1342,13 @@ Passage insert is broken when age isn't in PATH, so we use rage."
   "Get OpenRouter API key. Checks in order:
 1. Session cache
 2. passage:api/openrouter-emacs (provisioned keys)
-3. netrc:fuck.yuou.openrouter.ai
+3. netrc:openrouter.ai
 4. OPENROUTER_API_KEY env var"
 
   (or hypermodern/gptel--current-key
       (setq hypermodern/gptel--current-key
             (or (hypermodern/gptel--passage-get "api/openrouter-emacs")
-                (hypermodern/gptel--netrc-get "fuck.yuou.openrouter.ai")
+                (hypermodern/gptel--netrc-get "openrouter.ai")
                 (getenv "OPENROUTER_API_KEY")))))
 
 (defun hypermodern/gptel-refresh-key ()
@@ -1567,7 +1567,7 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
   ;; Get API key from netrc
   (let ((api-key (hypermodern/gptel-get-api-key)))
     (unless api-key
-      (message "[gptel] No API key found. Add to netrc: machine fuck.yuou.openrouter.ai"))
+      (message "[gptel] No API key found. Add to netrc: machine openrouter.ai"))
 
     ;; Load available models (from cache or API)
     (hypermodern/gptel-load-models)
