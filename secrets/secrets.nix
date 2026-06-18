@@ -19,6 +19,8 @@ let
   # Helper: get all keys for a host (returns empty list if not yet configured)
   hostKeys = host: keys.hosts.${host} or [ ];
 
+  # Helper: combine user keys with specific host keys
+
   # All hosts that have keys configured
   allConfiguredHosts = builtins.filter (h: (hostKeys h) != [ ]) (builtins.attrNames keys.hosts);
 
@@ -36,8 +38,19 @@ in
   "agenix/machines/tailscale-auth-key.v4.surf.age".publicKeys = b7r6Everywhere;
 
   # restic repository password (consumed by modules/nixos/common/backup.nix when
-  # hyper-modern-nixos.backup.enable is set on a host).
+  # hyper-modern-nixos.backup.enable is set on a host). High-entropy passphrase,
+  # e.g. `openssl rand -base64 48`. LOSING THIS = UNRECOVERABLE BACKUPS; keep an
+  # independent copy somewhere out-of-band.
   "agenix/machines/restic-password.age".publicKeys = b7r6Everywhere;
+
+  # restic backend env file for the Cloudflare R2 (S3-compatible) repository.
+  # Consumed via services.restic.backups.system.environmentFile. Contents:
+  #   RESTIC_REPOSITORY=s3:https://<ACCOUNT_ID>.r2.cloudflarestorage.com/<BUCKET>
+  #   AWS_ACCESS_KEY_ID=<R2 token Access Key ID>
+  #   AWS_SECRET_ACCESS_KEY=<R2 token Secret Access Key>
+  #   AWS_DEFAULT_REGION=auto
+  # The R2 token must be Object Read & Write scoped to JUST that one bucket.
+  "agenix/machines/restic-r2-env.age".publicKeys = b7r6Everywhere;
 
   # atticd RS256 JWT signing secret env file (consumed by attic.nix when
   # hyper-modern-nixos.attic.enable is set). Contents:
@@ -52,4 +65,11 @@ in
   "agenix/users/b7r6/netrc.age".publicKeys = b7r6Everywhere;
   "agenix/users/b7r6/atuin-key.age".publicKeys = b7r6Everywhere;
   "agenix/users/b7r6/hf-token.age".publicKeys = b7r6Everywhere;
+  "agenix/users/b7r6/cachix-token.age".publicKeys = b7r6Everywhere;
+
+  # Full rclone.conf (R2 remote `straylight-r2` + its Access Key / Secret Access
+  # Key). Decrypted by the home-manager agenix module straight to
+  # ~/.config/rclone/rclone.conf (mode 600) when hyper-modern-nixos.cloud.rclone
+  # is enabled. Same R2 token as the restic backups; reuse is fine.
+  "agenix/users/b7r6/rclone-conf.age".publicKeys = b7r6Everywhere;
 }

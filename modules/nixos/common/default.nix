@@ -33,6 +33,7 @@
     ./backup.nix
     ./attic.nix
     ./nativelink.nix
+    ./rclone-mount.nix
 
     # Development
     ./android.nix

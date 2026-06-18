@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-{
+{ pkgs, ... }: {
   imports = [
     # user identity
     ./me.nix
@@ -56,9 +55,13 @@
 
     # Cloud tools (AWS enabled by default, heavy ones disabled)
     cloud = {
-      enable = false;
+      enable = true;
       aws.enable = true;
       flyctl.enable = true;
+
+      # rclone on PATH machine-wide, with the `straylight-r2` remote deployed
+      # from the rclone-conf agenix secret to ~/.config/rclone/rclone.conf.
+      rclone.enable = true;
 
       # Heavy toolchains - enable explicitly when needed:
       # gcp.enable = true;       # ~500MB
