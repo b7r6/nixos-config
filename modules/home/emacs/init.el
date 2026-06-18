@@ -1296,13 +1296,29 @@
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (defun hypermodern/gptel--netrc-get (host)
-  "Get password for HOST from netrc via auth-source."
+  "Get the password for HOST by parsing ~/.netrc DIRECTLY.
 
-  (require 'auth-source)
-
-  (when-let ((found (car (auth-source-search :host host :max 1))))
-    (let ((secret (plist-get found :secret)))
-      (if (functionp secret) (funcall secret) secret))))
+Deliberately bypasses `auth-source-search'. Two reasons it must:
+  1. auth-source CACHES results for the session, so a rotated key in
+     ~/.netrc (the agenix-decrypted file) is ignored until cache clear.
+  2. We call `auth-source-pass-enable' later in this config, which inserts
+     the passage store as an auth-source backend. After that,
+     `auth-source-search :host \"openrouter.ai\"' can resolve against
+     passage (returning a STALE/WRONG key) instead of the netrc file.
+Both bugs manifested as gptel sending a wrong key and getting HTTP 401
+\"Missing Authentication header\". Reading the file directly is
+deterministic and always current."
+  (let ((netrc (expand-file-name "~/.netrc")))
+    (when (file-readable-p netrc)
+      (with-temp-buffer
+        (insert-file-contents netrc)
+        (goto-char (point-min))
+        ;; Find `machine HOST' then the next `password TOKEN' (login may sit
+        ;; between them). Tolerates multi-line netrc stanzas.
+        (when (re-search-forward
+               (concat "machine[ \t]+" (regexp-quote host) "\\b") nil t)
+          (when (re-search-forward "password[ \t]+\\([^ \t\n]+\\)" nil t)
+            (match-string 1)))))))
 
 (defvar hypermodern/gptel--current-key nil
   "Cached OpenRouter API key for this session.")
@@ -1344,22 +1360,31 @@ Passage insert is broken when age isn't in PATH, so we use rage."
 (defun hypermodern/gptel-get-api-key ()
   "Get OpenRouter API key. Checks in order:
 1. Session cache
-2. passage:api/openrouter-emacs (provisioned keys)
-3. netrc:openrouter.ai
-4. OPENROUTER_API_KEY env var"
+2. netrc:openrouter.ai  (agenix-decrypted ~/.netrc; the source of truth)
+3. passage:api/openrouter-emacs (only if you've provisioned one there)
+4. OPENROUTER_API_KEY env var
+
+netrc is tried BEFORE passage on purpose: the passage entry usually does
+not exist (so `passage show` just spawns a failing subprocess and prints
+an error), and the netrc key is the one that actually validates."
 
   (or hypermodern/gptel--current-key
       (setq hypermodern/gptel--current-key
-            (or (hypermodern/gptel--passage-get "api/openrouter-emacs")
-                (hypermodern/gptel--netrc-get "openrouter.ai")
+            (or (hypermodern/gptel--netrc-get "openrouter.ai")
+                (hypermodern/gptel--passage-get "api/openrouter-emacs")
                 (getenv "OPENROUTER_API_KEY")))))
 
 (defun hypermodern/gptel-refresh-key ()
-  "Clear cached key and re-read from netrc."
+  "Clear cached key, re-resolve, and rebuild the gptel backend's key.
+The backend stores the key as a STRING (see the backend setup for why a
+lambda there 401s), so a rotated key only takes effect once we both clear
+the cache AND write the new string into `gptel-backend'."
   (interactive)
   (setq hypermodern/gptel--current-key nil)
-  (hypermodern/gptel-get-api-key)
-  (message "[gptel] Key refreshed from netrc"))
+  (let ((new-key (hypermodern/gptel-get-api-key)))
+    (when (and new-key (bound-and-true-p gptel-backend))
+      (setf (gptel-backend-key gptel-backend) new-key))
+    (message "[gptel] Key %s" (if new-key "refreshed + applied to backend" "NOT found"))))
 
 (defun hypermodern/gptel-provision-key ()
   "Provision a new OpenRouter API key and store in passage.
@@ -1567,13 +1592,6 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
          ("C-c g M" . hypermodern/gptel-refresh-models)
          ("C-c g P" . hypermodern/gptel-provision-key))
   :config
-  ;; gptel-make-openai lives in gptel-openai.el, NOT gptel.el. (require 'gptel)
-  ;; alone leaves it as an autoload that has not fired yet inside this :config
-  ;; block, so calling it here errored with "void-function gptel-make-openai"
-  ;; and the WHOLE backend setup aborted (no backend, no model -> gptel dead).
-  ;; Requiring it explicitly is the fix.
-  (require 'gptel-openai)
-
   ;; Get API key from netrc
   (let ((api-key (hypermodern/gptel-get-api-key)))
     (unless api-key
@@ -1582,25 +1600,30 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
     ;; Load available models (from cache or API)
     (hypermodern/gptel-load-models)
 
-    ;; Configure OpenRouter backend. Models come from the dynamic fetch, but we
-    ;; ALWAYS union in the preferred list so a cold machine (no cache + no net at
-    ;; startup) still has a usable, selectable model set rather than an empty
-    ;; backend. gptel only needs the model on the symbol to send; the full list
-    ;; is for completion in gptel-menu / hypermodern/gptel-switch-model.
-    (let* ((dynamic (mapcar #'cdr hypermodern/gptel-models))
-           (models (delete-dups (append hypermodern/gptel-preferred-models dynamic))))
-      (setq gptel-backend
-            (gptel-make-openai "openrouter"
-              :host "openrouter.ai"
-              :endpoint "/api/v1/chat/completions"
-              :stream t
-              :key (lambda () (hypermodern/gptel-get-api-key))
-              :models models))
+    ;; Configure OpenRouter backend with dynamically fetched models.
+    ;;
+    ;; CRITICAL: :key MUST be the eagerly-resolved STRING, not a lambda.
+    ;; gptel re-invokes the :key function from inside its async curl
+    ;; process/sentinel context, where our resolver's FIRST source
+    ;; (`passage show ...` via shell-command-to-string) runs in a subprocess
+    ;; that fails silently (no tty / different env), returns nil, and the
+    ;; Authorization header is omitted -> "HTTP 401 Missing Authentication
+    ;; header". Resolving once here and handing gptel a plain string sidesteps
+    ;; the whole fragile re-resolution path. Use C-c g K to re-resolve and
+    ;; rebuild the backend if the key rotates mid-session.
+    (setq gptel-backend
+          (gptel-make-openai "openrouter"
+            :host "openrouter.ai"
+            :endpoint "/api/v1/chat/completions"
+            :stream t
+            :key (or api-key "")
+            :models (mapcar #'cdr hypermodern/gptel-models)))
 
-      ;; Default to first available preferred model (falls back to first known).
-      (setq gptel-model
-            (or (seq-find (lambda (m) (member m models)) hypermodern/gptel-preferred-models)
-                (car models)))))
+    ;; Default to first available preferred model
+    (setq gptel-model
+          (or (seq-find (lambda (m) (member m (mapcar #'cdr hypermodern/gptel-models)))
+                        hypermodern/gptel-preferred-models)
+              (cdar hypermodern/gptel-models))))
 
   ;; Enable tool use by default
   (setq gptel-use-tools t)
