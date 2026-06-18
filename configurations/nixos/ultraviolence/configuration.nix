@@ -52,6 +52,31 @@ in
     };
   };
 
+  # ── attic binary cache (single-box bringup) ─────────────────────────────────
+  # atticd on loopback for now; RS256 JWT secret from agenix. We'll exercise it
+  # locally (attic login / push / use) before exposing on the tailnet.
+  age.secrets.atticd-rs256.file = ../../../secrets/agenix/machines/atticd-rs256.age;
+
+  hyper-modern-nixos.attic = {
+    enable = true;
+    environmentFile = "/run/agenix/atticd-rs256";
+    listen = "[::1]:8080";
+  };
+
+  # ── NativeLink remote execution (single-box monolithic bringup) ─────────────
+  # CAS + scheduler + a local x86_64 worker, all on this host. Split the aarch64
+  # worker out to shimmer later by adding role = "worker" there pointing at this
+  # host's worker_api over the tailnet. Builds from source (~1000 derivations)
+  # unless nativelink.cachix.org is added in modules/nixos/common/nix.nix.
+  hyper-modern-nixos.nativelink = {
+    enable = true;
+    role = "monolithic";
+    # loopback-only public API for the single-box bringup; widen when splitting.
+    publicListen = "127.0.0.1:50051";
+    workerApiListen = "127.0.0.1:50061";
+    workerApiEndpoint = "grpc://127.0.0.1:50061";
+  };
+
   fileSystems."/" = {
     device = "/dev/disk/by-uuid/8d797692-927e-46c4-8047-0c9ea975a41f";
     fsType = "btrfs";

@@ -22,14 +22,21 @@ in
       # Binary caches. The private/broken weyl-ai + hyprland cachix caches were
       # removed (they no longer work reliably); keep only the official NixOS
       # cache and the reliable nix-community cache.
+      #
+      # nativelink.cachix.org is the upstream NativeLink cache. NativeLink is
+      # NOT in nixpkgs and builds ~1000 derivations from source, so any host
+      # that sets hyper-modern-nixos.nativelink.enable should add this cache
+      # (uncomment both the substituter and its key) to avoid a marathon build.
       substituters = [
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
+        # "https://nativelink.cachix.org"
       ];
 
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+        # "nativelink.cachix.org-1:Mr5Mc8jLgI/Q8nlmgzqgVfg3pHX8GdW1l8AbWQ4Kit4="
       ];
     };
 
