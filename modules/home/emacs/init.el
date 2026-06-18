@@ -155,7 +155,7 @@
 (declare-function hypermodern/format-buffer "init" ())
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // PGTK Detection
+;;                                                   // PGTK Detection
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (defvar hypermodern/is-pgtk
@@ -164,7 +164,7 @@
   "Non-nil if running on PGTK build of Emacs.")
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // THEME ENGINE - ZERO DEPENDENCIES
+;;                                // THEME ENGINE // ZERO DEPENDENCIES
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (defvar hypermodern/palettes
@@ -1130,6 +1130,8 @@
           ("\\*Occur\\*"              :align below :size 0.3 :select t :popup t)
           ("\\*eshell\\*"             :align below :size 0.3 :select t :popup t)
           (eshell-mode                :align below :size 0.3 :select t :popup t)
+          (ghostel-mode               :align below :size 0.35 :select t :popup t)
+          ("\\*ghostel.*"             :align below :size 0.35 :select t :popup t)
           (vterm-mode                 :align below :size 0.35 :select t :popup t)
           (term-mode                  :align below :size 0.35 :select t :popup t)
 
@@ -1216,6 +1218,7 @@
           help-mode
           helpful-mode
           Info-mode
+          ghostel-mode
           vterm-mode
           eshell-mode
           term-mode
@@ -2769,7 +2772,59 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;; // terminals
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;;
+;; ghostel is the PRIMARY terminal (libghostty-vt: true color, kitty
+;; keyboard+graphics, hyperlinks, shell integration). vterm and eat stay
+;; loaded as fallbacks but ghostel owns the "open a terminal" keys and the
+;; project-switcher entry. See mk-hypermodern-emacs.nix for why the native
+;; module is already present in the store and never auto-downloads.
 
+(use-package ghostel
+  :commands (ghostel ghostel-project ghostel-project-list-buffers)
+  ;; C-x m is ghostel's documented launcher key; C-c t t is our mnemonic.
+  :bind (("C-x m" . ghostel)
+         ("C-c t t" . ghostel)
+         :map ghostel-semi-char-mode-map
+         ;; keep window motion identical to the old vterm bindings
+         ("M-N" . windmove-right)
+         ("M-P" . windmove-left)
+         ;; shell-history feel: forward C-p/C-n to the shell
+         ("M-p" . (lambda () (interactive) (ghostel-send-key "p" "ctrl")))
+         ("M-n" . (lambda () (interactive) (ghostel-send-key "n" "ctrl")))
+         :map project-prefix-map
+         ("t" . ghostel-project)
+         ("T" . ghostel-project-list-buffers))
+  :init
+  ;; Belt-and-suspenders: the nixpkgs build vendors ghostel-module.so in the
+  ;; package dir (which is where ghostel reads it from when
+  ;; ghostel-module-directory is nil), so the module is always present. Pin
+  ;; auto-install to nil so a hypothetical missing module FAILS LOUDLY instead
+  ;; of trying to fetch a binary from GitHub into a read-only store path.
+  (setq ghostel-module-auto-install nil)
+  :config
+  ;; project switcher (C-x p) gains a Ghostel entry
+  (when (boundp 'project-switch-commands)
+    (add-to-list 'project-switch-commands '(ghostel-project "Ghostel") t)
+    (add-to-list 'project-switch-commands
+                 '(ghostel-project-list-buffers "Ghostel buffers") t))
+  ;; let `gst`/`e`/`dow` style shell helpers call back into Emacs
+  (when (boundp 'ghostel-eval-cmds)
+    (add-to-list 'ghostel-eval-cmds
+                 '("magit-status-setup-buffer" magit-status-setup-buffer))
+    (add-to-list 'ghostel-eval-cmds
+                 '("dired-other-window" dired-other-window)))
+  :hook (ghostel-mode . (lambda () (hl-line-mode -1))))
+
+;; Run compile/eshell-visual commands through ghostel's VT engine too.
+(use-package ghostel-compile
+  :after ghostel
+  :hook (after-init . ghostel-compile-global-mode))
+
+(use-package ghostel-eshell
+  :after (ghostel eshell)
+  :hook (eshell-load . ghostel-eshell-visual-command-mode))
+
+;; Fallback terminals (no longer bound to launcher keys).
 (use-package vterm
   :commands vterm
   :config

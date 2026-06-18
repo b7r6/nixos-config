@@ -68,6 +68,14 @@
 
     nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
 
+    # Bleeding-edge Emacs (master/31.x pgtk) + same-day MELPA snapshots. nixpkgs
+    # only ships emacs 30.2; the overlay exposes pkgs.emacs-pgtk tracking the
+    # emacs-31 dev branch. Consumed by modules/home/emacs to drive
+    # mkHypermodernEmacs at 31. NOTE: ghostel's native module is rebuilt against
+    # whatever emacs this resolves to, so a 31 bump recompiles ghostel-module.so.
+    emacs-overlay.url = "github:nix-community/emacs-overlay";
+    emacs-overlay.inputs.nixpkgs.follows = "nixpkgs";
+
     # NativeLink remote-execution (Bazel/Buck2 RE). Provides the `nativelink`
     # binary for x86_64-linux and aarch64-linux; there is NO upstream NixOS
     # module, so modules/nixos/common/nativelink.nix hand-rolls the service.

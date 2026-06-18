@@ -50,6 +50,9 @@ in
     flake.self.overlays.default
 
     inputs.nix-vscode-extensions.overlays.default
+
+    # emacs-pgtk -> 31.x (master). modules/home/emacs uses it.
+    inputs.emacs-overlay.overlays.default
     # python312 doc build broken (Sphinx/docutils 0.22 on py3.13)
     (
       final: prev:

@@ -80,7 +80,7 @@ in
 
       # Qt Wayland support
       qt6.qtwayland
-      libsForQt5.qt5.qtwayland
+      qt5.qtwayland # was libsForQt5.qt5.qtwayland; the nested .qt5 alias was removed
       kdePackages.qtwayland
 
       # Qt theming tools

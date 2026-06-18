@@ -5,7 +5,8 @@
 #
 {
   pkgs,
-  emacs ? pkgs.emacs30-pgtk,
+  emacs ? pkgs.emacs-unstable-pgtk, # emacs-overlay 31 pretest; pass emacs30-pgtk for stable
+
   extraPackages ? (_: [ ]),
 }:
 
@@ -90,6 +91,17 @@ emacsPkgs.emacsWithPackages (
         forge
 
         # terminals
+        #
+        # ghostel is the primary terminal: a libghostty-vt-backed emulator that
+        # is faster and more correct than vterm (true color, kitty keyboard +
+        # graphics, hyperlinks, shell integration out of the box). The nixpkgs
+        # build VENDORS the prebuilt native module (ghostel-module.so) inside
+        # the read-only store path, and ghostel-module-directory defaults to nil
+        # ("read the module from the package directory"), so it loads the
+        # vendored .so in place and NEVER hits its first-use auto-download path.
+        # init.el additionally pins ghostel-module-auto-install nil as a
+        # belt-and-suspenders guard. vterm/eat stay installed as fallbacks.
+        ghostel
         vterm
         eat
 

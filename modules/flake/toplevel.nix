@@ -50,6 +50,9 @@
 
           inputs.devshell.overlays.default
           inputs.nix-vscode-extensions.overlays.default
+
+          # emacs-pgtk -> 31.x (master). modules/home/emacs uses it.
+          inputs.emacs-overlay.overlays.default
         ];
       };
 

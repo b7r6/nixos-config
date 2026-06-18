@@ -23,17 +23,22 @@ in
   options.hyper-modern-nixos.emacs = {
     enable = lib.mkEnableOption "Hypermodern Emacs (Nix-managed packages, mutable config)";
 
+    # emacs-unstable-pgtk is the Emacs 31 PRETEST (31.0.90, tracks the emacs-31
+    # release branch) from the emacs-overlay. nixpkgs and the overlay's plain
+    # `emacs-pgtk` are both still 30.2; `emacs-git-pgtk` is post-31 master (more
+    # churn). 31.0.90 is the sweet spot: real 31, branch-frozen. Override to
+    # pkgs.emacs30-pgtk to drop back to nixpkgs stable if a build regresses.
     emacsPackage = lib.mkOption {
       type = lib.types.package;
-      default = pkgs.emacs30-pgtk;
-      description = "Base Emacs derivation (e.g. emacs30-pgtk, emacs-git)";
+      default = pkgs.emacs-unstable-pgtk;
+      description = "Base Emacs derivation (e.g. emacs-unstable-pgtk [31 pretest], emacs30-pgtk, emacs-git-pgtk)";
     };
 
     package = lib.mkOption {
       type = lib.types.package;
       default = mkHypermodernEmacs {
         inherit pkgs;
-        emacs = pkgs.emacs30-pgtk;
+        emacs = cfg.emacsPackage;
       };
       defaultText = "hypermodern-emacs (emacsWithPackages)";
       description = "The final Emacs package with all elisp packages bundled.";
@@ -129,6 +134,14 @@ in
           run mkdir -p "$(dirname "$dest")"
 
           src_hash="$(sha256sum "$src" | cut -d' ' -f1)"
+
+          # A symlink here is leftover from an older store-symlink-based config
+          # (and may be DANGLING, which makes `-e` false and `cp` refuse to write
+          # "through dangling symlink"). We own editable real files now, so drop
+          # any symlink unconditionally and reseed. -h catches broken links too.
+          if [ -h "$dest" ]; then
+            run rm -f "$dest"
+          fi
 
           if [ ! -e "$dest" ]; then
             # absent: take the nix version
