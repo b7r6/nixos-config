@@ -19,9 +19,6 @@ let
   # Helper: get all keys for a host (returns empty list if not yet configured)
   hostKeys = host: keys.hosts.${host} or [ ];
 
-  # Helper: combine user keys with specific host keys
-  userAndHosts = user: hosts: (userKeys user) ++ (builtins.concatLists (map hostKeys hosts));
-
   # All hosts that have keys configured
   allConfiguredHosts = builtins.filter (h: (hostKeys h) != [ ]) (builtins.attrNames keys.hosts);
 
@@ -55,5 +52,4 @@ in
   "agenix/users/b7r6/netrc.age".publicKeys = b7r6Everywhere;
   "agenix/users/b7r6/atuin-key.age".publicKeys = b7r6Everywhere;
   "agenix/users/b7r6/hf-token.age".publicKeys = b7r6Everywhere;
-  "agenix/users/b7r6/cachix-token.age".publicKeys = b7r6Everywhere;
 }

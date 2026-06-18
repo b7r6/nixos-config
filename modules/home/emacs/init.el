@@ -1567,6 +1567,13 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
          ("C-c g M" . hypermodern/gptel-refresh-models)
          ("C-c g P" . hypermodern/gptel-provision-key))
   :config
+  ;; gptel-make-openai lives in gptel-openai.el, NOT gptel.el. (require 'gptel)
+  ;; alone leaves it as an autoload that has not fired yet inside this :config
+  ;; block, so calling it here errored with "void-function gptel-make-openai"
+  ;; and the WHOLE backend setup aborted (no backend, no model -> gptel dead).
+  ;; Requiring it explicitly is the fix.
+  (require 'gptel-openai)
+
   ;; Get API key from netrc
   (let ((api-key (hypermodern/gptel-get-api-key)))
     (unless api-key
@@ -1575,20 +1582,25 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
     ;; Load available models (from cache or API)
     (hypermodern/gptel-load-models)
 
-    ;; Configure OpenRouter backend with dynamically fetched models
-    (setq gptel-backend
-          (gptel-make-openai "openrouter"
-            :host "openrouter.ai"
-            :endpoint "/api/v1/chat/completions"
-            :stream t
-            :key (lambda () (hypermodern/gptel-get-api-key))
-            :models (mapcar #'cdr hypermodern/gptel-models)))
+    ;; Configure OpenRouter backend. Models come from the dynamic fetch, but we
+    ;; ALWAYS union in the preferred list so a cold machine (no cache + no net at
+    ;; startup) still has a usable, selectable model set rather than an empty
+    ;; backend. gptel only needs the model on the symbol to send; the full list
+    ;; is for completion in gptel-menu / hypermodern/gptel-switch-model.
+    (let* ((dynamic (mapcar #'cdr hypermodern/gptel-models))
+           (models (delete-dups (append hypermodern/gptel-preferred-models dynamic))))
+      (setq gptel-backend
+            (gptel-make-openai "openrouter"
+              :host "openrouter.ai"
+              :endpoint "/api/v1/chat/completions"
+              :stream t
+              :key (lambda () (hypermodern/gptel-get-api-key))
+              :models models))
 
-    ;; Default to first available preferred model
-    (setq gptel-model
-          (or (seq-find (lambda (m) (member m (mapcar #'cdr hypermodern/gptel-models)))
-                        hypermodern/gptel-preferred-models)
-              (cdar hypermodern/gptel-models))))
+      ;; Default to first available preferred model (falls back to first known).
+      (setq gptel-model
+            (or (seq-find (lambda (m) (member m models)) hypermodern/gptel-preferred-models)
+                (car models)))))
 
   ;; Enable tool use by default
   (setq gptel-use-tools t)

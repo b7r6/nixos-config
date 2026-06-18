@@ -1,7 +1,8 @@
-{ config
-, lib
-, pkgs
-, ...
+{
+  config,
+  lib,
+  pkgs,
+  ...
 }:
 let
   cfg = config.hyper-modern-nixos.shell;
@@ -16,28 +17,26 @@ let
       b = builtins.substring 5 2 hex;
       hexToDec =
         h:
-        builtins.foldl'
-          (
-            acc: c:
-            acc * 16
-            + (
-              if c == "a" || c == "A" then
-                10
-              else if c == "b" || c == "B" then
-                11
-              else if c == "c" || c == "C" then
-                12
-              else if c == "d" || c == "D" then
-                13
-              else if c == "e" || c == "E" then
-                14
-              else if c == "f" || c == "F" then
-                15
-              else
-                builtins.fromJSON c
-            )
-          ) 0
-          (lib.stringToCharacters h);
+        builtins.foldl' (
+          acc: c:
+          acc * 16
+          + (
+            if c == "a" || c == "A" then
+              10
+            else if c == "b" || c == "B" then
+              11
+            else if c == "c" || c == "C" then
+              12
+            else if c == "d" || c == "D" then
+              13
+            else if c == "e" || c == "E" then
+              14
+            else if c == "f" || c == "F" then
+              15
+            else
+              builtins.fromJSON c
+          )
+        ) 0 (lib.stringToCharacters h);
     in
     "38;2;${toString (hexToDec r)};${toString (hexToDec g)};${toString (hexToDec b)}";
 
@@ -55,9 +54,7 @@ let
   ];
 in
 {
-  imports = [
-    ./themed-shell.nix
-  ];
+  imports = [ ./themed-shell.nix ];
 
   options.hyper-modern-nixos.shell = {
     enable = lib.mkEnableOption "shell configuration and tools";
@@ -313,7 +310,6 @@ in
       [
         bat
         btop
-        cachix
         direnv
         duf
         dust
