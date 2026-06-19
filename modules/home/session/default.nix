@@ -160,16 +160,60 @@ in
       # Disable legacy default config to silence warning
       enableDefaultConfig = false;
 
-      settings = {
-        "*" = {
-          ForwardAgent = true;
-          AddKeysToAgent = "yes";
-          StrictHostKeyChecking = "accept-new";
-        };
-        "github.com" = {
-          User = "git";
-        };
-      };
+      settings =
+        let
+          # ── Fleet host table: name -> { lan, ts } ────────────────────────────
+          # Recorded so every node stays reachable by DIRECT LAN address even when
+          # the tailnet is having trouble. `<host>` resolves to the LAN address
+          # first; `<host>-ts` is the tailscale (100.x) fallback. Update lan when
+          # a box's DHCP/static lease changes (run `ssh <host-ts> ip -4 addr`).
+          # LAN addresses verified 2026-06-19 over the tailnet (192.168.40.0/24).
+          fleet = {
+            ultraviolence = {
+              lan = "192.168.40.115";
+              ts = "100.71.82.73";
+            };
+            gossamer = {
+              lan = "192.168.40.120";
+              ts = "100.110.55.28";
+            };
+            guccimane = {
+              lan = "192.168.40.81";
+              ts = "100.89.101.109";
+            };
+            watchtower = {
+              lan = "192.168.40.98";
+              ts = "100.122.228.122";
+            };
+            # Offline when recorded — LAN address unknown, so the primary alias
+            # points at the tailscale IP until a LAN address is confirmed.
+            shimmer = {
+              lan = "100.116.42.95";
+              ts = "100.116.42.95";
+            };
+            weyl = {
+              lan = "100.111.80.81";
+              ts = "100.111.80.81";
+            };
+          };
+
+          # name  -> { HostName = lan; }   (direct LAN, survives tailnet outage)
+          lanBlocks = lib.mapAttrs (_: h: { HostName = h.lan; }) fleet;
+          # name-ts -> { HostName = ts; }  (explicit tailscale fallback)
+          tsBlocks = lib.mapAttrs' (n: h: lib.nameValuePair "${n}-ts" { HostName = h.ts; }) fleet;
+        in
+        {
+          "*" = {
+            ForwardAgent = true;
+            AddKeysToAgent = "yes";
+            StrictHostKeyChecking = "accept-new";
+          };
+          "github.com" = {
+            User = "git";
+          };
+        }
+        // lanBlocks
+        // tsBlocks;
     };
 
     # Secrets management tools
