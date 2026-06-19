@@ -323,7 +323,7 @@ in
         less
         nix-info
         nixd
-        nixpkgs-fmt
+        nixfmt
         ripgrep
         sd
         tree

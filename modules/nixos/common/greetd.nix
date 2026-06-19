@@ -4,8 +4,7 @@
 #
 # Greetd login manager with tuigreet for Hyprland.
 #
-{ pkgs, ... }:
-{
+{ pkgs, ... }: {
   services.greetd = {
     enable = true;
     settings = {

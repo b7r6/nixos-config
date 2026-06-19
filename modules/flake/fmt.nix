@@ -1,5 +1,4 @@
-{ inputs, ... }:
-{
+{ inputs, ... }: {
   imports = [ inputs.treefmt-nix.flakeModule ];
 
   perSystem =
@@ -7,8 +6,7 @@
       indentWidth = 2;
       lineLength = 100;
     in
-    { pkgs, ... }:
-    {
+    { pkgs, ... }: {
       treefmt = {
         programs.biome.enable = true;
         settings.formatter.biome.allowComments = true;

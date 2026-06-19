@@ -2376,8 +2376,8 @@ When you've completed the task or need clarification, say so clearly.")
      :extensions ("\\.nix\\'")
      :backend lsp
      :server nixd
-     :formatter nixpkgs-fmt
-     :format-all-formatter nixpkgs-fmt
+     :formatter nixfmt
+     :format-all-formatter nixfmt
      :linter nil
      :type-checker nil)
 
@@ -2781,9 +2781,11 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
                   ("JavaScript"   . (prettier))
                   ("JSON"         . (prettier))
                   ("JSX"          . (prettier))
-                  ("Markdown"     . (prettier))
-                  ("Nix"          . (nixpkgs-fmt))
-                  ("Protocol Buffer" . (clang-format))
+                   ("Markdown"     . (prettier))
+                   ;; Match treefmt (modules/flake/fmt.nix): nixfmt, strict,
+                   ;; width 100. NOT nixpkgs-fmt — that fights treefmt on save.
+                   ("Nix"          . (nixfmt "--strict" "--width" "100"))
+                   ("Protocol Buffer" . (clang-format))
                   ("PureScript"   . (purs-tidy))
                   ("Python"       . (ruff))
                   ("Rust"         . (rustfmt))

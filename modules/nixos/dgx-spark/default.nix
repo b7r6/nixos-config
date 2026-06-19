@@ -1,7 +1,8 @@
-{ config
-, lib
-, pkgs
-, ...
+{
+  config,
+  lib,
+  pkgs,
+  ...
 }:
 
 with lib;
@@ -15,7 +16,7 @@ let
   # Import generated NVIDIA DGX configuration
   dgxKernelConfig = import ./kernel-configs/nvidia-dgx-spark-6.17.1.nix { inherit lib; };
 
-  nvidiaKernel = pkgs.linuxPackagesFor (
+  nvidiaKernelBase = pkgs.linuxPackagesFor (
     baseKernel.override {
       argsOverride = rec {
         # Use the NVIDIA kernel source
@@ -42,35 +43,33 @@ let
 
         # Use comprehensive NVIDIA DGX configuration with NixOS-specific overrides
         structuredExtraConfig =
-          (lib.filterAttrs
-            (
-              name: value:
-                # Remove options that conflict with NixOS requirements or don't exist in this kernel
-                !lib.elem name [
-                  "BLK_DEV_DM" # Device mapper - let NixOS handle this
-                  "BLK_DEV_DM_BUILTIN" # Device mapper builtin - let NixOS handle this
-                  "PAHOLE_VERSION" # Tool version - let NixOS handle this
-                  "RUSTC_LLVM_VERSION" # Compiler version - let NixOS handle this
-                  "RUSTC_VERSION" # Compiler version - let NixOS handle this
-                  "GCC_VERSION" # Compiler version - let NixOS handle this
-                  "LD_VERSION" # Linker version - let NixOS handle this
-                  "VERSION_SIGNATURE" # Version signature - let NixOS handle this
-                  "LOCALVERSION" # Local version - let NixOS handle this
-                  "LOCALVERSION_AUTO" # Local version auto - let NixOS handle this
-                  "INITRAMFS_SOURCE" # Initramfs source - let NixOS handle this
-                  "SYSTEM_TRUSTED_KEYS" # System trusted keys - debian-specific paths
-                  "SYSTEM_REVOCATION_KEYS" # System revocation keys - debian-specific paths
-                  "MODULE_SIG_KEY" # Module signing key - let NixOS handle this
-                  "SYSTEM_BLACKLIST_HASH_LIST" # System blacklist hash list - empty string causes build failure
-                  "EXTRA_FIRMWARE" # Extra firmware - empty string causes build failure
-                  "IPE_BOOT_POLICY" # IPE boot policy - empty string causes build failure
-                  "USB_STORAGE" # USB storage - ensure built-in for USB boot
-                  "USB_UAS" # USB Attached SCSI - ensure built-in for modern USB devices
-                  "OVERLAY_FS" # Overlay filesystem - ensure built-in for live boot
-                  "UEVENT_HELPER" # Legacy uevent helper - let NixOS use modern udev
-                ]
-            )
-            dgxKernelConfig)
+          (lib.filterAttrs (
+            name: value:
+            # Remove options that conflict with NixOS requirements or don't exist in this kernel
+            !lib.elem name [
+              "BLK_DEV_DM" # Device mapper - let NixOS handle this
+              "BLK_DEV_DM_BUILTIN" # Device mapper builtin - let NixOS handle this
+              "PAHOLE_VERSION" # Tool version - let NixOS handle this
+              "RUSTC_LLVM_VERSION" # Compiler version - let NixOS handle this
+              "RUSTC_VERSION" # Compiler version - let NixOS handle this
+              "GCC_VERSION" # Compiler version - let NixOS handle this
+              "LD_VERSION" # Linker version - let NixOS handle this
+              "VERSION_SIGNATURE" # Version signature - let NixOS handle this
+              "LOCALVERSION" # Local version - let NixOS handle this
+              "LOCALVERSION_AUTO" # Local version auto - let NixOS handle this
+              "INITRAMFS_SOURCE" # Initramfs source - let NixOS handle this
+              "SYSTEM_TRUSTED_KEYS" # System trusted keys - debian-specific paths
+              "SYSTEM_REVOCATION_KEYS" # System revocation keys - debian-specific paths
+              "MODULE_SIG_KEY" # Module signing key - let NixOS handle this
+              "SYSTEM_BLACKLIST_HASH_LIST" # System blacklist hash list - empty string causes build failure
+              "EXTRA_FIRMWARE" # Extra firmware - empty string causes build failure
+              "IPE_BOOT_POLICY" # IPE boot policy - empty string causes build failure
+              "USB_STORAGE" # USB storage - ensure built-in for USB boot
+              "USB_UAS" # USB Attached SCSI - ensure built-in for modern USB devices
+              "OVERLAY_FS" # Overlay filesystem - ensure built-in for live boot
+              "UEVENT_HELPER" # Legacy uevent helper - let NixOS use modern udev
+            ]
+          ) dgxKernelConfig)
           // (with lib.kernel; {
             # Critical NixOS security options that may need to override DGX defaults
             SECURITY_APPARMOR_BOOTPARAM_VALUE = freeform "1";
@@ -90,6 +89,27 @@ let
       };
     }
   );
+
+  # Fix the nvidia driver `allowedReferences` issue that breaks the build when a
+  # non-default (NVIDIA 6.17.1) kernel is in use: the production module legitimately
+  # references kernel/kernel.dev on aarch64, which the default check rejects.
+  # Only consumed when `useNvidiaKernel = true`.
+  nvidiaKernel = nvidiaKernelBase.extend (
+    final: prev: {
+      nvidiaPackages = prev.nvidiaPackages // {
+        production = prev.nvidiaPackages.production.overrideAttrs (old: {
+          passthru = old.passthru // {
+            mod = prev.nvidiaPackages.production.mod.overrideAttrs (oldMod: {
+              allowedReferences = [
+                prev.kernel.dev
+                prev.kernel
+              ];
+            });
+          };
+        });
+      };
+    }
+  );
 in
 {
   options.hardware.dgx-spark = {
@@ -97,7 +117,11 @@ in
 
     useNvidiaKernel = mkOption {
       type = types.bool;
-      default = true;
+      # Default off: the 6.17.1 NVIDIA kernel is blocked on the nvidia-kernel-
+      # modules allowedReferences issue (the `.extend` overlay above is the fix,
+      # but it is not yet validated end-to-end). The standard kernel boots and
+      # includes r8127 for the on-board 10GbE, so it is the safe default.
+      default = false;
       description = "Whether to use the NVIDIA kernel instead of the standard NixOS kernel";
     };
   };
@@ -161,20 +185,22 @@ in
     ];
 
     boot.blacklistedKernelModules = [
-      "nouveau" # Ensure we use the NVIDIA open driver
+      "nouveau" # Ensure we use the proprietary NVIDIA driver
       "r8169" # Use the r8127 driver in the NVIDIA kernel
       "coresight_etm4x" # ARM CoreSight debugging (can cause overhead on DGX)
     ];
 
-    # Enable NVIDIA open driver
+    # Enable NVIDIA driver
     services.xserver.videoDrivers = [ "nvidia" ];
 
     hardware.nvidia = {
       modesetting.enable = true;
-      open = true; # Use the open-source NVIDIA driver
+      # nvidia-open has build issues on aarch64 (wrong ELF types), so use the
+      # proprietary driver which has better aarch64 support on this platform.
+      open = false;
       nvidiaPersistenced = true;
       nvidiaSettings = true;
-      package = config.boot.kernelPackages.nvidiaPackages.production;
+      package = config.boot.kernelPackages.nvidia_x11;
     };
 
     hardware.enableRedistributableFirmware = true;

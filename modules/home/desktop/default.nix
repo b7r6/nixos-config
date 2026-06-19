@@ -1,7 +1,8 @@
-{ config
-, lib
-, pkgs
-, ...
+{
+  config,
+  lib,
+  pkgs,
+  ...
 }:
 let
   cfg = config.hyper-modern-nixos.desktop;
@@ -58,18 +59,22 @@ in
           firefox
         ])
 
-        (lib.optional cfg.fileManager.enable
-          nemo)
+        (lib.optional cfg.fileManager.enable nemo)
 
-        (lib.optional cfg.audio.enable
-          pavucontrol)
+        (lib.optional cfg.audio.enable pavucontrol)
 
-        (lib.optionals cfg.communication.enable [
-          slack
-          slack-term
-          spotify-cli-linux
-          telegram-desktop
-        ])
+        (lib.optionals cfg.communication.enable (
+          [
+            slack-term
+            spotify-cli-linux
+            telegram-desktop
+          ]
+          # Slack's Electron desktop app has no aarch64-linux build in nixpkgs
+          # (x86_64-linux + darwin only), and an unavailable package in the
+          # closure breaks the whole home generation on aarch64 hosts like the
+          # DGX Spark (shimmer). Gate it to the architecture that can build it.
+          ++ lib.optional pkgs.stdenv.hostPlatform.isx86_64 slack
+        ))
       ];
   };
 }

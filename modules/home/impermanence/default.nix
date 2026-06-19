@@ -4,11 +4,7 @@
 # The impermanence home-manager module must be imported at the configuration level
 # (in configurations/home/*.nix) to provide the home.persistence option.
 #
-{
-  config,
-  lib,
-  ...
-}:
+{ config, lib, ... }:
 let
   cfg = config.hyper-modern-nixos.impermanence;
 in

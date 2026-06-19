@@ -5,8 +5,7 @@
 # Wayland desktop environment configuration.
 # Provides high-level options for Hyprland and supporting tools.
 #
-{ lib, ... }:
-{
+{ lib, ... }: {
   imports = [
     ./hyprland
     ./hyprland/waybar.nix

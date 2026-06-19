@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-{
+{ pkgs, ... }: {
   imports = [ ./hardware-configuration.nix ];
 
   boot.loader.systemd-boot.enable = true;
@@ -20,10 +19,6 @@
   hardware.graphics = {
     enable = true;
     enable32Bit = true;
-  };
-
-  hardware.opengl = {
-    enable = true;
     # RADV is now the default Vulkan driver
   };
 

@@ -32,11 +32,6 @@ in
     hardware.graphics = {
       enable = true;
       enable32Bit = true;
-    };
-
-    hardware.opengl = {
-      enable = true;
-      driSupport32Bit = true;
 
       # RADV is now the default Vulkan driver; amdvlk has been removed
       extraPackages =

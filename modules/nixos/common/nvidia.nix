@@ -9,13 +9,44 @@ let
   cfg = config.hyper-modern-nixos.nvidia;
 in
 {
-  options.hyper-modern-nixos.nvidia.enable = mkEnableOption "hyper-modern-nixos.nvidia" // {
-    default = false;
+  options.hyper-modern-nixos.nvidia = {
+    enable = mkEnableOption "hyper-modern-nixos.nvidia" // {
+      default = false;
+    };
+
+    open = mkOption {
+      type = types.bool;
+      default = false;
+      description = ''
+        Use the open-source NVIDIA kernel modules. Default false: on the
+        fleet's kernel (linuxPackages_testing, 7.1) the proprietary modules are
+        the verified-building path. Flip true per-host only if you've confirmed
+        the open modules build against that host's kernel + driver.
+      '';
+    };
+
+    package = mkOption {
+      type = types.nullOr types.package;
+      default = null;
+      defaultText = literalExpression "config.boot.kernelPackages.nvidiaPackages.latest";
+      description = ''
+        NVIDIA driver package. Defaults to the `latest` branch (610.x), which
+        is the version that builds against the fleet's 7.1 kernel — the beta
+        branch (595.x) does not (kernel dropped linux/of_gpio.h).
+      '';
+    };
   };
 
   config = mkIf cfg.enable {
     # Allow unfree packages (NVIDIA drivers are proprietary)
     nixpkgs.config.allowUnfree = true;
+
+    # Fleet uniformity: NVIDIA hosts (near-identical SKUs) all run the 7.1
+    # testing kernel for recent-motherboard bluetooth/wifi support, paired with
+    # the 610.x driver above. mkDefault so a host with different hardware can
+    # still override. (AMD-only hosts like watchtower don't import this module
+    # and keep the stock kernel.)
+    boot.kernelPackages = mkDefault pkgs.linuxPackages_testing;
 
     # Graphics configuration
     hardware.graphics = {
@@ -35,10 +66,12 @@ in
     hardware.nvidia = {
       modesetting.enable = true;
       nvidiaSettings = true;
-      open = true; # RTX 5090 should work with open drivers too if you want to try
+      inherit (cfg) open;
 
-      # Use production or beta for RTX 5090 support
-      package = config.boot.kernelPackages.nvidiaPackages.beta;
+      # latest (610.x) by default — builds against the fleet's 7.1 kernel;
+      # override per-host via hyper-modern-nixos.nvidia.package.
+      package =
+        if cfg.package != null then cfg.package else config.boot.kernelPackages.nvidiaPackages.latest;
 
       powerManagement.enable = false;
       powerManagement.finegrained = false;

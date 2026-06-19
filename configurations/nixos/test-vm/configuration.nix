@@ -61,30 +61,28 @@
   };
 
   # Home-manager for test user - minimal config (avoid duplicating Hyprland settings)
-  home-manager.users.test =
-    { pkgs, ... }:
-    {
-      home.username = "test";
-      home.homeDirectory = "/home/test";
-      home.stateVersion = "25.05";
+  home-manager.users.test = { pkgs, ... }: {
+    home.username = "test";
+    home.homeDirectory = "/home/test";
+    home.stateVersion = "25.05";
 
-      # Minimal XDG
-      xdg.enable = true;
+    # Minimal XDG
+    xdg.enable = true;
 
-      # Packages
-      home.packages = with pkgs; [
-        neofetch
-        btop
-        foot
-        wofi
-      ];
+    # Packages
+    home.packages = with pkgs; [
+      neofetch
+      btop
+      foot
+      wofi
+    ];
 
-      # Simple terminal
-      programs.foot = {
-        enable = true;
-        settings.main.font = "monospace:size=11";
-      };
+    # Simple terminal
+    programs.foot = {
+      enable = true;
+      settings.main.font = "monospace:size=11";
     };
+  };
 
   # ── Wayland/Desktop Configuration ────────────────────────────────────────────
 

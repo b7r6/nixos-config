@@ -82,7 +82,6 @@ in
   "agenix/users/b7r6/netrc.age".publicKeys = b7r6Everywhere;
   "agenix/users/b7r6/atuin-key.age".publicKeys = b7r6Everywhere;
   "agenix/users/b7r6/hf-token.age".publicKeys = b7r6Everywhere;
-  "agenix/users/b7r6/cachix-token.age".publicKeys = b7r6Everywhere;
 
   # Full rclone.conf (R2 remote `straylight-r2` + its Access Key / Secret Access
   # Key). Decrypted by the home-manager agenix module straight to

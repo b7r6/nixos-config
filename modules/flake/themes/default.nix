@@ -14,11 +14,7 @@
 { config, lib, ... }:
 
 let
-  inherit (lib)
-    mkOption
-    mkEnableOption
-    types
-    ;
+  inherit (lib) mkOption mkEnableOption types;
 
   # Import the pure-Nix color math library (no config dependency)
   color-lib = import ../../../lib/ono-sendai.nix { inherit lib; };
@@ -28,10 +24,10 @@ let
   # Build an Emacs theme package using the Lean generator
   mkEmacsTheme =
     pkgs:
-    { level
-    , hero-hue
-    , axis-hue
-    ,
+    {
+      level,
+      hero-hue,
+      axis-hue,
     }:
     let
       generator = pkgs.callPackage ../../../packages/ono-sendai-generator { };
@@ -45,10 +41,10 @@ let
   # Build a Neovim theme package using the Lean generator
   mkNeovimTheme =
     pkgs:
-    { level
-    , hero-hue
-    , axis-hue
-    ,
+    {
+      level,
+      hero-hue,
+      axis-hue,
     }:
     let
       generator = pkgs.callPackage ../../../packages/ono-sendai-generator { };
@@ -65,10 +61,10 @@ let
   # Build an SVG wallpaper
   mkWallpaper =
     pkgs:
-    { palette
-    , width ? 3840
-    , height ? 2160
-    ,
+    {
+      palette,
+      width ? 3840,
+      height ? 2160,
     }:
     pkgs.runCommand "ono-sendai-wallpaper" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
       mkdir -p $out
@@ -194,10 +190,10 @@ in
 
       # Convenience: get resolved theme for given params
       resolve =
-        { level
-        , hero-hue ? 211
-        , axis-hue ? 201
-        ,
+        {
+          level,
+          hero-hue ? 211,
+          axis-hue ? 201,
         }:
         color-lib.mk-theme { inherit level hero-hue axis-hue; };
     };
@@ -229,16 +225,12 @@ in
 
           # Emacs theme package (if enabled)
           (lib.mkIf (cfg.enable && cfg.editors.emacs) {
-            ono-sendai-emacs = mkEmacsTheme pkgs {
-              inherit (cfg) level hero-hue axis-hue;
-            };
+            ono-sendai-emacs = mkEmacsTheme pkgs { inherit (cfg) level hero-hue axis-hue; };
           })
 
           # Neovim theme package (if enabled)
           (lib.mkIf (cfg.enable && cfg.editors.neovim) {
-            ono-sendai-neovim = mkNeovimTheme pkgs {
-              inherit (cfg) level hero-hue axis-hue;
-            };
+            ono-sendai-neovim = mkNeovimTheme pkgs { inherit (cfg) level hero-hue axis-hue; };
           })
 
           # Wallpaper package (if enabled)

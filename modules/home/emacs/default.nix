@@ -232,8 +232,12 @@ in
         ])
 
         # Formatters
+        # nixfmt (RFC-style) is the formatter treefmt uses
+        # (modules/flake/fmt.nix). Emacs' format-all "Nix" entry shells out to
+        # the `nixfmt` binary, so on-save formatting matches treefmt exactly
+        # instead of diverging via nixpkgs-fmt.
         (lib.optionals cfg.languageServers.enable [
-          nixpkgs-fmt
+          nixfmt
           ruff
           prettier
           shfmt

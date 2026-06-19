@@ -4,11 +4,7 @@
 #
 # Lock screen (swaylock) configuration
 #
-{
-  config,
-  lib,
-  ...
-}:
+{ config, lib, ... }:
 let
   inherit (lib)
     mkOption

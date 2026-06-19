@@ -5,8 +5,7 @@
 #
 # System-wide packages available to all users.
 #
-{ pkgs, ... }:
-{
+{ pkgs, ... }: {
   programs.firefox.enable = true;
 
   environment.systemPackages = with pkgs; [

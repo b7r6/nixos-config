@@ -4,8 +4,7 @@
 #
 # Core system settings: SSH, sudo, home-manager integration.
 #
-{ lib, ... }:
-{
+{ lib, ... }: {
   # SSH daemon
   services.openssh.enable = true;
 

@@ -78,25 +78,25 @@ VARIANT="$1"
 DEVICE="${2:-}"
 
 case "$VARIANT" in
-  aarch64-minimal)
-    PACKAGE="usb-aarch64-minimal"
-    ARCH="aarch64"
-    ;;
-  aarch64-gnome)
-    PACKAGE="usb-aarch64-gnome"
-    ARCH="aarch64"
-    ;;
-  x86_64-minimal)
-    PACKAGE="usb-x86_64-minimal"
-    ARCH="x86_64"
-    ;;
-  x86_64-gnome)
-    PACKAGE="usb-x86_64-gnome"
-    ARCH="x86_64"
-    ;;
-  *)
-    error "Unknown variant: $VARIANT"
-    ;;
+aarch64-minimal)
+  PACKAGE="usb-aarch64-minimal"
+  ARCH="aarch64"
+  ;;
+aarch64-gnome)
+  PACKAGE="usb-aarch64-gnome"
+  ARCH="aarch64"
+  ;;
+x86_64-minimal)
+  PACKAGE="usb-x86_64-minimal"
+  ARCH="x86_64"
+  ;;
+x86_64-gnome)
+  PACKAGE="usb-x86_64-gnome"
+  ARCH="x86_64"
+  ;;
+*)
+  error "Unknown variant: $VARIANT"
+  ;;
 esac
 
 # ── Architecture Check ───────────────────────────────────────────────────────

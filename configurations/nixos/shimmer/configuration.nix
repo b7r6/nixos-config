@@ -76,14 +76,23 @@ let
   ];
 in
 {
-  imports = [
-    ./hardware-configuration.nix
-  ];
+  imports = [ ./hardware-configuration.nix ];
 
   networking.hostName = "shimmer";
 
+  time.timeZone = "America/Puerto_Rico";
+
   # Enable DGX Spark hardware support (custom NVIDIA kernel, watchdog, etc.)
   hardware.dgx-spark.enable = true;
+  # NOTE: useNvidiaKernel=true (6.17.1 NVIDIA kernel) is broken until nixpkgs/HM
+  # fix the nvidia-kernel-modules allowedReferences issue for non-default kernels.
+  # The standard kernel works fine — it includes r8127 for the on-board 10GbE.
+  hardware.dgx-spark.useNvidiaKernel = false;
+
+  # nvidia-container-toolkit's CDI generator fails on this host (driver/library
+  # version mismatch with the standard kernel); keep the package available but
+  # don't try to generate specs at boot.
+  hardware.nvidia-container-toolkit.enable = false;
 
   # Use podman instead of docker for NVIDIA containers on DGX Spark
   hyper-modern-nixos.docker.enable = false;
@@ -110,12 +119,15 @@ in
     inherit libraries;
   };
 
-  system.activationScripts.nix-ld-cache = ''
-    if [ -e /run/current-system/sw/bin/ldconfig ]; then
-      echo "Updating nix-ld cache..."
-      /run/current-system/sw/bin/ldconfig || true
-    fi
-  '';
+  # NOTE: the nix-ld ldconfig activation script was disabled during DGX bringup;
+  # it raced/failed against the standard-kernel driver setup. NIX_LD_LIBRARY_PATH
+  # below is sufficient for the CUDA/Electron unpatched-binary use case.
+  # system.activationScripts.nix-ld-cache = ''
+  #   if [ -e /run/current-system/sw/bin/ldconfig ]; then
+  #     echo "Updating nix-ld cache..."
+  #     /run/current-system/sw/bin/ldconfig || true
+  #   fi
+  # '';
 
   environment.sessionVariables = {
     NIX_LD_LIBRARY_PATH = lib.mkForce (lib.makeLibraryPath libraries);
@@ -161,39 +173,12 @@ in
   ];
 
   # ── Per-host monitor & display config ──────────────────────────────────────
+  # Monitor layout is the single source of truth in lib/monitors.nix; see that
+  # file for why it lives there rather than being duplicated between here and
+  # the standalone home config.
   home-manager.users.b7r6 = {
     hyper-modern-nixos = {
-      hyprland.monitors = {
-        center = {
-          description = "AOC CU34G2XP 1Q1QBHA003180";
-          resolution = "3440x1440";
-          refreshRate = 100;
-          position = "0x0";
-          scale = 1.0;
-          workspaces = [
-            1
-            2
-            3
-            4
-            5
-          ];
-          primary = true;
-        };
-        right = {
-          description = "LG Electronics LG ULTRAGEAR+ 502NTMX7E483";
-          resolution = "3840x2160";
-          refreshRate = 240;
-          position = "3440x0";
-          scale = 1.5;
-          workspaces = [
-            6
-            7
-            8
-            9
-            10
-          ];
-        };
-      };
+      hyprland.monitors = (import ../../../lib/monitors.nix).shimmer;
 
       themes.display = {
         profile = "lg-ultragear-oled";

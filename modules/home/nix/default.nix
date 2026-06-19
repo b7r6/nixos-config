@@ -1,16 +1,15 @@
-{ flake
-, config
-, lib
-, pkgs
-, ...
+{
+  flake,
+  config,
+  lib,
+  pkgs,
+  ...
 }:
 let
   cfg = config.hyper-modern-nixos.nix;
 in
 {
-  imports = [
-    flake.inputs.nix-index-database.homeModules.nix-index
-  ];
+  imports = [ flake.inputs.nix-index-database.homeModules.nix-index ];
 
   options.hyper-modern-nixos.nix = {
     enable = lib.mkEnableOption "Nix development tools and integration";

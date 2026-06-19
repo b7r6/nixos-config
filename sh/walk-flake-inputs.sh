@@ -242,7 +242,7 @@ echo "  }," >>"$HOME/.config/nixd/nixd.json"
 # Complete the configuration
 cat >>"$HOME/.config/nixd/nixd.json" <<EOF
   "formatting": {
-    "command": "nixpkgs-fmt"
+    "command": "nixfmt"
   },
   "eval": {
     "workers": 4,

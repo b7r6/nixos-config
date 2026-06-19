@@ -7,13 +7,14 @@
 }:
 
 let
-  initEl      = builtins.readFile ./init.el;
+  initEl = builtins.readFile ./init.el;
   earlyInitEl = builtins.readFile ./early-init.el;
 
   # Ship ./lib/*.el into site-lisp and load them at startup.
   localLibs = pkgs.symlinkJoin {
     name = "emacs-local-libs";
-    paths = lib.mapAttrsToList (name: _value:
+    paths = lib.mapAttrsToList (
+      name: _value:
       pkgs.writeTextFile {
         inherit name;
         text = builtins.readFile (./lib + "/${name}");
@@ -23,8 +24,7 @@ let
   };
 
   # Helper: include package if it exists (keeps builds resilient).
-  maybe = epkgs: name:
-    if builtins.hasAttr name epkgs then [ (builtins.getAttr name epkgs) ] else [ ];
+  maybe = epkgs: name: if builtins.hasAttr name epkgs then [ (builtins.getAttr name epkgs) ] else [ ];
 
   # ------------------------------------------------------------
   # Ono-Sendai theme universe (build Emacs themes from Nix palettes)
@@ -32,7 +32,8 @@ let
   ono = import ./ono-sendai-blue.nix;
   onoSchemes = lib.filterAttrs (_name: v: (v ? palette) && (v ? slug) && (v ? name)) ono;
 
-  mkBase16Theme = epkgs: scheme:
+  mkBase16Theme =
+    epkgs: scheme:
     let
       themeSym = "base16-${scheme.slug}";
       colorsVar = "${themeSym}-theme-colors";
@@ -89,7 +90,8 @@ in
     enable = true;
 
     # pgtk build (adjust if you target another build)
-    package = (pkgs.emacsPackagesFor pkgs.emacs30-pgtk).emacsWithPackages (epkgs:
+    package = (pkgs.emacsPackagesFor pkgs.emacs30-pgtk).emacsWithPackages (
+      epkgs:
       let
         onoThemePkgs = lib.mapAttrsToList (_: scheme: mkBase16Theme epkgs scheme) onoSchemes;
 
@@ -129,23 +131,24 @@ in
           forge
         ];
 
-        optional = (maybe epkgs "embark")
-                ++ (maybe epkgs "embark-consult")
-                ++ (maybe epkgs "atomic-chrome")
-                ++ (maybe epkgs "elfeed")
-                ++ (maybe epkgs "ement")
-                ++ (maybe epkgs "telega")
-                ++ (maybe epkgs "mastodon")
-                ++ (maybe epkgs "pdf-tools")
-                ++ (maybe epkgs "nov")
-                ++ (maybe epkgs "gptel")
-                ++ (maybe epkgs "format-all")
-                ++ (maybe epkgs "lsp-mode")
-                ++ (maybe epkgs "lsp-ui")
-                ++ (maybe epkgs "treesit-auto");
+        optional =
+          (maybe epkgs "embark")
+          ++ (maybe epkgs "embark-consult")
+          ++ (maybe epkgs "atomic-chrome")
+          ++ (maybe epkgs "elfeed")
+          ++ (maybe epkgs "ement")
+          ++ (maybe epkgs "telega")
+          ++ (maybe epkgs "mastodon")
+          ++ (maybe epkgs "pdf-tools")
+          ++ (maybe epkgs "nov")
+          ++ (maybe epkgs "gptel")
+          ++ (maybe epkgs "format-all")
+          ++ (maybe epkgs "lsp-mode")
+          ++ (maybe epkgs "lsp-ui")
+          ++ (maybe epkgs "treesit-auto");
 
       in
-        onoThemePkgs ++ core ++ optional
+      onoThemePkgs ++ core ++ optional
     );
 
     extraConfig = ''

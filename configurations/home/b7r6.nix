@@ -9,12 +9,19 @@ in
     inputs.impurity.nixosModules.default
 
     self.homeModules.default
-
-    # nh home switch evaluates standalone, so per-machine monitors must be
-    # imported here too. See configurations/nixos/<host>/configuration.nix
-    # for the equivalent NixOS-level override.
-    ./monitors/ultraviolence.nix
   ];
+
+  # Standalone `nh home switch` has no NixOS host context, so it still needs a
+  # monitor layout. Pull the default host's layout from the single source of
+  # truth (lib/monitors.nix) at mkDefault priority: when this same config is
+  # evaluated INSIDE a NixOS host (via myusers.nix), that host's
+  # configuration.nix sets the same option at normal priority and wins cleanly
+  # — so there is no conflicting-definition error (e.g. shimmer vs ultraviolence).
+  hyper-modern-nixos.hyprland.monitors =
+    let
+      monitors = import ../../lib/monitors.nix;
+    in
+    lib.mkDefault monitors.${monitors.defaultHost};
 
   # impurity.nix - set configRoot, enable via -impure variant
   # impurity.configRoot = self;

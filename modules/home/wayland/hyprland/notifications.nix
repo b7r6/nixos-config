@@ -4,11 +4,7 @@
 #
 # Notification daemon (mako) configuration
 #
-{
-  config,
-  lib,
-  ...
-}:
+{ config, lib, ... }:
 let
   inherit (lib)
     mkOption

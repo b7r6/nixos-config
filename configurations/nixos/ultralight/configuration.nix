@@ -1,5 +1,4 @@
-{ ... }:
-{
+{ ... }: {
   imports = [ ./hardware-configuration.nix ];
 
   hyper-modern-nixos.hyper-wayland = {

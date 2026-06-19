@@ -6,11 +6,12 @@
 # Hyprland window manager configuration with high-level abstractions.
 #
 
-{ flake
-, config
-, lib
-, pkgs
-, ...
+{
+  flake,
+  config,
+  lib,
+  pkgs,
+  ...
 }:
 let
   inherit (lib)
@@ -48,15 +49,13 @@ let
       };
 
       position = mkOption {
-        type = types.either
-          (types.enum [
-            "auto"
-            "auto-left"
-            "auto-right"
-            "auto-up"
-            "auto-down"
-          ])
-          types.str;
+        type = types.either (types.enum [
+          "auto"
+          "auto-left"
+          "auto-right"
+          "auto-up"
+          "auto-down"
+        ]) types.str;
         default = "auto";
         description = ''
           Monitor position. Use:
@@ -288,12 +287,10 @@ let
   mkWorkspaceBindings =
     monitors:
     lib.flatten (
-      mapAttrsToList
-        (
-          name: mon:
-          map (ws: "${toString ws}, monitor:desc:${mon.description}, persistent:true") mon.workspaces
-        )
-        monitors
+      mapAttrsToList (
+        name: mon:
+        map (ws: "${toString ws}, monitor:desc:${mon.description}, persistent:true") mon.workspaces
+      ) monitors
     );
 
   # Animation speed multipliers
@@ -640,7 +637,8 @@ in
                     up = "Up";
                     right = "Right";
                   };
-                }.${cfg.keybindings.preset};
+                }
+                .${cfg.keybindings.preset};
 
               # Movement commands based on hy3 or default
               moveFocus = dir: if cfg.plugins.hy3.enable then "hy3:movefocus, ${dir}" else "movefocus, ${dir}";

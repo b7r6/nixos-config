@@ -196,9 +196,7 @@ in
     );
 
     # Symlink rage as age (passage expects 'age' in PATH)
-    home.file.".local/bin/age" = lib.mkIf cfg.secrets.enable {
-      source = "${pkgs.rage}/bin/rage";
-    };
+    home.file.".local/bin/age" = lib.mkIf cfg.secrets.enable { source = "${pkgs.rage}/bin/rage"; };
 
     # Passage identities - create file listing SSH keys that can decrypt
     # Uses both id_ed25519 and id_ed25519_b7r6 for flexibility

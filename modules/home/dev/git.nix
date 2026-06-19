@@ -1,6 +1,5 @@
 # TODO[b7r6]: reconciel this with the original stuff...
-{ config, pkgs, ... }:
-{
+{ config, pkgs, ... }: {
   programs.git = {
     enable = true;
 

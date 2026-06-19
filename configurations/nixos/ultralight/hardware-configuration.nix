@@ -72,17 +72,20 @@
   powerManagement.cpuFreqGovernor = "performance";
   hardware.cpu.amd.updateMicrocode = true;
 
-  fileSystems."/" =
-    { device = "/dev/disk/by-uuid/7b311638-ffb5-4d38-8d7f-092d94a0908e";
-      fsType = "btrfs";
-      options = [ "subvol=@" ];
-    };
+  fileSystems."/" = {
+    device = "/dev/disk/by-uuid/7b311638-ffb5-4d38-8d7f-092d94a0908e";
+    fsType = "btrfs";
+    options = [ "subvol=@" ];
+  };
 
-  fileSystems."/boot" =
-    { device = "/dev/disk/by-uuid/C8FA-A344";
-      fsType = "vfat";
-      options = [ "fmask=0077" "dmask=0077" ];
-    };
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-uuid/C8FA-A344";
+    fsType = "vfat";
+    options = [
+      "fmask=0077"
+      "dmask=0077"
+    ];
+  };
 
   swapDevices = [ ];
   networking.useDHCP = lib.mkDefault true;
@@ -97,9 +100,7 @@
     "net.ipv4.tcp_wmem" = "4096 65536 134217728";
   };
 
-  environment.systemPackages = with pkgs; [
-    ryzenadj
-  ];
+  environment.systemPackages = with pkgs; [ ryzenadj ];
 
   systemd.services.ryzen-power-limit = {
     description = "Set Ryzen power limits";

@@ -4,8 +4,7 @@
 #
 # Android development tools and ADB configuration.
 #
-{ pkgs, ... }:
-{
+{ pkgs, ... }: {
   environment.systemPackages = [ pkgs.android-tools ];
 
   # Udev rules for Android devices

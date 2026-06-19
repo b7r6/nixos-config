@@ -14,9 +14,7 @@
 }:
 
 {
-  imports = [
-    ./base.nix
-  ];
+  imports = [ ./base.nix ];
 
   # ── DGX Spark / GB10 Hardware ──────────────────────────────────────────────
 

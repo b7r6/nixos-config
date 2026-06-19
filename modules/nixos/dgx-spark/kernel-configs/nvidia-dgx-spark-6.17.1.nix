@@ -3,7 +3,8 @@
 # Architecture: arm64, Flavour: arm64-nvidia
 # Generated: 2025-11-14 11:43:28 UTC
 
-{ lib }: with lib.kernel; {
+{ lib }: with lib.kernel;
+{
   "64BIT" = lib.mkForce yes;
   "6LOWPAN" = lib.mkForce module;
   "6LOWPAN_DEBUGFS" = lib.mkForce no;
@@ -1452,7 +1453,9 @@
   CC_NO_STRINGOP_OVERFLOW = lib.mkForce yes;
   CC_OPTIMIZE_FOR_PERFORMANCE = lib.mkForce yes;
   CC_OPTIMIZE_FOR_SIZE = lib.mkForce no;
-  CC_VERSION_TEXT = lib.mkForce (freeform "aarch64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0");
+  CC_VERSION_TEXT = lib.mkForce (
+    freeform "aarch64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0"
+  );
   CDNS_I3C_MASTER = lib.mkForce module;
   CDROM = lib.mkForce yes;
   CDX_BUS = lib.mkForce yes;
