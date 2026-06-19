@@ -8,7 +8,11 @@
     # inputs.nix-compile.flakeModules.default  # Not available in new sensenet-ai version
     ./fmt.nix
     ./overlays.nix
+    ./devshell.nix
     ./themes
+
+    # secrets administration subsystem (devShells.secrets + flake apps)
+    ../../secrets
 
     # ./impure-variants.nix  # TODO: needs different approach to avoid recursion
   ];
@@ -57,7 +61,8 @@
       };
 
       devshells.default.imports = [ (pkgs.devshell.importTOML ../../devshell.toml) ];
-      devshells.secrets.imports = [ (pkgs.devshell.importTOML ../../secrets/devshell.toml) ];
+      # devShells.secrets is provided by ../../secrets (flake-parts module) as a
+      # plain mkShell with writeShellApplication-wrapped commands + flake apps.
 
       # ── Apps ──────────────────────────────────────────────────────────────────
 
