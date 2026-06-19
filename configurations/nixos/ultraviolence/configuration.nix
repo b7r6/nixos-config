@@ -52,15 +52,28 @@ in
     };
   };
 
-  # ── attic binary cache (single-box bringup) ─────────────────────────────────
-  # atticd on loopback for now; RS256 JWT secret from agenix. We'll exercise it
-  # locally (attic login / push / use) before exposing on the tailnet.
+  # ── attic binary cache (tailnet, self-populating) ───────────────────────────
+  # atticd binds all interfaces but the port is opened only on tailscale0, so
+  # the `hypermodern` cache is reachable across the tailnet (public-pull) but
+  # not the open internet. RS256 signing secret + a push-scoped token come from
+  # agenix. The clientCache block makes THIS host both consult the cache first
+  # (substituter, priority 10) and push every successful build into it.
   age.secrets.atticd-rs256.file = ../../../secrets/agenix/machines/atticd-rs256.age;
+  age.secrets.attic-push-token.file = ../../../secrets/agenix/machines/attic-push-token.age;
 
   hyper-modern-nixos.attic = {
     enable = true;
     environmentFile = "/run/agenix/atticd-rs256";
-    listen = "[::1]:8080";
+    listen = "[::]:8080";
+    trustedInterfaces = [ "tailscale0" ];
+
+    clientCache = {
+      enable = true;
+      name = "hypermodern";
+      endpoint = "http://ultraviolence.osiris-walleye.ts.net:8080";
+      publicKey = "hypermodern:2RH6ZCDyxOJp++LjtPOFeOPZe95hIOMgTwzKNIeZ+ew=";
+      pushTokenFile = "/run/agenix/attic-push-token";
+    };
   };
 
   # ── NativeLink remote execution (single-box monolithic bringup) ─────────────

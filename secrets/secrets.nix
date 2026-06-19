@@ -59,6 +59,13 @@ in
   # Generate:  openssl genrsa -traditional 4096 | base64 -w0
   "agenix/machines/atticd-rs256.age".publicKeys = b7r6Everywhere;
 
+  # attic PUSH token (raw JWT, push+pull scoped to the `hypermodern` cache).
+  # Referenced by the post-build-hook's attic client config as `token-file` so
+  # every successful build self-populates the cache. Generate from the server:
+  #   atticd-atticadm make-token --sub <host>-push --validity 10y \
+  #     --pull hypermodern --push hypermodern
+  "agenix/machines/attic-push-token.age".publicKeys = b7r6Everywhere;
+
   # ── User Secrets (agenix-deployed) ───────────────────────────────────────────
   # Deployed to user's home via home-manager agenix module
   # Encrypted to: user keys + hosts where that user exists

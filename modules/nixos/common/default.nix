@@ -49,7 +49,7 @@
   # Network configuration
   hyper-modern-nixos.network = {
     enable = true;
-    tailnet.domain = "risk-nunki.ts.net";
+    tailnet.domain = "osiris-walleye.ts.net";
     firewall.enable = false;
     useBackupResolver = true;
   };
