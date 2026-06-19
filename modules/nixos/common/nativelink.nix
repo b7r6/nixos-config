@@ -17,10 +17,39 @@
 #   - role = "worker"     on shimmer (aarch64 DGX): an aarch64-only worker that
 #     dials the monolithic host's worker_api over the tailnet.
 #
-# The scheduler matches actions to workers by the `cpu_arch` / `OSFamily`
-# platform properties, which we derive from the host's architecture.
+# ── THE TOOLCHAIN PROBLEM (read this before expecting remote EXECUTION) ──────
+# Standing up CAS+scheduler+worker (this module) is the easy part. Making remote
+# ACTIONS actually execute correctly is the hard part, and it is NOT a server
+# concern — it lives in the CLIENT (Buck2/Bazel) repo:
 #
-# Build note: NativeLink is not in nixpkgs and builds ~1000 derivations from
+#   1. Property matching: the scheduler matches an action's requested platform
+#      properties against what a worker advertises (workerProperties +
+#      cpu_arch/OSFamily/ISA/container-image/lre-rs, see below). Request a
+#      property no worker advertises -> the action never schedules. This routes
+#      work; it does NOT make it reproducible.
+#
+#   2. Hermeticity: a remote worker runs the action's command on ITS filesystem.
+#      If the action says `/usr/bin/gcc`, you get the worker's gcc (or none) —
+#      non-reproducible or broken. The fix (per NativeLink's LRE docs) is a
+#      content-addressed toolchain: every tool referenced is a `/nix/store/...`
+#      path. Because our workers ARE NixOS and share /nix/store, a Buck2 toolchain
+#      that points at nix-store binaries is hermetic AND cache-shareable: the
+#      action hash matches everywhere. A toolchain that references FHS paths is
+#      not. THIS is "the trick" with NativeLink.
+#
+#   3. Buck2 specifics (see configurations/.../README or the host comment):
+#      .buckconfig sets engine/action_cache/cas_address + tls=false +
+#      instance_name=main (matches `instanceName` here); an ExecutionPlatformInfo
+#      with remote_enabled=True; remote_execution_use_case="buck2-default".
+#
+# This module gets the SERVER right (instance_name, the full property set Buck2
+# negotiates, the worker advertisement). The hermetic toolchain is per-repo.
+#
+# The scheduler matches actions to workers by the platform properties; cpu_arch/
+# OSFamily/ISA/container-image/lre-rs are derived from the host, the rest come
+# from `workerProperties`.
+#
+# Build note: NativeLink is not in nixpkgs and builds ~640 derivations from
 # source. Add nativelink.cachix.org to nix.settings.substituters before enabling
 # on any host, or expect a very long first build.
 #
@@ -165,14 +194,33 @@ let
 
   casStores = if cfg.r2.enable then r2CasStores else localCasStores;
 
+  inst = cfg.instanceName;
+
+  # The full canonical RE property set Buck2/Bazel negotiate over, with the
+  # match modes from the upstream buck2_cas.json5. The scheduler must SUPPORT a
+  # superset of what any worker advertises and what any action requests.
   schedulerFragment = [
     {
       name = "MAIN_SCHEDULER";
-      simple = {
-        supported_platform_properties = {
-          cpu_arch = "exact";
-          OSFamily = "exact";
-        };
+      simple.supported_platform_properties = {
+        cpu_count = "minimum";
+        memory_kb = "minimum";
+        network_kbps = "minimum";
+        disk_read_iops = "minimum";
+        disk_read_bps = "minimum";
+        disk_write_iops = "minimum";
+        disk_write_bps = "minimum";
+        shm_size = "minimum";
+        gpu_count = "minimum";
+        gpu_model = "exact";
+        cpu_vendor = "exact";
+        cpu_arch = "exact";
+        cpu_model = "exact";
+        kernel_version = "exact";
+        OSFamily = "priority";
+        "container-image" = "priority";
+        "lre-rs" = "priority";
+        ISA = "exact";
       };
     }
   ];
@@ -181,35 +229,94 @@ let
     name = "public";
     listener.http.socket_address = cfg.publicListen;
     services = {
-      cas = [ { cas_store = "CAS_MAIN_STORE"; } ];
-      ac = [ { ac_store = "AC_MAIN_STORE"; } ];
+      cas = [
+        {
+          instance_name = inst;
+          cas_store = "CAS_MAIN_STORE";
+        }
+      ];
+      ac = [
+        {
+          instance_name = inst;
+          ac_store = "AC_MAIN_STORE";
+        }
+      ];
       execution = [
         {
+          instance_name = inst;
           cas_store = "CAS_MAIN_STORE";
           scheduler = "MAIN_SCHEDULER";
         }
       ];
-      bytestream.cas_stores."" = "CAS_MAIN_STORE";
-      capabilities = [ { remote_execution.scheduler = "MAIN_SCHEDULER"; } ];
+      bytestream = [
+        {
+          instance_name = inst;
+          cas_store = "CAS_MAIN_STORE";
+        }
+      ];
+      capabilities = [
+        {
+          instance_name = inst;
+          remote_execution.scheduler = "MAIN_SCHEDULER";
+        }
+      ];
     };
   };
 
   workerApiServer = {
-    name = "worker_api";
+    name = "private_workers_servers";
     listener.http.socket_address = cfg.workerApiListen;
-    services.worker_api.scheduler = "MAIN_SCHEDULER";
+    services = {
+      worker_api.scheduler = "MAIN_SCHEDULER";
+      admin = { };
+      health = { };
+    };
   };
+
+  # Worker-advertised properties: host-derived arch/OS/ISA + container-image and
+  # lre-rs left empty (the "priority" match makes empty = "no preference"), and
+  # whatever the host set in cfg.workerProperties (cpu_count, memory_kb, …).
+  workerPlatformProperties = (lib.mapAttrs (_: values: { inherit values; }) cfg.workerProperties) // {
+    cpu_arch.values = [ cpuArch ];
+    OSFamily.values = [ "" ];
+    "container-image".values = [ "" ];
+    "lre-rs".values = [ "" ];
+    ISA.values = [ (if pkgs.stdenv.hostPlatform.isAarch64 then "aarch64" else "x86-64") ];
+  };
+
+  # Per-action entrypoint wrapper. Remote actions run in a sandbox with NO
+  # inherited PATH, so even the prelude's own scaffolding (`mkdir`, `cd`, the
+  # shell) fails with "command not found". This wrapper prepends a baseline,
+  # nix-pinned toolchain to PATH before exec'ing the action's command, which is
+  # the minimum to make non-LRE genrule/sh actions run remotely. It is NOT full
+  # hermeticity (the action can still reach other store paths it names) — for
+  # real reproducibility the client should pin its whole toolchain — but it
+  # makes the worker behave like a sane *nix box. Content-addressed, so it's
+  # itself a stable input. Override via cfg.workerEntrypoint.
+  defaultEntrypoint = pkgs.writeShellScript "nativelink-entrypoint" ''
+    export PATH="${
+      lib.makeBinPath [
+        pkgs.coreutils
+        pkgs.bash
+        pkgs.findutils
+        pkgs.gnused
+        pkgs.gnugrep
+        pkgs.gawk
+      ]
+    }:$PATH"
+    exec "$@"
+  '';
+
+  entrypoint = if cfg.workerEntrypoint != null then cfg.workerEntrypoint else "${defaultEntrypoint}";
 
   localWorker = {
     local = {
       worker_api_endpoint.uri = cfg.workerApiEndpoint;
+      inherit entrypoint;
       cas_fast_slow_store = "WORKER_FAST_SLOW_STORE";
       upload_action_result.ac_store = "AC_MAIN_STORE";
       work_directory = "${storeRoot}/work";
-      platform_properties = {
-        cpu_arch.values = [ cpuArch ];
-        OSFamily.values = [ "Linux" ];
-      };
+      platform_properties = workerPlatformProperties;
     };
   };
 
@@ -218,6 +325,7 @@ let
     role:
     {
       stores = casStores;
+      global.max_open_files = 24576;
     }
     // lib.optionalAttrs (role == "monolithic" || role == "scheduler") {
       schedulers = schedulerFragment;
@@ -259,6 +367,18 @@ in
       '';
     };
 
+    instanceName = lib.mkOption {
+      type = lib.types.str;
+      default = "main";
+      description = ''
+        RE-API instance name served on the public gRPC services. MUST match the
+        client. Buck2's `.buckconfig` uses `instance_name = main` and the
+        upstream Buck2 integration test uses "main", so that's the default.
+        (Bazel/Buck2 clients send this with every request; a mismatch surfaces
+        as instance-name errors and zero cache hits.)
+      '';
+    };
+
     publicListen = lib.mkOption {
       type = lib.types.str;
       default = "0.0.0.0:50051";
@@ -282,6 +402,44 @@ in
       type = lib.types.int;
       default = 53687091200; # 50 GiB
       description = "Max bytes for the local-only CAS filesystem store before eviction (used when r2.enable = false).";
+    };
+
+    # ── Worker platform properties (the toolchain/RE matching handshake) ───────
+    # The scheduler matches an action's requested platform properties against
+    # what each worker ADVERTISES here. A Buck2/Bazel action that requests
+    # properties the worker doesn't advertise will never schedule; an action
+    # that requests nothing runs on whatever worker matches the defaults. For
+    # REAL hermeticity the toolchain itself must be content-addressed (Nix
+    # store) — these properties only route actions to capable workers, they do
+    # not make a non-hermetic toolchain reproducible. See the docs note in the
+    # module header / configurations comment.
+    workerProperties = lib.mkOption {
+      type = lib.types.attrsOf (lib.types.listOf lib.types.str);
+      default = {
+        cpu_count = [ "1" ];
+        memory_kb = [ "1000000" ];
+        # cpu_arch / OSFamily / container-image / lre-rs / ISA filled below from
+        # the host; merged with whatever the host overrides here.
+      };
+      description = ''
+        Platform properties this worker advertises to the scheduler. Keys must
+        be a subset of the scheduler's supported_platform_properties. cpu_arch,
+        OSFamily, container-image, lre-rs and ISA are set automatically from the
+        host; override/extend here (e.g. cpu_count, memory_kb, gpu_model).
+      '';
+    };
+
+    workerEntrypoint = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = ''
+        Path to a wrapper script the worker runs every action command through
+        ("entrypoint script arg..."). When null, a built-in wrapper that puts a
+        baseline nix-pinned toolchain (coreutils/bash/findutils/sed/grep/awk) on
+        PATH is used — required because remote actions run with NO inherited
+        PATH and otherwise fail on bare `mkdir`/`sh` in the prelude scaffolding.
+        Override to point at your own LRE toolchain wrapper.
+      '';
     };
 
     # ── Local fast-cache sizing (fronting R2 when r2.enable) ──────────────────
