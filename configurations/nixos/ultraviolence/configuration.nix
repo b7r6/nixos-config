@@ -91,6 +91,8 @@ in
   # worker out to shimmer later by adding role = "worker" there pointing at this
   # host's worker_api over the tailnet. Builds from source (~1000 derivations)
   # unless nativelink.cachix.org is added in modules/nixos/common/nix.nix.
+  age.secrets.nativelink-r2-env.file = ../../../secrets/agenix/machines/nativelink-r2-env.age;
+
   hyper-modern-nixos.nativelink = {
     enable = true;
     role = "monolithic";
@@ -98,6 +100,17 @@ in
     publicListen = "127.0.0.1:50051";
     workerApiListen = "127.0.0.1:50061";
     workerApiEndpoint = "grpc://127.0.0.1:50061";
+
+    # CAS/AC backed by R2 with a local fast tier. Sizes overridden DOWN from the
+    # 256 GiB/32 GiB module defaults until this box's disk is cleaned up.
+    r2 = {
+      enable = true;
+      accountId = "6063b6652178f5cf1cfb87e7e41acf1e";
+      bucket = "straylight-nativelink-cas";
+      environmentFile = "/run/agenix/nativelink-r2-env";
+    };
+    localCacheBytes = 68719476736; # 64 GiB local NVMe fast tier (was 256)
+    memoryCacheBytes = 8589934592; # 8 GiB memory index (was 32)
   };
 
   fileSystems."/" = {

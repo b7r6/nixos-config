@@ -57,7 +57,26 @@ let
   # yields `invalid type: map, expected a sequence` at startup.
   storeRoot = "/var/lib/nativelink";
 
-  casStores = [
+  # R2 slow-tier fragment. account_id/bucket are non-secret; creds come from the
+  # service environment via shellexpand so they never land in the store.
+  r2Backend = keyPrefix: {
+    experimental_cloud_object_store = {
+      provider = "r2";
+      account_id = cfg.r2.accountId;
+      bucket = cfg.r2.bucket;
+      access_key_id = "\${R2_ACCESS_KEY_ID}";
+      secret_access_key = "\${R2_SECRET_ACCESS_KEY}";
+      key_prefix = keyPrefix;
+      retry = {
+        max_retries = 6;
+        delay = 0.3;
+        jitter = 0.5;
+      };
+    };
+  };
+
+  # ── Local-only stores (r2.enable = false) ────────────────────────────────────
+  localCasStores = [
     {
       name = "CAS_MAIN_STORE";
       filesystem = {
@@ -74,10 +93,6 @@ let
         eviction_policy.max_bytes = 67108864; # 64 MiB
       };
     }
-    # A LocalWorker REQUIRES its cas_fast_slow_store to be a `fast_slow` store
-    # (nativelink: "Expected store for LocalWorker's store to be a
-    # FastSlowStore"). For the monolithic/local case we make a fast filesystem
-    # tier backed by a ref to the main CAS as the slow tier.
     {
       name = "WORKER_FAST_SLOW_STORE";
       fast_slow = {
@@ -91,6 +106,64 @@ let
       };
     }
   ];
+
+  # ── R2-backed stores (r2.enable = true) ──────────────────────────────────────
+  # CAS = verify → dedup → { index_store, content_store }, each a fast_slow with
+  # a local fast tier (NVMe filesystem for content, memory for the index) in
+  # front of R2. AC = fast_slow (memory fast tier + R2). This mirrors the
+  # upstream r2_backend.json5 example but uses a disk fast tier for content so
+  # the local NVMe cache is durable across restarts.
+  r2CasStores = [
+    {
+      name = "CAS_MAIN_STORE";
+      verify = {
+        verify_size = true;
+        backend.dedup = {
+          index_store.fast_slow = {
+            fast.memory.eviction_policy.max_bytes = cfg.memoryCacheBytes;
+            fast_direction = "get";
+            slow = r2Backend "cas-index/";
+          };
+          content_store.compression = {
+            compression_algorithm.lz4 = { };
+            backend.fast_slow = {
+              fast.filesystem = {
+                content_path = "${storeRoot}/content";
+                temp_path = "${storeRoot}/tmp";
+                eviction_policy.max_bytes = cfg.localCacheBytes;
+              };
+              fast_direction = "get";
+              slow = r2Backend "cas/";
+            };
+          };
+        };
+      };
+    }
+    {
+      name = "AC_MAIN_STORE";
+      fast_slow = {
+        fast.memory.eviction_policy.max_bytes = 67108864; # 64 MiB hot AC
+        fast_direction = "get";
+        slow = r2Backend "ac/";
+      };
+    }
+    # LocalWorker still needs a fast_slow store; front the same local NVMe tier
+    # with a ref to the (R2-backed) CAS as the slow side.
+    {
+      name = "WORKER_FAST_SLOW_STORE";
+      fast_slow = {
+        fast.filesystem = {
+          content_path = "${storeRoot}/worker-content";
+          temp_path = "${storeRoot}/worker-tmp";
+          eviction_policy.max_bytes = cfg.localCacheBytes;
+        };
+        fast_direction = "get";
+        slow.ref_store.name = "CAS_MAIN_STORE";
+      };
+    }
+  ];
+
+  casStores = if cfg.r2.enable then r2CasStores else localCasStores;
 
   schedulerFragment = [
     {
@@ -208,7 +281,60 @@ in
     maxStoreBytes = lib.mkOption {
       type = lib.types.int;
       default = 53687091200; # 50 GiB
-      description = "Max bytes for the CAS filesystem store before eviction.";
+      description = "Max bytes for the local-only CAS filesystem store before eviction (used when r2.enable = false).";
+    };
+
+    # ── Local fast-cache sizing (fronting R2 when r2.enable) ──────────────────
+    localCacheBytes = lib.mkOption {
+      type = lib.types.int;
+      default = 274877906944; # 256 GiB
+      description = ''
+        Size of the local NVMe filesystem fast tier that fronts R2 (per content
+        store). Default 256 GiB; override down on space-constrained hosts.
+      '';
+    };
+
+    memoryCacheBytes = lib.mkOption {
+      type = lib.types.int;
+      default = 34359738368; # 32 GiB
+      description = ''
+        Size of the in-memory index/hot tier fronting R2. Default 32 GiB;
+        override down on memory-constrained hosts.
+      '';
+    };
+
+    # ── R2 (S3-compatible) backing store ──────────────────────────────────────
+    # When enabled, the CAS (dedup index + content) and AC stores become
+    # fast_slow: a local filesystem/memory fast tier in front of R2 as the
+    # durable slow tier. Credentials are read from `r2.environmentFile` via
+    # shellexpand (${R2_ACCESS_KEY_ID}/${R2_SECRET_ACCESS_KEY}) so they never
+    # enter the nix store; account_id/bucket are not secret.
+    r2 = {
+      enable = lib.mkEnableOption "back the CAS/AC stores with Cloudflare R2 (local fast tier + R2 slow tier)";
+
+      accountId = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        example = "6063b6652178f5cf1cfb87e7e41acf1e";
+        description = "Cloudflare account ID (endpoint derives from it).";
+      };
+
+      bucket = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        example = "straylight-nativelink-cas";
+        description = "R2 bucket for the CAS/AC backend. nativelink namespaces within it via key_prefix.";
+      };
+
+      environmentFile = lib.mkOption {
+        type = lib.types.nullOr lib.types.path;
+        default = null;
+        example = "/run/agenix/nativelink-r2-env";
+        description = ''
+          Env file defining R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY, fed to the
+          service and referenced by the config via shellexpand. NEVER a store path.
+        '';
+      };
     };
 
     configFile = lib.mkOption {
@@ -230,6 +356,15 @@ in
         assertion = cfg.role != "worker" || cfg.workerApiEndpoint != "grpc://127.0.0.1:50061";
         message = "nativelink role=worker but workerApiEndpoint still points at localhost. Set it to the scheduler host's worker_api over the tailnet.";
       }
+      {
+        assertion =
+          !cfg.r2.enable || (cfg.r2.accountId != "" && cfg.r2.bucket != "" && cfg.r2.environmentFile != null);
+        message = ''
+          hyper-modern-nixos.nativelink.r2.enable is true but accountId/bucket/
+          environmentFile are not all set. Provide r2.accountId, r2.bucket, and
+          r2.environmentFile (with R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY).
+        '';
+      }
     ];
 
     systemd.services.nativelink = {
@@ -242,6 +377,8 @@ in
         Restart = "on-failure";
         RestartSec = 5;
         StateDirectory = "nativelink";
+        # R2 creds for shellexpand in the config (${R2_ACCESS_KEY_ID} etc.).
+        EnvironmentFile = lib.mkIf (cfg.r2.enable && cfg.r2.environmentFile != null) cfg.r2.environmentFile;
         # Workers exec arbitrary build actions in work_directory, so we cannot
         # apply the strict sandbox we'd use for a pure cache. Keep it modest.
         NoNewPrivileges = lib.mkDefault (cfg.role == "scheduler");

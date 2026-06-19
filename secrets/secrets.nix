@@ -52,6 +52,14 @@ in
   # The R2 token must be Object Read & Write scoped to JUST that one bucket.
   "agenix/machines/restic-r2-env.age".publicKeys = b7r6Everywhere;
 
+  # nativelink R2 backend creds (env file). Consumed via the nativelink
+  # service's EnvironmentFile; the JSON config references them as
+  # ${R2_ACCESS_KEY_ID} / ${R2_SECRET_ACCESS_KEY} (shellexpand), so no creds
+  # touch the store. Contents:
+  #   R2_ACCESS_KEY_ID=<R2 token Access Key ID>
+  #   R2_SECRET_ACCESS_KEY=<R2 token Secret Access Key>
+  "agenix/machines/nativelink-r2-env.age".publicKeys = b7r6Everywhere;
+
   # atticd RS256 JWT signing secret env file (consumed by attic.nix when
   # hyper-modern-nixos.attic.enable is set). Must be a SINGLE-LINE env var, since
   # systemd EnvironmentFile can't parse a multi-line PEM:
