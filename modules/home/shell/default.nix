@@ -83,6 +83,18 @@ in
       description = "Enable Atuin shell history";
     };
 
+    atuin.sync.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Decrypt the agenix-managed atuin sync key (atuin-key.age) to
+        ~/.local/share/atuin/key so history syncs across the fleet. Off by
+        default; only enable on hosts/users that should pull the shared
+        history. Requires the home-manager agenix module (wired in
+        configurations/home/b7r6.nix).
+      '';
+    };
+
     cliTools.enable = lib.mkOption {
       type = lib.types.bool;
       default = true;
@@ -151,6 +163,18 @@ in
         dialect = "us";
         style = "auto";
         theme = { };
+      };
+    };
+
+    # Atuin sync key (agenix). Decrypt the shared key straight to atuin's key
+    # path so `atuin sync` works without an interactive `atuin login`. The
+    # secret is defined in secrets/secrets.nix and deployed by the home-manager
+    # agenix module; never enters the nix store.
+    age.secrets = lib.mkIf (cfg.atuin.enable && cfg.atuin.sync.enable) {
+      atuin-key = {
+        file = ../../../secrets/agenix/users/b7r6/atuin-key.age;
+        path = "${config.home.homeDirectory}/.local/share/atuin/key";
+        mode = "600";
       };
     };
 
