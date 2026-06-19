@@ -23,6 +23,21 @@ in
       description = "Enable SSH client configuration";
     };
 
+    ssh.autoAddKeys = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [
+        ".ssh/id_ed25519"
+        ".ssh/id_ed25519_b7r6"
+      ];
+      description = ''
+        Private key paths (relative to $HOME) to load into the ssh-agent at
+        login via a systemd user service. Loaded regardless of session type
+        (graphical, console, SSH) — wanted by default.target, not
+        graphical-session.target. Missing keys are skipped silently; pass-
+        phrased keys will fail to load unattended (use AddKeysToAgent for those).
+      '';
+    };
+
     secrets.enable = lib.mkOption {
       type = lib.types.bool;
       default = true;
@@ -222,6 +237,36 @@ in
         }
         // lanBlocks
         // tsBlocks;
+    };
+
+    # ── Auto-load SSH keys into the agent at login (any session type) ───────────
+    # gcr-ssh-agent doesn't load keys on its own. This systemd USER service runs
+    # `ssh-add` for each configured key once the user session is up — wanted by
+    # default.target (NOT graphical-session.target), so it also applies to
+    # console / headless / SSH logins. Idempotent: re-adding a loaded key is a
+    # no-op; missing keys are skipped.
+    systemd.user.services.ssh-add-keys = lib.mkIf (cfg.ssh.enable && cfg.ssh.autoAddKeys != [ ]) {
+      Unit = {
+        Description = "Load SSH keys into the agent";
+        After = [ "gcr-ssh-agent.socket" ];
+      };
+      Service = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        # gcr-ssh-agent socket; matches SSH_AUTH_SOCK exported in sessionVariables.
+        Environment = "SSH_AUTH_SOCK=%t/gcr/ssh";
+        ExecStart = pkgs.writeShellScript "ssh-add-keys" (
+          lib.concatMapStringsSep "\n" (
+            key:
+            let
+              path = "${config.home.homeDirectory}/${key}";
+            in
+            # only add keys that exist; never fail the unit on a missing/locked key
+            "[ -f ${lib.escapeShellArg path} ] && ${pkgs.openssh}/bin/ssh-add ${lib.escapeShellArg path} || true"
+          ) cfg.ssh.autoAddKeys
+        );
+      };
+      Install.WantedBy = [ "default.target" ];
     };
 
     # Secrets management tools
