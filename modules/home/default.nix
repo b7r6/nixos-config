@@ -1,4 +1,10 @@
-{ pkgs, ... }: {
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+{
   imports = [
     # user identity
     ./me.nix
@@ -240,6 +246,12 @@
 
   # Wayland (backward compatibility flag)
   wayland.enable = true;
+
+  # Sensible default for home.homeDirectory (previously supplied by
+  # nixos-unified's homeModules.common). home.username comes from me.nix.
+  # Under NixOS home-manager (useUserPackages), the host sets this; standalone
+  # `nh home switch` relies on this default.
+  home.homeDirectory = lib.mkDefault "/home/${config.home.username}";
 
   home.packages = with pkgs; [
     dbus

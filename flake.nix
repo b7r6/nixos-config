@@ -3,14 +3,19 @@
 
   outputs =
     inputs:
-    inputs.nixos-unified.lib.mkFlake {
-      inherit inputs;
-      root = ./.;
+    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = import inputs.systems;
+
+      imports = [
+        ./modules/flake/toplevel.nix
+        ./configurations
+      ];
     };
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
+    systems.url = "github:nix-systems/default-linux";
 
     agenix.url = "github:ryantm/agenix";
     agenix.inputs.nixpkgs.follows = "nixpkgs";
@@ -34,9 +39,6 @@
 
     # hy3.url = "github:outfoxxed/hy3?ref=hl0.53.0.1";
     # hy3.inputs.hyprland.follows = "hyprland";
-
-    nixos-unified.url = "github:srid/nixos-unified";
-    nixid.url = "github:srid/nixid";
 
     treefmt-nix.url = "github:numtide/treefmt-nix";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";

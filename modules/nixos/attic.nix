@@ -12,13 +12,32 @@
 # at /var/lib/atticd/storage. Switch to postgres/S3 via `settings` if/when you
 # outgrow that (postgres is already available via common/postgres.nix).
 #
+# ── Fleet topology (replicated api-server + shared state) ───────────────────
+# Per the attic docs, atticd splits cleanly:
+#   - api-server: STATELESS, can be replicated. We run one per host.
+#   - garbage-collector: CANNOT be replicated. Exactly one node runs it.
+#   - monolithic: runs everything (api-server + gc); single-node only.
+# Shared state lives OUTSIDE atticd: postgres (on watchtower) holds metadata,
+# an R2 bucket holds the content-addressed NAR/chunk store. Dedup is global, so
+# every host's local api-server reads/writes the same logical cache. Each host
+# points its nix substituters at its OWN localhost:8080 (no serialization
+# through one box), while the truth is shared. The RS256 signing secret MUST be
+# identical on every node so JWTs verify fleet-wide.
+#
+#   watchtower:     mode = "monolithic"  (api-server + the single GC) + postgres
+#   every other:    mode = "api-server"  (stateless; same pg + R2 + RS256)
+#
 # Secret (REQUIRED when enabled): atticd needs an RS256 JWT signing secret,
 # provided via an env file. It MUST be a single-line var (systemd
 # EnvironmentFile cannot parse a multi-line PEM), so we base64 the key:
 #
 #   ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64=$(openssl genrsa -traditional 4096 | base64 -w0)
 #
-# Generate once, store it with agenix as `atticd-rs256.<host>.age`, and wire
+# The SAME env file also carries (none of which may touch the store):
+#   ATTIC_SERVER_DATABASE_URL=postgresql://atticd:<pw>@watchtower.<tailnet>/atticd
+#   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY   (R2 chunk-store creds)
+#
+# Generate once, store it with agenix as `atticd-rs256.age`, and wire
 # `age.secrets.atticd-rs256` to decrypt it. This module points
 # `services.atticd.environmentFile` at that decrypted path. Inert until enabled.
 
@@ -34,6 +53,33 @@ in
 {
   options.hyper-modern-nixos.attic = {
     enable = lib.mkEnableOption "atticd nix binary cache server (off by default)";
+
+    mode = lib.mkOption {
+      type = lib.types.enum [
+        "monolithic"
+        "api-server"
+        "garbage-collector"
+      ];
+      default = "monolithic";
+      description = ''
+        atticd run mode. In the fleet topology, watchtower runs "monolithic"
+        (api-server + the single garbage collector) and every other host runs
+        "api-server" (stateless replica). Only ONE node may run gc, so only the
+        monolithic node (or a dedicated "garbage-collector" node) collects.
+      '';
+    };
+
+    databaseUrlInEnv = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        When true, the connection string is supplied via ATTIC_SERVER_DATABASE_URL
+        in the environmentFile (so the password never enters the store) and this
+        module does NOT set settings.database.url. Use this for the shared
+        postgres backend. When false, atticd falls back to its local sqlite
+        default unless you set settings.database.url explicitly.
+      '';
+    };
 
     environmentFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
@@ -202,22 +248,31 @@ in
 
       services.atticd = {
         enable = true;
-        inherit (cfg) environmentFile;
-        settings = lib.recursiveUpdate {
-          inherit (cfg) listen;
-          storage =
-            if cfg.storage.type == "s3" then
-              {
-                type = "s3";
-                inherit (cfg.storage) region bucket endpoint;
-                # credentials come from AWS_* in environmentFile (not here).
-              }
-            else
-              {
-                type = "local";
-                inherit (cfg.storage) path;
-              };
-        } cfg.settings;
+        inherit (cfg) environmentFile mode;
+        settings = lib.recursiveUpdate (
+          {
+            inherit (cfg) listen;
+            storage =
+              if cfg.storage.type == "s3" then
+                {
+                  type = "s3";
+                  inherit (cfg.storage) region bucket endpoint;
+                  # credentials come from AWS_* in environmentFile (not here).
+                }
+              else
+                {
+                  type = "local";
+                  inherit (cfg.storage) path;
+                };
+          }
+          # When the DB URL comes from the env file (shared postgres), do NOT
+          # also set settings.database.url — let ATTIC_SERVER_DATABASE_URL win,
+          # keeping the password out of the store. Otherwise leave the upstream
+          # sqlite default (or whatever the caller put in `settings`).
+          // lib.optionalAttrs (!cfg.databaseUrlInEnv && cfg.settings ? database) {
+            inherit (cfg.settings) database;
+          }
+        ) cfg.settings;
       };
 
       # Client CLI for `attic login` / `attic push` / `attic use`.
