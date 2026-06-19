@@ -59,6 +59,12 @@ in
         update_check = false;
         dialect = "us";
         style = "auto";
+        auto_sync = true;
+        sync_frequency = "5m";
+        filter_mode = "global";
+        search_mode = "fuzzy";
+        show_time = "relative";
+        show_hostname = false;
       };
     };
   };
