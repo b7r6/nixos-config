@@ -1,9 +1,4 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
+{ config, lib, ... }:
 let
   cfg = config.hyper-modern-nixos.neovim;
 in
@@ -21,7 +16,7 @@ in
   config = lib.mkIf cfg.enable {
     programs.neovim = {
       enable = true;
-      defaultEditor = cfg.defaultEditor;
+      inherit (cfg) defaultEditor;
       withRuby = false;
       withPython3 = false;
       viAlias = true;

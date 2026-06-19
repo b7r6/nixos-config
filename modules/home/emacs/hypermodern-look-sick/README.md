@@ -10,7 +10,8 @@ This is an aesthetics layer that fits your existing config.
   - signal presets (minimal/normal/loud)
   - glow presets (off/subtle/neon)
   - font presets (auto/berkeley/iosevka/jetbrains/system)
-  - optional toggles: pulse glow, writing mode, transparency, dim inactive windows, solaire, ligatures
+  - optional toggles: pulse glow, writing mode, transparency, dim inactive windows, solaire,
+    ligatures
 
 ## The glow (what “glow me up” means here)
 
@@ -58,8 +59,8 @@ If you use `general` + your `hypermodern/leader`, bind it like:
 
 ## Nix: theme universe
 
-`default.nix` builds Emacs themes from `ono-sendai-blue.nix` palettes so you can
-switch themes instantly at runtime without rebuilding your OS theme.
+`default.nix` builds Emacs themes from `ono-sendai-blue.nix` palettes so you can switch themes
+instantly at runtime without rebuilding your OS theme.
 
 Themes show up as:
 

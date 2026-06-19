@@ -41,11 +41,7 @@ let
   # Build a Neovim theme package using the Lean generator
   mkNeovimTheme =
     pkgs:
-    {
-      level,
-      hero-hue,
-      axis-hue,
-    }:
+    _:
     let
       generator = pkgs.callPackage ../../../packages/ono-sendai-generator { };
     in
@@ -205,9 +201,9 @@ in
       let
         cfg = config.flake.themes;
         resolvedTheme = color-lib.mk-theme {
-          level = cfg.level;
-          hero-hue = cfg.hero-hue;
-          axis-hue = cfg.axis-hue;
+          inherit (cfg) level;
+          inherit (cfg) hero-hue;
+          inherit (cfg) axis-hue;
         };
       in
       {
@@ -236,7 +232,7 @@ in
           # Wallpaper package (if enabled)
           (lib.mkIf (cfg.enable && cfg.wallpaper.enable) {
             ono-sendai-wallpaper = mkWallpaper pkgs {
-              palette = resolvedTheme.palette;
+              inherit (resolvedTheme) palette;
               inherit (cfg.wallpaper) width height;
             };
           })

@@ -6,12 +6,7 @@
 #
 # Live environment with Calamares installer, browser, and full desktop.
 #
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}:
+{ pkgs, lib, ... }:
 
 {
   imports = [ ./base.nix ];

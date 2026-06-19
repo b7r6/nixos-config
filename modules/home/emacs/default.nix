@@ -36,10 +36,12 @@ in
 
     package = lib.mkOption {
       type = lib.types.package;
+
       default = mkHypermodernEmacs {
         inherit pkgs;
         emacs = cfg.emacsPackage;
       };
+
       defaultText = "hypermodern-emacs (emacsWithPackages)";
       description = "The final Emacs package with all elisp packages bundled.";
     };
@@ -48,6 +50,12 @@ in
       type = lib.types.bool;
       default = true;
       description = "Install language servers for LSP support";
+    };
+
+    nixlang.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable `nixlang` development tools";
     };
 
     haskell.enable = lib.mkOption {
@@ -198,6 +206,14 @@ in
           haskell-language-server
           haskellPackages.fourmolu
           haskellPackages.hlint
+        ])
+
+        (lib.optionals cfg.nixlang.enable [
+          deadnix
+          nil
+          nixd
+          nixpkgs-fmt
+          statix
         ])
 
         # Rust toolchain

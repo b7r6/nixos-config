@@ -7,12 +7,7 @@
   };
 
   outputs =
-    inputs@{
-      self,
-      nixpkgs,
-      flake-parts,
-      ...
-    }:
+    inputs@{ nixpkgs, flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [
         "x86_64-linux"
@@ -24,8 +19,6 @@
       perSystem =
         {
           config,
-          self',
-          inputs',
           pkgs,
           system,
           ...
@@ -35,8 +28,8 @@
           _module.args.pkgs = import nixpkgs {
             inherit system;
             overlays = [
-              (final: prev: {
-                elan = prev.elan.overrideAttrs (old: {
+              (_final: prev: {
+                elan = prev.elan.overrideAttrs (_old: {
                   # Ensure we have the latest elan
                   version = "3.0.0";
                 });

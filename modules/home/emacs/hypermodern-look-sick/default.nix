@@ -1,10 +1,4 @@
-{
-  config,
-  lib,
-  pkgs,
-  stylix,
-  ...
-}:
+{ lib, pkgs, ... }:
 
 let
   initEl = builtins.readFile ./init.el;

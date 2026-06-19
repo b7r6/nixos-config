@@ -102,11 +102,11 @@ esac
 # ── Architecture Check ───────────────────────────────────────────────────────
 
 HOST_ARCH=$(uname -m)
-if [[ "$HOST_ARCH" != "$ARCH" ]]; then
+if [[ $HOST_ARCH != "$ARCH" ]]; then
   info "Cross-building for $ARCH on $HOST_ARCH"
-  if [[ ! -f "/proc/sys/fs/binfmt_misc/qemu-$ARCH" ]] && [[ "$ARCH" == "aarch64" ]]; then
+  if [[ ! -f "/proc/sys/fs/binfmt_misc/qemu-$ARCH" ]] && [[ $ARCH == "aarch64" ]]; then
     warn "binfmt emulation may not be configured for $ARCH"
-    warn "If build fails, enable: boot.binfmt.emulatedSystems = [\"aarch64-linux\"];"
+    warn 'If build fails, enable: boot.binfmt.emulatedSystems = ["aarch64-linux"];'
   fi
 fi
 
@@ -119,7 +119,7 @@ nix build ".#$PACKAGE" --print-build-logs
 
 ISO_PATH=$(find result/iso -name '*.iso' -type f 2>/dev/null | head -1)
 
-if [[ -z "$ISO_PATH" ]]; then
+if [[ -z $ISO_PATH ]]; then
   error "No ISO found in result/iso/"
 fi
 
@@ -128,9 +128,9 @@ success "Built: $ISO_PATH ($ISO_SIZE)"
 
 # ── Flash (optional) ─────────────────────────────────────────────────────────
 
-if [[ -n "$DEVICE" ]]; then
+if [[ -n $DEVICE ]]; then
   # Validate device
-  if [[ ! -b "$DEVICE" ]]; then
+  if [[ ! -b $DEVICE ]]; then
     error "$DEVICE is not a block device"
   fi
 
@@ -140,7 +140,7 @@ if [[ -n "$DEVICE" ]]; then
   fi
 
   # Extra safety for NVMe/system drives
-  if [[ "$DEVICE" == /dev/nvme* ]] || [[ "$DEVICE" == /dev/sda && -d /sys/firmware/efi ]]; then
+  if [[ $DEVICE == /dev/nvme* ]] || [[ $DEVICE == /dev/sda && -d /sys/firmware/efi ]]; then
     warn "This looks like it might be a system drive!"
   fi
 
@@ -151,7 +151,7 @@ if [[ -n "$DEVICE" ]]; then
   echo ""
   read -p "Type 'yes' to continue: " CONFIRM
 
-  if [[ "$CONFIRM" != "yes" ]]; then
+  if [[ $CONFIRM != "yes" ]]; then
     log "Aborted."
     exit 0
   fi

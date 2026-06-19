@@ -6,15 +6,13 @@
 
 # `// why`
 
-restic backups, driven by `modules/nixos/common/backup.nix`
-(`hyper-modern-nixos.backup`). The module is **off by default** and refuses to
-do anything until a host opts in.
+restic backups, driven by `modules/nixos/common/backup.nix` (`hyper-modern-nixos.backup`). The
+module is **off by default** and refuses to do anything until a host opts in.
 
-The rule: **the first backup is done by hand.** You initialize the repo, run one
-full backup, and verify a restore — all manually — *before* any systemd timer is
-allowed near your data. Once you trust the repo and the retention policy, you
-flip `enable = true` and the timer takes over the exact same repo with the exact
-same password. No surprises.
+The rule: **the first backup is done by hand.** You initialize the repo, run one full backup, and
+verify a restore — all manually — *before* any systemd timer is allowed near your data. Once you
+trust the repo and the retention policy, you flip `enable = true` and the timer takes over the exact
+same repo with the exact same password. No surprises.
 
 # `// secrets`
 
@@ -28,9 +26,8 @@ agenix -e secrets/agenix/machines/restic-password.age
 #     a-long-random-passphrase-you-keep-in-1password
 ```
 
-It is already declared in `secrets/secrets.nix` as
-`agenix/machines/restic-password.age`. For cloud backends (S3/B2/…), create a
-second env-file secret with the backend credentials and point
+It is already declared in `secrets/secrets.nix` as `agenix/machines/restic-password.age`. For cloud
+backends (S3/B2/…), create a second env-file secret with the backend credentials and point
 `hyper-modern-nixos.backup.environmentFile` at it.
 
 # `// first run (by hand)`
@@ -83,11 +80,10 @@ hyper-modern-nixos.backup = {
 };
 ```
 
-`nixos-rebuild switch`. The timer (`restic-backups-system.timer`) runs daily with
-a randomized delay, prunes to the retention policy, and runs an integrity check
-after each run. `initialize = false` is set in the module on purpose: the repo
-must already exist (you made it in step 1), so a misconfiguration can never
-silently create a brand-new empty repo and "succeed".
+`nixos-rebuild switch`. The timer (`restic-backups-system.timer`) runs daily with a randomized
+delay, prunes to the retention policy, and runs an integrity check after each run.
+`initialize = false` is set in the module on purpose: the repo must already exist (you made it in
+step 1), so a misconfiguration can never silently create a brand-new empty repo and "succeed".
 
 # `// operating`
 
@@ -110,9 +106,9 @@ Default policy (override via `hyper-modern-nixos.backup.pruneOpts`):
 --keep-daily 7  --keep-weekly 5  --keep-monthly 12  --keep-yearly 3
 ```
 
-Pruning happens automatically after each successful backup. A `--read-data-subset=10%`
-check runs too, so a slowly-corrupting repo is caught by the timer rather than at
-restore time.
+Pruning happens automatically after each successful backup. A `--read-data-subset=10%` check runs
+too, so a slowly-corrupting repo is caught by the timer rather than at restore time.
+
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                               "Trust, but verify the restore." — not Gibson

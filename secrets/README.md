@@ -54,22 +54,26 @@ passage insert api/new-key
 ## Agenix (NixOS-Deployed Secrets)
 
 Secrets in `agenix/` are deployed by NixOS at activation time:
+
 - Machine secrets → `/run/agenix/<name>`
 - User secrets → `$HOME/.config/agenix/<name>` (via home-manager)
 
 ### Adding a New Agenix Secret
 
 1. Create the secret file:
+
    ```bash
    new-agenix-secret agenix/users/b7r6/new-secret.age
    ```
 
 2. Add to `secrets.nix`:
+
    ```nix
    "agenix/users/b7r6/new-secret.age".publicKeys = b7r6Everywhere;
    ```
 
 3. Reference in your NixOS/home-manager config:
+
    ```nix
    age.secrets.new-secret = {
      file = ../../../secrets/agenix/users/b7r6/new-secret.age;
@@ -80,12 +84,14 @@ Secrets in `agenix/` are deployed by NixOS at activation time:
 ### Adding a New Host
 
 1. Get the host's SSH key:
+
    ```bash
    scan-host-key hostname
    # or on the host: cat /etc/ssh/ssh_host_ed25519_key.pub
    ```
 
 2. Add to `keys.nix`:
+
    ```nix
    hosts = {
      hostname = [
@@ -95,6 +101,7 @@ Secrets in `agenix/` are deployed by NixOS at activation time:
    ```
 
 3. Rekey secrets so the host can decrypt:
+
    ```bash
    rekey-secrets
    ```
@@ -108,6 +115,7 @@ The store is checked into git and read directly from the repo (no symlinks).
 ### Environment Setup
 
 Your shell sets these automatically via home-manager:
+
 ```bash
 PASSAGE_DIR=~/src/nixos-config/secrets/passage-store
 PASSAGE_IDENTITIES_FILE=~/.passage/identities
@@ -116,11 +124,13 @@ PASSAGE_IDENTITIES_FILE=~/.passage/identities
 ### Emacs Integration
 
 Emacs uses passage for:
+
 - **gptel** - OpenRouter API keys (`api/openrouter-emacs`)
 - **auth-source-pass** - Generic credential lookup
 - **password-store.el** - Browse/copy/insert passwords
 
 Keybindings:
+
 - `C-c p p` - Browse password store
 - `C-c p c` - Copy password
 - `C-c p g` - Generate password

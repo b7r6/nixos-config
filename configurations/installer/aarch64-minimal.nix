@@ -6,12 +6,7 @@
 #
 # Headless, SSH-accessible, optimized for fast builds and remote installs.
 #
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}:
+{ pkgs, lib, ... }:
 
 {
   imports = [ ./base.nix ];

@@ -82,8 +82,8 @@ in
 
   config = lib.mkIf cfg.enable {
     home.persistence."${cfg.persistPath}" = {
-      directories = cfg.directories;
-      files = cfg.files;
+      inherit (cfg) directories;
+      inherit (cfg) files;
     };
   };
 }

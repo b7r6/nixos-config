@@ -137,6 +137,14 @@ in
         VISUAL = cfg.editor;
         NIXPKGS_ALLOW_UNFREE = "1";
 
+        # Point ssh/ssh-add at gnome-keyring's gcr-ssh-agent. The NixOS wayland
+        # module disables the standard ssh-agent and runs gcr-ssh-agent (its
+        # socket is XDG_RUNTIME_DIR/gcr/ssh, set in the systemd --user env) but
+        # that value isn't inherited by interactive shells — so `ssh-add` reports
+        # "Could not open a connection to your authentication agent". Export it
+        # here so every shell finds the agent.
+        SSH_AUTH_SOCK = "$XDG_RUNTIME_DIR/gcr/ssh";
+
         # Pager
         PAGER = "less";
         LESS = "-R --mouse --wheel-lines=3";

@@ -4,12 +4,7 @@
 #
 # DGX Spark (GB10 Grace Blackwell) - Primary inference development workstation
 #
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}:
+{ pkgs, lib, ... }:
 let
   libraries = with pkgs; [
     atk

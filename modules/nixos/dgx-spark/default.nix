@@ -44,7 +44,7 @@ let
         # Use comprehensive NVIDIA DGX configuration with NixOS-specific overrides
         structuredExtraConfig =
           (lib.filterAttrs (
-            name: value:
+            name: _value:
             # Remove options that conflict with NixOS requirements or don't exist in this kernel
             !lib.elem name [
               "BLK_DEV_DM" # Device mapper - let NixOS handle this
@@ -95,11 +95,11 @@ let
   # references kernel/kernel.dev on aarch64, which the default check rejects.
   # Only consumed when `useNvidiaKernel = true`.
   nvidiaKernel = nvidiaKernelBase.extend (
-    final: prev: {
+    _final: prev: {
       nvidiaPackages = prev.nvidiaPackages // {
         production = prev.nvidiaPackages.production.overrideAttrs (old: {
           passthru = old.passthru // {
-            mod = prev.nvidiaPackages.production.mod.overrideAttrs (oldMod: {
+            mod = prev.nvidiaPackages.production.mod.overrideAttrs (_oldMod: {
               allowedReferences = [
                 prev.kernel.dev
                 prev.kernel

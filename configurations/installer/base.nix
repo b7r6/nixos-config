@@ -9,12 +9,7 @@
 #   - xhci_plat_hcd for platform USB 3.0 controllers
 #   - GRUB with efiInstallAsRemovable for portable boot
 #
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}:
+{ pkgs, lib, ... }:
 
 {
   # ── Initial Ramdisk ────────────────────────────────────────────────────────

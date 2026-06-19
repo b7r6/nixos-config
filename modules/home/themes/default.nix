@@ -46,9 +46,9 @@ let
   currentTheme =
     if cfg.mode == "computed" then
       color-lib.mk-theme {
-        level = cfg.level;
-        hero-hue = cfg.hero-hue;
-        axis-hue = cfg.axis-hue;
+        inherit (cfg) level;
+        inherit (cfg) hero-hue;
+        inherit (cfg) axis-hue;
       }
     else
       legacyThemes.${cfg.theme}.${cfg.variant};

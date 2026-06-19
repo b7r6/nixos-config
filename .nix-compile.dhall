@@ -12,11 +12,6 @@ let Severity = < Error | Warning | Info | Off >
 
 let RuleOverride = { id : Text, severity : Severity, reason : Optional Text }
 
-let override =
-      \(id : Text) ->
-      \(severity : Severity) ->
-        { id, severity, reason = None Text } : RuleOverride
-
 let override-with-reason =
       \(id : Text) ->
       \(severity : Severity) ->

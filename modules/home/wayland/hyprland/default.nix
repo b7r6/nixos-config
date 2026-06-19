@@ -22,7 +22,6 @@ let
     mkMerge
     mapAttrsToList
     ;
-  inherit (flake) inputs;
 
   cfg = config.hyper-modern-nixos.hyprland;
   colors = config.lib.stylix.colors;
@@ -280,7 +279,7 @@ let
 
   # Generate hyprland monitor config string
   mkMonitorConfig =
-    name: mon:
+    _name: mon:
     "desc:${mon.description},${mon.resolution}@${toString mon.refreshRate},${mon.position},${toString mon.scale}";
 
   # Generate workspace bindings
@@ -288,7 +287,7 @@ let
     monitors:
     lib.flatten (
       mapAttrsToList (
-        name: mon:
+        _name: mon:
         map (ws: "${toString ws}, monitor:desc:${mon.description}, persistent:true") mon.workspaces
       ) monitors
     );

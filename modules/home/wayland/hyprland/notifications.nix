@@ -66,7 +66,7 @@ in
         margin = "20";
         default-timeout = cfg.timeout;
         layer = "overlay";
-        width = cfg.width;
+        inherit (cfg) width;
         height = 200;
         max-visible = cfg.maxVisible;
         progress-color = "over #${colors.base0D}";

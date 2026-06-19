@@ -75,8 +75,8 @@ in
       systemd.enable = true;
 
       settings.mainBar = {
-        position = cfg.position;
-        height = cfg.height;
+        inherit (cfg) position;
+        inherit (cfg) height;
         spacing = 4;
 
         modules-left = cfg.modules.left;
