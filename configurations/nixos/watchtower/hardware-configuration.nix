@@ -16,19 +16,20 @@
     "xhci_pci"
     "thunderbolt"
     "usbhid"
+    "sdhci_pci"
   ];
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-amd" ];
   boot.extraModulePackages = [ ];
 
   fileSystems."/" = {
-    device = "/dev/disk/by-uuid/5e021c8f-a6eb-4fd4-bd6c-d6641470f813";
+    device = "/dev/disk/by-uuid/ace59556-eb5a-45ed-86d6-2785ce98ef5b";
     fsType = "btrfs";
     options = [ "subvol=@" ];
   };
 
   fileSystems."/boot" = {
-    device = "/dev/disk/by-uuid/3E55-93CC";
+    device = "/dev/disk/by-uuid/1393-0F2D";
     fsType = "vfat";
     options = [
       "fmask=0077"
