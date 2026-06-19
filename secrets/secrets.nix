@@ -53,8 +53,10 @@ in
   "agenix/machines/restic-r2-env.age".publicKeys = b7r6Everywhere;
 
   # atticd RS256 JWT signing secret env file (consumed by attic.nix when
-  # hyper-modern-nixos.attic.enable is set). Contents:
-  #   ATTIC_SERVER_TOKEN_RS256_SECRET="$(openssl genrsa -traditional 4096)"
+  # hyper-modern-nixos.attic.enable is set). Must be a SINGLE-LINE env var, since
+  # systemd EnvironmentFile can't parse a multi-line PEM:
+  #   ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64=<base64 -w0 of an RSA PKCS1 PEM>
+  # Generate:  openssl genrsa -traditional 4096 | base64 -w0
   "agenix/machines/atticd-rs256.age".publicKeys = b7r6Everywhere;
 
   # ── User Secrets (agenix-deployed) ───────────────────────────────────────────

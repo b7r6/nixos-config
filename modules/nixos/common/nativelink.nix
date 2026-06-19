@@ -51,29 +51,58 @@ let
   jsonFormat = pkgs.formats.json { };
 
   # ── Store / scheduler / worker fragments ─────────────────────────────────────
+  # NativeLink 1.5.x config schema: `stores` and `schedulers` are ARRAYS of
+  # named objects ({ name = "..."; <backend> = {...}; }), NOT maps keyed by
+  # name (the pre-1.x form). `workers` was always an array. Getting this wrong
+  # yields `invalid type: map, expected a sequence` at startup.
   storeRoot = "/var/lib/nativelink";
 
-  casStores = {
-    CAS_MAIN_STORE.filesystem = {
-      content_path = "${storeRoot}/content";
-      temp_path = "${storeRoot}/tmp";
-      eviction_policy.max_bytes = cfg.maxStoreBytes;
-    };
-    AC_MAIN_STORE.filesystem = {
-      content_path = "${storeRoot}/ac-content";
-      temp_path = "${storeRoot}/ac-tmp";
-      eviction_policy.max_bytes = 67108864; # 64 MiB
-    };
-  };
-
-  schedulerFragment = {
-    MAIN_SCHEDULER.simple = {
-      supported_platform_properties = {
-        cpu_arch = "exact";
-        OSFamily = "exact";
+  casStores = [
+    {
+      name = "CAS_MAIN_STORE";
+      filesystem = {
+        content_path = "${storeRoot}/content";
+        temp_path = "${storeRoot}/tmp";
+        eviction_policy.max_bytes = cfg.maxStoreBytes;
       };
-    };
-  };
+    }
+    {
+      name = "AC_MAIN_STORE";
+      filesystem = {
+        content_path = "${storeRoot}/ac-content";
+        temp_path = "${storeRoot}/ac-tmp";
+        eviction_policy.max_bytes = 67108864; # 64 MiB
+      };
+    }
+    # A LocalWorker REQUIRES its cas_fast_slow_store to be a `fast_slow` store
+    # (nativelink: "Expected store for LocalWorker's store to be a
+    # FastSlowStore"). For the monolithic/local case we make a fast filesystem
+    # tier backed by a ref to the main CAS as the slow tier.
+    {
+      name = "WORKER_FAST_SLOW_STORE";
+      fast_slow = {
+        fast.filesystem = {
+          content_path = "${storeRoot}/worker-content";
+          temp_path = "${storeRoot}/worker-tmp";
+          eviction_policy.max_bytes = cfg.maxStoreBytes;
+        };
+        fast_direction = "get";
+        slow.ref_store.name = "CAS_MAIN_STORE";
+      };
+    }
+  ];
+
+  schedulerFragment = [
+    {
+      name = "MAIN_SCHEDULER";
+      simple = {
+        supported_platform_properties = {
+          cpu_arch = "exact";
+          OSFamily = "exact";
+        };
+      };
+    }
+  ];
 
   publicServer = {
     name = "public";
@@ -101,7 +130,7 @@ let
   localWorker = {
     local = {
       worker_api_endpoint.uri = cfg.workerApiEndpoint;
-      cas_fast_slow_store = "CAS_MAIN_STORE";
+      cas_fast_slow_store = "WORKER_FAST_SLOW_STORE";
       upload_action_result.ac_store = "AC_MAIN_STORE";
       work_directory = "${storeRoot}/work";
       platform_properties = {

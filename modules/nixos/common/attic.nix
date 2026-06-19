@@ -13,9 +13,10 @@
 # outgrow that (postgres is already available via common/postgres.nix).
 #
 # Secret (REQUIRED when enabled): atticd needs an RS256 JWT signing secret,
-# provided via an env file that defines:
+# provided via an env file. It MUST be a single-line var (systemd
+# EnvironmentFile cannot parse a multi-line PEM), so we base64 the key:
 #
-#   ATTIC_SERVER_TOKEN_RS256_SECRET="$(openssl genrsa -traditional 4096)"
+#   ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64=$(openssl genrsa -traditional 4096 | base64 -w0)
 #
 # Generate once, store it with agenix as `atticd-rs256.<host>.age`, and wire
 # `age.secrets.atticd-rs256` to decrypt it. This module points
@@ -76,8 +77,8 @@ in
         message = ''
           hyper-modern-nixos.attic.enable is true but no environmentFile is set
           and no agenix secret `atticd-rs256` is defined. atticd needs an RS256
-          JWT secret. Generate one:
-            openssl genrsa -traditional 4096 | { echo -n 'ATTIC_SERVER_TOKEN_RS256_SECRET='; cat; }
+          JWT secret as a SINGLE-LINE env var. Generate one:
+            echo "ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64=$(openssl genrsa -traditional 4096 | base64 -w0)"
           store it via agenix as atticd-rs256.<host>.age, and wire age.secrets.
         '';
       }
