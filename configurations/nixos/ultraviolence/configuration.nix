@@ -96,10 +96,23 @@ in
   hyper-modern-nixos.nativelink = {
     enable = true;
     role = "monolithic";
-    # loopback-only public API for the single-box bringup; widen when splitting.
-    publicListen = "127.0.0.1:50051";
+    # Public API on all interfaces (TLS-terminated, see tls below); the firewall
+    # opens it only on tailscale0. worker_api stays loopback (private backend).
+    publicListen = "0.0.0.0:50051";
     workerApiListen = "127.0.0.1:50061";
     workerApiEndpoint = "grpc://127.0.0.1:50061";
+    openFirewall = true;
+
+    # TLS terminates at the listener with a real Tailscale-issued cert for this
+    # node's MagicDNS name, so tailnet clients connect over grpcs:// (tls=true)
+    # and trust it without a custom CA. Tailnet HTTPS must be enabled (it is).
+    tls = {
+      enable = true;
+      tailscale = {
+        enable = true;
+        domain = "ultraviolence.osiris-walleye.ts.net";
+      };
+    };
 
     # CAS/AC backed by R2 with a local fast tier. Sizes overridden DOWN from the
     # 256 GiB/32 GiB module defaults until this box's disk is cleaned up.

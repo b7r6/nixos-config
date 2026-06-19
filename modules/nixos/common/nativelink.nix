@@ -225,9 +225,25 @@ let
     }
   ];
 
+  # TLS terminates AT the nativelink listener (per the config reference:
+  # servers[].listener.http.tls = { cert_file, key_file }). When set, the public
+  # API speaks grpcs:// and clients connect with tls=true. We point it at a
+  # Tailscale-provisioned cert for the node's MagicDNS name (real Let's Encrypt,
+  # trusted tailnet-wide, no custom CA). The worker_api server stays plaintext
+  # on loopback/tailnet — it's the private backend.
+  publicListenerHttp = {
+    socket_address = cfg.publicListen;
+  }
+  // lib.optionalAttrs cfg.tls.enable {
+    tls = {
+      cert_file = cfg.tls.certFile;
+      key_file = cfg.tls.keyFile;
+    };
+  };
+
   publicServer = {
     name = "public";
-    listener.http.socket_address = cfg.publicListen;
+    listener.http = publicListenerHttp;
     services = {
       cas = [
         {
@@ -385,6 +401,39 @@ in
       description = "Public gRPC API (CAS/AC/Execution/ByteStream) listen address.";
     };
 
+    trustedInterfaces = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ "tailscale0" ];
+      description = "Interfaces on which openFirewall opens the RE ports. Defaults to tailscale0 (tailnet-only).";
+    };
+
+    # ── TLS termination at the public listener ────────────────────────────────
+    tls = {
+      enable = lib.mkEnableOption "TLS on the public gRPC listener (clients use grpcs://, tls=true)";
+
+      certFile = lib.mkOption {
+        type = lib.types.str;
+        default = "/var/lib/nativelink-tls/cert.pem";
+        description = "Path to the TLS certificate (PEM). Provisioned by tls.tailscale, or supply your own.";
+      };
+
+      keyFile = lib.mkOption {
+        type = lib.types.str;
+        default = "/var/lib/nativelink-tls/key.pem";
+        description = "Path to the TLS private key (PEM).";
+      };
+
+      tailscale = {
+        enable = lib.mkEnableOption "provision+renew the cert via `tailscale cert` for the node's MagicDNS name";
+
+        domain = lib.mkOption {
+          type = lib.types.str;
+          example = "ultraviolence.osiris-walleye.ts.net";
+          description = "MagicDNS name to issue the cert for (must be this node's name; tailnet HTTPS must be enabled).";
+        };
+      };
+    };
+
     workerApiListen = lib.mkOption {
       type = lib.types.str;
       default = "0.0.0.0:50061";
@@ -523,13 +572,64 @@ in
           r2.environmentFile (with R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY).
         '';
       }
+      {
+        assertion = !cfg.tls.tailscale.enable || cfg.tls.tailscale.domain != "";
+        message = "nativelink.tls.tailscale.enable is true but tls.tailscale.domain (the node's MagicDNS name) is unset.";
+      }
     ];
+
+    # Provision + renew the listener cert via `tailscale cert`. Writes to the
+    # configured cert/key paths (root:nativelink-readable), and a daily timer
+    # refreshes before the 90-day Let's Encrypt expiry. nativelink waits on it.
+    systemd.services.nativelink-tls-cert = lib.mkIf cfg.tls.tailscale.enable {
+      description = "Provision nativelink TLS cert via tailscale (${cfg.tls.tailscale.domain})";
+      after = [ "tailscaled.service" ];
+      wants = [ "tailscaled.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+      };
+      script = ''
+        set -euo pipefail
+        certdir="$(dirname ${lib.escapeShellArg cfg.tls.certFile})"
+        ${pkgs.coreutils}/bin/mkdir -p "$certdir"
+        # Retry until tailscale DNS/cert provisioning is ready.
+        for i in $(seq 1 30); do
+          if ${config.services.tailscale.package}/bin/tailscale cert \
+               --cert-file ${lib.escapeShellArg cfg.tls.certFile} \
+               --key-file ${lib.escapeShellArg cfg.tls.keyFile} \
+               ${lib.escapeShellArg cfg.tls.tailscale.domain}; then
+            break
+          fi
+          echo "tailscale cert not ready yet ($i/30), retrying in 10s..."
+          ${pkgs.coreutils}/bin/sleep 10
+        done
+        # nativelink runs as DynamicUser=no/root here, so root-readable is fine;
+        # widen if you later run nativelink as a dedicated user.
+        ${pkgs.coreutils}/bin/chmod 0640 ${lib.escapeShellArg cfg.tls.keyFile}
+      '';
+    };
+
+    systemd.timers.nativelink-tls-cert = lib.mkIf cfg.tls.tailscale.enable {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "daily";
+        Persistent = true;
+        RandomizedDelaySec = "1h";
+      };
+    };
 
     systemd.services.nativelink = {
       description = "NativeLink remote execution (${cfg.role})";
       wantedBy = [ "multi-user.target" ];
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
+      after = [
+        "network-online.target"
+      ]
+      ++ lib.optional cfg.tls.tailscale.enable "nativelink-tls-cert.service";
+      wants = [
+        "network-online.target"
+      ]
+      ++ lib.optional cfg.tls.tailscale.enable "nativelink-tls-cert.service";
       serviceConfig = {
         ExecStart = "${nativelinkPkg}/bin/nativelink ${configFile}";
         Restart = "on-failure";
@@ -545,11 +645,21 @@ in
 
     systemd.tmpfiles.rules = [ "d ${storeRoot} 0750 root root - -" ];
 
-    networking.firewall = lib.mkIf cfg.openFirewall {
-      allowedTCPPorts = [
-        (lib.toInt (lib.last (lib.splitString ":" cfg.publicListen)))
-        (lib.toInt (lib.last (lib.splitString ":" cfg.workerApiListen)))
-      ];
-    };
+    # Open the public + worker_api ports, but ONLY on the trusted (tailscale)
+    # interfaces — the RE endpoint is tailnet-reachable, never internet-exposed,
+    # even though publicListen binds all interfaces.
+    networking.firewall = lib.mkIf cfg.openFirewall (
+      let
+        ports = [
+          (lib.toInt (lib.last (lib.splitString ":" cfg.publicListen)))
+          (lib.toInt (lib.last (lib.splitString ":" cfg.workerApiListen)))
+        ];
+      in
+      {
+        interfaces = lib.genAttrs cfg.trustedInterfaces (_: {
+          allowedTCPPorts = ports;
+        });
+      }
+    );
   };
 }
