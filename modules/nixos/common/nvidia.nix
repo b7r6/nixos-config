@@ -16,12 +16,12 @@ in
 
     open = mkOption {
       type = types.bool;
-      default = false;
+      default = true;
       description = ''
-        Use the open-source NVIDIA kernel modules. Default false: on the
-        fleet's kernel (linuxPackages_testing, 7.1) the proprietary modules are
-        the verified-building path. Flip true per-host only if you've confirmed
-        the open modules build against that host's kernel + driver.
+        Use the open-source NVIDIA kernel modules. Default true: on the
+        fleet's kernel (linuxPackages_testing, 7.1) the open modules are the
+        verified-building path on current (Blackwell-class) SKUs. Flip false
+        per-host if a host's GPU/driver needs the proprietary modules.
       '';
     };
 
@@ -51,7 +51,6 @@ in
     # Graphics configuration
     hardware.graphics = {
       enable = true;
-      enable32Bit = false;
       extraPackages = with pkgs; [
         nvidia-vaapi-driver
         libva-vdpau-driver
