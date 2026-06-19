@@ -71,7 +71,7 @@
 
     # Packages
     home.packages = with pkgs; [
-      neofetch
+      fastfetch
       btop
       foot
       wofi
@@ -170,7 +170,7 @@
     # Basic utilities
     neovim
     btop
-    neofetch
+    fastfetch
 
     # Portal debugging (busctl is in systemd)
 

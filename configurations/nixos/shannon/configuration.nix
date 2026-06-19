@@ -1,4 +1,4 @@
-{ flake, pkgs, ... }:
+{ flake, lib, ... }:
 let
   inherit (flake) inputs;
 in
@@ -20,22 +20,22 @@ in
   # `autowire`, this in-between isn't working out...
   hyper-modern-nixos.nvidia.enable = true;
 
-  programs.hyprland = {
-    enable = true;
-    package = inputs.hyprland.packages.${pkgs.system}.hyprland;
-    portalPackage = inputs.hyprland.packages.${pkgs.system}.xdg-desktop-portal-hyprland;
-    xwayland.enable = false;
-  };
+  # Wayland/Hyprland via the consolidated common module (nixpkgs hyprland).
+  # Previously this host pinned a now-removed `inputs.hyprland`; the fleet
+  # standard is the hyper-wayland module.
+  hyper-modern-nixos.hyper-wayland.enable = true;
 
+  # shannon prefers crisp pixel fonts: override the hyper-wayland defaults
+  # (which enable antialias/hinting) with mkForce.
   fonts.fontconfig = {
     enable = true;
 
     hinting = {
-      enable = false;
+      enable = lib.mkForce false;
       style = "slight"; # Options: none, slight, medium, full
     };
 
-    antialias = false; # Smoothens the appearance of fonts
+    antialias = lib.mkForce false; # Smoothens the appearance of fonts
   };
 
   environment.variables = {

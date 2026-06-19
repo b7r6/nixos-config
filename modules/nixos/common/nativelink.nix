@@ -12,7 +12,7 @@
 # Multi-arch RE: remote execution runs NATIVE binaries, so you need one native
 # worker per architecture. The intended topology:
 #
-#   - role = "monolithic" on an x86_64 host (e.g. weyl/noether): CAS + scheduler
+#   - role = "monolithic" on an x86_64 host (e.g. ultraviolence): CAS + scheduler
 #     + an x86_64 worker. Exposes the public API (50051) and worker_api (50061).
 #   - role = "worker"     on shimmer (aarch64 DGX): an aarch64-only worker that
 #     dials the monolithic host's worker_api over the tailnet.
