@@ -21,6 +21,7 @@
   config,
   lib,
   pkgs,
+  flake,
   ...
 }:
 let
@@ -28,6 +29,31 @@ let
   marketplace = pkgs.vscode-marketplace;
 
   jsonFormat = pkgs.formats.json { };
+
+  # ── Stylix theme as a self-installed extension ──────────────────────────────
+  # We disable stylix.targets.vscode (it writes settings.json as a read-only
+  # home.file symlink, which fights the LWW merge below and trips home-manager's
+  # checkLinkTargets collision guard every switch). Instead we build the SAME
+  # theme extension stylix would, from its own pinned template, and select it
+  # via workbench.colorTheme in the merged userSettings. One writer for
+  # settings.json (our activation), theme still applied.
+  stylixColors = config.lib.stylix.colors;
+  stylixThemeExtension =
+    pkgs.runCommandLocal "stylix-vscode"
+      {
+        vscodeExtUniqueId = "stylix.stylix";
+        vscodeExtPublisher = "stylix";
+        version = "0.0.0";
+        theme = builtins.toJSON (
+          import "${flake.inputs.stylix}/modules/vscode/templates/theme.nix" stylixColors
+        );
+        passAsFile = [ "theme" ];
+      }
+      ''
+        mkdir -p "$out/share/vscode/extensions/$vscodeExtUniqueId/themes"
+        ln -s ${flake.inputs.stylix}/modules/vscode/package.json "$out/share/vscode/extensions/$vscodeExtUniqueId/package.json"
+        cp "$themePath" "$out/share/vscode/extensions/$vscodeExtUniqueId/themes/stylix.json"
+      '';
 
   # ── LWW JSON merge (the home-manager `programs.zed-editor` pattern) ──────────
   # home-manager's `programs.vscode` writes settings.json as a READ-ONLY nix
@@ -38,12 +64,18 @@ let
   # (dynamic), overlay our declared settings (static), static wins on conflict.
   # The file stays writable, so the editor keeps its own keys and our managed
   # keys are reasserted every switch. Mirrors home.activation.claudeBypassPermissions.
+  # Read current content as the dynamic baseline FIRST (works whether the path
+  # is a writable file OR a read-only home-manager store symlink — e.g. the one
+  # stylix.targets.vscode still writes), THEN drop a symlink / non-writable file
+  # so the subsequent write lands a real, editor-writable file. Without the rm,
+  # `printf >` follows the symlink into the read-only nix store and fails with
+  # EACCES — that's the read-only-config bug this whole change fixes.
   lwwMergeSettings = path: staticFile: ''
     ${pkgs.coreutils}/bin/mkdir -p "$(${pkgs.coreutils}/bin/dirname ${lib.escapeShellArg path})"
-    if [ ! -e ${lib.escapeShellArg path} ]; then
-      echo '{}' > ${lib.escapeShellArg path}
-    fi
     dynamic="$(${pkgs.jq}/bin/jq '.' ${lib.escapeShellArg path} 2>/dev/null || echo '{}')"
+    if [ -L ${lib.escapeShellArg path} ] || { [ -e ${lib.escapeShellArg path} ] && [ ! -w ${lib.escapeShellArg path} ]; }; then
+      ${pkgs.coreutils}/bin/rm -f ${lib.escapeShellArg path}
+    fi
     static="$(${pkgs.coreutils}/bin/cat ${staticFile})"
     merged="$(${pkgs.jq}/bin/jq -n '$dynamic * $static' \
       --argjson dynamic "$dynamic" --argjson static "$static")"
@@ -52,13 +84,14 @@ let
   '';
 
   # Keybindings are a JSON ARRAY, not an object: LWW by `key`+`command` identity
-  # so editor-added bindings survive and our declared ones are reasserted.
+  # so editor-added bindings survive and our declared ones are reasserted. Same
+  # read-then-replace-symlink dance as settings.
   lwwMergeKeybindings = path: staticFile: ''
     ${pkgs.coreutils}/bin/mkdir -p "$(${pkgs.coreutils}/bin/dirname ${lib.escapeShellArg path})"
-    if [ ! -e ${lib.escapeShellArg path} ]; then
-      echo '[]' > ${lib.escapeShellArg path}
-    fi
     dynamic="$(${pkgs.jq}/bin/jq '.' ${lib.escapeShellArg path} 2>/dev/null || echo '[]')"
+    if [ -L ${lib.escapeShellArg path} ] || { [ -e ${lib.escapeShellArg path} ] && [ ! -w ${lib.escapeShellArg path} ]; }; then
+      ${pkgs.coreutils}/bin/rm -f ${lib.escapeShellArg path}
+    fi
     static="$(${pkgs.coreutils}/bin/cat ${staticFile})"
     merged="$(${pkgs.jq}/bin/jq -n \
       '($dynamic + $static) | unique_by([.key, .command, (.when // "")])' \
@@ -152,6 +185,8 @@ let
     "scm.inputFontSize" = cfg.font.size;
     "terminal.integrated.fontSize" = cfg.font.size;
   }
+  # ---- stylix theme (extension installed below; select it here) ----
+  // lib.optionalAttrs cfg.stylix.enable { "workbench.colorTheme" = "Stylix"; }
   # ---- Claude Code (only when bypass requested) ----
   # initialPermissionMode is the lever the VS Code extension actually reads;
   # allowDangerouslySkipPermissions is the one it has historically ignored
@@ -294,8 +329,12 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    stylix.targets.vscode.enable = cfg.stylix.enable;
-    stylix.targets.vscode.profileNames = [ "default" ];
+    # Disabled deliberately: stylix's vscode target writes settings.json as a
+    # read-only home.file symlink, which collides with our LWW merge (and trips
+    # home-manager's checkLinkTargets every switch). We install its theme
+    # extension ourselves (stylixThemeExtension) and set workbench.colorTheme in
+    # the merged userSettings instead.
+    stylix.targets.vscode.enable = false;
 
     # Editor-critical servers that should resolve even outside a devshell.
     # Everything language-specific (clang, rustc, lean, purs/spago, nvcc, buck2,
@@ -343,7 +382,9 @@ in
         ])
         # --- Python checker: pick one ---
         ++ lib.optional (cfg.pythonChecker == "pyrefly") marketplace.meta.pyrefly
-        ++ lib.optional (cfg.pythonChecker == "ty") marketplace.astral-sh.ty;
+        ++ lib.optional (cfg.pythonChecker == "ty") marketplace.astral-sh.ty
+        # --- stylix theme (built from stylix's own pinned template) ---
+        ++ lib.optional cfg.stylix.enable stylixThemeExtension;
 
       # All extensions above come from nixpkgs `vscode-extensions` or the
       # `nix-vscode-extensions` marketplace overlay — no hand-maintained hashes.
@@ -361,13 +402,18 @@ in
     # read-only and never reaches Cursor. Instead, on every activation we
     # jq-deep-merge our declared config into whatever the editor currently has,
     # leaving the files writable so the editor keeps persisting its own keys.
-    home.activation.vscodeSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] (
+    # entryAfter linkGeneration (NOT writeBoundary): linkGeneration is itself
+    # `entryAfter [ writeBoundary ]` and is what places the read-only store
+    # symlink (stylix's settings.json). We must run strictly after it so we
+    # replace that symlink with our merged writable file — same anchor the
+    # programs.zed-editor module uses for the identical reason.
+    home.activation.vscodeSettings = lib.hm.dag.entryAfter [ "linkGeneration" ] (
       lib.concatMapStringsSep "\n" (
         dir: lwwMergeSettings "${dir}/settings.json" settingsFile
       ) editorUserDirs
     );
 
-    home.activation.vscodeKeybindings = lib.hm.dag.entryAfter [ "writeBoundary" ] (
+    home.activation.vscodeKeybindings = lib.hm.dag.entryAfter [ "linkGeneration" ] (
       lib.concatMapStringsSep "\n" (
         dir: lwwMergeKeybindings "${dir}/keybindings.json" keybindingsFile
       ) editorUserDirs
