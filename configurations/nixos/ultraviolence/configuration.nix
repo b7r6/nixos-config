@@ -67,11 +67,21 @@ in
     listen = "[::]:8080";
     trustedInterfaces = [ "tailscale0" ];
 
+    # Back the cache with Cloudflare R2 (dedicated bucket). AWS_ACCESS_KEY_ID /
+    # AWS_SECRET_ACCESS_KEY live in the atticd-rs256 env file alongside the
+    # RS256 secret; bucket/endpoint are non-secret.
+    storage = {
+      type = "s3";
+      region = "auto";
+      bucket = "straylight-attic-cache";
+      endpoint = "https://6063b6652178f5cf1cfb87e7e41acf1e.r2.cloudflarestorage.com";
+    };
+
     clientCache = {
       enable = true;
       name = "hypermodern";
       endpoint = "http://ultraviolence.osiris-walleye.ts.net:8080";
-      publicKey = "hypermodern:2RH6ZCDyxOJp++LjtPOFeOPZe95hIOMgTwzKNIeZ+ew=";
+      publicKey = "hypermodern:IxmiCAZWTeYmnOafmhz39qrn0wXj+aNvBy9dczJTcAs=";
       pushTokenFile = "/run/agenix/attic-push-token";
     };
   };

@@ -74,6 +74,50 @@ in
       description = "Open the atticd listen port, but only on trustedInterfaces (tailscale0 by default).";
     };
 
+    # ── Storage backend ───────────────────────────────────────────────────────
+    # Local filesystem by default; set type = "s3" for an S3-compatible backend
+    # like Cloudflare R2. atticd reads AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+    # from `environmentFile` (the same agenix env file as the RS256 secret), so
+    # no credentials touch the nix store. The bucket+endpoint+region are not
+    # secret. atticd OWNS the whole bucket (nar/, chunks, …) — give it a
+    # dedicated bucket.
+    storage = {
+      type = lib.mkOption {
+        type = lib.types.enum [
+          "local"
+          "s3"
+        ];
+        default = "local";
+        description = "atticd storage backend.";
+      };
+
+      path = lib.mkOption {
+        type = lib.types.str;
+        default = "/var/lib/atticd/storage";
+        description = "Local storage directory (type = local).";
+      };
+
+      region = lib.mkOption {
+        type = lib.types.str;
+        default = "auto";
+        description = "S3 region. R2 is region-agnostic; use \"auto\".";
+      };
+
+      bucket = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        example = "straylight-attic-cache";
+        description = "S3 bucket name (type = s3). atticd owns the whole bucket.";
+      };
+
+      endpoint = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        example = "https://<acct>.r2.cloudflarestorage.com";
+        description = "Custom S3 endpoint for S3-compatible backends (R2/Minio).";
+      };
+    };
+
     settings = lib.mkOption {
       type = lib.types.attrs;
       default = { };
@@ -103,7 +147,7 @@ in
 
       publicKey = lib.mkOption {
         type = lib.types.str;
-        example = "hypermodern:2RH6ZCDyxOJp++LjtPOFeOPZe95hIOMgTwzKNIeZ+ew=";
+        example = "hypermodern:IxmiCAZWTeYmnOafmhz39qrn0wXj+aNvBy9dczJTcAs=";
         description = "The cache's binary-cache public key (from `attic cache info`).";
       };
 
@@ -146,12 +190,34 @@ in
             store it via agenix as atticd-rs256.<host>.age, and wire age.secrets.
           '';
         }
+        {
+          assertion = cfg.storage.type != "s3" || (cfg.storage.bucket != "" && cfg.storage.endpoint != "");
+          message = ''
+            hyper-modern-nixos.attic.storage.type = "s3" but bucket/endpoint are
+            unset. Set storage.bucket and storage.endpoint, and put
+            AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY in the environmentFile.
+          '';
+        }
       ];
 
       services.atticd = {
         enable = true;
         inherit (cfg) environmentFile;
-        settings = lib.recursiveUpdate { inherit (cfg) listen; } cfg.settings;
+        settings = lib.recursiveUpdate {
+          inherit (cfg) listen;
+          storage =
+            if cfg.storage.type == "s3" then
+              {
+                type = "s3";
+                inherit (cfg.storage) region bucket endpoint;
+                # credentials come from AWS_* in environmentFile (not here).
+              }
+            else
+              {
+                type = "local";
+                inherit (cfg.storage) path;
+              };
+        } cfg.settings;
       };
 
       # Client CLI for `attic login` / `attic push` / `attic use`.
