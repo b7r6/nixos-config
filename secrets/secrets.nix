@@ -2,90 +2,97 @@
 #                              // hyper-modern-nixos // secrets/secrets.nix
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-# Agenix secret definitions - specifies which public keys can decrypt each secret.
+# agenix secret definitions: which public keys may decrypt each .age secret.
+# Recipient sets are derived from secrets/keys.nix (the single source of truth)
+# via the mkSecret / mkGlobalSecret helpers below, so adding a host to keys.nix
+# and re-keying is all it takes to extend access — no per-secret edits.
 #
-# Secrets are organized as:
-#   - agenix/machines/<secret>.age  → Machine-level secrets (host keys)
-#   - agenix/users/<user>/<secret>.age → User secrets deployed via home-manager
+# Layout:
+#   agenix/machines/<secret>.age        → machine secrets → /run/agenix/ (root)
+#   agenix/users/<user>/<secret>.age    → user secrets via home-manager agenix
+#   passage-store/                      → interactive secrets, NOT agenix-managed
 #
-# Interactive secrets live in passage-store/ and are NOT managed by agenix.
+# ── Recipient model ──────────────────────────────────────────────────────────
+# Every secret is always encrypted to ALL user keys (so any operator can edit /
+# rekey). `mkSecret [hosts…]` adds the named hosts; `mkGlobalSecret` adds every
+# configured host. Today everything is global (single operator, mutually-trusted
+# fleet); the mkSecret helper exists so future least-privilege scoping is a
+# one-line change per secret rather than a structural refactor.
 #
 let
   keys = import ./keys.nix;
 
-  # Helper: get all keys for a user
-  userKeys = user: keys.users.${user} or [ ];
+  inherit (builtins)
+    attrNames
+    attrValues
+    concatLists
+    concatMap
+    filter
+    ;
 
-  # Helper: get all keys for a host (returns empty list if not yet configured)
-  hostKeys = host: keys.hosts.${host} or [ ];
+  # All user public keys, flattened.
+  allUserKeys = concatLists (attrValues keys.users);
 
-  # Helper: combine user keys with specific host keys
+  # Hosts that actually have a key listed (skip TODO stubs like a powered-down
+  # laptop), so we never try to encrypt to an empty recipient.
+  configuredHosts = filter (h: (keys.hosts.${h} or [ ]) != [ ]) (attrNames keys.hosts);
 
-  # All hosts that have keys configured
-  allConfiguredHosts = builtins.filter (h: (hostKeys h) != [ ]) (builtins.attrNames keys.hosts);
+  # mkSecret: recipients = all users + the named hosts' keys.
+  # Unknown / unconfigured host names contribute nothing (or [ ]).
+  mkSecret = hostList: allUserKeys ++ (concatMap (h: keys.hosts.${h} or [ ]) hostList);
 
-  # b7r6's keys + all configured hosts (for secrets that should be accessible everywhere)
-  b7r6Everywhere = (userKeys "b7r6") ++ (builtins.concatLists (map hostKeys allConfiguredHosts));
+  # mkGlobalSecret: recipients = all users + every configured host.
+  mkGlobalSecret = mkSecret configuredHosts;
 in
 {
   # ── Machine Secrets ──────────────────────────────────────────────────────────
-  # Deployed to /run/agenix/ on the target machine
-  # Encrypted to: user keys (for editing) + target host key (for deployment)
+  # Decrypted to /run/agenix/ on the target host (root, 0400).
 
-  # Tailscale auth keys - one per tailnet, deployed to machines that need them
-  "agenix/machines/tailscale-auth-key.parabolic-surf.age".publicKeys = b7r6Everywhere;
-  "agenix/machines/tailscale-auth-key.straylight-evaluation.age".publicKeys = b7r6Everywhere;
-  "agenix/machines/tailscale-auth-key.v4.surf.age".publicKeys = b7r6Everywhere;
+  # Tailscale auth keys. NOTE: the three below are STALE — they were minted for
+  # retired tailnets (parabolic-surf / straylight-evaluation / v4.surf). The
+  # live tailnet is osiris-walleye.ts.net. They are kept only so the files
+  # decrypt cleanly during the secrets refactor; they are regenerated and wired
+  # into declarative enrollment in the tailscale phase. Do not rely on them.
+  "agenix/machines/tailscale-auth-key.parabolic-surf.age".publicKeys = mkGlobalSecret;
+  "agenix/machines/tailscale-auth-key.straylight-evaluation.age".publicKeys = mkGlobalSecret;
+  "agenix/machines/tailscale-auth-key.v4.surf.age".publicKeys = mkGlobalSecret;
 
-  # restic repository password (consumed by modules/nixos/common/backup.nix when
-  # hyper-modern-nixos.backup.enable is set on a host). High-entropy passphrase,
-  # e.g. `openssl rand -base64 48`. LOSING THIS = UNRECOVERABLE BACKUPS; keep an
-  # independent copy somewhere out-of-band.
-  "agenix/machines/restic-password.age".publicKeys = b7r6Everywhere;
+  # restic repository password (modules/nixos/common/backup.nix). High-entropy
+  # passphrase (`openssl rand -base64 48`). LOSING THIS = UNRECOVERABLE BACKUPS;
+  # keep an independent out-of-band copy.
+  "agenix/machines/restic-password.age".publicKeys = mkGlobalSecret;
 
-  # restic backend env file for the Cloudflare R2 (S3-compatible) repository.
-  # Consumed via services.restic.backups.system.environmentFile. Contents:
-  #   RESTIC_REPOSITORY=s3:https://<ACCOUNT_ID>.r2.cloudflarestorage.com/<BUCKET>
-  #   AWS_ACCESS_KEY_ID=<R2 token Access Key ID>
-  #   AWS_SECRET_ACCESS_KEY=<R2 token Secret Access Key>
-  #   AWS_DEFAULT_REGION=auto
-  # The R2 token must be Object Read & Write scoped to JUST that one bucket.
-  "agenix/machines/restic-r2-env.age".publicKeys = b7r6Everywhere;
+  # restic R2 backend env file (services.restic…environmentFile). Contents:
+  #   RESTIC_REPOSITORY=s3:https://<ACCOUNT_ID>.r2.cloudflarestorage.com/<BUCKET>/<host>
+  #   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_DEFAULT_REGION=auto
+  # R2 token scoped Object R&W to JUST the backups bucket.
+  "agenix/machines/restic-r2-env.age".publicKeys = mkGlobalSecret;
 
-  # nativelink R2 backend creds (env file). Consumed via the nativelink
-  # service's EnvironmentFile; the JSON config references them as
-  # ${R2_ACCESS_KEY_ID} / ${R2_SECRET_ACCESS_KEY} (shellexpand), so no creds
-  # touch the store. Contents:
-  #   R2_ACCESS_KEY_ID=<R2 token Access Key ID>
-  #   R2_SECRET_ACCESS_KEY=<R2 token Secret Access Key>
-  "agenix/machines/nativelink-r2-env.age".publicKeys = b7r6Everywhere;
+  # nativelink R2 backend creds (env file, shellexpand'd in the JSON5 config):
+  #   R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY
+  "agenix/machines/nativelink-r2-env.age".publicKeys = mkGlobalSecret;
 
-  # atticd RS256 JWT signing secret env file (consumed by attic.nix when
-  # hyper-modern-nixos.attic.enable is set). Must be a SINGLE-LINE env var, since
-  # systemd EnvironmentFile can't parse a multi-line PEM:
+  # atticd RS256 JWT signing secret (single-line env var — systemd
+  # EnvironmentFile can't parse a multi-line PEM). MUST be identical on every
+  # atticd instance so tokens verify fleet-wide:
   #   ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64=<base64 -w0 of an RSA PKCS1 PEM>
+  #   (also carries AWS_*/R2 creds for the shared S3/R2 chunk store)
   # Generate:  openssl genrsa -traditional 4096 | base64 -w0
-  "agenix/machines/atticd-rs256.age".publicKeys = b7r6Everywhere;
+  "agenix/machines/atticd-rs256.age".publicKeys = mkGlobalSecret;
 
-  # attic PUSH token (raw JWT, push+pull scoped to the `hypermodern` cache).
-  # Referenced by the post-build-hook's attic client config as `token-file` so
-  # every successful build self-populates the cache. Generate from the server:
+  # attic PUSH token (raw JWT, push+pull on the `hypermodern` cache). Used by
+  # each host's watch-store to self-populate the shared cache:
   #   atticd-atticadm make-token --sub <host>-push --validity 10y \
   #     --pull hypermodern --push hypermodern
-  "agenix/machines/attic-push-token.age".publicKeys = b7r6Everywhere;
+  "agenix/machines/attic-push-token.age".publicKeys = mkGlobalSecret;
 
-  # ── User Secrets (agenix-deployed) ───────────────────────────────────────────
-  # Deployed to user's home via home-manager agenix module
-  # Encrypted to: user keys + hosts where that user exists
+  # ── User Secrets (agenix-deployed via home-manager) ──────────────────────────
+  "agenix/users/b7r6/netrc.age".publicKeys = mkGlobalSecret;
+  "agenix/users/b7r6/atuin-key.age".publicKeys = mkGlobalSecret;
+  "agenix/users/b7r6/hf-token.age".publicKeys = mkGlobalSecret;
 
-  # b7r6's secrets - accessible from any machine b7r6 logs into
-  "agenix/users/b7r6/netrc.age".publicKeys = b7r6Everywhere;
-  "agenix/users/b7r6/atuin-key.age".publicKeys = b7r6Everywhere;
-  "agenix/users/b7r6/hf-token.age".publicKeys = b7r6Everywhere;
-
-  # Full rclone.conf (R2 remote `straylight-r2` + its Access Key / Secret Access
-  # Key). Decrypted by the home-manager agenix module straight to
-  # ~/.config/rclone/rclone.conf (mode 600) when hyper-modern-nixos.cloud.rclone
-  # is enabled. Same R2 token as the restic backups; reuse is fine.
-  "agenix/users/b7r6/rclone-conf.age".publicKeys = b7r6Everywhere;
+  # Full rclone.conf (R2 remote `straylight-r2` + creds). Decrypted by the
+  # home-manager agenix module to ~/.config/rclone/rclone.conf (0600), and also
+  # at the NixOS level for the system rclone mount. Same R2 token as restic.
+  "agenix/users/b7r6/rclone-conf.age".publicKeys = mkGlobalSecret;
 }

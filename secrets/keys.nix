@@ -2,20 +2,38 @@
 #                              // hyper-modern-nixos // secrets/keys
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-# Public keys for age encryption. Used by both agenix (NixOS secrets) and
-# passage (interactive password store).
+# Single source of truth for age/agenix recipient public keys. Consumed by:
+#   - secrets/secrets.nix  (recipient sets for every .age secret)
+#   - any module that needs a peer's host key (knownHosts, build machines, …)
 #
-# To add a host key:
-#   ssh-keyscan -t ed25519 <hostname> 2>/dev/null | cut -d' ' -f2-
-#   # or from the host: cat /etc/ssh/ssh_host_ed25519_key.pub
+# This file is DATA ONLY: two attrsets, `users` and `hosts`, mapping a name to
+# a list of ssh-ed25519 public keys. agenix accepts SSH ed25519 keys directly
+# (no ssh-to-age conversion needed).
 #
-# To convert SSH key to age format (for reference):
-#   ssh-to-age < ~/.ssh/id_ed25519.pub
+# ── Adding / rotating a host key ───────────────────────────────────────────
+#   ssh-keyscan -t ed25519 <host> 2>/dev/null | grep -v '^#' | awk '{print $2,$3}'
+#   # or, authoritative, from the host itself:
+#   ssh <host> cat /etc/ssh/ssh_host_ed25519_key.pub
+#
+# A host can only DECRYPT a secret once its key is listed here AND the secret
+# has been (re)keyed to include it (`agenix -r` / the `rekey` devshell cmd).
+#
+# ── The live fleet ─────────────────────────────────────────────────────────
+#   ultraviolence  x86_64  NixOS    primary workstation / infra host
+#   watchtower     x86_64  NixOS    services host (postgres, attic state, GC)
+#   weyl           x86_64  NixOS
+#   guccimane      x86_64  NixOS
+#   shimmer        aarch64 NixOS    DGX Spark (GB10)
+#   shannon        x86_64  NixOS    laptop (frequently powered down, still fleet)
+#   gossamer       aarch64 DGX OS   global Nix, NOT a nixosConfiguration; recorded
+#                                   here so it can be an attic client / build node
+#
+# Decommissioned & removed from the fleet (do not re-add without a real host):
+#   beratna, flatline, galois, noether, railgun, ultralight
 #
 {
-  # ── User Keys ────────────────────────────────────────────────────────────────
-  # Personal SSH keys that can decrypt user-scoped secrets
-
+  # ── User Keys ──────────────────────────────────────────────────────────────
+  # Personal SSH keys that can decrypt every secret (for editing/rekeying).
   users = {
     b7r6 = [
       # Primary key (id_ed25519)
@@ -28,59 +46,32 @@
   };
 
   # ── Host Keys ────────────────────────────────────────────────────────────────
-  # Machine SSH host keys - secrets encrypted to these are deployed via agenix
-  # Run: ssh-keyscan -t ed25519 <host> 2>/dev/null | cut -d' ' -f2-
-
+  # Machine SSH host keys (ed25519). Secrets encrypted to these are decryptable
+  # by the corresponding host's /etc/ssh/ssh_host_ed25519_key at activation.
+  # All keys below were read directly from the live hosts (authoritative).
   hosts = {
-    # ── aarch64-linux ──
-    shimmer = [
-      # TODO: Add after first boot
-      # "ssh-ed25519 AAAAC3NzaC1..."
-    ];
-
     # ── x86_64-linux ──
-    weyl = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDlQI/GVzQ5wtvZITk9fkPIv/2ssXsnzpG+ZXZJxJ+HZ root@weyl"
+    ultraviolence = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIByLBDrGF8XgGFi9TdWS65haJBZYGEbAHLSu+q3LaGP5"
     ];
 
-    noether = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILo8tDMB+M0T/Bj32ocGAU2yBCxYoiWzotQ1PE4S9I0h root@nixos"
-    ];
+    watchtower = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMibWXJ2mjqlJi0j8hlNP7OgiUZ7jG8dB1vZ75fNH0Cy" ];
+
+    weyl = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIITOOlNpHBYnG7EmU3lXqrSzf4AqMHxpViF8HS90QTiK" ];
+
+    guccimane = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIADHEWWzCpRcLIjk1CNKnl86dtAap7BHfsaijUqe3cV7" ];
 
     shannon = [
-      # TODO: ssh-keyscan -t ed25519 shannon
+      # TODO: laptop currently powered down; scan + add on next boot:
+      #   ssh-keyscan -t ed25519 shannon
     ];
 
-    watchtower = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIaKgH3tdEU5G+9bTQ9K9ldT55t8mBNRzTX8PfoVmjGb watchtower"
-    ];
+    # ── aarch64-linux ──
+    shimmer = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAFyVtrt3AmJrLqcdAnZn5hXrvMenOUKGAS182qBnuYN" ];
 
-    beratna = [
-      # TODO: ssh-keyscan -t ed25519 beratna
-    ];
-
-    flatline = [
-      # TODO: ssh-keyscan -t ed25519 flatline
-    ];
-
-    galois = [
-      # TODO: ssh-keyscan -t ed25519 galois
-    ];
-
-    guccimane = [
-      # TODO: ssh-keyscan -t ed25519 guccimane
-    ];
-
-    railgun = [
-      # TODO: ssh-keyscan -t ed25519 railgun
-    ];
-
-    ultralight = [
-      # TODO: ssh-keyscan -t ed25519 ultralight
-    ];
-
-    ultraviolence = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIByLBDrGF8XgGFi9TdWS65haJBZYGEbAHLSu+q3LaGP5 root@ultraviolence"
-    ];
+    # ── non-NixOS Nix nodes ──
+    # gossamer runs DGX OS with a global Nix install (not managed by this flake).
+    # Recorded so it can receive secrets / act as an attic client + build node.
+    gossamer = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEJbZaoyyS2ini7oG0mDP/Ayz5GFb5ataDa8cWyqQ6zd" ];
   };
 }
