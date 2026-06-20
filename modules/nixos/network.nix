@@ -68,7 +68,10 @@ in
       allowedUDPPorts = mkIf cfg.firewall.enable [ 41641 ];
       checkReversePath = mkIf cfg.firewall.enable "loose";
 
-      interfaces = mkIf cfg.firewall.enable { tailscale0.allowAll = true; };
+      # tailscale0 is already a trustedInterface above (all traffic allowed);
+      # the previous `interfaces.tailscale0.allowAll` was an invalid option and
+      # redundant — removed. Per-service interface-scoped ports (e.g. postgres
+      # 5432 on tailscale0) merge in cleanly via networking.firewall.interfaces.
     };
 
     networking = {

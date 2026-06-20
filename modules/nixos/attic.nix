@@ -34,8 +34,10 @@
 #   ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64=$(openssl genrsa -traditional 4096 | base64 -w0)
 #
 # The SAME env file also carries (none of which may touch the store):
-#   ATTIC_SERVER_DATABASE_URL=postgresql://atticd:<pw>@watchtower.<tailnet>/atticd
-#   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY   (R2 chunk-store creds)
+#   PGPASSWORD=<postgres password for the atticd role>   (sqlx reads it)
+#   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY            (R2 chunk-store creds)
+# The passwordless connection string itself (postgresql://atticd@host/atticd) is
+# non-secret and set via hyper-modern-nixos.attic.databaseUrl.
 #
 # Generate once, store it with agenix as `atticd-rs256.age`, and wire
 # `age.secrets.atticd-rs256` to decrypt it. This module points
@@ -69,15 +71,19 @@ in
       '';
     };
 
-    databaseUrlInEnv = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
+    databaseUrl = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "postgresql://atticd@watchtower.osiris-walleye.ts.net/atticd";
       description = ''
-        When true, the connection string is supplied via ATTIC_SERVER_DATABASE_URL
-        in the environmentFile (so the password never enters the store) and this
-        module does NOT set settings.database.url. Use this for the shared
-        postgres backend. When false, atticd falls back to its local sqlite
-        default unless you set settings.database.url explicitly.
+        PASSWORDLESS postgres connection string for the shared backend. attic
+        uses sea-orm + sqlx-postgres, and sqlx honours libpq env vars — so the
+        password is supplied SEPARATELY via PGPASSWORD in the environmentFile and
+        never enters the store. When null, atticd keeps its local sqlite default.
+
+        NOTE: the URL must NOT contain a password (that would leak into the Nix
+        store via the rendered config file). Put PGPASSWORD=<pw> in the
+        environmentFile alongside the RS256 secret and R2 creds.
       '';
     };
 
@@ -265,13 +271,11 @@ in
                   inherit (cfg.storage) path;
                 };
           }
-          # When the DB URL comes from the env file (shared postgres), do NOT
-          # also set settings.database.url — let ATTIC_SERVER_DATABASE_URL win,
-          # keeping the password out of the store. Otherwise leave the upstream
-          # sqlite default (or whatever the caller put in `settings`).
-          // lib.optionalAttrs (!cfg.databaseUrlInEnv && cfg.settings ? database) {
-            inherit (cfg.settings) database;
-          }
+          # Shared postgres backend: set a PASSWORDLESS connection string in
+          # the config file (non-secret), overriding the upstream sqlite
+          # mkDefault. sqlx reads the password from PGPASSWORD in the
+          # environmentFile, so no secret enters the store.
+          // lib.optionalAttrs (cfg.databaseUrl != null) { database.url = lib.mkForce cfg.databaseUrl; }
         ) cfg.settings;
       };
 

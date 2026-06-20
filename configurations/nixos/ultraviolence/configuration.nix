@@ -52,39 +52,15 @@ in
     };
   };
 
-  # ── attic binary cache (tailnet, self-populating) ───────────────────────────
-  # atticd binds all interfaces but the port is opened only on tailscale0, so
-  # the `hypermodern` cache is reachable across the tailnet (public-pull) but
-  # not the open internet. RS256 signing secret + a push-scoped token come from
-  # agenix. The clientCache block makes THIS host both consult the cache first
-  # (substituter, priority 10) and push every successful build into it.
+  # ── attic binary cache: api-server replica ──────────────────────────────────
+  # Stateless api-server sharing the fleet postgres (watchtower) + R2 chunk store
+  # + RS256 secret. Consults its OWN localhost:8080 first and watch-store pushes
+  # every build. The shared connection string + R2 creds live in the agenix env
+  # file (ATTIC_SERVER_DATABASE_URL / AWS_*), so nothing touches the store.
   age.secrets.atticd-rs256.file = ../../../secrets/agenix/machines/atticd-rs256.age;
   age.secrets.attic-push-token.file = ../../../secrets/agenix/machines/attic-push-token.age;
 
-  hyper-modern-nixos.attic = {
-    enable = true;
-    environmentFile = "/run/agenix/atticd-rs256";
-    listen = "[::]:8080";
-    trustedInterfaces = [ "tailscale0" ];
-
-    # Back the cache with Cloudflare R2 (dedicated bucket). AWS_ACCESS_KEY_ID /
-    # AWS_SECRET_ACCESS_KEY live in the atticd-rs256 env file alongside the
-    # RS256 secret; bucket/endpoint are non-secret.
-    storage = {
-      type = "s3";
-      region = "auto";
-      bucket = "straylight-attic-cache";
-      endpoint = "https://6063b6652178f5cf1cfb87e7e41acf1e.r2.cloudflarestorage.com";
-    };
-
-    clientCache = {
-      enable = true;
-      name = "hypermodern";
-      endpoint = "http://ultraviolence.osiris-walleye.ts.net:8080";
-      publicKey = "hypermodern:IxmiCAZWTeYmnOafmhz39qrn0wXj+aNvBy9dczJTcAs=";
-      pushTokenFile = "/run/agenix/attic-push-token";
-    };
-  };
+  hyper-modern-nixos.attic-replica.enable = true;
 
   # ── NativeLink remote execution (single-box monolithic bringup) ─────────────
   # CAS + scheduler + a local x86_64 worker, all on this host. Split the aarch64

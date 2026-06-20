@@ -9,13 +9,16 @@
 # fleet runs exactly one shared postgres (on watchtower) that backs the central
 # atticd cache's metadata. Other hosts don't need a local postgres.
 #
-# ── Tailnet exposure ────────────────────────────────────────────────────────
-# When `tailnet.enable` is set, postgres also listens on the host's tailscale0
-# address and pg_hba permits md5-authenticated connections from the tailnet
-# CGNAT range (100.64.0.0/10). The fleet runs with the host firewall OFF
-# (common/default.nix), so binding is the real exposure control: we bind only
-# loopback + the tailscale interface, never a public NIC. atticd instances on
-# other hosts connect to this over MagicDNS.
+# ── Tailnet exposure (best-practice, defense in depth) ──────────────────────
+# When `tailnet.enable` is set, exposure is gated at TWO layers:
+#   1. firewall: port 5432 is opened ONLY on `tailnet.interface` (tailscale0),
+#      via networking.firewall.interfaces. Postgres is more sensitive than a
+#      pull cache, so the consuming host should re-enable its firewall
+#      (hyper-modern-nixos.network.firewall.enable = true on watchtower) so this
+#      interface-scoped rule actually bites — the rest of the fleet runs
+#      firewall-off, but the DB host opts back in.
+#   2. pg_hba: md5 auth permitted only from loopback + the tailnet CIDRs.
+# atticd instances on other hosts connect over MagicDNS.
 {
   config,
   lib,
@@ -116,6 +119,12 @@ in
           )
         );
       };
+
+      # Open 5432 ONLY on the tailscale interface (layer 1). This bites only if
+      # the host's firewall is enabled — watchtower opts back in.
+      networking.firewall.interfaces.${cfg.postgres.tailnet.interface} =
+        lib.mkIf cfg.postgres.tailnet.enable
+          { allowedTCPPorts = [ 5432 ]; };
     })
 
     (lib.mkIf cfg.redis.enable { services.redis.servers."".enable = true; })

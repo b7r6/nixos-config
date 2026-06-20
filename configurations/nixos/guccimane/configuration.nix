@@ -1,5 +1,12 @@
-{ ... }: {
-  imports = [ ./hardware-configuration.nix ];
+{ flake, ... }:
+let
+  inherit (flake) inputs;
+in
+{
+  imports = [
+    ./hardware-configuration.nix
+    inputs.agenix.nixosModules.default
+  ];
 
   hyper-modern-nixos.hyper-wayland = {
     enable = true;
@@ -43,7 +50,12 @@
   security.sudo.wheelNeedsPassword = false;
 
   # b7r6 SSH keys + groups come from the fleet-wide hyper-modern-nixos.users
-  # model (modules/nixos/common/default.nix + myusers.nix).
+  # model (modules/nixos/default.nix + myusers.nix).
+
+  # ── attic api-server replica (shared pg + R2 + RS256, local substituter) ────
+  age.secrets.atticd-rs256.file = ../../../secrets/agenix/machines/atticd-rs256.age;
+  age.secrets.attic-push-token.file = ../../../secrets/agenix/machines/attic-push-token.age;
+  hyper-modern-nixos.attic-replica.enable = true;
 
   time.timeZone = "America/New_York";
 
