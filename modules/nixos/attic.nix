@@ -10,7 +10,7 @@
 #
 # Defaults: monolithic mode, sqlite at /var/lib/atticd/server.db, local storage
 # at /var/lib/atticd/storage. Switch to postgres/S3 via `settings` if/when you
-# outgrow that (postgres is already available via postgres.nix).
+# outgrow that (postgres is already available via common/postgres.nix).
 #
 # ── Fleet topology (replicated api-server + shared state) ───────────────────
 # Per the attic docs, atticd splits cleanly:
@@ -71,19 +71,6 @@ in
       '';
     };
 
-    pgPasswordFile = lib.mkOption {
-      type = lib.types.nullOr lib.types.path;
-      default = null;
-      example = "/run/agenix/atticd-pgpassword";
-      description = ''
-        Path to a single-line env file containing PGPASSWORD=<role password>,
-        added as an ADDITIONAL systemd EnvironmentFile for atticd. Kept separate
-        from environmentFile (single-responsibility secret) so the postgres
-        password rotates independently of the RS256/R2 creds. Required when
-        databaseUrl points at a password-protected postgres. Never a store path.
-      '';
-    };
-
     databaseUrl = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
@@ -91,7 +78,7 @@ in
       description = ''
         PASSWORDLESS postgres connection string for the shared backend. attic
         uses sea-orm + sqlx-postgres, and sqlx honours libpq env vars — so the
-        password is supplied SEPARATELY via PGPASSWORD in pgPasswordFile and
+        password is supplied SEPARATELY via PGPASSWORD in the environmentFile and
         never enters the store. When null, atticd keeps its local sqlite default.
 
         NOTE: the URL must NOT contain a password (that would leak into the Nix
@@ -291,13 +278,6 @@ in
           // lib.optionalAttrs (cfg.databaseUrl != null) { database.url = lib.mkForce cfg.databaseUrl; }
         ) cfg.settings;
       };
-
-      # Add the postgres-password env file as a SECOND EnvironmentFile (the
-      # upstream module sets one via services.atticd.environmentFile; systemd
-      # merges a list). Keeps PGPASSWORD in its own rotatable agenix secret.
-      systemd.services.atticd.serviceConfig.EnvironmentFile = lib.mkIf (cfg.pgPasswordFile != null) [
-        cfg.pgPasswordFile
-      ];
 
       # Client CLI for `attic login` / `attic push` / `attic use`.
       environment.systemPackages = [ pkgs.attic-client ];

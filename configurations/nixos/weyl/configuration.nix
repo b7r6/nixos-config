@@ -72,7 +72,6 @@ in
   # ── attic api-server replica (shared pg + R2 + RS256, local substituter) ────
   age.secrets.atticd-rs256.file = ../../../secrets/agenix/machines/atticd-rs256.age;
   age.secrets.attic-push-token.file = ../../../secrets/agenix/machines/attic-push-token.age;
-  age.secrets.atticd-pgpassword.file = ../../../secrets/agenix/machines/atticd-pgpassword.age;
   hyper-modern-nixos.attic-replica.enable = true;
 
   system.stateVersion = "25.05"; # Did you read the comment?

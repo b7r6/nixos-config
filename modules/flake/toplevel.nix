@@ -48,6 +48,12 @@
       program = "${self}/scripts/build-usb.sh";
     };
 
+    # ── Checks (NixOS VM tests) ─────────────────────────────────────────────────
+    # Linux-only (nixosTest needs a Linux builder).
+    checks = inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
+      attic-cache = import ../../checks/attic-cache.nix { inherit pkgs self; };
+    };
+
     packages = inputs.nixpkgs.lib.mkMerge [
       {
         berkeley-mono = pkgs.callPackage ../home/themes/fonts/berkeley-mono { };

@@ -80,7 +80,7 @@
 
     # NativeLink remote-execution (Bazel/Buck2 RE). Provides the `nativelink`
     # binary for x86_64-linux and aarch64-linux; there is NO upstream NixOS
-    # module, so modules/nixos/nativelink.nix hand-rolls the service.
+    # module, so modules/nixos/common/nativelink.nix hand-rolls the service.
     # Off by default; building from source is heavy unless you add
     # nativelink.cachix.org to substituters.
     nativelink.url = "github:TraceMachina/nativelink";
