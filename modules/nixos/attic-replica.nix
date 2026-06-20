@@ -37,7 +37,13 @@ in
     databaseUrl = lib.mkOption {
       type = lib.types.str;
       default = "postgresql://atticd@watchtower.osiris-walleye.ts.net/atticd";
-      description = "Passwordless shared-postgres connection string (PGPASSWORD via env file).";
+      description = "Passwordless shared-postgres connection string (PGPASSWORD via pgPasswordFile).";
+    };
+
+    pgPasswordFile = lib.mkOption {
+      type = lib.types.path;
+      default = "/run/agenix/atticd-pgpassword";
+      description = "Decrypted env file with PGPASSWORD for the shared postgres (agenix).";
     };
 
     pushTokenFile = lib.mkOption {
@@ -69,7 +75,7 @@ in
     hyper-modern-nixos.attic = {
       enable = true;
       mode = "api-server";
-      inherit (cfg) environmentFile databaseUrl;
+      inherit (cfg) environmentFile databaseUrl pgPasswordFile;
       listen = "[::]:8080";
       trustedInterfaces = [ "tailscale0" ];
 

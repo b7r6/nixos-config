@@ -59,6 +59,7 @@ in
   # file (ATTIC_SERVER_DATABASE_URL / AWS_*), so nothing touches the store.
   age.secrets.atticd-rs256.file = ../../../secrets/agenix/machines/atticd-rs256.age;
   age.secrets.attic-push-token.file = ../../../secrets/agenix/machines/attic-push-token.age;
+  age.secrets.atticd-pgpassword.file = ../../../secrets/agenix/machines/atticd-pgpassword.age;
 
   hyper-modern-nixos.attic-replica.enable = true;
 
@@ -66,7 +67,7 @@ in
   # CAS + scheduler + a local x86_64 worker, all on this host. Split the aarch64
   # worker out to shimmer later by adding role = "worker" there pointing at this
   # host's worker_api over the tailnet. Builds from source (~1000 derivations)
-  # unless nativelink.cachix.org is added in modules/nixos/common/nix.nix.
+  # unless nativelink.cachix.org is added in modules/nixos/nix.nix.
   age.secrets.nativelink-r2-env.file = ../../../secrets/agenix/machines/nativelink-r2-env.age;
 
   hyper-modern-nixos.nativelink = {

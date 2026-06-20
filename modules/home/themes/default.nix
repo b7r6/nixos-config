@@ -242,7 +242,7 @@ in
 
       # Stylix's per-package theming overlay sets `nixpkgs.overlays` inside the
       # home-manager module. Under nixos-unified's `home-manager.useGlobalPkgs`
-      # (set in modules/nixos/common/base.nix), home shares the NixOS/perSystem
+      # (set in modules/nixos/base.nix), home shares the NixOS/perSystem
       # pkgs and home-level `nixpkgs.overlays` is forbidden — home-manager warns
       # now and will hard-error soon. We don't rely on stylix's package overlay
       # (theming is driven by base16Scheme + the explicit target configs below),

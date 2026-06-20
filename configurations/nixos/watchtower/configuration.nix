@@ -85,13 +85,15 @@ in
   # (with the postgres password), and the R2 AWS_* creds — none touch the store.
   age.secrets.atticd-rs256.file = ../../../secrets/agenix/machines/atticd-rs256.age;
   age.secrets.attic-push-token.file = ../../../secrets/agenix/machines/attic-push-token.age;
+  age.secrets.atticd-pgpassword.file = ../../../secrets/agenix/machines/atticd-pgpassword.age;
 
   hyper-modern-nixos.attic = {
     enable = true;
     mode = "monolithic";
     environmentFile = "/run/agenix/atticd-rs256";
+    pgPasswordFile = "/run/agenix/atticd-pgpassword";
     # watchtower IS the postgres host: connect over loopback. PGPASSWORD comes
-    # from the env file (sqlx reads it); the URL itself is non-secret.
+    # from pgPasswordFile (sqlx reads it); the URL itself is non-secret.
     databaseUrl = "postgresql://atticd@localhost/atticd";
     listen = "[::]:8080";
     trustedInterfaces = [ "tailscale0" ];

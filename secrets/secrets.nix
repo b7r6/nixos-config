@@ -57,7 +57,7 @@ in
   "agenix/machines/tailscale-auth-key.straylight-evaluation.age".publicKeys = mkGlobalSecret;
   "agenix/machines/tailscale-auth-key.v4.surf.age".publicKeys = mkGlobalSecret;
 
-  # restic repository password (modules/nixos/common/backup.nix). High-entropy
+  # restic repository password (modules/nixos/backup.nix). High-entropy
   # passphrase (`openssl rand -base64 48`). LOSING THIS = UNRECOVERABLE BACKUPS;
   # keep an independent out-of-band copy.
   "agenix/machines/restic-password.age".publicKeys = mkGlobalSecret;
@@ -79,6 +79,15 @@ in
   #   (also carries AWS_*/R2 creds for the shared S3/R2 chunk store)
   # Generate:  openssl genrsa -traditional 4096 | base64 -w0
   "agenix/machines/atticd-rs256.age".publicKeys = mkGlobalSecret;
+
+  # atticd shared-postgres password (single-responsibility secret, separate from
+  # the RS256 env file). sqlx reads it from the process env; the connection
+  # string itself (postgresql://atticd@host/atticd) is non-secret and set via
+  # hyper-modern-nixos.attic.databaseUrl. Contents (one line):
+  #   PGPASSWORD=<the atticd postgres role password>
+  # Owner sets/rotates the role password (ALTER ROLE atticd PASSWORD …) and this
+  # secret in lockstep, then rekeys. Provisional value is fine until then.
+  "agenix/machines/atticd-pgpassword.age".publicKeys = mkGlobalSecret;
 
   # attic PUSH token (raw JWT, push+pull on the `hypermodern` cache). Used by
   # each host's watch-store to self-populate the shared cache:
