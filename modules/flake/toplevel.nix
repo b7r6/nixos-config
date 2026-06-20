@@ -51,7 +51,7 @@
     # ── Checks (NixOS VM tests) ─────────────────────────────────────────────────
     # Linux-only (nixosTest needs a Linux builder).
     checks = inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
-      attic-cache = import ../../checks/attic-cache.nix { inherit pkgs self; };
+      attic-cache = import ../../checks/attic-cache.nix { inherit pkgs; };
     };
 
     packages = inputs.nixpkgs.lib.mkMerge [

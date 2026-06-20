@@ -55,7 +55,10 @@ in
   # ── attic api-server replica (shared pg + R2 + RS256, local substituter) ────
   age.secrets.atticd-rs256.file = ../../../secrets/agenix/machines/atticd-rs256.age;
   age.secrets.attic-push-token.file = ../../../secrets/agenix/machines/attic-push-token.age;
-  hyper-modern-nixos.attic-replica.enable = true;
+  hyper-modern-nixos.attic-node = {
+    enable = true;
+    profile = "replica";
+  };
 
   time.timeZone = "America/New_York";
 

@@ -58,59 +58,21 @@ in
     pulse.enable = true;
   };
 
-  # ── Central cache state: PostgreSQL (tailnet-reachable) ─────────────────────
-  # watchtower hosts the single shared postgres that backs the fleet's atticd
-  # metadata. It listens on loopback + the tailscale interface (firewall is off
-  # fleet-wide; binding + pg_hba are the controls), permitting md5 auth from the
-  # tailnet CGNAT range. The `atticd` role + database are created declaratively;
-  # the role password is set out-of-band (see BACKUP.md / runbook) since NixOS
-  # won't put a password in the store — atticd connects using the password baked
-  # into ATTIC_SERVER_DATABASE_URL in its agenix env file.
-  hyper-modern-nixos.databases.postgres = {
-    enable = true;
-    tailnet.enable = true;
-    ensureDatabases = [ "atticd" ];
-    ensureUsers = [
-      {
-        name = "atticd";
-        ensureDBOwnership = true;
-      }
-    ];
-  };
-
-  # ── atticd: monolithic (api-server + the single garbage collector) ──────────
-  # watchtower is the ONLY node that runs gc (gc cannot be replicated). Its
-  # api-server is one of many across the fleet; all share this postgres + the R2
-  # chunk store. The env file carries the RS256 secret, ATTIC_SERVER_DATABASE_URL
-  # (with the postgres password), and the R2 AWS_* creds — none touch the store.
+  # ── Central cache node: monolithic-shared (the fleet backend) ───────────────
+  # watchtower hosts the single shared postgres + the monolithic atticd that
+  # runs migrations + serves + the ONLY garbage collector (gc can't be
+  # replicated). The `monolithic-shared` profile bundles all of that: it enables
+  # the tailnet-reachable postgres (atticd role+db, md5 from the tailnet CIDRs),
+  # connects atticd over loopback, and backs storage with R2. The env file
+  # carries the RS256 secret, PGPASSWORD (sqlx reads it), and the R2 AWS_* creds
+  # — none touch the store. The pg role password is set out-of-band once (see
+  # the deploy runbook). Replicas elsewhere point at this postgres over MagicDNS.
   age.secrets.atticd-rs256.file = ../../../secrets/agenix/machines/atticd-rs256.age;
   age.secrets.attic-push-token.file = ../../../secrets/agenix/machines/attic-push-token.age;
 
-  hyper-modern-nixos.attic = {
+  hyper-modern-nixos.attic-node = {
     enable = true;
-    mode = "monolithic";
-    environmentFile = "/run/agenix/atticd-rs256";
-    # watchtower IS the postgres host: connect over loopback. PGPASSWORD comes
-    # from the env file (sqlx reads it); the URL itself is non-secret.
-    databaseUrl = "postgresql://atticd@localhost/atticd";
-    listen = "[::]:8080";
-    trustedInterfaces = [ "tailscale0" ];
-
-    storage = {
-      type = "s3";
-      region = "auto";
-      bucket = "straylight-attic-cache";
-      endpoint = "https://6063b6652178f5cf1cfb87e7e41acf1e.r2.cloudflarestorage.com";
-    };
-
-    # watchtower consults its OWN local api-server first, and pushes builds.
-    clientCache = {
-      enable = true;
-      name = "hypermodern";
-      endpoint = "http://localhost:8080";
-      publicKey = "hypermodern:IxmiCAZWTeYmnOafmhz39qrn0wXj+aNvBy9dczJTcAs=";
-      pushTokenFile = "/run/agenix/attic-push-token";
-    };
+    profile = "monolithic-shared";
   };
 
   system.stateVersion = "25.05";

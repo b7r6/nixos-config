@@ -88,7 +88,10 @@ in
   # the tailnet like every other replica.
   age.secrets.atticd-rs256.file = ../../../secrets/agenix/machines/atticd-rs256.age;
   age.secrets.attic-push-token.file = ../../../secrets/agenix/machines/attic-push-token.age;
-  hyper-modern-nixos.attic-replica.enable = true;
+  hyper-modern-nixos.attic-node = {
+    enable = true;
+    profile = "replica";
+  };
 
   networking.hostName = "shimmer";
 

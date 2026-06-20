@@ -40,7 +40,7 @@
     ./postgres.nix
     ./backup.nix
     ./attic.nix
-    ./attic-replica.nix
+    ./attic-node.nix
     ./nativelink.nix
     ./rclone-mount.nix
 
