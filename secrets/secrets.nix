@@ -91,6 +91,15 @@ in
   #     --pull hypermodern --push hypermodern
   "agenix/machines/attic-push-token.age".publicKeys = mkGlobalSecret;
 
+  # attic CACHE SIGNING KEYPAIR (the NixKeypair string for the `hypermodern`
+  # cache). attic stores this ONLY in the postgres `cache` table and has no
+  # import CLI — so a postgres wipe regenerates it and every client's trusted
+  # public key breaks. We persist it here and restore it into the cache table on
+  # activation (monolithic-shared node) so the signing identity is STABLE and
+  # recoverable regardless of postgres state. Public key:
+  #   hypermodern:x+kBunu5nD1KOhzCIawyZeq8w0LV0GC6A7suIRoHTm8=
+  "agenix/machines/attic-cache-keypair.age".publicKeys = mkGlobalSecret;
+
   # ── User Secrets (agenix-deployed via home-manager) ──────────────────────────
   "agenix/users/b7r6/netrc.age".publicKeys = mkGlobalSecret;
   "agenix/users/b7r6/atuin-key.age".publicKeys = mkGlobalSecret;
