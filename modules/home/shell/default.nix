@@ -216,6 +216,19 @@ in
         # Ensure SSH_TTY is updated in new windows
         set -ag update-environment "SSH_TTY"
 
+        # ── Cursor: always a blinking block, even inside tmux ──────────────────
+        # Inside tmux, TMUX owns the cursor — ghostty's cursor-style never reaches
+        # the screen. Two fixes:
+        #  1. Teach tmux that the outer terminals CAN set the cursor shape, by
+        #     adding the DECSCUSR Ss/Se capabilities to their overrides (the
+        #     tmux-256color terminfo lacks them), so shape escapes pass through.
+        #  2. Pin tmux's OWN cursor to a blinking block (tmux 3.2+ cursor-style),
+        #     so even at the tmux layer with no app driving it, it's a block.
+        set -ga terminal-overrides ',xterm-ghostty:Ss=\E[%p1%d q:Se=\E[ q'
+        set -ga terminal-overrides ',ghostty:Ss=\E[%p1%d q:Se=\E[ q'
+        set -ga terminal-overrides ',xterm-256color:Ss=\E[%p1%d q:Se=\E[ q'
+        set -g cursor-style blinking-block
+
         # Enable passthrough for escape sequences (needed for kitty graphics)
         set -g allow-passthrough all
 
