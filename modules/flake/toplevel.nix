@@ -49,6 +49,36 @@
       program = "${self}/scripts/build-usb.sh";
     };
 
+    # `nix run .#restic-init -- <host>` — trigger the one-time, idempotent
+    # restic-backups-init.service on a host over the tailnet (or locally). The
+    # unit uses the host's own agenix-decrypted password/env, so there's nothing
+    # to pass but the hostname.
+    apps.restic-init = {
+      type = "app";
+      program = pkgs.lib.getExe (
+        pkgs.writeShellApplication {
+          name = "restic-init";
+          runtimeInputs = [ pkgs.openssh ];
+          text = ''
+            host="''${1:-}"
+            if [ -z "$host" ]; then
+              echo "usage: nix run .#restic-init -- <host>" >&2
+              echo "  triggers restic-backups-init.service on <host> (idempotent)." >&2
+              exit 1
+            fi
+            if [ "$host" = "$(hostname)" ]; then
+              sudo systemctl start --wait restic-backups-init.service
+              sudo journalctl -u restic-backups-init.service -n 20 --no-pager
+            else
+              # shellcheck disable=SC2029
+              ssh "$host" 'sudo systemctl start --wait restic-backups-init.service \
+                && sudo journalctl -u restic-backups-init.service -n 20 --no-pager'
+            fi
+          '';
+        }
+      );
+    };
+
     # ── Checks (NixOS VM tests) ─────────────────────────────────────────────────
     # Linux-only (nixosTest needs a Linux builder).
     checks = inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {

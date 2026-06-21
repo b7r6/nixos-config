@@ -27,6 +27,7 @@
 {
   config,
   lib,
+  pkgs,
   # `flake` comes from specialArgs on real hosts. Defaulted to null so contexts
   # that import this module without it (e.g. an isolated nixosTest that wires its
   # own secret paths and sets passwordSecret/environmentSecret = null) still
@@ -238,7 +239,36 @@ in
       # Run an integrity check after pruning so a silently-corrupt repo is caught
       # by the timer rather than discovered at restore time.
       checkOpts = [ "--read-data-subset=10%" ];
-      initialize = false; # the repo MUST be created by hand first (see runbook).
+      # The repo is NOT auto-created by the backup run. Create it deliberately,
+      # once, via restic-backups-init.service below (declarative + idempotent).
+      initialize = false;
+    };
+
+    # ── One-time repo init (declarative, idempotent) ────────────────────────────
+    # `systemctl start restic-backups-init` (or `nix run .#restic-init-<host>` if
+    # wired) creates the restic repo using the EXACT same password/env/repo as
+    # the backup service — no drift from a hand-typed incantation. restic init is
+    # idempotent here: if the repo already exists we treat it as success, so this
+    # is safe to run (or re-run) any time before trusting the timer.
+    systemd.services.restic-backups-init = {
+      description = "one-time `restic init` for the system backup repo";
+      # Same env the backup service uses, so the repo location + creds match.
+      environment.RESTIC_PASSWORD_FILE = cfg.passwordFile;
+      serviceConfig = {
+        Type = "oneshot";
+        EnvironmentFile = lib.mkIf (cfg.environmentFile != null) cfg.environmentFile;
+      }
+      // lib.optionalAttrs (cfg.repository != "") {
+        Environment = [ "RESTIC_REPOSITORY=${cfg.repository}" ];
+      };
+      script = ''
+        if ${pkgs.restic}/bin/restic snapshots >/dev/null 2>&1; then
+          echo "restic repo already initialized — nothing to do."
+          exit 0
+        fi
+        echo "initializing restic repo…"
+        ${pkgs.restic}/bin/restic init
+      '';
     };
   };
 }

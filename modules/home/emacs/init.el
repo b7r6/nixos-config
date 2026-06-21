@@ -3059,8 +3059,9 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 (use-package tramp
   :demand t  ; n.b. load immediately so file-name handler is registered
   :config
-  (setq tramp-default-method "sshx"
-        tramp-use-ssh-controlmaster-options nil
+  (setq tramp-default-method "ssh"  ; use faster ssh method with ControlMaster
+        tramp-use-ssh-controlmaster-options t  ; enable SSH multiplexing
+        tramp-verbose 6  ; enable debug output (set to 0 to disable)
         tramp-histfile-override t
         tramp-connection-timeout 30
         tramp-shell-prompt-pattern "\\(?:^\\|\r\\)[^]#$%>\n]*[#$%>] *"

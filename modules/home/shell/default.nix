@@ -142,12 +142,14 @@ in
       enable = true;
       # Lock in legacy dotDir behavior (home directory) to silence deprecation warning
       dotDir = config.home.homeDirectory;
+
       autosuggestion.enable = true;
       syntaxHighlighting.enable = true;
       envExtra = "";
       profileExtra = "";
       loginExtra = "";
       logoutExtra = "";
+
       sessionVariables = {
         EZA_COLORS = ezaColors;
       };
