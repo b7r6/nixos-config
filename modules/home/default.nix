@@ -37,9 +37,10 @@
     themes = {
       enable = true;
 
-      # Use computed mode for dynamic palette generation
+      # Use computed mode for dynamic palette generation.
+      # Default theme: ono-sendai-sprawl == computed at the `carbon` level.
       mode = "computed";
-      level = "night"; # L=8% - OLED safe
+      level = "carbon"; # L=11% - the "sprawl" level
       hero-hue = 211; # Classic ono-sendai blue
       axis-hue = 201; # Cool shift for variables
 
