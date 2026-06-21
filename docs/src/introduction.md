@@ -1,8 +1,8 @@
 # // hypermodern // nixos
 
-Operator and architecture documentation for the hypermodern NixOS fleet — a
-flake-parts-based configuration managing a small homelab with a central binary
-cache, declarative secrets, mesh networking, and aggressive backups.
+Operator and architecture documentation for the hypermodern NixOS fleet — a flake-parts-based
+configuration managing a small homelab with a central binary cache, declarative secrets, mesh
+networking, and aggressive backups.
 
 This book is built with mdBook:
 

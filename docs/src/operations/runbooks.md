@@ -1,29 +1,28 @@
 # Runbooks
 
-Copy-pasteable procedures for the stateful infra. These are the one-time /
-recovery steps that aren't expressed declaratively — everything else is in the
-modules. See [Deploying a host](./deploying.md) for the rebuild commands these
-reference.
+Copy-pasteable procedures for the stateful infra. These are the one-time / recovery steps that
+aren't expressed declaratively — everything else is in the modules. See
+[Deploying a host](./deploying.md) for the rebuild commands these reference.
 
----
+______________________________________________________________________
 
 ## A — Stand up the central attic cache on watchtower
 
-`watchtower` runs the `monolithic-shared` attic profile: the single shared
-PostgreSQL + the monolithic `atticd` (the only node that migrates and runs GC),
-backed by R2. Most of this is declarative — these are the **one-time
-bootstrap** steps. See [Binary cache (attic)](../infrastructure/attic.md).
+`watchtower` runs the `monolithic-shared` attic profile: the single shared PostgreSQL + the
+monolithic `atticd` (the only node that migrates and runs GC), backed by R2. Most of this is
+declarative — these are the **one-time bootstrap** steps. See
+[Binary cache (attic)](../infrastructure/attic.md).
 
-Prereqs: the `atticd-rs256.age` secret exists and is rekeyed to `watchtower`
-(carries `ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64`, `PGPASSWORD`, and the R2
-`AWS_*` creds). The `enableInfra = true` flag is set in
-`configurations/nixos/watchtower/configuration.nix`.
+Prereqs: the `atticd-rs256.age` secret exists and is rekeyed to `watchtower` (carries
+`ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64`, `PGPASSWORD`, and the R2 `AWS_*` creds). The
+`enableInfra = true` flag is set in `configurations/nixos/watchtower/configuration.nix`.
 
 1. **Deploy the infra.** On switch the declarative chain runs automatically:
+
    - postgres comes up; `ensureDatabases`/`ensureUsers` create the `atticd` role
-     + db (`ensureDBOwnership`);
-   - the `postgresql-role-passwords` oneshot sets the `atticd` role password
-     from the agenix secret (`PGPASSWORD`), so md5 login matches the client;
+     - db (`ensureDBOwnership`);
+   - the `postgresql-role-passwords` oneshot sets the `atticd` role password from the agenix secret
+     (`PGPASSWORD`), so md5 login matches the client;
    - `atticd` (monolithic) connects over loopback, **runs migrations**, serves.
 
    ```bash
@@ -49,27 +48,23 @@ Prereqs: the `atticd-rs256.age` secret exists and is rekeyed to `watchtower`
    attic cache info       hypermodern              # prints the public key
    ```
 
-   The public key must match the fleet-wide
-   `hyper-modern-nixos.attic-node.publicKey`
-   (`hypermodern:x+kBunu5nD1KOhzCIawyZeq8w0LV0GC6A7suIRoHTm8=`). After the row
-   exists, the `attic-cache-keypair-restore` oneshot (runbook D) keeps its
-   signing key stable.
+   The public key must match the fleet-wide `hyper-modern-nixos.attic-node.publicKey`
+   (`hypermodern:x+kBunu5nD1KOhzCIawyZeq8w0LV0GC6A7suIRoHTm8=`). After the row exists, the
+   `attic-cache-keypair-restore` oneshot (runbook D) keeps its signing key stable.
 
-4. Other hosts use `profile = "replica"` and pull/push automatically via
-   `watch-store`.
+4. Other hosts use `profile = "replica"` and pull/push automatically via `watch-store`.
 
----
+______________________________________________________________________
 
 ## B — restic first backup by hand
 
-The backup module sets `initialize = false` **by design**: you create and verify
-the repo by hand before any timer touches your data. See
-[Backups (restic → R2)](../infrastructure/backups.md). On `watchtower` the
-secrets are `restic-password` (repo passphrase) and `restic-r2-env.watchtower`
+The backup module sets `initialize = false` **by design**: you create and verify the repo by hand
+before any timer touches your data. See [Backups (restic → R2)](../infrastructure/backups.md). On
+`watchtower` the secrets are `restic-password` (repo passphrase) and `restic-r2-env.watchtower`
 (`RESTIC_REPOSITORY` + R2 `AWS_*`), both gated on `enableBackup`.
 
-Deploy with `enableBackup` still `false` (so the secrets decrypt but the timer
-isn't active), then on the host:
+Deploy with `enableBackup` still `false` (so the secrets decrypt but the timer isn't active), then
+on the host:
 
 1. **Init the repo:**
 
@@ -92,20 +87,19 @@ isn't active), then on the host:
    ```
 
 3. **Then flip the timer on.** Set `enableBackup = true` in
-   `configurations/nixos/watchtower/configuration.nix` and rebuild. The
-   systemd unit (`restic-backups-system.service`) takes over the same repo with
-   the same password + env file, plus retention (`pruneOpts`) and a post-backup
-   `restic check --read-data-subset=10%`.
+   `configurations/nixos/watchtower/configuration.nix` and rebuild. The systemd unit
+   (`restic-backups-system.service`) takes over the same repo with the same password + env file,
+   plus retention (`pruneOpts`) and a post-backup `restic check --read-data-subset=10%`.
 
 > **Losing `restic-password` = unrecoverable backups.** Keep an out-of-band copy.
 
----
+______________________________________________________________________
 
 ## C — PostgreSQL collation-version mismatch after a glibc bump
 
-A NixOS upgrade can bump glibc and change ICU/libc collation versions, after
-which postgres warns `database "<db>" has a collation version mismatch`. Refresh
-the recorded version on the affected databases **and `template1`**:
+A NixOS upgrade can bump glibc and change ICU/libc collation versions, after which postgres warns
+`database "<db>" has a collation version mismatch`. Refresh the recorded version on the affected
+databases **and `template1`**:
 
 ```bash
 ssh watchtower
@@ -114,24 +108,21 @@ sudo -u postgres psql -c 'ALTER DATABASE postgres  REFRESH COLLATION VERSION;'
 sudo -u postgres psql -c 'ALTER DATABASE template1 REFRESH COLLATION VERSION;'
 ```
 
-Refreshing `template1` ensures freshly-created databases inherit the correct
-version. If you suspect text indexes were built under the old collation,
-`REINDEX DATABASE atticd;` afterwards.
+Refreshing `template1` ensures freshly-created databases inherit the correct version. If you suspect
+text indexes were built under the old collation, `REINDEX DATABASE atticd;` afterwards.
 
----
+______________________________________________________________________
 
 ## D — Cache signing keypair recovery
 
-attic stores the cache's signing keypair **only** in the postgres `cache` table
-and has no import CLI — a postgres wipe would regenerate it and break every
-client's trusted public key. We persist it in agenix
-(`attic-cache-keypair.age`) and restore it on activation.
+attic stores the cache's signing keypair **only** in the postgres `cache` table and has no import
+CLI — a postgres wipe would regenerate it and break every client's trusted public key. We persist it
+in agenix (`attic-cache-keypair.age`) and restore it on activation.
 
-This is **automatic** on the `monolithic-shared` node: the
-`attic-cache-keypair-restore` oneshot
-(`modules/nixos/attic-node.nix`) runs after `postgresql-role-passwords` and
-before `atticd`, and `UPDATE`s the keypair on the existing `cache` row from the
-agenix secret. To force it after a postgres restore:
+This is **automatic** on the `monolithic-shared` node: the `attic-cache-keypair-restore` oneshot
+(`modules/nixos/attic-node.nix`) runs after `postgresql-role-passwords` and before `atticd`, and
+`UPDATE`s the keypair on the existing `cache` row from the agenix secret. To force it after a
+postgres restore:
 
 ```bash
 ssh watchtower
@@ -141,20 +132,20 @@ sudo systemctl restart atticd.service
 attic cache info hypermodern    # public key must equal the fleet's publicKey
 ```
 
-The restore only **updates an existing row** — the row itself is created once at
-bootstrap by `attic cache create` (runbook A).
+The restore only **updates an existing row** — the row itself is created once at bootstrap by
+`attic cache create` (runbook A).
 
----
+______________________________________________________________________
 
 ## E — Rekey all secrets after adding/rotating a host key
 
-After editing `secrets/keys.nix` (added or rotated a host/user key), re-encrypt
-every `.age` file to the new recipient set:
+After editing `secrets/keys.nix` (added or rotated a host/user key), re-encrypt every `.age` file to
+the new recipient set:
 
 ```bash
 nix run .#rekey-secrets        # runs `agenix -r` from secrets/
 ```
 
-A host can only decrypt a secret once its key is in `keys.nix` **and** the secret
-has been rekeyed to include it. See [Adding a host](./adding-a-host.md#3-scan--add-the-host-key-then-rekey-secrets)
+A host can only decrypt a secret once its key is in `keys.nix` **and** the secret has been rekeyed
+to include it. See [Adding a host](./adding-a-host.md#3-scan--add-the-host-key-then-rekey-secrets)
 and [Secrets (agenix)](../infrastructure/secrets.md).

@@ -1014,7 +1014,7 @@
 
   (if (eq 'dark (hypermodern/theme-variant hypermodern/current-theme))
       (hypermodern/apply-theme 'maas-neoform)
-    (hypermodern/apply-theme 'ono-sendai-razorgirl))
+    (hypermodern/apply-theme 'ono-sendai-sprawl))
 
   (hypermodern/ui-apply))
 
@@ -1298,7 +1298,7 @@
   (popper-mode 1))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                                               // window // movement
+;;                                         // window // movement
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (defun hypermodern/hsplit ()
@@ -1321,7 +1321,7 @@
         (set-window-buffer (nth i windows) (nth (mod (1+ i) n) buffers))))))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                                                     // mode // line
+;;                                               // mode // line
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (use-package doom-modeline
@@ -1335,7 +1335,7 @@
         doom-modeline-buffer-encoding nil))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                                   // gptel // passage // openrouter
+;;                             // gptel // passage // openrouter
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (defun hypermodern/gptel--netrc-get (host)
@@ -1478,6 +1478,7 @@ Uses the provisioning key from passage (api/openrouter-provisioning) or netrc."
           (kill-buffer buffer))))))
 
 ;; ── Models organized by capability ─────────────────────────────────
+
 (defvar hypermodern/gptel-models nil
   "Available models via OpenRouter. Populated dynamically on startup.")
 
@@ -1602,7 +1603,7 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
           (mapcar #'cdr hypermodern/gptel-models)))
   (message "[gptel] Refreshed %d models" (length hypermodern/gptel-models)))
 
-;; ── System prompts library ─────────────────────────────────────────
+;; ── system prompts library ─────────────────────────────────────────
 
 (defvar hypermodern/gptel-prompts
   '(("Default" . nil)
@@ -1666,16 +1667,16 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
             :key (or api-key "")
             :models (mapcar #'cdr hypermodern/gptel-models)))
 
-    ;; Default to first available preferred model
+    ;; default to first available preferred model
     (setq gptel-model
           (or (seq-find (lambda (m) (member m (mapcar #'cdr hypermodern/gptel-models)))
                         hypermodern/gptel-preferred-models)
               (cdar hypermodern/gptel-models))))
 
-  ;; Enable tool use by default
+  ;; enable tool use by default
   (setq gptel-use-tools t)
 
-  ;; Sensible defaults
+  ;; sensible defaults
   (setq gptel-default-mode 'org-mode
         gptel-display-buffer-action '(display-buffer-pop-up-window)
         gptel-prompt-prefix-alist '((org-mode . "* ")
@@ -1685,7 +1686,7 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
                                       (markdown-mode . "### ")
                                       (text-mode . "\n")))
 
-  ;; ── Interactive commands ───────────────────────────────────────────
+  ;; ── interactive commands ───────────────────────────────────────────
 
   (defun hypermodern/gptel-switch-model ()
     "Switch gptel model with completion."
@@ -1865,16 +1866,16 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
          ;; ── search ───────────────────────────────────────────────────
 
          (gptel-make-tool
-          :name "grep_codebase"
+          :name "search_files"
           :function (lambda (pattern &optional directory file_pattern)
                       (let ((dir (or directory default-directory))
                             (glob (or file_pattern "*")))
                         (shell-command-to-string
-                         (format "rg --no-heading -n --glob %s %s %s 2>/dev/null | head -100"
+                         (format "rg --no-heading -n --context 2 --glob %s %s %s 2>/dev/null | head -200"
                                  (shell-quote-argument glob)
                                  (shell-quote-argument pattern)
                                  (shell-quote-argument (expand-file-name dir))))))
-          :description "Search for a pattern in files using ripgrep"
+          :description "Search for a pattern in files using ripgrep. Returns matches with context."
           :args '((:name "pattern"
                          :type string
                          :description "The regex pattern to search for")
@@ -1887,6 +1888,42 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
                          :description "Glob pattern for files to search (e.g. *.py)"
                          :optional t))
           :category "search")
+
+         ;; ── http ─────────────────────────────────────────────────────
+
+         (gptel-make-tool
+          :name "http_request"
+          :function (lambda (url &optional method headers body)
+                      (let* ((method (or method "GET"))
+                             (cmd (format "curl -s -X %s" (shell-quote-argument method))))
+                        ;; Add headers if provided (JSON string of key-value pairs)
+                        (when (and headers (not (string-empty-p headers)))
+                          (let ((header-pairs (split-string headers ",")))
+                            (dolist (pair header-pairs)
+                              (setq cmd (concat cmd " -H " (shell-quote-argument (string-trim pair)))))))
+                        ;; Add body if provided
+                        (when (and body (not (string-empty-p body)))
+                          (setq cmd (concat cmd " -d " (shell-quote-argument body))))
+                        ;; Add URL and execute
+                        (setq cmd (concat cmd " " (shell-quote-argument url)))
+                        (shell-command-to-string cmd)))
+          :description "Make an HTTP request using curl. Returns response body."
+          :args '((:name "url"
+                         :type string
+                         :description "The URL to request")
+                  (:name "method"
+                         :type string
+                         :description "HTTP method (GET, POST, PUT, DELETE, etc). Defaults to GET."
+                         :optional t)
+                  (:name "headers"
+                         :type string
+                         :description "Comma-separated headers (e.g. 'Content-Type: application/json,Accept: */*')"
+                         :optional t)
+                  (:name "body"
+                         :type string
+                         :description "Request body (for POST/PUT/PATCH requests)"
+                         :optional t))
+          :category "http")
 
          ;; ── shell ────────────────────────────────────────────────────
 
@@ -3016,10 +3053,11 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 (global-set-key (kbd "C-c p i") #'password-store-insert)
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // tramp // bulletproof sshx
+;;                               // tramp // bulletproof // sshx
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (use-package tramp
+  :demand t  ; n.b. load immediately so file-name handler is registered
   :config
   (setq tramp-default-method "sshx"
         tramp-use-ssh-controlmaster-options nil
@@ -3037,7 +3075,7 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
   (interactive)
   (tramp-cleanup-all-connections)
   (tramp-cleanup-all-buffers)
-  (message "TRAMP nuked"))
+  (message "// tramp // cleanup // complete //"))
 
 (global-set-key (kbd "C-c T c") #'hypermodern/tramp-cleanup)
 
@@ -3050,6 +3088,7 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 
 (use-package which-key
   :demand t
+
   :config
   (setq which-key-idle-delay 0.8)
   (which-key-mode 1))
@@ -3076,7 +3115,7 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
   (add-hook 'marginalia-mode-hook #'nerd-icons-completion-marginalia-setup))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                                         // comint // asni // colors
+;;                                   // comint // asni // colors
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (add-hook 'comint-preoutput-filter-functions 'ansi-color-process-output)
@@ -3089,7 +3128,7 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 (setq ansi-color-for-comint-mode t)
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                                                        // dashboard
+;;                                                  // dashboard
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (defvar hypermodern/gibson-quotes
@@ -3148,6 +3187,7 @@ no way human."))
   (unless (file-exists-p hypermodern/dashboard-banner-file)
     (with-temp-file hypermodern/dashboard-banner-file
       (insert hypermodern/dashboard-banner-text)))
+
   (setq dashboard-startup-banner hypermodern/dashboard-banner-file
         dashboard-banner-logo-title (nth (random (length hypermodern/gibson-quotes))
                                          hypermodern/gibson-quotes)
@@ -3200,48 +3240,48 @@ Moves to end of current line, deletes newline, and collapses whitespace."
   (general-define-key
 
    ;; editing essentials
-   "M-/" #'undo
-   "C-c q" #'join-line
-   "C-j" #'newline-and-indent
-   "M-z" #'hypermodern/format-buffer
+   "M-/"       #'undo
+   "C-c q"     #'join-line
+   "C-j"       #'newline-and-indent
+   "M-z"       #'hypermodern/format-buffer
 
    ;; window navigation
-   "M-N" #'windmove-right
-   "M-P" #'windmove-left
-   "M-R" #'hypermodern/rotate-windows
-   "C-x 2" #'hypermodern/vsplit
-   "C-x 3" #'hypermodern/hsplit
-   "C-x k" #'hypermodern/kill-buffer
+   "M-N"       #'windmove-right
+   "M-P"       #'windmove-left
+   "M-R"       #'hypermodern/rotate-windows
+   "C-x 2"     #'hypermodern/vsplit
+   "C-x 3"     #'hypermodern/hsplit
+   "C-x k"     #'hypermodern/kill-buffer
 
    ;; file/buffer operations
-   "M-i" #'hypermodern/visit-init
-   "C-c r" #'revert-buffer
-   "C-c d" #'dashboard-open
-   "C-c f" #'hypermodern/show-current-file
+   "M-i"       #'hypermodern/visit-init
+   "C-c r"     #'revert-buffer
+   "C-c d"     #'dashboard-open
+   "C-c f"     #'hypermodern/show-current-file
 
    ;; search/navigation
-   "C-x C-r" #'consult-ripgrep
-   "C-x C-d" #'consult-recent-file
-   "C-x C-i" #'consult-info
-   "C-x C-m" #'consult-man
-   "C-x d" #'consult-recent-file
-   "C-x f" #'consult-fd
-   "C-M-r" #'consult-ripgrep
+   "C-x C-r"   #'consult-ripgrep
+   "C-x C-d"   #'consult-recent-file
+   "C-x C-i"   #'consult-info
+   "C-x C-m"   #'consult-man
+   "C-x d"     #'consult-recent-file
+   "C-x f"     #'consult-fd
+   "C-M-r"     #'consult-ripgrep
 
    ;; language info
-   "C-c L i" #'hypermodern/language-info
-   "C-c L r" #'hypermodern/show-language-registry
+   "C-c L i"   #'hypermodern/language-info
+   "C-c L r"   #'hypermodern/show-language-registry
 
    ;; theme controls
-   "C-c t t" #'hypermodern/apply-theme
-   "C-c t d" #'hypermodern/switch-dark
-   "C-c t l" #'hypermodern/switch-light
-   "C-c t c" #'hypermodern/cycle-theme
+   "C-c t t"   #'hypermodern/apply-theme
+   "C-c t d"   #'hypermodern/switch-dark
+   "C-c t l"   #'hypermodern/switch-light
+   "C-c t c"   #'hypermodern/cycle-theme
    "C-c t TAB" #'hypermodern/toggle-dark-light
-   "C-c t s" #'hypermodern/ui-style
-   "C-c t g" #'hypermodern/ui-toggle-glow
-   "C-c t p" #'hypermodern/ui-toggle-pulse
-   "C-c t m" #'hypermodern/ui-menu
+   "C-c t s"   #'hypermodern/ui-style
+   "C-c t g"   #'hypermodern/ui-toggle-glow
+   "C-c t p"   #'hypermodern/ui-toggle-pulse
+   "C-c t m"   #'hypermodern/ui-menu
    ))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

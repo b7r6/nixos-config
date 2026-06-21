@@ -1,12 +1,12 @@
 # Flake structure
 
-A detailed walk of the three files that wire everything: `flake.nix`,
-`configurations/default.nix`, and `modules/flake/toplevel.nix`.
+A detailed walk of the three files that wire everything: `flake.nix`, `configurations/default.nix`,
+and `modules/flake/toplevel.nix`.
 
 ## `flake.nix`
 
-The entrypoint is `flake-parts.lib.mkFlake`. Systems come from
-`nix-systems/default-linux` (`x86_64-linux`, `aarch64-linux`):
+The entrypoint is `flake-parts.lib.mkFlake`. Systems come from `nix-systems/default-linux`
+(`x86_64-linux`, `aarch64-linux`):
 
 ```nix
 inputs.flake-parts.lib.mkFlake { inherit inputs; } {
@@ -27,8 +27,8 @@ Inputs of note (most `follows` nixpkgs):
 - `devshell`, `treefmt-nix` — tooling
 - `emacs-overlay` — `pkgs.emacs-pgtk` tracking emacs-31 master
 - `nativelink` — provides the `nativelink` binary (no upstream NixOS module)
-- `stylix`, `nvf`, `nix4nvchad`, `xremap-flake`, `nix-vscode-extensions`,
-  `nix-index-database`, `nix-compile`
+- `stylix`, `nvf`, `nix4nvchad`, `xremap-flake`, `nix-vscode-extensions`, `nix-index-database`,
+  `nix-compile`
 
 ## `configurations/default.nix`
 
@@ -41,9 +41,8 @@ The flake-parts module that wires the fleet. It is a function of
 specialArgs = { flake = { inherit self inputs config; }; };
 ```
 
-This is the `{ flake, ... }` argument every host/home module destructures to
-reach `flake.inputs`, `flake.self`, `flake.config`. Preserved verbatim from
-nixos-unified for compatibility.
+This is the `{ flake, ... }` argument every host/home module destructures to reach `flake.inputs`,
+`flake.self`, `flake.config`. Preserved verbatim from nixos-unified for compatibility.
 
 ### homeManagerNixosModule
 
@@ -58,11 +57,11 @@ homeManagerNixosModule = {
 };
 ```
 
-Note: `homeModules.default` is **not** in `sharedModules`. Managed users get
-their home config through [`myusers.nix`](./module-conventions.md)
-(`home-manager.users.<name>.imports = [ configurations/home/<name>.nix ]`), so a
-host like test-vm with an inline `test` user isn't forced to carry the full home
-config (which expects the home agenix module).
+Note: `homeModules.default` is **not** in `sharedModules`. Managed users get their home config
+through [`myusers.nix`](./module-conventions.md)
+(`home-manager.users.<name>.imports = [ configurations/home/<name>.nix ]`), so a host like test-vm
+with an inline `test` user isn't forced to carry the full home config (which expects the home agenix
+module).
 
 ### The hosts table
 
@@ -78,8 +77,8 @@ hosts = {
 };
 ```
 
-`system` defaults to `x86_64-linux`; only `shimmer` (the DGX Spark) overrides it.
-See [the fleet](./fleet.md) for what each host is.
+`system` defaults to `x86_64-linux`; only `shimmer` (the DGX Spark) overrides it. See
+[the fleet](./fleet.md) for what each host is.
 
 ### mkHost
 
@@ -106,9 +105,8 @@ homeUsers = lib.pipe (builtins.readDir ./home) [
 ];
 ```
 
-Every `configurations/home/<user>.nix` (currently `b7r6.nix`, `niteria.nix`)
-becomes a standalone `homeConfiguration` for `nh home switch`. Adding one is
-auto-found — no registration needed.
+Every `configurations/home/<user>.nix` (currently `b7r6.nix`, `niteria.nix`) becomes a standalone
+`homeConfiguration` for `nh home switch`. Adding one is auto-found — no registration needed.
 
 ### Outputs assembled here
 
@@ -135,8 +133,8 @@ perSystem = { pkgs, ... }: {
 
 ## `modules/flake/toplevel.nix`
 
-This is where the `perSystem` `pkgs` is constructed and the rest of the
-flake-parts modules are imported.
+This is where the `perSystem` `pkgs` is constructed and the rest of the flake-parts modules are
+imported.
 
 ### perSystem pkgs + overlays
 
@@ -153,10 +151,9 @@ _module.args.pkgs = import inputs.nixpkgs {
 };
 ```
 
-This single `pkgs` is what standalone `homeConfigurations`, devshells, and
-`packages` all use. Applying the overlay here (rather than via
-`home-manager.nixpkgs.overlays`) avoids the `useGlobalPkgs` warning. NixOS
-systems get the overlay through `modules/nixos/nix.nix` instead.
+This single `pkgs` is what standalone `homeConfigurations`, devshells, and `packages` all use.
+Applying the overlay here (rather than via `home-manager.nixpkgs.overlays`) avoids the
+`useGlobalPkgs` warning. NixOS systems get the overlay through `modules/nixos/nix.nix` instead.
 
 ### Imports
 
@@ -174,8 +171,8 @@ imports = [
 
 ### devShells / apps / checks / packages
 
-- `devshells.default` imports `devshell.toml`; `devShells.secrets` comes from
-  `secrets/` (agenix edit/rekey/rotate as `writeShellApplication`s + flake apps).
+- `devshells.default` imports `devshell.toml`; `devShells.secrets` comes from `secrets/` (agenix
+  edit/rekey/rotate as `writeShellApplication`s + flake apps).
 - `apps.build-usb` runs `scripts/build-usb.sh`; `apps.docs-serve` from `docs.nix`.
 - `checks` (x86_64-linux only — `nixosTest` needs a Linux builder):
   - `attic-cache` ← `checks/attic-cache.nix`
@@ -183,9 +180,8 @@ imports = [
 - `packages`:
   - `berkeley-mono` / `default` ← the Berkeley Mono font derivation
   - `ono-sendai-generator` ← `packages/ono-sendai-generator`
-  - USB installer images via `nixos-generators`:
-    `usb-{aarch64,x86_64}-{minimal,gnome}` (aarch64 images pull in
-    `self.nixosModules.dgx-spark`).
+  - USB installer images via `nixos-generators`: `usb-{aarch64,x86_64}-{minimal,gnome}` (aarch64
+    images pull in `self.nixosModules.dgx-spark`).
 
 For module-level conventions inside `modules/nixos`, see
 [module conventions](./module-conventions.md).

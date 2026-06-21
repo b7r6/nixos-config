@@ -1,9 +1,9 @@
 # Overview
 
-This repo is a **bog-standard [flake-parts](https://flake.parts) configuration**.
-It used to be built on `nixos-unified` (autoWire); that has been torn out. There
-is no magic auto-discovery framework anymore — the wiring is explicit Nix in
-`flake.nix`, `configurations/default.nix`, and `modules/flake/toplevel.nix`.
+This repo is a **bog-standard [flake-parts](https://flake.parts) configuration**. It used to be
+built on `nixos-unified` (autoWire); that has been torn out. There is no magic auto-discovery
+framework anymore — the wiring is explicit Nix in `flake.nix`, `configurations/default.nix`, and
+`modules/flake/toplevel.nix`.
 
 ## Top-level layout
 
@@ -26,9 +26,8 @@ docs/                      # this mdBook
 
 ## The flake entrypoint
 
-`flake.nix` is minimal — it calls `flake-parts.lib.mkFlake`, takes its systems
-from `nix-systems/default-linux` (`x86_64-linux` + `aarch64-linux`), and imports
-exactly two things:
+`flake.nix` is minimal — it calls `flake-parts.lib.mkFlake`, takes its systems from
+`nix-systems/default-linux` (`x86_64-linux` + `aarch64-linux`), and imports exactly two things:
 
 ```nix
 inputs.flake-parts.lib.mkFlake { inherit inputs; } {
@@ -40,31 +39,26 @@ inputs.flake-parts.lib.mkFlake { inherit inputs; } {
 };
 ```
 
-Everything else (`agenix`, `home-manager`, `disko`, `stylix`, `nvf`, the
-`emacs-overlay`, `nativelink`, …) is a flake input; most `follows` nixpkgs to
-keep the closure tight.
+Everything else (`agenix`, `home-manager`, `disko`, `stylix`, `nvf`, the `emacs-overlay`,
+`nativelink`, …) is a flake input; most `follows` nixpkgs to keep the closure tight.
 
 ## How a `nixosConfiguration` is built
 
-`configurations/default.nix` is the flake-parts module that replaces what
-nixos-unified used to autowire. It defines the fleet as a plain attrset and maps
-a `mkHost` builder over it:
+`configurations/default.nix` is the flake-parts module that replaces what nixos-unified used to
+autowire. It defines the fleet as a plain attrset and maps a `mkHost` builder over it:
 
 - **`specialArgs`** — every host/home module destructures `{ flake, ... }`, where
-  `flake = { inherit self inputs config; }`. This is identical to the old
-  nixos-unified `specialArgsFor.nixos`, so existing configs need no changes.
-- **`mkHost name { system ? "x86_64-linux" }`** calls `nixpkgs.lib.nixosSystem`
-  with three modules:
+  `flake = { inherit self inputs config; }`. This is identical to the old nixos-unified
+  `specialArgsFor.nixos`, so existing configs need no changes.
+- **`mkHost name { system ? "x86_64-linux" }`** calls `nixpkgs.lib.nixosSystem` with three modules:
   1. `{ nixpkgs.hostPlatform = system; }`
   2. `homeManagerNixosModule` (home-manager as a NixOS module)
   3. `./nixos/${name}/default.nix` (the host)
-- **`homeManagerNixosModule`** imports `home-manager.nixosModules.home-manager`
-  and sets `useGlobalPkgs = true`, `useUserPackages = true`, and
-  `extraSpecialArgs = specialArgs`. It deliberately does **not** put
-  `homeModules.default` into `sharedModules` — that would force the full home
-  config onto every HM user (e.g. test-vm's inline `test` user). Managed users
-  pick up `configurations/home/<name>.nix` via
-  [`myusers.nix`](./module-conventions.md) instead.
+- **`homeManagerNixosModule`** imports `home-manager.nixosModules.home-manager` and sets
+  `useGlobalPkgs = true`, `useUserPackages = true`, and `extraSpecialArgs = specialArgs`. It
+  deliberately does **not** put `homeModules.default` into `sharedModules` — that would force the
+  full home config onto every HM user (e.g. test-vm's inline `test` user). Managed users pick up
+  `configurations/home/<name>.nix` via [`myusers.nix`](./module-conventions.md) instead.
 
 A host dir is tiny. `configurations/nixos/ultraviolence/default.nix`:
 
@@ -79,16 +73,15 @@ let inherit (flake.inputs) self; in
 }
 ```
 
-`self.nixosModules.default` is the single aggregator at `modules/nixos/default.nix`
-that imports every module file. Each one is **option-gated and off by default**,
-so importing all of them costs nothing — a host just sets
-`hyper-modern-nixos.<x>.enable = true` for what it wants. See
+`self.nixosModules.default` is the single aggregator at `modules/nixos/default.nix` that imports
+every module file. Each one is **option-gated and off by default**, so importing all of them costs
+nothing — a host just sets `hyper-modern-nixos.<x>.enable = true` for what it wants. See
 [module conventions](./module-conventions.md).
 
 ## perSystem outputs
 
-`modules/flake/toplevel.nix` builds the `perSystem` `pkgs` (with
-`allowUnfree` and the overlay stack) and wires the rest of the flake modules:
+`modules/flake/toplevel.nix` builds the `perSystem` `pkgs` (with `allowUnfree` and the overlay
+stack) and wires the rest of the flake modules:
 
 - `./fmt.nix` — treefmt (nixfmt/deadnix/statix, biome, ruff, shfmt, …)
 - `./devshell.nix` — the default devshell + agenix-shell user-secret autoload
@@ -99,16 +92,13 @@ so importing all of them costs nothing — a host just sets
 
 ## Flake outputs (summary)
 
-| Output | Source |
-| --- | --- |
-| `nixosConfigurations.<host>` | `mkHost` over the `hosts` table |
-| `legacyPackages.<sys>.homeConfigurations.<user>` | auto-found `configurations/home/*.nix` |
-| `nixosModules.{default,dgx-spark,wayland}` | `modules/nixos/*` |
-| `homeModules.default` | `modules/home` |
-| `packages.<sys>` | fonts, `ono-sendai-generator`, USB installer images |
-| `apps.<sys>` | `build-usb`, `docs-serve`, secret-admin apps |
-| `devShells.<sys>.{default,secrets}` | `modules/flake/devshell.nix` + `secrets/` |
-| `checks.<sys>` | `checks/attic-cache.nix`, `checks/backup-restic.nix` |
+| Output | Source | | --- | --- | | `nixosConfigurations.<host>` | `mkHost` over the `hosts` table |
+| `legacyPackages.<sys>.homeConfigurations.<user>` | auto-found `configurations/home/*.nix` | |
+`nixosModules.{default,dgx-spark,wayland}` | `modules/nixos/*` | | `homeModules.default` |
+`modules/home` | | `packages.<sys>` | fonts, `ono-sendai-generator`, USB installer images | |
+`apps.<sys>` | `build-usb`, `docs-serve`, secret-admin apps | | `devShells.<sys>.{default,secrets}`
+| `modules/flake/devshell.nix` + `secrets/` | | `checks.<sys>` | `checks/attic-cache.nix`,
+`checks/backup-restic.nix` |
 
-For the detailed walk-through see [flake structure](./flake-structure.md); for
-the machines see [the fleet](./fleet.md).
+For the detailed walk-through see [flake structure](./flake-structure.md); for the machines see
+[the fleet](./fleet.md).
