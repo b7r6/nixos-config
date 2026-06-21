@@ -12,7 +12,7 @@
 # Flat layout: each module is a sibling file here (no common/ or services/
 # nesting). Gated modules cost nothing when off, so importing them all keeps
 # host configs to "import this + set options" with zero per-host import lists.
-{ lib, ... }: {
+{ ... }: {
   imports = [
     # ── Core system (always-on) ──
     ./base.nix
@@ -62,12 +62,16 @@
   ];
 
   # ── Fleet-wide network defaults ─────────────────────────────────────────────
-  # firewall.enable is mkDefault so a host can opt back in (e.g. watchtower, the
-  # postgres/attic host, re-enables it for interface-scoped port rules).
+  # Firewall ON fleet-wide (the module default). tailscale0 is trusted, so this
+  # never blocks tailnet/SSH — it just closes the PUBLIC interfaces and makes the
+  # per-service interfaces.tailscale0.allowedTCPPorts rules actually ENFORCE the
+  # "tailnet-only" posture (they're no-ops when the firewall is off). A host that
+  # genuinely needs the firewall off sets hyper-modern-nixos.network.firewall.enable
+  # = false explicitly. Public exposure goes through tailscale serve/funnel, not
+  # by opening ports here (see network.nix).
   hyper-modern-nixos.network = {
     enable = true;
     tailnet.domain = "osiris-walleye.ts.net";
-    firewall.enable = lib.mkDefault false;
     useBackupResolver = true;
   };
 

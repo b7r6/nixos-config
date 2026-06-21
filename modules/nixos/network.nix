@@ -131,7 +131,30 @@ in
       enable = mkOption {
         type = types.bool;
         default = true;
-        description = "Whether to enable the firewall with Tailscale-aware rules";
+        description = ''
+          Enable the host firewall with Tailscale-aware rules. ON fleet-wide by
+          default: tailscale0 is a trustedInterface (all tailnet traffic allowed),
+          so this never blocks tailnet/SSH — it only closes the PUBLIC interfaces.
+
+          This is the ENFORCEMENT layer for the fleet's "tailnet-only services"
+          posture: every service module opens its port via
+          networking.firewall.interfaces.tailscale0.allowedTCPPorts, which is a
+          no-op unless the firewall is on. With it off, services that bind broadly
+          (0.0.0.0/[::]) are reachable on every interface — so keep this ON unless
+          a host has a deliberate reason not to.
+        '';
+      };
+
+      nftables = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Use the modern nftables backend (networking.nftables.enable) instead of
+          the iptables-nft compatibility shim. Safe fleet-wide here: all rules are
+          expressed through high-level networking.firewall.* options (no raw
+          iptables / extraCommands anywhere), which the nftables backend renders
+          natively. Gives a single, inspectable `nft list ruleset`.
+        '';
       };
     };
 
@@ -257,22 +280,47 @@ in
         package = pkgs.mullvad-vpn;
       };
 
+      # Modern nftables backend (single inspectable ruleset). Gated on the
+      # firewall being on — there's no point selecting a backend for a disabled
+      # firewall, and it keeps `nftables.enable` from fighting other ad-hoc
+      # iptables users on a host that deliberately runs firewall-off.
+      networking.nftables.enable = mkIf (cfg.firewall.enable && cfg.firewall.nftables) true;
+
       networking.firewall = {
         inherit (cfg.firewall) enable;
 
+        # tailscale0 trusted ⇒ ALL tailnet traffic is allowed regardless of the
+        # allowed*Ports below. So enabling the firewall never blocks the tailnet
+        # or tailnet-scoped service ports; it only closes the PUBLIC interfaces.
         trustedInterfaces = mkIf cfg.firewall.enable [ "tailscale0" ];
+
+        # Ports open on ALL interfaces (incl. public). Keep this list minimal —
+        # it's the public attack surface. SSH (22) so a host is never locked out;
+        # 3000 for the dev/preview server. Tailnet-only services do NOT belong
+        # here — they use networking.firewall.interfaces.tailscale0.* instead.
+        #
+        # To EXPOSE a service to the public internet, prefer `tailscale serve`
+        # (tailnet HTTPS) or `tailscale funnel` (public HTTPS) terminating at the
+        # tailscaled proxy — the service itself stays bound to loopback/tailnet
+        # and you never punch a hole here. Only add a port below for the rare
+        # service that must face the raw internet directly.
         allowedTCPPorts = mkIf cfg.firewall.enable [
           22
           3000
         ];
 
+        # 41641/udp is Tailscale's WireGuard port (direct connections / NAT
+        # traversal). services.tailscale.openFirewall already opens it; listed
+        # here for clarity/idempotence.
         allowedUDPPorts = mkIf cfg.firewall.enable [ 41641 ];
+
+        # "loose" RPF: tailnet/WireGuard traffic can arrive asymmetrically; strict
+        # RPF would drop it. Required for a node that also routes (exit/subnet).
         checkReversePath = mkIf cfg.firewall.enable "loose";
 
-        # tailscale0 is already a trustedInterface above (all traffic allowed);
-        # the previous `interfaces.tailscale0.allowAll` was an invalid option and
-        # redundant — removed. Per-service interface-scoped ports (e.g. postgres
-        # 5432 on tailscale0) merge in cleanly via networking.firewall.interfaces.
+        # Per-service interface-scoped ports (e.g. postgres 5432, attic 8080 on
+        # tailscale0) merge in via networking.firewall.interfaces.tailscale0.* —
+        # those only take effect because the firewall is enabled.
       };
 
       networking = {

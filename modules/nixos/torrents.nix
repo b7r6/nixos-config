@@ -119,7 +119,10 @@ in
     services.flood = {
       enable = true;
       port = cfg.floodPort;
-      host = "0.0.0.0"; # bound broad; exposure gated by the tailnet firewall below
+      # Bound broad so flood is reachable on the tailnet (binding the tailscale0
+      # IP directly races boot). Exposure is enforced by the firewall (ON
+      # fleet-wide), which opens floodPort ONLY on tailscale0 — see below.
+      host = "0.0.0.0";
     };
 
     networking.firewall.interfaces = lib.mkIf cfg.openTailnet {

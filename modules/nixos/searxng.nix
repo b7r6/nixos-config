@@ -31,8 +31,12 @@ in
       type = lib.types.str;
       default = "127.0.0.1";
       description = ''
-        uwsgi bind address. Defaults to loopback; set to "0.0.0.0" and rely on
-        the tailnet firewall (openFirewall on tailscale0) for tailnet access.
+        uwsgi bind address. Defaults to loopback. For tailnet access set this to
+        "0.0.0.0" (binding the tailscale0 IP directly races boot) and leave
+        openTailnet on — the firewall (ON fleet-wide) opens the port ONLY on
+        tailscale0, so the broad bind is not publicly exposed. To reach SearXNG
+        off-tailnet, front it with `tailscale serve` rather than opening a public
+        firewall port.
       '';
     };
 

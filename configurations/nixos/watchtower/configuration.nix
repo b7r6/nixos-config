@@ -35,9 +35,10 @@ in
   # the key rather than stranding the node. Tested live on ultraviolence first.
   hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
 
-  # watchtower hosts the shared postgres (and atticd). Unlike the rest of the
-  # fleet (firewall off), it re-enables its firewall so the postgres module's
-  # interface-scoped 5432 rule (tailscale0 only) actually takes effect.
+  # watchtower hosts the shared postgres (and atticd). The firewall is now ON
+  # fleet-wide by default (so the postgres module's interface-scoped 5432 rule on
+  # tailscale0 takes effect everywhere); this explicit = true is redundant but
+  # kept as a load-bearing assertion for the DB host.
   hyper-modern-nixos.network.firewall.enable = true;
 
   hardware.graphics = {

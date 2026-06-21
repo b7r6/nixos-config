@@ -77,7 +77,11 @@ in
 
   hyper-modern-nixos.searxng = {
     enable = true;
-    listenAddress = "0.0.0.0"; # tailnet-reachable (firewall gates to tailscale0)
+    # Bind broad so it's reachable on the tailnet (binding the tailscale0 IP
+    # directly races boot — the iface may not exist yet). The firewall (ON
+    # fleet-wide) is the enforcement layer: searxng's port is opened ONLY on
+    # tailscale0, so this is NOT exposed publicly despite the 0.0.0.0 bind.
+    listenAddress = "0.0.0.0";
     port = 8889; # 8888 is taken by the hatchet docker container on this host
   };
 
@@ -93,8 +97,9 @@ in
   hyper-modern-nixos.nativelink = {
     enable = true;
     role = "monolithic";
-    # Public API on all interfaces (TLS-terminated, see tls below); the firewall
-    # opens it only on tailscale0. worker_api stays loopback (private backend).
+    # Binds all interfaces (TLS-terminated, see tls below) so tailnet clients can
+    # reach it; the firewall (ON fleet-wide) opens :50051 ONLY on tailscale0, so
+    # it is NOT internet-exposed. worker_api stays loopback (private backend).
     publicListen = "0.0.0.0:50051";
     workerApiListen = "127.0.0.1:50061";
     workerApiEndpoint = "grpc://127.0.0.1:50061";

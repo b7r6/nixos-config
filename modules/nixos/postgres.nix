@@ -12,11 +12,9 @@
 # ── Tailnet exposure (best-practice, defense in depth) ──────────────────────
 # When `tailnet.enable` is set, exposure is gated at TWO layers:
 #   1. firewall: port 5432 is opened ONLY on `tailnet.interface` (tailscale0),
-#      via networking.firewall.interfaces. Postgres is more sensitive than a
-#      pull cache, so the consuming host should re-enable its firewall
-#      (hyper-modern-nixos.network.firewall.enable = true on watchtower) so this
-#      interface-scoped rule actually bites — the rest of the fleet runs
-#      firewall-off, but the DB host opts back in.
+#      via networking.firewall.interfaces. The firewall is ON fleet-wide (see
+#      network.nix), so this interface-scoped rule actually bites everywhere —
+#      5432 is reachable on the tailnet but never on a public interface.
 #   2. pg_hba: md5 auth permitted only from loopback + the tailnet CIDRs.
 # atticd instances on other hosts connect over MagicDNS.
 {
