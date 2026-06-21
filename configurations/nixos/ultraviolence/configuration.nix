@@ -14,7 +14,15 @@ in
   # node). This proves the auth-key secret + module path before we rely on it to
   # bring up remote hosts.
   age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;
-  hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
+  hyper-modern-nixos.network.tailscale = {
+    authKeyFile = "/run/agenix/tailscale-auth-key";
+    # Route all egress through the Mullvad Miami exit node (add-on activated in
+    # the Tailscale console). Applied via the tailscale-exit-node oneshot, with
+    # --exit-node-allow-lan-access so the LAN/tailnet stays reachable. One of 6
+    # us-mia-* nodes; if Mullvad retires -001, switch to another at runtime
+    # (`tailscale set --exit-node=<node>`) or update here.
+    exitNode = "us-mia-wg-001.mullvad.ts.net";
+  };
 
   # Root-readable copy of the SAME rclone.conf (R2 remote + creds) for the
   # system mount service. The encrypted file is the user secret, but it's
