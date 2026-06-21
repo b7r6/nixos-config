@@ -39,11 +39,12 @@ enrollment (an agenix runtime path, never the store) | | `acceptRoutes` | bool, 
 `--accept-dns` — accept MagicDNS / tailnet DNS | | `advertiseRoutes` | list, `[ ]` |
 `--advertise-routes=…` — be a subnet router | | `advertiseExitNode` | bool, `false` |
 `--advertise-exit-node` | | `acceptExitNode` | bool, `false` | `--exit-node-allow-lan-access` | |
-`advertiseConnector` | bool, `false` | `--advertise-connector` — be an app connector | |
-`sshAdvertise` | bool, `true` | advertise Tailscale SSH (`--ssh=false` when off) | | `tags` | list,
-`[ ]` | `--advertise-tags=…` (must be authorized by the tailnet ACL) | | `hostname` | str, `null` |
-`--hostname=…` override the registered name | | `encryptState` | bool, `false` | TPM-encrypt the
-`tailscaled` state file |
+`exitNode` | str, `null` | route egress through this exit node, via a `tailscale set` oneshot (see
+[Using an exit node](#using-an-exit-node-exitnode)) | | `advertiseConnector` | bool, `false` |
+`--advertise-connector` — be an app connector | | `sshAdvertise` | bool, `true` | advertise
+Tailscale SSH (`--ssh=false` when off) | | `tags` | list, `[ ]` | `--advertise-tags=…` (must be
+authorized by the tailnet ACL) | | `hostname` | str, `null` | `--hostname=…` override the registered
+name | | `encryptState` | bool, `false` | TPM-encrypt the `tailscaled` state file |
 
 `encryptState` is **off** by default: our boxes are reflashed often, where a TPM can enter
 DA-lockout and crash-loop `tailscaled` (per straylight's note). When off, the module passes
@@ -67,6 +68,32 @@ boot.kernel.sysctl = mkIf routes {
   "net.ipv6.conf.all.forwarding" = 1;
 };
 ```
+
+## Using an exit node (`exitNode`)
+
+Exit-node selection is a **runtime, per-device** knob, so it's applied via a `tailscale set`
+**oneshot** (`tailscale-exit-node.service`) — *not* `up` flags (which would clobber any manual
+`tailscale set` on the next activation). The unit is only emitted when a node is pinned:
+
+```nix
+hyper-modern-nixos.network.tailscale.exitNode = "us-mia-wg-001.mullvad.ts.net";
+```
+
+→ runs `tailscale set --exit-node=<node> --exit-node-allow-lan-access` (LAN + tailnet stay
+reachable; everything else exits through the node). A rebuild re-asserts the pin.
+
+This is how the **Mullvad Miami** routing on `ultraviolence` works (the Mullvad add-on enabled in
+the Tailscale console exposes `us-mia-*` exit nodes). To change relays or clear at runtime:
+
+```bash
+tailscale exit-node list --filter=USA | grep -i miami
+sudo tailscale set --exit-node=us-mia-wg-002.mullvad.ts.net --exit-node-allow-lan-access
+sudo tailscale set --exit-node=     # clear (direct egress)
+```
+
+To clear a *pinned* node, set `exitNode = null` and run the clear command once (the unit isn't
+emitted when null, so it won't auto-clear). See
+[SearXNG + torrents](../services/searxng-torrents.md) for the full Miami setup.
 
 ## Throughput tuning (`tailscale-ethtool`)
 

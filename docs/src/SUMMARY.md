@@ -18,6 +18,10 @@
 - [Backups (restic → R2)](./infrastructure/backups.md)
 - [Remote execution (nativelink)](./infrastructure/nativelink.md)
 
+# Services
+
+- [SearXNG + torrents](./services/searxng-torrents.md)
+
 # Operations
 
 - [Deploying a host](./operations/deploying.md)

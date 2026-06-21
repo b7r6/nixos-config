@@ -1073,7 +1073,7 @@
 ;;                            // disable // flymake // squiggles
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-;; Disable flymake globally
+;; n.b. disable flymake globally...
 (with-eval-after-load 'flymake
   (remove-hook 'flymake-diagnostic-functions 'flymake-proc-legacy-flymake))
 
@@ -1124,7 +1124,7 @@
 ;;                                        // frame // discipline
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-;; ── Shackle: No popup without permission ───────────────────────────
+;; ── `shackle`: No popup without permission ──────────────────────────
 
 (use-package shackle
   :demand t
@@ -1219,7 +1219,7 @@
           ("\\*company-.*"            :ignore t)))
   (shackle-mode 1))
 
-;; ── Dashboard protection ───────────────────────────────────────────
+;; ── dashboard protection ───────────────────────────────────────────
 
 (defun hypermodern/protect-dashboard ()
   "Mark the dashboard window as dedicated so nothing can replace it."
@@ -3182,7 +3182,7 @@ no way human."))
 
   (defvar hypermodern/dashboard-banner-text
     "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                 // hypermodern
+              // hypermodern
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
   (unless (file-exists-p hypermodern/dashboard-banner-file)

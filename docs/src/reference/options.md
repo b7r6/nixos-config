@@ -20,16 +20,18 @@ routes advertised by other nodes. | | `network.tailscale.acceptDNS` | `bool` / `
 MagicDNS / tailnet DNS. | | `network.tailscale.advertiseRoutes` | `listOf str` / `[ ]` | Subnets
 this node advertises (subnet router). | | `network.tailscale.advertiseExitNode` | `bool` / `false` |
 Advertise this node as an exit node. | | `network.tailscale.acceptExitNode` | `bool` / `false` |
-Allow LAN access while using an exit node. | | `network.tailscale.advertiseConnector` | `bool` /
-`false` | Advertise as a Tailscale app connector. | | `network.tailscale.sshAdvertise` | `bool` /
-`true` | Advertise Tailscale SSH. | | `network.tailscale.tags` | `listOf str` / `[ ]` | Tags to
-advertise (must be authorized by the tailnet ACL). | | `network.tailscale.hostname` | `null or str`
-/ `null` | Override the registered Tailscale hostname. | | `network.tailscale.encryptState` | `bool`
-/ `false` | Encrypt `tailscaled` state via TPM 2.0. Off — boxes are reflashed often. | |
-`network.firewall.enable` | `bool` / `true` | Tailscale-aware firewall. The fleet runs firewall-off;
-the DB host opts back in so interface-scoped rules bite. | | `network.tailnet.domain` | `str` /
-`"example.ts.net"` | Tailnet domain. | | `network.useBackupResolver` | `bool` / `false` | Use backup
-DNS resolvers in addition to Tailscale DNS. |
+Allow LAN access while using an exit node. | | `network.tailscale.exitNode` | `null or str` / `null`
+| Route egress through this exit node via the `tailscale set` oneshot (e.g. Mullvad `us-mia-*`). | |
+`network.tailscale.advertiseConnector` | `bool` / `false` | Advertise as a Tailscale app connector.
+| | `network.tailscale.sshAdvertise` | `bool` / `true` | Advertise Tailscale SSH. | |
+`network.tailscale.tags` | `listOf str` / `[ ]` | Tags to advertise (must be authorized by the
+tailnet ACL). | | `network.tailscale.hostname` | `null or str` / `null` | Override the registered
+Tailscale hostname. | | `network.tailscale.encryptState` | `bool` / `false` | Encrypt `tailscaled`
+state via TPM 2.0. Off — boxes are reflashed often. | | `network.firewall.enable` | `bool` / `true`
+| Tailscale-aware firewall. The fleet runs firewall-off; the DB host opts back in so
+interface-scoped rules bite. | | `network.tailnet.domain` | `str` / `"example.ts.net"` | Tailnet
+domain. | | `network.useBackupResolver` | `bool` / `false` | Use backup DNS resolvers in addition to
+Tailscale DNS. |
 
 See [Tailscale](../infrastructure/tailscale.md).
 
@@ -136,6 +138,16 @@ Glob excludes — caches, re-fetchable ML weights, build scratch. | | `backup.ti
 `{ OnCalendar = "daily"; Persistent; RandomizedDelaySec = "1h"; }` | systemd timer config. | |
 `backup.pruneOpts` | `listOf str` / `--keep-daily 7` … `--keep-yearly 3` | Retention policy
 (`restic forget`). |
+
+## `searxng.*` / `torrents.*` (incubating services)
+
+See [SearXNG + torrents](../services/searxng-torrents.md) for the full writeup.
+
+- `hyper-modern-nixos.searxng.{enable,port,listenAddress,baseUrl,environmentFile,openTailnet,limiter}`
+  — privacy-maxed SearXNG metasearch (JSON API on, `limiter` off by default). Source:
+  `modules/nixos/searxng.nix`.
+- `hyper-modern-nixos.torrents.{enable,downloadDir,peerPort,rpcPort,floodPort,credentialsFile,openTailnet}`
+  — transmission_4 + flood. Source: `modules/nixos/torrents.nix`.
 
 ## Other infra options
 
