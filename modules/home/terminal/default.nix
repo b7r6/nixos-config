@@ -97,10 +97,15 @@ in
         font-size = cfg.font.size;
         font-feature = cfg.font.features;
 
-        # Cursor
+        # Cursor: ALWAYS a blinking block, everywhere, no exceptions.
+        # cursor-style/-blink set the base style; `no-cursor` shell-integration
+        # stops the shell from emitting cursor-shape escapes (e.g. beam at the
+        # prompt), so neither the shell nor ghostty's own integration overrides
+        # the block. (App-driven DECSCUSR escapes from e.g. vim are a separate
+        # matter handled in those apps; this nails the terminal + shell layer.)
         cursor-style = "block";
         cursor-style-blink = true;
-        # shell-integration-features = [ "no-cursor" ]; # uncomment to keep block at shell prompts
+        shell-integration-features = "no-cursor";
 
         # Padding
         window-padding-x = cfg.padding;

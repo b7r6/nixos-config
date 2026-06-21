@@ -16,7 +16,7 @@
 (require 'seq)
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                            // memory // performance // optimization
+;;                      // memory // performance // optimization
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (defvar hypermodern--file-name-handler-alist file-name-handler-alist)
@@ -30,7 +30,7 @@
                   gc-cons-threshold (* 128 1024 1024))))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                   // early frame seeding // prevent PGTK pink flash
+;;             // early frame seeding // prevent PGTK pink flash
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (setq default-frame-alist
@@ -82,23 +82,26 @@
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
-;; Integrate straight.el with use-package
+;; integrate `straight.el` with `use-package`
 (straight-use-package 'use-package)
 
 ;; Configure use-package + straight.el behavior
 ;; - On Nix: packages preloaded, straight available but won't auto-fetch
 ;; - On vanilla: straight fetches packages automatically
+
 (if hypermodern/nix-emacs-p
     (setq straight-use-package-by-default nil
           use-package-always-ensure nil)
+
   (setq straight-use-package-by-default t
         use-package-always-ensure nil))
 
-(setq use-package-verbose nil
-      use-package-expand-minimally t)
+(setq
+ use-package-verbose nil
+ use-package-expand-minimally t)
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // forward // declarations
+;;                                    // forward // declarations
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ;; External package functions
@@ -155,7 +158,7 @@
 (declare-function hypermodern/format-buffer "init" ())
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                                                   // PGTK Detection
+;;                                          // PGTK // detection
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (defvar hypermodern/is-pgtk
@@ -164,7 +167,7 @@
   "Non-nil if running on PGTK build of Emacs.")
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                                // THEME ENGINE // ZERO DEPENDENCIES
+;;                         // theme engine // zero depdendencies
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (defvar hypermodern/palettes
@@ -265,7 +268,7 @@
      :base0C "#2090ff"  :base0D "#0349b4"  :base0E "#0758c9"  :base0F "#7c3aed"))
   "All hypermodern theme palettes.")
 
-(defvar hypermodern/current-theme 'ono-sendai-razorgirl)
+(defvar hypermodern/current-theme 'ono-sendai-sprawl)
 
 (defun hypermodern/get-palette (theme-name)
   (cdr (assq theme-name hypermodern/palettes)))
@@ -543,14 +546,14 @@
       (doom-modeline-urgent ((,class (:foreground ,ice))))
 
       ;; Org mode
-      (org-level-1 ((,class (:foreground ,hero :weight bold :height 1.2))))
-      (org-level-2 ((,class (:foreground ,link :weight bold :height 1.1))))
-      (org-level-3 ((,class (:foreground ,soft :weight bold))))
-      (org-level-4 ((,class (:foreground ,sky))))
-      (org-level-5 ((,class (:foreground ,deep))))
-      (org-level-6 ((,class (:foreground ,matrix))))
-      (org-level-7 ((,class (:foreground ,ice))))
-      (org-level-8 ((,class (:foreground ,fg-alt))))
+      (org-level-1 ((,class (:foreground ,hero   :weight bold :height 1.0))))
+      (org-level-2 ((,class (:foreground ,link   :weight bold :height 1.0))))
+      (org-level-3 ((,class (:foreground ,soft   :weight bold :height 1.0))))
+      (org-level-4 ((,class (:foreground ,sky    :weight bold :height 1.0))))
+      (org-level-5 ((,class (:foreground ,deep   :weight bold :height 1.0))))
+      (org-level-6 ((,class (:foreground ,matrix :weight bold :height 1.0))))
+      (org-level-7 ((,class (:foreground ,ice    :weight bold :height 1.0))))
+      (org-level-8 ((,class (:foreground ,fg-alt :weight bold :height 1.0))))
       (org-document-title ((,class (:foreground ,hero :weight bold :height 1.4))))
       (org-document-info ((,class (:foreground ,fg-alt))))
       (org-document-info-keyword ((,class (:foreground ,comment))))
@@ -570,12 +573,12 @@
       (org-meta-line ((,class (:foreground ,comment))))
 
       ;; Markdown mode
-      (markdown-header-face-1 ((,class (:foreground ,hero :weight bold :height 1.2))))
-      (markdown-header-face-2 ((,class (:foreground ,link :weight bold :height 1.1))))
-      (markdown-header-face-3 ((,class (:foreground ,soft :weight bold))))
-      (markdown-header-face-4 ((,class (:foreground ,sky))))
-      (markdown-header-face-5 ((,class (:foreground ,deep))))
-      (markdown-header-face-6 ((,class (:foreground ,matrix))))
+      (markdown-header-face-1 ((,class (:foreground ,hero   :weight bold :height 1.0))))
+      (markdown-header-face-2 ((,class (:foreground ,link   :weight bold :height 1.0))))
+      (markdown-header-face-3 ((,class (:foreground ,soft   :weight bold :height 1.0))))
+      (markdown-header-face-4 ((,class (:foreground ,sky    :weight bold :height 1.0))))
+      (markdown-header-face-5 ((,class (:foreground ,deep   :weight bold :height 1.0))))
+      (markdown-header-face-6 ((,class (:foreground ,matrix :weight bold :height 1.0))))
       (markdown-code-face ((,class (:background ,bg-alt))))
       (markdown-inline-code-face ((,class (:foreground ,sky))))
       (markdown-link-face ((,class (:foreground ,link))))
@@ -697,7 +700,29 @@
       (vterm-color-bright-blue ((,class (:foreground ,link :background ,link))))
       (vterm-color-bright-magenta ((,class (:foreground ,soft :background ,soft))))
       (vterm-color-bright-cyan ((,class (:foreground ,matrix :background ,matrix))))
-      (vterm-color-bright-white ((,class (:foreground ,fg-light :background ,fg-light)))))))
+      (vterm-color-bright-white ((,class (:foreground ,fg-light :background ,fg-light))))
+
+      ;; ANSI colors - map to palette to prevent rogue reds/greens
+      ;; Normal colors (0-7)
+      (ansi-color-black ((,class (:foreground ,bg-alt :background ,bg-alt))))
+      (ansi-color-red ((,class (:foreground ,ice :background ,ice))))
+      (ansi-color-green ((,class (:foreground ,deep :background ,deep))))
+      (ansi-color-yellow ((,class (:foreground ,sky :background ,sky))))
+      (ansi-color-blue ((,class (:foreground ,link :background ,link))))
+      (ansi-color-magenta ((,class (:foreground ,soft :background ,soft))))
+      (ansi-color-cyan ((,class (:foreground ,matrix :background ,matrix))))
+      (ansi-color-white ((,class (:foreground ,fg :background ,fg))))
+
+      ;; Bright colors (8-15) - use lighter/more saturated variants
+      (ansi-color-bright-black ((,class (:foreground ,comment :background ,comment))))
+      (ansi-color-bright-red ((,class (:foreground ,ice :background ,ice))))
+      (ansi-color-bright-green ((,class (:foreground ,deep :background ,deep))))
+      (ansi-color-bright-yellow ((,class (:foreground ,hero :background ,hero))))
+      (ansi-color-bright-blue ((,class (:foreground ,link :background ,link))))
+      (ansi-color-bright-magenta ((,class (:foreground ,soft :background ,soft))))
+      (ansi-color-bright-cyan ((,class (:foreground ,matrix :background ,matrix))))
+      (ansi-color-bright-white ((,class (:foreground ,fg-light :background ,fg-light)))))
+    ))
 
 (defun hypermodern/apply-theme (theme-name)
   "Apply THEME-NAME from hypermodern palettes."
@@ -723,7 +748,7 @@
     (message "Applied theme: %s" (plist-get palette :name))))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // css reset - color only, no typography crimes
+;;                                               // css // reset
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (defun hypermodern/css-reset ()
@@ -914,8 +939,8 @@
              (pulse-color (hypermodern/ui--color-blend accent bg 0.15)))
 
         (when pulse-color
-          (let ((_pulse-iterations 8)
-                (_pulse-delay 0.04))
+          (let ((pulse-iterations 8)
+                (pulse-delay 0.04))
             (set-face-background 'pulse-highlight-face pulse-color)
             (pulse-momentary-highlight-one-line (point) 'pulse-highlight-face)))))))
 
@@ -1018,15 +1043,20 @@
 (defun hypermodern/ui-toggle-glow ()
   (interactive)
 
-  (setq hypermodern/ui-glow-level (pcase hypermodern/ui-glow-level ('off 'subtle) ('subtle 'neon) (_ 'off)))
+  (setq hypermodern/ui-glow-level
+        (pcase hypermodern/ui-glow-level ('off 'subtle) ('subtle 'neon) (_ 'off)))
+
   (hypermodern/ui-apply)
+
   (message "Glow: %s" hypermodern/ui-glow-level))
 
 (defun hypermodern/ui-toggle-pulse ()
   (interactive)
 
   (setq hypermodern/ui-enable-pulse (not hypermodern/ui-enable-pulse))
+
   (hypermodern/ui-apply)
+
   (message "Pulse: %s" (if hypermodern/ui-enable-pulse "on" "off")))
 
 (defun hypermodern/ui-menu ()
@@ -1034,7 +1064,7 @@
   (call-interactively 'hypermodern/ui-style))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                                  // disable // flymake // squiggles
+;;                            // disable // flymake // squiggles
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ;; Disable flymake globally
@@ -1046,7 +1076,7 @@
 ;; (add-hook 'flymake-mode-hook (lambda () (flymake-mode -1)))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                                      // reinit // user // interface
+;;                                // reinit // user // interface
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (setq inhibit-startup-screen t
@@ -1085,7 +1115,7 @@
 (fset 'yes-or-no-p 'y-or-n-p)
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                                              // frame // discipline
+;;                                        // frame // discipline
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ;; ── Shackle: No popup without permission ───────────────────────────
@@ -1098,55 +1128,61 @@
         shackle-default-size 0.3
         shackle-default-alignment 'below
         shackle-rules
-        '(;; ─ Never show these automatically ─────────────────────────
-          ("\\*Warnings\\*"           :ignore t)
-          ("\\*Async Shell Command\\*" :ignore t)
+        '(
+          ;; ─ never show these automatically ─────────────────────────
+
+          ("\\*Warnings\\*"                 :ignore t)
+          ("\\*Async Shell Command\\*"      :ignore t)
           ("\\*Async-native-compile-log\\*" :ignore t)
-          ("\\*Native-compile-Log\\*" :ignore t)
-          ("\\*straight-process\\*"   :ignore t)
-          ("\\*flycheck errors\\*"    :ignore t)  ; use consult-flycheck
-          ("\\*Flymake diagnostics.*" :ignore t)
-          ("\\*lsp-log\\*"            :ignore t)
-          ("\\*nixd.*"                :ignore t)
-          ("\\*tramp.*"               :ignore t)
-          ("\\*Deletions\\*"          :ignore t)
-          ("\\*Quail Completions\\*"  :ignore t)
+          ("\\*Native-compile-Log\\*"       :ignore t)
+          ("\\*straight-process\\*"         :ignore t)
+          ("\\*flycheck errors\\*"          :ignore t)  ; use consult-flycheck
+          ("\\*Flymake diagnostics.*"       :ignore t)
+          ("\\*lsp-log\\*"                  :ignore t)
+          ("\\*nixd.*"                      :ignore t)
+          ("\\*tramp.*"                     :ignore t)
+          ("\\*Deletions\\*"                :ignore t)
+          ("\\*Quail Completions\\*"        :ignore t)
 
-          ;; ─ Bottom panel (no steal focus) ──────────────────────────
-          (compilation-mode           :align below :size 0.25 :select nil :popup t)
-          ("\\*compilation\\*"        :align below :size 0.25 :select nil :popup t)
-          ("\\*Compile-Log\\*"        :align below :size 0.2 :select nil :popup t)
-          ("\\*Messages\\*"           :align below :size 0.2 :select nil :popup t)
-          ("\\*Backtrace\\*"          :align below :size 0.3 :select nil :popup t)
-          ("\\*vc-diff\\*"            :align below :size 0.3 :select nil :popup t)
-          ("\\*vc-change-log\\*"      :align below :size 0.3 :select nil :popup t)
+          ;; ─ bottom panel (no steal focus) ──────────────────────────
+
+          (compilation-mode             :align below :size 0.25 :select nil :popup t)
+          ("\\*compilation\\*"          :align below :size 0.25 :select nil :popup t)
+          ("\\*Compile-Log\\*"          :align below :size 0.25 :select nil :popup t)
+          ("\\*Messages\\*"             :align below :size 0.25 :select nil :popup t)
+          ("\\*Backtrace\\*"            :align below :size 0.30 :select nil :popup t)
+          ("\\*vc-diff\\*"              :align below :size 0.30 :select nil :popup t)
+          ("\\*vc-change-log\\*"        :align below :size 0.30 :select nil :popup t)
           ("\\*Shell Command Output\\*" :align below :size 0.25 :select nil :popup t)
-          ("\\*Pp Eval Output\\*"     :align below :size 0.25 :select nil :popup t)
+          ("\\*Pp Eval Output\\*"       :align below :size 0.25 :select nil :popup t)
 
-          ;; ─ Bottom panel (select) ──────────────────────────────────
-          ("\\*rg\\*"                 :align below :size 0.4 :select t :popup t)
-          ("\\*xref\\*"               :align below :size 0.3 :select t :popup t)
-          ("\\*grep\\*"               :align below :size 0.4 :select t :popup t)
-          ("\\*Occur\\*"              :align below :size 0.3 :select t :popup t)
-          ("\\*eshell\\*"             :align below :size 0.3 :select t :popup t)
-          (eshell-mode                :align below :size 0.3 :select t :popup t)
+          ;; ─ bottom panel (select) ──────────────────────────────────
+
+          ("\\*rg\\*"                 :align below :size 0.4  :select t :popup t)
+          ("\\*xref\\*"               :align below :size 0.3  :select t :popup t)
+          ("\\*grep\\*"               :align below :size 0.4  :select t :popup t)
+          ("\\*Occur\\*"              :align below :size 0.3  :select t :popup t)
+          ("\\*eshell\\*"             :align below :size 0.3  :select t :popup t)
+          (eshell-mode                :align below :size 0.3  :select t :popup t)
           (ghostel-mode               :align below :size 0.35 :select t :popup t)
           ("\\*ghostel.*"             :align below :size 0.35 :select t :popup t)
           (vterm-mode                 :align below :size 0.35 :select t :popup t)
           (term-mode                  :align below :size 0.35 :select t :popup t)
 
-          ;; ─ Right side (reference material) ────────────────────────
-          (help-mode                  :align right :size 0.4 :select t :popup t)
-          (helpful-mode               :align right :size 0.4 :select t :popup t)
-          ("\\*Help\\*"               :align right :size 0.4 :select t :popup t)
-          ("\\*helpful.*"             :align right :size 0.4 :select t :popup t)
-          (Info-mode                  :align right :size 0.45 :select t :popup t)
-          ("\\*info\\*"               :align right :size 0.45 :select t :popup t)
-          ("\\*Man.*"                 :align right :size 0.4 :select t :popup t)
-          ("\\*eldoc\\*"              :align right :size 0.35 :select nil :popup t)
-          ("\\*devdocs\\*"            :align right :size 0.45 :select t :popup t)
+          ;; ─ right side (reference material) ────────────────────────
 
-          ;; ─ AI buffers ─────────────────────────────────────────────
+          (help-mode                  :align right :size 0.4  :select t   :popup t)
+          (helpful-mode               :align right :size 0.4  :select t   :popup t)
+          ("\\*Help\\*"               :align right :size 0.4  :select t   :popup t)
+          ("\\*helpful.*"             :align right :size 0.4  :select t   :popup t)
+          (Info-mode                  :align right :size 0.45 :select t   :popup t)
+          ("\\*info\\*"               :align right :size 0.45 :select t   :popup t)
+          ("\\*Man.*"                 :align right :size 0.4  :select t   :popup t)
+          ("\\*eldoc\\*"              :align right :size 0.35 :select nil :popup t)
+          ("\\*devdocs\\*"            :align right :size 0.45 :select t   :popup t)
+
+          ;; ─ ai buffers ─────────────────────────────────────────────
+
           ("\\*gptel\\*"              :align right :size 0.45 :select t :popup t)
           ("\\*Claude\\*"             :align right :size 0.45 :select t :popup t)
           ("\\*ChatGPT\\*"            :align right :size 0.45 :select t :popup t)
@@ -1162,8 +1198,9 @@
           ("COMMIT_EDITMSG"           :align below :size 0.4 :select t :popup t)
 
           ;; ─ lean4 ──────────────────────────────────────────────────
+
           ("\\*Lean 4.*"             :align right :size 0.35 :select nil :popup t)
-          ("\\*Lean Goals\\*"        :align right :size 0.35 :select nil :popup t)
+          ("\\*Lean Goal\\*"         :align right :size 0.35 :select nil :popup t)
           ("\\*Lean Info\\*"         :align right :size 0.35 :select nil :popup t)
 
           ;; ─ Org/capture ────────────────────────────────────────────
@@ -1560,6 +1597,7 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
   (message "[gptel] Refreshed %d models" (length hypermodern/gptel-models)))
 
 ;; ── System prompts library ─────────────────────────────────────────
+
 (defvar hypermodern/gptel-prompts
   '(("Default" . nil)
     ("Concise" . "You are a helpful assistant. Be concise and direct. No preamble.")
@@ -1591,6 +1629,9 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
          ("C-c g K" . hypermodern/gptel-refresh-key)
          ("C-c g M" . hypermodern/gptel-refresh-models)
          ("C-c g P" . hypermodern/gptel-provision-key))
+
+  :hook (gptel-mode . visual-line-mode)
+
   :config
   ;; Get API key from netrc
   (let ((api-key (hypermodern/gptel-get-api-key)))
@@ -1677,6 +1718,7 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
   (defun hypermodern/gptel-send-buffer ()
     "Send entire buffer to gptel."
     (interactive)
+
     (gptel-send (point-min) (point-max)))
 
   (defvar hypermodern/gptel-tools-enabled t
@@ -1685,16 +1727,20 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
   (defun hypermodern/gptel-toggle-tools ()
     "Toggle gptel tool use."
     (interactive)
+
     (setq hypermodern/gptel-tools-enabled (not hypermodern/gptel-tools-enabled))
     (setq gptel-use-tools hypermodern/gptel-tools-enabled)
+
     (message "Tools: %s" (if hypermodern/gptel-tools-enabled "enabled" "disabled")))
 
   ;; ── Tool definitions ───────────────────────────────────────────────
-  ;; Register tools using gptel-make-tool API for agentic capabilities
 
+  ;; Register tools using gptel-make-tool API for agentic capabilities
   (setq gptel-tools
         (list
-         ;; ── Filesystem: Read ─────────────────────────────────────────
+
+         ;; ── filesystem: read ─────────────────────────────────────────
+
          (gptel-make-tool
           :name "read_file"
           :function (lambda (filepath)
@@ -1709,6 +1755,8 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
                          :type string
                          :description "Path to the file to read. Supports relative paths and ~."))
           :category "filesystem")
+
+         ;; ── filesystem: list directory ───────────────────────────────
 
          (gptel-make-tool
           :name "list_directory"
@@ -1739,7 +1787,8 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
                          :description "The pattern to match (glob or regex)"))
           :category "filesystem")
 
-         ;; ── Filesystem: Write ────────────────────────────────────────
+         ;; ── filesystem: Write ────────────────────────────────────────
+
          (gptel-make-tool
           :name "create_file"
           :function (lambda (path filename content)
@@ -1807,7 +1856,8 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
           :category "filesystem"
           :confirm t)
 
-         ;; ── Search ───────────────────────────────────────────────────
+         ;; ── search ───────────────────────────────────────────────────
+
          (gptel-make-tool
           :name "grep_codebase"
           :function (lambda (pattern &optional directory file_pattern)
@@ -1832,7 +1882,8 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
                          :optional t))
           :category "search")
 
-         ;; ── Shell ────────────────────────────────────────────────────
+         ;; ── shell ────────────────────────────────────────────────────
+
          (gptel-make-tool
           :name "run_command"
           :function (lambda (command &optional working_dir)
@@ -1851,7 +1902,7 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
           :category "shell"
           :confirm t)
 
-         ;; ── Emacs/Buffer ─────────────────────────────────────────────
+         ;; ── emacs/buffer ─────────────────────────────────────────────
          (gptel-make-tool
           :name "read_buffer"
           :function (lambda (buffer_name)
@@ -1904,7 +1955,8 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
           :category "emacs"
           :confirm t)
 
-         ;; ── Git ──────────────────────────────────────────────────────
+         ;; ── git ──────────────────────────────────────────────────────
+
          (gptel-make-tool
           :name "git_status"
           :function (lambda (&optional directory)
@@ -1985,8 +2037,11 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
       ""))
 
   ;; Add spinner to mode line
-  (unless (memq 'hypermodern/gptel--mode-line-construct mode-line-misc-info)
-    (push '(:eval (hypermodern/gptel--spinner-string)) mode-line-misc-info))
+  (defvar hypermodern/gptel--mode-line-construct
+    '(:eval (hypermodern/gptel--spinner-string))
+    "Mode-line construct for the gptel streaming spinner.")
+  (unless (member hypermodern/gptel--mode-line-construct mode-line-misc-info)
+    (push hypermodern/gptel--mode-line-construct mode-line-misc-info))
 
   ;; Hook into gptel's streaming lifecycle
   (defun hypermodern/gptel--before-send (&rest _)
@@ -2025,12 +2080,15 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
     "Copy the last gptel response to kill ring."
     (interactive)
     (save-excursion
-      (when (re-search-backward gptel-response-prefix-alist nil t)
-        (let ((beg (point)))
-          (if (re-search-forward "^\\*+ " nil t)
-              (kill-ring-save beg (match-beginning 0))
-            (kill-ring-save beg (point-max)))
-          (message "Response copied")))))
+      (let* ((prefix (or (alist-get major-mode gptel-response-prefix-alist) "** "))
+             (prefix-re (regexp-quote (string-trim-right prefix))))
+        (when (re-search-backward prefix-re nil t)
+          (goto-char (match-end 0))
+          (let ((beg (point)))
+            (if (re-search-forward "^\\*+ " nil t)
+                (kill-ring-save beg (match-beginning 0))
+              (kill-ring-save beg (point-max)))
+            (message "Response copied"))))))
 
   (defun hypermodern/gptel-yank-code-block ()
     "Extract and copy first code block from last response."
@@ -2781,11 +2839,11 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
                   ("JavaScript"   . (prettier))
                   ("JSON"         . (prettier))
                   ("JSX"          . (prettier))
-                   ("Markdown"     . (prettier))
-                   ;; Match treefmt (modules/flake/fmt.nix): nixfmt, strict,
-                   ;; width 100. NOT nixpkgs-fmt — that fights treefmt on save.
-                   ("Nix"          . (nixfmt "--strict" "--width" "100"))
-                   ("Protocol Buffer" . (clang-format))
+                  ("Markdown"     . (prettier))
+                  ;; Match treefmt (modules/flake/fmt.nix): nixfmt, strict,
+                  ;; width 100. NOT nixpkgs-fmt — that fights treefmt on save.
+                  ("Nix"          . (nixfmt "--strict" "--width" "100"))
+                  ("Protocol Buffer" . (clang-format))
                   ("PureScript"   . (purs-tidy))
                   ("Python"       . (ruff))
                   ("Rust"         . (rustfmt))
@@ -2899,6 +2957,8 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
   :after password-store
   :commands pass
   :config
+  ;; pass.el's tree-walking helpers below use f.el; ensure it's loaded.
+  (require 'f)
   ;; Override the file extension check for .age files
   (defun hypermodern/pass--tree (&optional subdir)
     "Return a tree of all entries in SUBDIR for passage (.age files)."
@@ -3179,14 +3239,14 @@ Moves to end of current line, deletes newline, and collapses whitespace."
    ))
 
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                                                          // startup
+;;                                                    // startup
 ;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 (add-hook 'after-make-frame-functions
           (lambda (_) (hypermodern/ui-apply)))
 
 (defun hypermodern/initialization-hook ()
-  (hypermodern/apply-theme 'ono-sendai-razorgirl)
+  (hypermodern/apply-theme 'ono-sendai-sprawl)
   (hypermodern/ui-apply)
   (hypermodern/css-reset)
   (global-clipetty-mode))
