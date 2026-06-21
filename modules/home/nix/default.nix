@@ -34,6 +34,28 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # ── Per-user nix.conf substituters (managed) ──────────────────────────────
+    # b7r6 is a trusted-user, so the USER-level ~/.config/nix/nix.conf
+    # substituters OVERRIDE the system ones for interactive `nix` commands. A
+    # stale hand-edited file here was pointing at weyl-ai/hyprland cachix and
+    # NOT the local attic — so `nix build` bypassed our cache. Manage it
+    # declaratively to mirror the system: the local attic FIRST, then the public
+    # caches. (weyl-ai/hyprland dropped — dead/unreliable.) This file is now
+    # owned by home-manager, so it can't drift again.
+    nix.package = lib.mkDefault pkgs.nix;
+    nix.settings = {
+      substituters = [
+        "http://localhost:8080/hypermodern?priority=10"
+        "https://cache.nixos.org"
+        "https://nix-community.cachix.org"
+      ];
+      trusted-public-keys = [
+        "hypermodern:x+kBunu5nD1KOhzCIawyZeq8w0LV0GC6A7suIRoHTm8="
+        "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+        "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+      ];
+    };
+
     home.packages = lib.mkIf cfg.development.enable (
       with pkgs;
       [

@@ -1,0 +1,1935 @@
+<!DOCTYPE HTML>
+<html lang="en" class="ayu sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>// hypermodern // nixos</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Operator + architecture documentation for the hypermodern NixOS fleet.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "ayu";
+            const default_dark_theme = "ayu";
+            window.path_to_searchindex_js = "searchindex-bdeb9144.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-2501e0b9.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('ayu')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">// hypermodern // nixos</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/b7r6/nixos-config" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="-hypermodern--nixos"><a class="header" href="#-hypermodern--nixos">// hypermodern // nixos</a></h1>
+<p>Operator and architecture documentation for the hypermodern NixOS fleet — a flake-parts-based
+configuration managing a small homelab with a central binary cache, declarative secrets, mesh
+networking, and aggressive backups.</p>
+<p>This book is built with mdBook:</p>
+<pre><code class="language-bash">nix build .#docs        # render the static site to ./result
+nix run   .#docs-serve  # live-reloading preview at http://localhost:3000
+</code></pre>
+<blockquote>
+<p>This documentation is under active construction.</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="overview"><a class="header" href="#overview">Overview</a></h1>
+<p>This repo is a <strong>bog-standard <a href="https://flake.parts">flake-parts</a> configuration</strong>. It used to be
+built on <code>nixos-unified</code> (autoWire); that has been torn out. There is no magic auto-discovery
+framework anymore — the wiring is explicit Nix in <code>flake.nix</code>, <code>configurations/default.nix</code>, and
+<code>modules/flake/toplevel.nix</code>.</p>
+<h2 id="top-level-layout"><a class="header" href="#top-level-layout">Top-level layout</a></h2>
+<pre><code>flake.nix                  # mkFlake entrypoint; inputs; systems
+configurations/
+  default.nix              # the fleet wiring: hosts table + mkHost builder
+  nixos/&lt;host&gt;/            # one dir per nixosConfiguration
+  home/&lt;user&gt;.nix          # one file per standalone homeConfiguration
+modules/
+  nixos/                   # flat NixOS module files + default.nix aggregator
+  home/                    # home-manager modules (default.nix aggregator)
+  flake/                   # flake-parts modules: fmt, devshell, docs, overlays, themes
+  overlays/                # the repo overlay (self.overlays.default)
+packages/                  # callPackage'd derivations (e.g. ono-sendai-generator)
+secrets/                   # agenix tree + admin devshell/apps + keys.nix
+checks/                    # NixOS VM tests
+docs/                      # this mdBook
+</code></pre>
+<h2 id="the-flake-entrypoint"><a class="header" href="#the-flake-entrypoint">The flake entrypoint</a></h2>
+<p><code>flake.nix</code> is minimal — it calls <code>flake-parts.lib.mkFlake</code>, takes its systems from
+<code>nix-systems/default-linux</code> (<code>x86_64-linux</code> + <code>aarch64-linux</code>), and imports exactly two things:</p>
+<pre><code class="language-nix">inputs.flake-parts.lib.mkFlake { inherit inputs; } {
+  systems = import inputs.systems;
+  imports = [
+    ./modules/flake/toplevel.nix   # perSystem: pkgs/overlays, devshells, packages, apps, checks
+    ./configurations               # the fleet: nixosConfigurations + homeConfigurations
+  ];
+};
+</code></pre>
+<p>Everything else (<code>agenix</code>, <code>home-manager</code>, <code>disko</code>, <code>stylix</code>, <code>nvf</code>, the <code>emacs-overlay</code>,
+<code>nativelink</code>, …) is a flake input; most <code>follows</code> nixpkgs to keep the closure tight.</p>
+<h2 id="how-a-nixosconfiguration-is-built"><a class="header" href="#how-a-nixosconfiguration-is-built">How a <code>nixosConfiguration</code> is built</a></h2>
+<p><code>configurations/default.nix</code> is the flake-parts module that replaces what nixos-unified used to
+autowire. It defines the fleet as a plain attrset and maps a <code>mkHost</code> builder over it:</p>
+<ul>
+<li><strong><code>specialArgs</code></strong> — every host/home module destructures <code>{ flake, ... }</code>, where
+<code>flake = { inherit self inputs config; }</code>. This is identical to the old nixos-unified
+<code>specialArgsFor.nixos</code>, so existing configs need no changes.</li>
+<li><strong><code>mkHost name { system ? "x86_64-linux" }</code></strong> calls <code>nixpkgs.lib.nixosSystem</code> with three modules:
+<ol>
+<li><code>{ nixpkgs.hostPlatform = system; }</code></li>
+<li><code>homeManagerNixosModule</code> (home-manager as a NixOS module)</li>
+<li><code>./nixos/${name}/default.nix</code> (the host)</li>
+</ol>
+</li>
+<li><strong><code>homeManagerNixosModule</code></strong> imports <code>home-manager.nixosModules.home-manager</code> and sets
+<code>useGlobalPkgs = true</code>, <code>useUserPackages = true</code>, and <code>extraSpecialArgs = specialArgs</code>. It
+deliberately does <strong>not</strong> put <code>homeModules.default</code> into <code>sharedModules</code> — that would force the
+full home config onto every HM user (e.g. test-vm’s inline <code>test</code> user). Managed users pick up
+<code>configurations/home/&lt;name&gt;.nix</code> via <a href="#module-conventions"><code>myusers.nix</code></a> instead.</li>
+</ul>
+<p>A host dir is tiny. <code>configurations/nixos/ultraviolence/default.nix</code>:</p>
+<pre><code class="language-nix">{ flake, ... }:
+let inherit (flake.inputs) self; in
+{
+  imports = [
+    self.nixosModules.default     # = ../modules/nixos (everything, gated)
+    ./configuration.nix           # host specifics
+  ];
+}
+</code></pre>
+<p><code>self.nixosModules.default</code> is the single aggregator at <code>modules/nixos/default.nix</code> that imports
+every module file. Each one is <strong>option-gated and off by default</strong>, so importing all of them costs
+nothing — a host just sets <code>hyper-modern-nixos.&lt;x&gt;.enable = true</code> for what it wants. See
+<a href="#module-conventions">module conventions</a>.</p>
+<h2 id="persystem-outputs"><a class="header" href="#persystem-outputs">perSystem outputs</a></h2>
+<p><code>modules/flake/toplevel.nix</code> builds the <code>perSystem</code> <code>pkgs</code> (with <code>allowUnfree</code> and the overlay
+stack) and wires the rest of the flake modules:</p>
+<ul>
+<li><code>./fmt.nix</code> — treefmt (nixfmt/deadnix/statix, biome, ruff, shfmt, …)</li>
+<li><code>./devshell.nix</code> — the default devshell + agenix-shell user-secret autoload</li>
+<li><code>./docs.nix</code> — <code>packages.docs</code> (this book) + <code>apps.docs-serve</code></li>
+<li><code>./overlays.nix</code> — surfaces <code>self.overlays.default</code></li>
+<li><code>./themes</code> — fonts/stylix theme plumbing</li>
+<li><code>../../secrets</code> — the agenix admin devshell + flake apps</li>
+</ul>
+<h2 id="flake-outputs-summary"><a class="header" href="#flake-outputs-summary">Flake outputs (summary)</a></h2>
+<p>| Output | Source | | — | — | | <code>nixosConfigurations.&lt;host&gt;</code> | <code>mkHost</code> over the <code>hosts</code> table |
+| <code>legacyPackages.&lt;sys&gt;.homeConfigurations.&lt;user&gt;</code> | auto-found <code>configurations/home/*.nix</code> | |
+<code>nixosModules.{default,dgx-spark,wayland}</code> | <code>modules/nixos/*</code> | | <code>homeModules.default</code> |
+<code>modules/home</code> | | <code>packages.&lt;sys&gt;</code> | fonts, <code>ono-sendai-generator</code>, USB installer images | |
+<code>apps.&lt;sys&gt;</code> | <code>build-usb</code>, <code>docs-serve</code>, secret-admin apps | | <code>devShells.&lt;sys&gt;.{default,secrets}</code>
+| <code>modules/flake/devshell.nix</code> + <code>secrets/</code> | | <code>checks.&lt;sys&gt;</code> | <code>checks/attic-cache.nix</code>,
+<code>checks/backup-restic.nix</code> |</p>
+<p>For the detailed walk-through see <a href="#flake-structure">flake structure</a>; for the machines see
+<a href="#the-fleet">the fleet</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="flake-structure"><a class="header" href="#flake-structure">Flake structure</a></h1>
+<p>A detailed walk of the three files that wire everything: <code>flake.nix</code>, <code>configurations/default.nix</code>,
+and <code>modules/flake/toplevel.nix</code>.</p>
+<h2 id="flakenix"><a class="header" href="#flakenix"><code>flake.nix</code></a></h2>
+<p>The entrypoint is <code>flake-parts.lib.mkFlake</code>. Systems come from <code>nix-systems/default-linux</code>
+(<code>x86_64-linux</code>, <code>aarch64-linux</code>):</p>
+<pre><code class="language-nix">inputs.flake-parts.lib.mkFlake { inherit inputs; } {
+  systems = import inputs.systems;
+  imports = [
+    ./modules/flake/toplevel.nix
+    ./configurations
+  ];
+};
+</code></pre>
+<p>Inputs of note (most <code>follows</code> nixpkgs):</p>
+<ul>
+<li><code>nixpkgs</code> → <code>nixpkgs-unstable</code></li>
+<li><code>agenix</code>, <code>agenix-shell</code> — secrets at rest + devshell autoload</li>
+<li><code>home-manager</code> — used both as a NixOS module and standalone</li>
+<li><code>disko</code>, <code>impermanence</code>, <code>impurity</code>, <code>nixos-generators</code></li>
+<li><code>devshell</code>, <code>treefmt-nix</code> — tooling</li>
+<li><code>emacs-overlay</code> — <code>pkgs.emacs-pgtk</code> tracking emacs-31 master</li>
+<li><code>nativelink</code> — provides the <code>nativelink</code> binary (no upstream NixOS module)</li>
+<li><code>stylix</code>, <code>nvf</code>, <code>nix4nvchad</code>, <code>xremap-flake</code>, <code>nix-vscode-extensions</code>, <code>nix-index-database</code>,
+<code>nix-compile</code></li>
+</ul>
+<h2 id="configurationsdefaultnix"><a class="header" href="#configurationsdefaultnix"><code>configurations/default.nix</code></a></h2>
+<p>The flake-parts module that wires the fleet. It is a function of
+<code>{ self, inputs, config, lib, ... }</code>.</p>
+<h3 id="specialargs"><a class="header" href="#specialargs">specialArgs</a></h3>
+<pre><code class="language-nix">specialArgs = { flake = { inherit self inputs config; }; };
+</code></pre>
+<p>This is the <code>{ flake, ... }</code> argument every host/home module destructures to reach <code>flake.inputs</code>,
+<code>flake.self</code>, <code>flake.config</code>. Preserved verbatim from nixos-unified for compatibility.</p>
+<h3 id="homemanagernixosmodule"><a class="header" href="#homemanagernixosmodule">homeManagerNixosModule</a></h3>
+<pre><code class="language-nix">homeManagerNixosModule = {
+  imports = [ home-manager.nixosModules.home-manager ];
+  home-manager = {
+    useGlobalPkgs = true;
+    useUserPackages = true;
+    extraSpecialArgs = specialArgs;
+  };
+};
+</code></pre>
+<p>Note: <code>homeModules.default</code> is <strong>not</strong> in <code>sharedModules</code>. Managed users get their home config
+through <a href="#module-conventions"><code>myusers.nix</code></a>
+(<code>home-manager.users.&lt;name&gt;.imports = [ configurations/home/&lt;name&gt;.nix ]</code>), so a host like test-vm
+with an inline <code>test</code> user isn’t forced to carry the full home config (which expects the home agenix
+module).</p>
+<h3 id="the-hosts-table"><a class="header" href="#the-hosts-table">The hosts table</a></h3>
+<pre><code class="language-nix">hosts = {
+  ultraviolence = { };
+  watchtower    = { };
+  weyl          = { };
+  guccimane     = { };
+  shannon       = { };
+  shimmer.system = "aarch64-linux";
+  test-vm       = { };
+};
+</code></pre>
+<p><code>system</code> defaults to <code>x86_64-linux</code>; only <code>shimmer</code> (the DGX Spark) overrides it. See
+<a href="#the-fleet">the fleet</a> for what each host is.</p>
+<h3 id="mkhost"><a class="header" href="#mkhost">mkHost</a></h3>
+<pre><code class="language-nix">mkHost = name: { system ? "x86_64-linux" }:
+  nixpkgs.lib.nixosSystem {
+    inherit specialArgs;
+    modules = [
+      { nixpkgs.hostPlatform = system; }
+      homeManagerNixosModule
+      ./nixos/${name}/default.nix
+    ];
+  };
+</code></pre>
+<p>Adding a NixOS host = one entry in <code>hosts</code> + a <code>configurations/nixos/&lt;name&gt;/</code>.</p>
+<h3 id="standalone-home-configs"><a class="header" href="#standalone-home-configs">Standalone home configs</a></h3>
+<pre><code class="language-nix">homeUsers = lib.pipe (builtins.readDir ./home) [
+  (lib.filterAttrs (n: t: t == "regular" &amp;&amp; lib.hasSuffix ".nix" n))
+  (lib.mapAttrs' (n: _: lib.nameValuePair (lib.removeSuffix ".nix" n) (./home + "/${n}")))
+];
+</code></pre>
+<p>Every <code>configurations/home/&lt;user&gt;.nix</code> (currently <code>b7r6.nix</code>, <code>niteria.nix</code>) becomes a standalone
+<code>homeConfiguration</code> for <code>nh home switch</code>. Adding one is auto-found — no registration needed.</p>
+<h3 id="outputs-assembled-here"><a class="header" href="#outputs-assembled-here">Outputs assembled here</a></h3>
+<pre><code class="language-nix">flake = {
+  nixosModules = {
+    default   = ../modules/nixos;          # the gated everything-module
+    dgx-spark = ../modules/nixos/dgx-spark;
+    wayland   = ../modules/nixos/wayland;
+  };
+  homeModules.default = ../modules/home;
+  nixosConfigurations = lib.mapAttrs mkHost hosts;
+};
+
+perSystem = { pkgs, ... }: {
+  legacyPackages.homeConfigurations =
+    lib.mapAttrs (_: mod: home-manager.lib.homeManagerConfiguration {
+      inherit pkgs;
+      extraSpecialArgs = specialArgs;
+      modules = [ mod ];
+    }) homeUsers;
+};
+</code></pre>
+<h2 id="modulesflaketoplevelnix"><a class="header" href="#modulesflaketoplevelnix"><code>modules/flake/toplevel.nix</code></a></h2>
+<p>This is where the <code>perSystem</code> <code>pkgs</code> is constructed and the rest of the flake-parts modules are
+imported.</p>
+<h3 id="persystem-pkgs--overlays"><a class="header" href="#persystem-pkgs--overlays">perSystem pkgs + overlays</a></h3>
+<pre><code class="language-nix">_module.args.pkgs = import inputs.nixpkgs {
+  inherit system;
+  config = { allowUnfree = true; allowUnfreePredicate = _: true; };
+  overlays = [
+    self.overlays.default                       # the repo overlay
+    inputs.devshell.overlays.default
+    inputs.nix-vscode-extensions.overlays.default
+    inputs.emacs-overlay.overlays.default        # emacs-pgtk -&gt; 31.x
+  ];
+};
+</code></pre>
+<p>This single <code>pkgs</code> is what standalone <code>homeConfigurations</code>, devshells, and <code>packages</code> all use.
+Applying the overlay here (rather than via <code>home-manager.nixpkgs.overlays</code>) avoids the
+<code>useGlobalPkgs</code> warning. NixOS systems get the overlay through <code>modules/nixos/nix.nix</code> instead.</p>
+<h3 id="imports"><a class="header" href="#imports">Imports</a></h3>
+<pre><code class="language-nix">imports = [
+  inputs.devshell.flakeModule
+  ./fmt.nix
+  ./overlays.nix
+  ./devshell.nix
+  ./docs.nix
+  ./themes
+  ../../secrets        # secrets admin devShell + flake apps
+];
+</code></pre>
+<h3 id="devshells--apps--checks--packages"><a class="header" href="#devshells--apps--checks--packages">devShells / apps / checks / packages</a></h3>
+<ul>
+<li><code>devshells.default</code> imports <code>devshell.toml</code>; <code>devShells.secrets</code> comes from <code>secrets/</code> (agenix
+edit/rekey/rotate as <code>writeShellApplication</code>s + flake apps).</li>
+<li><code>apps.build-usb</code> runs <code>scripts/build-usb.sh</code>; <code>apps.docs-serve</code> from <code>docs.nix</code>.</li>
+<li><code>checks</code> (x86_64-linux only — <code>nixosTest</code> needs a Linux builder):
+<ul>
+<li><code>attic-cache</code> ← <code>checks/attic-cache.nix</code></li>
+<li><code>backup-restic</code> ← <code>checks/backup-restic.nix</code></li>
+</ul>
+</li>
+<li><code>packages</code>:
+<ul>
+<li><code>berkeley-mono</code> / <code>default</code> ← the Berkeley Mono font derivation</li>
+<li><code>ono-sendai-generator</code> ← <code>packages/ono-sendai-generator</code></li>
+<li>USB installer images via <code>nixos-generators</code>: <code>usb-{aarch64,x86_64}-{minimal,gnome}</code> (aarch64
+images pull in <code>self.nixosModules.dgx-spark</code>).</li>
+</ul>
+</li>
+</ul>
+<p>For module-level conventions inside <code>modules/nixos</code>, see
+<a href="#module-conventions">module conventions</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="module-conventions"><a class="header" href="#module-conventions">Module conventions</a></h1>
+<p>Conventions shared by everything under <code>modules/nixos</code>.</p>
+<h2 id="the-hyper-modern-nixos-namespace"><a class="header" href="#the-hyper-modern-nixos-namespace">The <code>hyper-modern-nixos.*</code> namespace</a></h2>
+<p>Every module that this repo defines puts its options under a single namespace:</p>
+<pre><code class="language-nix">options.hyper-modern-nixos.&lt;feature&gt; = { ... };
+</code></pre>
+<p>Real examples, with their files:</p>
+<p>| Option | File | | — | — | | <code>hyper-modern-nixos.network</code> | <code>modules/nixos/network.nix</code> | |
+<code>hyper-modern-nixos.nvidia</code> / <code>.radeon</code> | <code>modules/nixos/{nvidia,radeon}.nix</code> | |
+<code>hyper-modern-nixos.docker</code> / <code>.libvirt</code> | <code>modules/nixos/{docker,libvirt}.nix</code> | |
+<code>hyper-modern-nixos.databases.postgres</code> | <code>modules/nixos/postgres.nix</code> | |
+<code>hyper-modern-nixos.attic</code> | <code>modules/nixos/attic.nix</code> | | <code>hyper-modern-nixos.attic-node</code> |
+<code>modules/nixos/attic-node.nix</code> | | <code>hyper-modern-nixos.backup</code> | <code>modules/nixos/backup.nix</code> | |
+<code>hyper-modern-nixos.nativelink</code> | <code>modules/nixos/nativelink.nix</code> | |
+<code>hyper-modern-nixos.rcloneMount</code> | <code>modules/nixos/rclone-mount.nix</code> | | <code>hyper-modern-nixos.users</code> |
+<code>modules/nixos/myusers.nix</code> | | <code>hyper-modern-nixos.wayland</code> / <code>.hyper-wayland</code> |
+<code>modules/nixos/wayland</code> |</p>
+<p>This makes “ours vs. upstream” obvious at a host call site, and keeps grep honest.</p>
+<h2 id="option-gated-off-by-default"><a class="header" href="#option-gated-off-by-default">Option-gated, off by default</a></h2>
+<p>Each module wraps its <code>config</code> in <code>lib.mkIf cfg.enable</code>, where <code>enable</code> is an <code>mkEnableOption</code>
+defaulting to <code>false</code>. A gated, disabled module contributes nothing to the system closure, so it is
+safe to import all of them unconditionally. That is exactly what the aggregator does:</p>
+<pre><code class="language-nix"># modules/nixos/default.nix
+{ lib, ... }: {
+  imports = [
+    ./base.nix ./nix.nix ./packages.nix ./greetd.nix ./myusers.nix ./secrets.nix
+    ./bluetooth.nix ./nvidia.nix ./radeon.nix ./usb.nix
+    ./network.nix ./network-manager.nix
+    ./docker.nix ./libvirt.nix
+    ./postgres.nix ./backup.nix ./attic.nix ./attic-node.nix
+    ./nativelink.nix ./rclone-mount.nix
+    ./android.nix ./appimage.nix ./nix-ld.nix
+    ./impermanence.nix ./impurity.nix ./xremap.nix
+    ./dgx-spark ./wayland
+  ];
+}
+</code></pre>
+<p><code>self.nixosModules.default</code> (= <code>../modules/nixos</code>) is this file. Because every module is inert until
+enabled, a host config is “import the aggregator + set the options you want” — there are <strong>no
+per-host import lists</strong>. Layout is flat: each module is a sibling file (no <code>common/</code> or <code>services/</code>
+nesting).</p>
+<p>A handful of always-on essentials don’t gate (<code>base</code>, <code>nix</code>, <code>packages</code>, <code>greetd</code>, <code>myusers</code>,
+<code>secrets</code>), plus a few fleet-wide defaults set directly in the aggregator:</p>
+<pre><code class="language-nix">hyper-modern-nixos.network = {
+  enable = true;
+  tailnet.domain = "osiris-walleye.ts.net";
+  firewall.enable = lib.mkDefault false;   # watchtower opts back in
+  useBackupResolver = true;
+};
+hyper-modern-nixos.users.defaultAuthorizedKeys = [ "ssh-ed25519 …" /* b7r6 */ ];
+</code></pre>
+<p><code>firewall.enable</code> is <code>mkDefault false</code> so a host that needs interface-scoped port rules (e.g.
+<a href="#the-fleet">watchtower</a>’s postgres) can flip it back on.</p>
+<h2 id="the-self-enabling-role--profile-pattern"><a class="header" href="#the-self-enabling-role--profile-pattern">The self-enabling role / profile pattern</a></h2>
+<p>Some modules are thin <strong>profile selectors</strong> that translate one high-level choice into a coherent set
+of low-level options on the orthogonal axes, so a host switches roles by changing a single enum.</p>
+<p>The canonical example is <code>modules/nixos/attic-node.nix</code>. A host is just:</p>
+<pre><code class="language-nix">age.secrets.atticd-rs256.file     = …/atticd-rs256.age;
+age.secrets.attic-push-token.file = …/attic-push-token.age;
+hyper-modern-nixos.attic-node = { enable = true; profile = "replica"; };
+</code></pre>
+<p>The module derives <code>mode × database × storage</code> from <code>profile</code>:</p>
+<ul>
+<li><code>standalone</code> — monolithic, self-contained (local sqlite/pg + local storage), no fleet dependency.</li>
+<li><code>replica</code> — stateless <code>api-server</code> against the shared fleet postgres + R2.</li>
+<li><code>monolithic-shared</code> — monolithic on the shared backend; runs migrations, serves, and the single
+GC. Exactly one node (watchtower) uses it.</li>
+</ul>
+<p>Flipping <code>standalone ↔ replica</code> changes only mode/database/storage; the cache identity (name, public
+key, push token) is constant, so there’s no other churn. The <code>monolithic-shared</code> branch even stands
+up the local shared postgres and restores the cache signing keypair from agenix on activation. See
+<a href="#binary-cache-attic">attic</a>.</p>
+<p>Other modules in the same spirit: <code>hyper-modern-nixos.nativelink</code> (<code>role</code> = <code>monolithic</code> | <code>worker</code>
+| …), and the <code>hyper-wayland</code> desktop bundle.</p>
+<h2 id="secrets-agenix-runtime-paths-never-the-store"><a class="header" href="#secrets-agenix-runtime-paths-never-the-store">Secrets: agenix runtime paths, never the store</a></h2>
+<p>Secrets are referenced by their <strong>decrypted runtime path</strong> under <code>/run/agenix</code>, never inlined into
+the Nix store. The pattern at a host:</p>
+<pre><code class="language-nix">age.secrets.restic-password.file = …/secrets/agenix/machines/restic-password.age;
+
+hyper-modern-nixos.backup = {
+  enable = true;
+  passwordFile = "/run/agenix/restic-password";   # runtime path
+  environmentFile = "/run/agenix/restic-r2-env";   # env file w/ R2 creds + repo URL
+};
+</code></pre>
+<p>Things that would leak into the world-readable store (R2 account ids, AWS keys, postgres passwords,
+repo URLs) live <strong>inside</strong> the decrypted env file, not in Nix expressions. Module option defaults
+reflect this — e.g. <code>hyper-modern-nixos.attic-node.environmentFile</code> defaults to
+<code>/run/agenix/atticd-rs256</code>, and <code>network.tailscale.authKeyFile</code> is documented as “an agenix runtime
+path, never the store”.</p>
+<p>Recipient keys (who can decrypt what) are data in <code>secrets/keys.nix</code>; the admin commands live in the
+<code>secrets</code> devshell. See <a href="#secrets-agenix">secrets</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="the-fleet"><a class="header" href="#the-fleet">The fleet</a></h1>
+<p>The live machines, from <code>secrets/keys.nix</code> (the authoritative recipient list) and
+<code>configurations/nixos/</code>. Tailnet domain is <code>osiris-walleye.ts.net</code>.</p>
+<h2 id="live-hosts"><a class="header" href="#live-hosts">Live hosts</a></h2>
+<p>| Host | Arch | Kind | Role | | — | — | — | — | | <code>ultraviolence</code> | x86_64 | NixOS | primary
+workstation / infra host; attic <strong>replica</strong>; nativelink monolithic | | <code>watchtower</code> | x86_64 | NixOS
+| central services: shared postgres + monolithic attic backend + the single GC | | <code>weyl</code> | x86_64 |
+NixOS | nvidia workstation | | <code>guccimane</code> | x86_64 | NixOS | nvidia workstation | | <code>shimmer</code> |
+aarch64 | NixOS | DGX Spark (GB10); uses <code>disko</code> + the <code>dgx-spark</code> module | | <code>shannon</code> | x86_64 |
+NixOS | laptop, frequently powered down (still fleet) | | <code>gossamer</code> | aarch64 | DGX OS | <strong>not</strong> a
+<code>nixosConfiguration</code>; global Nix; attic client / build node | | <code>test-vm</code> | aarch64* | NixOS |
+wayland-module test VM; imports only <code>self.nixosModules.wayland</code> |</p>
+<p>* <code>test-vm</code> defaults to <code>aarch64-linux</code> (<code>mkDefault</code>) for Apple-Silicon dev.</p>
+<p>Only the seven NixOS hosts appear in the <code>hosts</code> table in
+<a href="#flake-structure"><code>configurations/default.nix</code></a> and thus in <code>nixosConfigurations</code>. <code>gossamer</code>
+is recorded in <code>secrets/keys.nix</code> only — it runs DGX OS with a global Nix install and is not managed
+by this flake, but its host key is listed so it can receive secrets and act as an attic client /
+build node.</p>
+<h2 id="roles-in-detail"><a class="header" href="#roles-in-detail">Roles in detail</a></h2>
+<h3 id="ultraviolence-x86_64-primary"><a class="header" href="#ultraviolence-x86_64-primary">ultraviolence (x86_64, primary)</a></h3>
+<p><code>configurations/nixos/ultraviolence/configuration.nix</code>. The daily-driver workstation and the place
+new infra is proven first:</p>
+<ul>
+<li>attic <strong>replica</strong> — <code>hyper-modern-nixos.attic-node.profile = "replica"</code>, api-server against
+watchtower’s postgres over the tailnet, sharing the R2 chunk store. See
+<a href="#binary-cache-attic">attic</a>.</li>
+<li>nativelink <strong>monolithic</strong> — CAS + scheduler + local x86_64 worker, R2-backed, TLS terminated with
+a Tailscale-issued cert. See <a href="#remote-execution-nativelink">nativelink</a>.</li>
+<li>restic → R2 backups, <code>rcloneMount</code> of the R2 bucket at <code>/mnt/r2</code>, declarative Tailscale
+enrollment, Hyprland (<code>hyper-wayland</code>), nvidia.</li>
+</ul>
+<h3 id="watchtower-x86_64-central-services"><a class="header" href="#watchtower-x86_64-central-services">watchtower (x86_64, central services)</a></h3>
+<p><code>configurations/nixos/watchtower/configuration.nix</code>. The fleet backend, rolled out incrementally via
+local <code>enableInfra</code> / <code>enableBackup</code> switches:</p>
+<ul>
+<li><code>hyper-modern-nixos.attic-node.profile = "monolithic-shared"</code> — hosts the shared postgres
+(<code>atticd</code> role+db, tailnet-reachable) <strong>and</strong> the monolithic atticd that runs migrations, serves,
+and the single garbage collector. Exactly one such node. See
+<a href="#postgresql">postgres</a> and <a href="#binary-cache-attic">attic</a>.</li>
+<li>Re-enables its firewall (<code>hyper-modern-nixos.network.firewall.enable = true</code>) so the postgres
+module’s interface-scoped <code>5432</code>-on-<code>tailscale0</code> rule takes effect — the rest of the fleet runs
+firewall-off.</li>
+<li>restic → R2 (per-host repo <code>…/backups-restic/watchtower</code>), gated on <code>enableBackup</code>.</li>
+</ul>
+<h3 id="weyl-guccimane-x86_64-workstations"><a class="header" href="#weyl-guccimane-x86_64-workstations">weyl, guccimane (x86_64 workstations)</a></h3>
+<p>Straightforward nvidia desktops. <code>guccimane</code> runs <code>hyper-wayland</code>; <code>weyl</code> enables
+<code>programs.hyprland</code> directly and pins a couple of <code>networking.hosts</code> entries. Both import
+<code>hardware-configuration.nix</code> + the agenix module.</p>
+<h3 id="shimmer-aarch64-dgx-spark"><a class="header" href="#shimmer-aarch64-dgx-spark">shimmer (aarch64, DGX Spark)</a></h3>
+<p><code>configurations/nixos/shimmer/</code>. The GB10 DGX Spark. Its <code>default.nix</code> imports
+<code>disko.nixosModules.disko</code> + a <code>disko.nix</code>, the <code>dgx-spark</code> subtree (<code>self.nixosModules.default</code>
+pulls it in), and forces <code>nixpkgs.hostPlatform = "aarch64-linux"</code>.</p>
+<h3 id="shannon-x86_64-laptop"><a class="header" href="#shannon-x86_64-laptop">shannon (x86_64 laptop)</a></h3>
+<p><code>configurations/nixos/shannon/</code>. Laptop, often off — its host-key slot in <code>secrets/keys.nix</code> is
+intentionally empty with a TODO to <code>ssh-keyscan</code> it on the next boot, so it can’t yet decrypt
+host-scoped secrets. Runs nvidia + <code>hyper-wayland</code>, with <code>mkForce</code>’d crisp-pixel font settings.</p>
+<h3 id="gossamer-aarch64-dgx-os--not-nixos"><a class="header" href="#gossamer-aarch64-dgx-os--not-nixos">gossamer (aarch64, DGX OS — not NixOS)</a></h3>
+<p>Recorded in <code>secrets/keys.nix</code> only. Global Nix on DGX OS; consumes the
+<a href="#binary-cache-attic">attic</a> cache and can act as a build node. Never add it to the <code>hosts</code>
+table.</p>
+<h3 id="test-vm"><a class="header" href="#test-vm">test-vm</a></h3>
+<p><code>configurations/nixos/test-vm/</code>. A throwaway VM that imports <strong>only</strong> <code>self.nixosModules.wayland</code>
+(not the full <code>default</code> aggregator) to iterate on the wayland module in isolation, with an inline
+<code>test</code> user.</p>
+<h2 id="decommissioned"><a class="header" href="#decommissioned">Decommissioned</a></h2>
+<p>Pruned from the fleet and <strong>not</strong> to be re-added without a real host (per the note in
+<code>secrets/keys.nix</code>):</p>
+<pre><code>beratna  flatline  galois  noether  railgun  ultralight
+</code></pre>
+<h2 id="adding--rotating-host-keys"><a class="header" href="#adding--rotating-host-keys">Adding / rotating host keys</a></h2>
+<p><code>secrets/keys.nix</code> is data-only: <code>users</code> and <code>hosts</code> attrsets mapping a name to its ssh-ed25519
+public keys (agenix takes SSH ed25519 keys directly). To enroll a host:</p>
+<pre><code class="language-sh">ssh &lt;host&gt; cat /etc/ssh/ssh_host_ed25519_key.pub   # authoritative
+</code></pre>
+<p>Add it under <code>hosts</code>, then rekey the secrets it should decrypt (<code>agenix -r</code> / the <code>rekey</code> command in
+the <code>secrets</code> devshell). A host can only decrypt a secret once its key is listed <strong>and</strong> the secret
+has been rekeyed to include it. See <a href="#secrets-agenix">secrets</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="secrets-agenix"><a class="header" href="#secrets-agenix">Secrets (agenix)</a></h1>
+<p>Secrets are managed with <a href="https://github.com/ryantm/agenix">agenix</a> (age + SSH recipient keys) plus
+an interactive <code>passage</code> store for emacs/CLI use. Source lives under
+<a href="https://github.com/anomalyco/weapon"><code>secrets/</code></a>.</p>
+<ul>
+<li><a href="#keysnix-single-source-of-truth"><code>secrets/keys.nix</code></a> — recipient public keys</li>
+<li><a href="#recipient-helpers"><code>secrets/secrets.nix</code></a> — per-secret recipient sets (the agenix RULES file)</li>
+<li><a href="#admin-devshell--flake-apps"><code>secrets/default.nix</code></a> — the admin devShell + flake apps</li>
+<li><code>secrets/sh/*.sh</code> — the actual management commands</li>
+</ul>
+<p>No plaintext secret value ever lives in the Nix store. Decrypted machine secrets land at
+<code>/run/agenix/&lt;name&gt;</code> (root, <code>0400</code>); user secrets are deployed by the home-manager agenix module.</p>
+<h2 id="keysnix-single-source-of-truth"><a class="header" href="#keysnix-single-source-of-truth"><code>keys.nix</code>: single source of truth</a></h2>
+<p><code>secrets/keys.nix</code> is <strong>data only</strong> — two attrsets mapping a name to a list of <code>ssh-ed25519</code> public
+keys. agenix consumes ed25519 SSH keys directly (no ssh-to-age conversion needed).</p>
+<pre><code class="language-nix">{
+  users = { b7r6 = [ "ssh-ed25519 …" /* primary, named, yubikey */ ]; };
+  hosts = {
+    ultraviolence = [ "ssh-ed25519 …" ];
+    watchtower    = [ "ssh-ed25519 …" ];
+    weyl          = [ "ssh-ed25519 …" ];
+    guccimane     = [ "ssh-ed25519 …" ];
+    shimmer       = [ "ssh-ed25519 …" ];  # aarch64 DGX Spark
+    gossamer      = [ "ssh-ed25519 …" ];  # non-NixOS Nix node
+    shannon       = [ ];                  # laptop, powered down — TODO scan
+  };
+}
+</code></pre>
+<p>A host can only <strong>decrypt</strong> a secret once (a) its key is listed here, <strong>and</strong> (b) the secret has
+been re-keyed to include it (<code>nix run .#rekey-secrets</code>). Adding a host to the fleet is: scan its key
+→ add to <code>keys.nix</code> → rekey.</p>
+<p>The host key is the box’s own <code>/etc/ssh/ssh_host_ed25519_key</code>, so machine secrets decrypt
+automatically at activation with no extra key material.</p>
+<h2 id="recipient-helpers"><a class="header" href="#recipient-helpers">Recipient helpers</a></h2>
+<p><code>secrets/secrets.nix</code> imports <code>keys.nix</code> and derives recipient sets from it, so adding a host +
+re-keying is all it takes to extend access — no per-secret edits.</p>
+<pre><code class="language-nix">allUserKeys     = concatLists (attrValues keys.users);   # every operator key
+configuredHosts = filter (h: keys.hosts.${h} != [ ]) (attrNames keys.hosts);
+
+# all users + the named hosts (future least-privilege scoping)
+mkSecret       = hostList: allUserKeys ++ concatMap (h: keys.hosts.${h} or []) hostList;
+# all users + every configured host (skips empty TODO stubs)
+mkGlobalSecret = mkSecret configuredHosts;
+</code></pre>
+<ul>
+<li>Every secret is <strong>always</strong> encrypted to all user keys, so any operator can edit/rekey.</li>
+<li><code>mkSecret [ "host" … ]</code> adds named hosts; <code>mkGlobalSecret</code> adds every configured host.</li>
+<li>Today everything is <code>mkGlobalSecret</code> (single operator, mutually-trusted fleet). <code>mkSecret</code> exists
+so least-privilege scoping is a one-line change per secret rather than a structural refactor.</li>
+</ul>
+<h2 id="layout"><a class="header" href="#layout">Layout</a></h2>
+<pre><code>secrets/
+├── keys.nix                       # recipient pubkeys (source of truth)
+├── secrets.nix                    # RULES: per-secret recipient sets
+├── default.nix                    # admin devShell + flake apps
+├── sh/*.sh                        # management commands
+├── agenix/
+│   ├── machines/&lt;secret&gt;.age      # machine secrets → /run/agenix/ (root, 0400)
+│   └── users/b7r6/&lt;secret&gt;.age    # user secrets → home-manager agenix
+└── passage-store/                 # interactive secrets (NOT agenix-managed)
+</code></pre>
+<h2 id="machine-secrets"><a class="header" href="#machine-secrets">Machine secrets</a></h2>
+<p>Decrypted to <code>/run/agenix/&lt;name&gt;</code> on the target host. Names only below — values are never stored:</p>
+<p>| Secret | Purpose | |—|—| | <code>tailscale-auth-key</code> | declarative tailnet enrollment
+(<a href="#tailscale">Tailscale</a>) | | <code>restic-password</code> | restic repo passphrase
+(<a href="#backups-restic--r2">Backups</a>) — <strong>losing this = unrecoverable backups</strong> | |
+<code>restic-r2-env.ultraviolence</code> | per-host restic R2 backend env (<code>RESTIC_REPOSITORY</code> + R2 creds) | |
+<code>restic-r2-env.watchtower</code> | per-host restic R2 backend env | | <code>nativelink-r2-env</code> | nativelink R2
+CAS creds (<a href="#remote-execution-nativelink">Remote execution</a>) | | <code>atticd-rs256</code> | atticd RS256 JWT signing secret
++ <code>PGPASSWORD</code> + R2 <code>AWS_*</code> (<a href="#binary-cache-attic">attic</a>) | | <code>attic-push-token</code> | raw JWT for <code>watch-store</code>
+auto-push to the <code>hypermodern</code> cache | | <code>attic-cache-keypair</code> | the cache’s <code>NixKeypair</code> (restored
+into postgres on activation) |</p>
+<h2 id="user-secrets"><a class="header" href="#user-secrets">User secrets</a></h2>
+<p>Deployed via the home-manager agenix module under <code>agenix/users/b7r6/</code>:</p>
+<p>| Secret | Purpose | |—|—| | <code>netrc</code> | machine credentials (<code>~/.netrc</code>) | | <code>atuin-key</code> | atuin
+shell-history sync key | | <code>hf-token</code> | HuggingFace token | | <code>rclone-conf</code> | full <code>rclone.conf</code> (R2
+remote + creds), also used by the system rclone mount |</p>
+<h2 id="admin-devshell--flake-apps"><a class="header" href="#admin-devshell--flake-apps">Admin devShell + flake apps</a></h2>
+<p>Every management command in <code>secrets/sh/</code> is a <code>shellcheck</code>/<code>shfmt</code>-clean script, wrapped as a
+<code>writeShellApplication</code> with pinned <code>runtimeInputs</code> (<code>agenix</code>, <code>age</code>, <code>rage</code>, <code>ssh-to-age</code>,
+<code>openssh</code>, …) and exposed <strong>both</strong> as a package in the <code>secrets</code> devShell and as a standalone flake
+app.</p>
+<p>Each command is git-root-aware: it locates the repo’s <code>secrets/</code> directory, <code>cd</code>s there, and exports
+<code>RULES=$SECRETS_DIR/secrets.nix</code> so <code>agenix</code> finds the rules file no matter where you invoke it.</p>
+<pre><code class="language-sh">nix develop .#secrets          # drop into the admin shell (prints the usage banner)
+nix run .#rekey-secrets        # …or run any command as a flake app
+</code></pre>
+<p>| Command / app | What it does | |—|—| | <code>list-secrets</code> | list every <code>.age</code> + on-disk status;
+flags secrets declared in <code>secrets.nix</code> but <strong>missing</strong> on disk | | <code>view-secret &lt;path&gt;</code> | decrypt
+to stdout (uses <code>EDITOR=cat</code>, no rewrite) | | <code>edit-secret &lt;path&gt;</code> | open in <code>$EDITOR</code> (creating if
+absent) | | <code>new-secret &lt;path&gt;</code> | create from <code>$EDITOR</code> input; reminds you to add it to
+<code>secrets.nix</code> | | <code>rotate-secret &lt;path&gt;</code> | timestamped (gitignored) backup, then re-edit | |
+<code>rekey-secrets</code> | <code>agenix -r</code> — re-encrypt <strong>all</strong> secrets to the current <code>keys.nix</code> recipients | |
+<code>init-secrets</code> | create empty placeholders for any secret declared but missing | |
+<code>validate-secrets</code> | verify every secret decrypts with the operator’s <code>~/.ssh</code> identities | |
+<code>scan-host-key &lt;host&gt;</code> | <code>ssh-keyscan</code> a host’s ed25519 key, formatted for pasting into <code>keys.nix</code> |
+| <code>init-passage</code> | write <code>~/.passage/identities</code> from your SSH keys | | <code>secrets-usage</code> | the help
+banner |</p>
+<h3 id="common-flows"><a class="header" href="#common-flows">Common flows</a></h3>
+<pre><code class="language-sh"># add a host: scan → paste into keys.nix → rekey
+nix run .#scan-host-key -- newbox
+$EDITOR secrets/keys.nix
+nix run .#rekey-secrets
+
+# create + declare a new machine secret
+nix run .#new-secret -- agenix/machines/some-key.age
+# then add to secrets.nix:  "agenix/machines/some-key.age".publicKeys = mkGlobalSecret;
+nix run .#rekey-secrets
+
+# verify everything decrypts with your keys
+nix run .#validate-secrets
+</code></pre>
+<p>The operator’s <strong>user</strong> secrets (<code>HF_TOKEN</code>, <code>NETRC_PATH</code>, …) are auto-loaded into the <em>default</em>
+devshell env separately, by <code>modules/flake/devshell.nix</code> via <code>agenix-shell</code> — that is independent of
+this admin surface.</p>
+<h2 id="how-a-host-wires-a-secret"><a class="header" href="#how-a-host-wires-a-secret">How a host wires a secret</a></h2>
+<p>A host declares the agenix secret (pointing at the <code>.age</code> file in the repo) and imports the agenix
+NixOS module; agenix decrypts it to <code>/run/agenix/&lt;name&gt;</code> at activation. Modules then reference that
+runtime path — never the store.</p>
+<pre><code class="language-nix"># configurations/nixos/&lt;host&gt;/configuration.nix
+imports = [ inputs.agenix.nixosModules.default ];
+
+age.secrets.tailscale-auth-key.file =
+  ../../../secrets/agenix/machines/tailscale-auth-key.age;
+
+hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
+</code></pre>
+<p>Secrets that must be readable by a non-root service set <code>group</code>/<code>mode</code> — e.g. the
+<a href="#postgresql">postgres</a> <code>rolePasswords</code> feature grants the <code>postgres</code> group <code>0440</code> read on the
+password secret so a <code>postgres</code>-run oneshot can source it.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="tailscale"><a class="header" href="#tailscale">Tailscale</a></h1>
+<p>The tailnet is the fleet’s spine: every inter-host service (postgres, attic, nativelink) is
+reachable over <code>tailscale0</code> and <strong>only</strong> over <code>tailscale0</code>. Configured by
+<code>modules/nixos/network.nix</code> under <code>hyper-modern-nixos.network.tailscale.*</code> (adapted from
+<code>straylight-infra</code>’s <code>fxy.services.tailscale</code>).</p>
+<p>Tailnet domain: <strong><code>osiris-walleye.ts.net</code></strong> (MagicDNS). Set via
+<code>hyper-modern-nixos.network.tailnet.domain</code>.</p>
+<h2 id="the-safety-net-declarative-enrollment"><a class="header" href="#the-safety-net-declarative-enrollment">The safety net: declarative enrollment</a></h2>
+<p>The headline precaution is <strong>declarative auth-key enrollment</strong>. When a host has the auth-key agenix
+secret wired (<code>authKeyFile</code> set), <code>tailscaled</code> enrolls non-interactively on first boot — a
+rebuild/reinstall <strong>can’t strand a remote box</strong> off the tailnet waiting for a manual <code>tailscale up</code>.</p>
+<pre><code class="language-nix"># configurations/nixos/&lt;host&gt;/configuration.nix
+age.secrets.tailscale-auth-key.file =
+  ../../../secrets/agenix/machines/tailscale-auth-key.age;
+
+hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
+</code></pre>
+<p>Hosts <strong>without</strong> the secret keep working exactly as before (manual enrollment), so this is
+non-breaking. <code>watchtower</code> enables it unconditionally precisely because it is remote — see
+<code>configurations/nixos/watchtower/configuration.nix</code>.</p>
+<p>Use a <strong>reusable, pre-authorized</strong> key (ideally tagged, <code>ephemeral=false</code>) from the Tailscale admin
+console. The secret is <a href="#secrets-agenix"><code>tailscale-auth-key</code></a>.</p>
+<h2 id="option-surface"><a class="header" href="#option-surface">Option surface</a></h2>
+<p>All under <code>hyper-modern-nixos.network.tailscale</code>:</p>
+<p>| Option | Type / default | Effect | |—|—|—| | <code>authKeyFile</code> | path, <code>null</code> | declarative
+enrollment (an agenix runtime path, never the store) | | <code>acceptRoutes</code> | bool, <code>true</code> |
+<code>--accept-routes</code> — accept subnet routes from other nodes | | <code>acceptDNS</code> | bool, <code>true</code> |
+<code>--accept-dns</code> — accept MagicDNS / tailnet DNS | | <code>advertiseRoutes</code> | list, <code>[ ]</code> |
+<code>--advertise-routes=…</code> — be a subnet router | | <code>advertiseExitNode</code> | bool, <code>false</code> |
+<code>--advertise-exit-node</code> | | <code>acceptExitNode</code> | bool, <code>false</code> | <code>--exit-node-allow-lan-access</code> | |
+<code>exitNode</code> | str, <code>null</code> | route egress through this exit node, via a <code>tailscale set</code> oneshot (see
+<a href="#using-an-exit-node-exitnode">Using an exit node</a>) | | <code>advertiseConnector</code> | bool, <code>false</code> |
+<code>--advertise-connector</code> — be an app connector | | <code>sshAdvertise</code> | bool, <code>true</code> | advertise
+Tailscale SSH (<code>--ssh=false</code> when off) | | <code>tags</code> | list, <code>[ ]</code> | <code>--advertise-tags=…</code> (must be
+authorized by the tailnet ACL) | | <code>hostname</code> | str, <code>null</code> | <code>--hostname=…</code> override the registered
+name | | <code>encryptState</code> | bool, <code>false</code> | TPM-encrypt the <code>tailscaled</code> state file |</p>
+<p><code>encryptState</code> is <strong>off</strong> by default: our boxes are reflashed often, where a TPM can enter
+DA-lockout and crash-loop <code>tailscaled</code> (per straylight’s note). When off, the module passes
+<code>--encrypt-state=false</code>. Turn it on only for stable servers with a healthy TPM.</p>
+<h2 id="routing-features-auto-detected"><a class="header" href="#routing-features-auto-detected">Routing features auto-detected</a></h2>
+<pre><code class="language-nix">routes = ts.advertiseRoutes != [ ] || ts.advertiseExitNode;
+services.tailscale.useRoutingFeatures = if routes then "both" else "client";
+</code></pre>
+<p><code>useRoutingFeatures</code> is <code>"both"</code> <strong>only when the node actually routes</strong> (it advertises routes or an
+exit node); otherwise it’s a plain <code>"client"</code>. This avoids forcing routing features and
+IP-forwarding onto workstations that don’t need them. Correspondingly, the IP-forwarding sysctls are
+only set when the node routes:</p>
+<pre><code class="language-nix">boot.kernel.sysctl = mkIf routes {
+  "net.ipv4.ip_forward" = 1;
+  "net.ipv6.conf.all.forwarding" = 1;
+};
+</code></pre>
+<h2 id="using-an-exit-node-exitnode"><a class="header" href="#using-an-exit-node-exitnode">Using an exit node (<code>exitNode</code>)</a></h2>
+<p>Exit-node selection is a <strong>runtime, per-device</strong> knob, so it’s applied via a <code>tailscale set</code>
+<strong>oneshot</strong> (<code>tailscale-exit-node.service</code>) — <em>not</em> <code>up</code> flags (which would clobber any manual
+<code>tailscale set</code> on the next activation). The unit is only emitted when a node is pinned:</p>
+<pre><code class="language-nix">hyper-modern-nixos.network.tailscale.exitNode = "us-mia-wg-001.mullvad.ts.net";
+</code></pre>
+<p>→ runs <code>tailscale set --exit-node=&lt;node&gt; --exit-node-allow-lan-access</code> (LAN + tailnet stay
+reachable; everything else exits through the node). A rebuild re-asserts the pin.</p>
+<p>This is how the <strong>Mullvad Miami</strong> routing on <code>ultraviolence</code> works (the Mullvad add-on enabled in
+the Tailscale console exposes <code>us-mia-*</code> exit nodes). To change relays or clear at runtime:</p>
+<pre><code class="language-bash">tailscale exit-node list --filter=USA | grep -i miami
+sudo tailscale set --exit-node=us-mia-wg-002.mullvad.ts.net --exit-node-allow-lan-access
+sudo tailscale set --exit-node=     # clear (direct egress)
+</code></pre>
+<p>To clear a <em>pinned</em> node, set <code>exitNode = null</code> and run the clear command once (the unit isn’t
+emitted when null, so it won’t auto-clear). See
+<a href="#searxng--torrents">SearXNG + torrents</a> for the full Miami setup.</p>
+<h2 id="throughput-tuning-tailscale-ethtool"><a class="header" href="#throughput-tuning-tailscale-ethtool">Throughput tuning (<code>tailscale-ethtool</code>)</a></h2>
+<p>A <code>oneshot</code> systemd unit (<code>tailscale-ethtool</code>) tunes the default NIC’s offloads after
+<code>network-online.target</code>. UDP GRO forwarding materially improves WireGuard throughput on many drivers
+(straylight):</p>
+<pre><code class="language-sh">NETDEV=$(ip -o route get 8.8.8.8 | cut -f5 -d' ')
+ethtool -K "$NETDEV" rx-udp-gro-forwarding on rx-gro-list off
+</code></pre>
+<h2 id="firewall-posture"><a class="header" href="#firewall-posture">Firewall posture</a></h2>
+<p><code>services.tailscale.openFirewall = true</code> and <code>tailscale0</code> is a <code>trustedInterface</code> (all traffic on it
+allowed). Public ports are minimal: TCP <code>22</code> and <code>3000</code>, UDP <code>41641</code> (the Tailscale endpoint), with
+<code>checkReversePath = "loose"</code>.</p>
+<p>Per-service, interface-scoped ports merge in cleanly on top — e.g. <a href="#postgresql">postgres</a> opens
+<code>5432</code> only on <code>tailscale0</code>, and <a href="#binary-cache-attic">attic</a>/<a href="#remote-execution-nativelink">nativelink</a> open their
+gRPC/HTTP ports only on the trusted interfaces. The fleet otherwise runs firewall-off; the DB host
+re-enables its firewall so those interface-scoped rules bite.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="binary-cache-attic"><a class="header" href="#binary-cache-attic">Binary cache (attic)</a></h1>
+<p>The fleet runs <a href="https://github.com/zhaofengli/attic">attic</a> (<code>atticd</code>) as a shared, R2-backed Nix
+binary cache named <strong><code>hypermodern</code></strong>. Built from <code>modules/nixos/attic.nix</code> (the low-level option
+surface) and <code>modules/nixos/attic-node.nix</code> (a profile selector). <strong>Off by default.</strong></p>
+<p>Cache public key:</p>
+<pre><code>hypermodern:x+kBunu5nD1KOhzCIawyZeq8w0LV0GC6A7suIRoHTm8=
+</code></pre>
+<h2 id="topology-replicated-api-server--shared-state"><a class="header" href="#topology-replicated-api-server--shared-state">Topology: replicated api-server + shared state</a></h2>
+<p>Per the attic docs, <code>atticd</code> splits cleanly:</p>
+<ul>
+<li><strong>api-server</strong> — STATELESS, can be replicated. We run one per host.</li>
+<li><strong>garbage-collector</strong> — CANNOT be replicated. <strong>Exactly one</strong> node runs it.</li>
+<li><strong>monolithic</strong> — runs everything (api-server + the GC); single instance.</li>
+</ul>
+<p>All durable state lives <strong>outside</strong> <code>atticd</code>:</p>
+<ul>
+<li><strong>postgres</strong> (on <a href="#postgresql"><code>watchtower</code></a>) holds cache metadata.</li>
+<li>an <strong>R2 bucket</strong> (<code>straylight-attic-cache</code>) holds the content-addressed NAR/chunk store. Dedup is
+<strong>global</strong> — every host’s local api-server reads/writes the same logical cache.</li>
+</ul>
+<pre><code>                      ┌──────────────────────────────────────────┐
+                      │  shared state (the single source of truth)│
+                      │                                            │
+   ┌──────────┐  pg   │   postgres (watchtower)   R2 chunk store   │
+   │ replica  │──────▶│        (metadata)        (content-addr,    │
+   │ api-srv  │  R2   │                           global dedup)    │
+   └────┬─────┘──────▶└──────────────────────────────────────────┘
+        │ localhost:8080                       ▲   ▲
+   substituters first                          │   │
+                                          ┌────┴───┴────┐
+                                          │ monolithic- │  api-server + the
+                                          │   shared    │  ONE gc + migrations
+                                          │ (watchtower)│
+                                          └─────────────┘
+</code></pre>
+<p>Each host points its Nix <strong>substituters at its OWN <code>localhost:8080</code> first</strong>, so there’s no
+serialization through one box — but the truth is shared. The RS256 JWT signing secret is <strong>identical
+on every node</strong> so tokens verify fleet-wide.</p>
+<h2 id="the-attic-node-profile-selector"><a class="header" href="#the-attic-node-profile-selector">The <code>attic-node</code> profile selector</a></h2>
+<p><code>hyper-modern-nixos.attic-node</code> is a profile over the orthogonal axes (mode × database × storage),
+so any host switches cleanly <strong>regardless of fleet state</strong>. The cache identity (name, public key,
+push token) is constant, so a host flips between profiles by changing one enum with no other churn.</p>
+<p>| Profile | Mode | Database | Storage | Fleet dependency | |—|—|—|—|—| | <code>standalone</code> |
+monolithic | local sqlite (or local pg via <code>standalonePostgres</code>) | local fs (or R2 via <code>r2.enable</code>)
+| <strong>none</strong> — activates anywhere, today | | <code>replica</code> | api-server | shared pg over the tailnet | R2
+| needs shared pg <strong>up + already migrated</strong> | | <code>monolithic-shared</code> | monolithic | local pg (it
+<strong>is</strong> the pg host) | R2 | watchtower’s role: pg + the single GC + migrations |</p>
+<p><code>standalone</code> is the profile to run before watchtower’s shared postgres exists, or for any island
+cache. <code>replica</code> requires the shared backend up — a bare api-server does not run migrations.
+<strong>Exactly one</strong> node uses <code>monolithic-shared</code>.</p>
+<pre><code class="language-nix"># configurations/nixos/watchtower/configuration.nix  (the central backend)
+age.secrets.atticd-rs256.file        = …/atticd-rs256.age;
+age.secrets.attic-push-token.file    = …/attic-push-token.age;
+age.secrets.attic-cache-keypair.file = …/attic-cache-keypair.age;
+hyper-modern-nixos.attic-node = { enable = true; profile = "monolithic-shared"; };
+
+# configurations/nixos/ultraviolence/configuration.nix  (a stateless replica)
+age.secrets.atticd-rs256.file     = …/atticd-rs256.age;
+age.secrets.attic-push-token.file = …/attic-push-token.age;
+hyper-modern-nixos.attic-node = { enable = true; profile = "replica"; };
+</code></pre>
+<p>Every profile also enables the client side: substituters → <code>localhost:8080</code> first, trusts the public
+key, and runs <code>attic watch-store</code> for auto-push.</p>
+<h2 id="passwordless-databaseurl--pgpassword"><a class="header" href="#passwordless-databaseurl--pgpassword">Passwordless <code>databaseUrl</code> + <code>PGPASSWORD</code></a></h2>
+<p>The postgres connection string set in the config file is <strong>passwordless</strong> and non-secret:</p>
+<pre><code>postgresql://atticd@watchtower.osiris-walleye.ts.net/atticd
+</code></pre>
+<p>attic uses <code>sea-orm</code> + <code>sqlx-postgres</code>, and <code>sqlx</code> honors libpq env vars — so the password is
+supplied <strong>separately</strong> via <code>PGPASSWORD</code> inside the agenix env file and <strong>never enters the Nix
+store</strong>. A password in the URL would leak into the store via the rendered config; the module
+<code>mkForce</code>s the passwordless URL and lets <code>PGPASSWORD</code> do the auth.</p>
+<p>The <code>monolithic-shared</code> profile (watchtower) maps the URL to <code>localhost</code> since it <em>is</em> the pg host;
+<code>replica</code> uses the remote tailnet URL. It also sets the <code>atticd</code> role password declaratively from
+the <strong>same</strong> agenix secret atticd reads <code>PGPASSWORD</code> from (via
+<a href="#postgresql">postgres <code>rolePasswords</code></a>), so the md5 login and client password can’t drift.</p>
+<h2 id="the-env-file-atticd-rs256"><a class="header" href="#the-env-file-atticd-rs256">The env file (<code>atticd-rs256</code>)</a></h2>
+<p>One agenix secret, <a href="#secrets-agenix"><code>atticd-rs256</code></a>, carries everything that may <strong>not</strong> touch the
+store, as single-line env vars (systemd <code>EnvironmentFile</code> can’t parse a multi-line PEM):</p>
+<pre><code>ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64=&lt;base64 -w0 of an RSA PKCS1 PEM&gt;
+PGPASSWORD=&lt;postgres password for the atticd role&gt;      # sqlx reads it
+AWS_ACCESS_KEY_ID=…                                      # R2 chunk-store creds
+AWS_SECRET_ACCESS_KEY=…
+</code></pre>
+<p>Generate the RS256 secret once and store it fleet-wide (it MUST be identical on every node):</p>
+<pre><code class="language-sh">echo "ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64=$(openssl genrsa -traditional 4096 | base64 -w0)"
+</code></pre>
+<p>The push token (<a href="#secrets-agenix"><code>attic-push-token</code></a>) is a raw JWT minted with:</p>
+<pre><code class="language-sh">atticd-atticadm make-token --sub &lt;host&gt;-push --validity 10y \
+  --pull hypermodern --push hypermodern
+</code></pre>
+<h2 id="cache-signing-keypair-persistence"><a class="header" href="#cache-signing-keypair-persistence">Cache signing keypair persistence</a></h2>
+<p>This is the subtle part. attic stores the cache’s signing keypair <strong>only</strong> in the postgres <code>cache</code>
+table and has <strong>no import CLI</strong>. So a postgres wipe regenerates the key, and every client’s trusted
+public key breaks.</p>
+<p>To make the signing identity <strong>stable and recoverable regardless of postgres state</strong>, we persist the
+<code>NixKeypair</code> string in agenix (<a href="#secrets-agenix"><code>attic-cache-keypair</code></a>) and restore it into the
+<code>cache</code> row on activation:</p>
+<ul>
+<li>
+<p>The secret is granted <code>group = "postgres"</code>, <code>mode = "0440"</code> (postgres-readable).</p>
+</li>
+<li>
+<p>A <code>oneshot</code> (<code>attic-cache-keypair-restore</code>) runs after <code>postgresql-role-passwords.service</code> and
+<strong>before</strong> <code>atticd.service</code>, as the <code>postgres</code> user, and idempotently:</p>
+<pre><code class="language-sql">UPDATE cache SET keypair = '&lt;agenix value&gt;' WHERE name = 'hypermodern';
+</code></pre>
+</li>
+</ul>
+<p>It only <strong>updates an existing</strong> row (the row is created at bootstrap by <code>attic cache create</code>),
+keeping the signing key stable thereafter. Only the <code>monolithic-shared</code> node does this. Set
+<code>keypairSecret = null</code> to disable restore and use the DB-generated key (which changes on a wipe).</p>
+<blockquote>
+<p><code>atticd</code> is also ordered <code>after</code>/<code>wants</code> the role-password oneshot, so it never races md5 auth and
+crash-loops before the password is set.</p>
+</blockquote>
+<h2 id="client-side--watch-store-auto-push"><a class="header" href="#client-side--watch-store-auto-push">Client side &amp; <code>watch-store</code> auto-push</a></h2>
+<p><code>hyper-modern-nixos.attic.clientCache</code> (set automatically by every <code>attic-node</code> profile) wires the
+cache as a substituter, trusts its key, and runs auto-push:</p>
+<ul>
+<li><strong>Substituter, consulted first</strong>: prepended with <code>mkBefore</code> and given <code>?priority=10</code>, so Nix tries
+<code>hypermodern</code> before <code>cache.nixos.org</code> (40).</li>
+<li><strong><code>attic watch-store</code></strong>: the canonical daemon (<code>atticd-watch-store.service</code>) watches the store and
+uploads <strong>new</strong> paths continuously — strictly better than a post-build-hook (catches built <strong>and</strong>
+substituted/copied-in paths, runs async, no <code>OUT_PATHS</code> plumbing). Only started when a push token
+is provided (else pull-only).</li>
+<li>Auth via a generated client config (<code>XDG_CONFIG_HOME</code>) whose only secret is a <code>token-file</code>
+reference to the agenix path — the JWT never enters the store.</li>
+<li>Ordered after <code>tailscaled.service</code> so the cache’s MagicDNS endpoint resolves (otherwise it races
+DNS at boot and crash-loops on NXDOMAIN).</li>
+</ul>
+<p>Hosts that don’t run <code>atticd</code> can still be pure clients via <code>hyper-modern-nixos.attic.clientCache</code>
+pointing at a server over the tailnet.</p>
+<h2 id="firewall"><a class="header" href="#firewall">Firewall</a></h2>
+<p><code>atticd</code> binds <code>[::]:8080</code> but the port is opened <strong>only</strong> on <code>trustedInterfaces</code> (<code>tailscale0</code>), so
+the cache is tailnet-reachable, never internet-exposed.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="postgresql"><a class="header" href="#postgresql">PostgreSQL</a></h1>
+<p>PostgreSQL (and Redis) from <code>modules/nixos/postgres.nix</code>, under <code>hyper-modern-nixos.databases</code>.
+<strong>Off by default.</strong></p>
+<p>This module previously enabled postgres unconditionally on <em>every</em> host. It is now <strong>opt-in</strong>: the
+fleet runs exactly one shared postgres (on <a href="#binary-cache-attic"><code>watchtower</code></a>) backing the central
+<a href="#binary-cache-attic">attic</a> cache’s metadata. Other hosts don’t need a local postgres.</p>
+<pre><code class="language-nix">hyper-modern-nixos.databases.postgres = {
+  enable = true;
+  tailnet.enable = true;
+  ensureDatabases = [ "atticd" ];
+  ensureUsers = [ { name = "atticd"; ensureDBOwnership = true; } ];
+};
+</code></pre>
+<p>Package defaults to <code>postgresql_16</code>.</p>
+<h2 id="tailnet-exposure-model"><a class="header" href="#tailnet-exposure-model">Tailnet exposure model</a></h2>
+<p>When <code>tailnet.enable</code> is set, exposure is gated at <strong>two layers</strong> (defense in depth):</p>
+<ol>
+<li><strong>Firewall</strong> — port <code>5432</code> is opened <strong>only</strong> on <code>tailnet.interface</code> (<code>tailscale0</code>), via
+<code>networking.firewall.interfaces</code>. Postgres is more sensitive than a pull cache, so the host
+should re-enable its firewall (<code>hyper-modern-nixos.network.firewall.enable = true</code>) so this
+interface-scoped rule actually bites. The rest of the fleet runs firewall-off; the DB host opts
+back in (watchtower does exactly this).</li>
+<li><strong><code>pg_hba</code></strong> — md5 auth permitted only from loopback + the tailnet CIDRs.</li>
+</ol>
+<p><code>enableTCPIP</code> is driven by <code>tailnet.enable</code> (it sets <code>listen_addresses = "*"</code>, the blessed NixOS
+knob). <code>listen_addresses</code> takes addresses, not interface names, so binding the specific tailscale IP
+isn’t possible declaratively — <code>"*"</code> + firewall + <code>pg_hba</code> is the pattern. The generated <code>pg_hba</code>:</p>
+<pre><code># TYPE  DATABASE  USER  ADDRESS              METHOD
+local   all       all                        peer
+host    all       all   127.0.0.1/32         md5
+host    all       all   ::1/128              md5
+host    all       all   100.64.0.0/10        md5   # tailscale CGNAT (IPv4)
+host    all       all   fd7a:115c:a1e0::/48  md5   # tailscale ULA (IPv6)
+</code></pre>
+<p>The CIDRs come from <code>tailnet.cidrs</code> (defaults above). atticd replicas on other hosts connect over
+MagicDNS (<code>watchtower.osiris-walleye.ts.net</code>).</p>
+<h2 id="declarative-databases--users"><a class="header" href="#declarative-databases--users">Declarative databases &amp; users</a></h2>
+<ul>
+<li><code>ensureDatabases</code> → <code>services.postgresql.ensureDatabases</code></li>
+<li><code>ensureUsers</code> → <code>services.postgresql.ensureUsers</code></li>
+</ul>
+<p>These are <strong>peer-auth only</strong> — <code>ensureUsers</code> <strong>cannot set a password</strong>. For password auth use
+<code>rolePasswords</code> (below).</p>
+<h2 id="rolepasswords-declarative-passwords-from-agenix"><a class="header" href="#rolepasswords-declarative-passwords-from-agenix"><code>rolePasswords</code>: declarative passwords from agenix</a></h2>
+<p>Since <code>ensureUsers</code> can’t set passwords, <code>rolePasswords</code> wires a post-start oneshot
+(<code>postgresql-role-passwords.service</code>) that runs an idempotent <code>ALTER ROLE &lt;name&gt; … PASSWORD …</code> for
+each entry, sourcing the password from an <strong>agenix secret</strong> at runtime — never the store.</p>
+<pre><code class="language-nix">hyper-modern-nixos.databases.postgres.rolePasswords.atticd = {
+  secret = "atticd-rs256";   # agenix secret NAME → /run/agenix/atticd-rs256
+  var    = "PGPASSWORD";     # env var within the secret holding the password
+};
+</code></pre>
+<p>Single source of truth: the <strong>same</strong> secret the client (e.g. <a href="#binary-cache-attic">atticd</a>) reads
+<code>PGPASSWORD</code> from, so they can’t drift.</p>
+<p>The module also <strong>grants the postgres user group-read</strong> on the named secret
+(<code>age.secrets.&lt;name&gt;.group = "postgres"</code>, <code>mode = "0440"</code>), so the <code>postgres</code>-run oneshot can source
+it with no manual <code>chown</code>. The secret stays root-owned; atticd reads the same file via systemd
+<code>EnvironmentFile</code> (as root), so group-read doesn’t affect it. The <code>age.secrets</code> grant is only
+emitted when <code>rolePasswords</code> is non-empty (so a host without agenix — e.g. a VM test — never touches
+the age option).</p>
+<h2 id="redis"><a class="header" href="#redis">Redis</a></h2>
+<p><code>hyper-modern-nixos.databases.redis.enable</code> brings up <code>services.redis.servers.""</code>. Off by default.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="backups-restic--r2"><a class="header" href="#backups-restic--r2">Backups (restic → R2)</a></h1>
+<p>restic backups to <strong>Cloudflare R2</strong>, from <code>modules/nixos/backup.nix</code> under
+<code>hyper-modern-nixos.backup</code>. <strong>Off by default</strong>, and refuses to do anything until a host opts in —
+so it cannot brick a box.</p>
+<blockquote>
+<p>Philosophy: <strong>the first backup is done by hand.</strong> You init the repo, run one full backup, and
+verify a restore manually <em>before</em> any systemd timer touches your data. Once you trust it, flip
+<code>enable = true</code> and the timer takes over the exact same repo with the exact same settings. See
+also <a href="../../BACKUP.html"><code>BACKUP.md</code></a> in the repo root.</p>
+</blockquote>
+<h2 id="per-host-repo-layout"><a class="header" href="#per-host-repo-layout">Per-host repo layout</a></h2>
+<p>One R2 bucket, <strong>one repo per machine</strong> under a per-host prefix (<code>backups-restic/&lt;host&gt;</code>), so each
+host gets an isolated repo — own locks, own retention — while sharing the same bucket and R2 token.</p>
+<p>The repo URL and backend creds live in a <strong>per-host agenix env file</strong>
+(<a href="#secrets-agenix"><code>restic-r2-env.&lt;host&gt;</code></a>), keeping the account id out of the Nix store:</p>
+<pre><code>RESTIC_REPOSITORY=s3:https://&lt;acct&gt;.r2.cloudflarestorage.com/&lt;bucket&gt;/&lt;host&gt;
+AWS_ACCESS_KEY_ID=…
+AWS_SECRET_ACCESS_KEY=…
+AWS_DEFAULT_REGION=auto
+</code></pre>
+<p>The repo password is the separate <a href="#secrets-agenix"><code>restic-password</code></a> secret (shared fleet-wide).
+<strong>Losing this = unrecoverable backups</strong> — keep an out-of-band copy.</p>
+<pre><code class="language-nix"># configurations/nixos/watchtower/configuration.nix
+age.secrets.restic-password.file = …/restic-password.age;
+age.secrets.restic-r2-env.file   = …/restic-r2-env.watchtower.age;
+
+hyper-modern-nixos.backup = {
+  enable = true;
+  passwordFile    = "/run/agenix/restic-password";
+  environmentFile = "/run/agenix/restic-r2-env";   # carries RESTIC_REPOSITORY
+  paths = [ "/home" ];                              # widen to /etc /var/lib once trusted
+};
+</code></pre>
+<p>When the env file provides <code>RESTIC_REPOSITORY</code>, leave <code>.repository</code> empty — the module passes
+<code>repository = null</code> so restic’s upstream “exactly one source” assertion passes and the env file is
+the sole source of the location.</p>
+<h2 id="exclude-list"><a class="header" href="#exclude-list">Exclude list</a></h2>
+<p>The defaults exclude everything re-downloadable, so R2 only ever holds irreplaceable data:</p>
+<ul>
+<li><strong>Caches</strong> — <code>~/.cache</code>, <code>~/.local/state/nix</code>, <code>~/.local/share/{uv,pnpm,virtualenvs}</code>, <code>~/.npm</code>,
+<code>~/.cargo/registry</code>, <code>~/.rustup</code>, <code>~/.ollama/models</code>, Trash.</li>
+<li><strong>ML/model weights, by extension</strong> (blanket — disposable everywhere on these boxes):
+<code>*.safetensors</code>, <code>*.ckpt</code>, <code>*.gguf</code>, <code>*.pt</code>, <code>*.pth</code>, <code>*.onnx</code>, <code>*.h5</code>, <code>*.pb</code>, plus <code>~/models</code>
+and <code>~/.cache/huggingface</code>.</li>
+<li><strong>Build/VCS scratch</strong> — <code>/var/lib/{docker,containers}</code>, <code>**/node_modules</code>, <code>**/.direnv</code>,
+<code>**/result{,-bin}</code>, <code>**/target</code>, <code>**/__pycache__</code>, <code>**/.venv</code>, <code>**/.mypy_cache</code>, <code>**/.ruff_cache</code>,
+<code>**/.pytest_cache</code>.</li>
+</ul>
+<blockquote>
+<p>If a future host does <strong>real</strong> training, override <code>exclude</code> there to keep its run outputs (the
+weight exclusions are deliberately blanket).</p>
+</blockquote>
+<h2 id="schedule-retention-integrity"><a class="header" href="#schedule-retention-integrity">Schedule, retention, integrity</a></h2>
+<p>| Setting | Default | |—|—| | <code>timerConfig</code> | <code>OnCalendar=daily</code>, <code>Persistent=true</code>,
+<code>RandomizedDelaySec=1h</code> | | <code>pruneOpts</code> |
+<code>--keep-daily 7 --keep-weekly 5 --keep-monthly 12 --keep-yearly 3</code> | | <code>checkOpts</code> |
+<code>--read-data-subset=10%</code> (runs after each backup) | | <code>initialize</code> | <code>false</code> — the repo <strong>must</strong>
+exist already |</p>
+<p>The timer (<code>restic-backups-system.timer</code>) runs the backup, prunes to the retention policy, then runs
+a partial integrity check so a slowly-corrupting repo is caught by the timer rather than at restore
+time. <code>initialize = false</code> is deliberate: a misconfiguration can never silently create a brand-new
+empty repo and “succeed”.</p>
+<h2 id="first-run-by-hand--runbook"><a class="header" href="#first-run-by-hand--runbook">First run (by hand) — runbook</a></h2>
+<p>The very first backup is <strong>manual</strong>, before any timer is enabled:</p>
+<pre><code class="language-sh"># decrypted secrets must be present on the host
+sudo test -r /run/agenix/restic-password
+sudo test -r /run/agenix/restic-r2-env
+
+export RESTIC_PASSWORD_FILE=/run/agenix/restic-password
+
+# 1. init the repo (RESTIC_REPOSITORY + R2 creds come from the env file)
+sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
+  env $(sudo cat /run/agenix/restic-r2-env | xargs) restic init
+
+# 2. one full backup (env file in scope)
+sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
+  env $(sudo cat /run/agenix/restic-r2-env | xargs) restic backup /home
+
+# 3. VERIFY — snapshots, integrity, trial restore
+sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
+  env $(sudo cat /run/agenix/restic-r2-env | xargs) restic snapshots
+sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
+  env $(sudo cat /run/agenix/restic-r2-env | xargs) restic check --read-data-subset=10%
+sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
+  env $(sudo cat /run/agenix/restic-r2-env | xargs) \
+  restic restore latest --target /tmp/restore-test --include /etc/hostname
+</code></pre>
+<p>Only if all three look right: set <code>hyper-modern-nixos.backup.enable = true</code> and rebuild. The timer
+then operates the <strong>same</strong> repo.</p>
+<blockquote>
+<p>A local-repo variant of the runbook (no R2) is in <a href="../../BACKUP.html"><code>BACKUP.md</code></a>.</p>
+</blockquote>
+<h2 id="operating"><a class="header" href="#operating">Operating</a></h2>
+<pre><code class="language-sh">systemctl status  restic-backups-system.service
+systemctl start   restic-backups-system.service     # run now
+journalctl -u     restic-backups-system.service -e
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="remote-execution-nativelink"><a class="header" href="#remote-execution-nativelink">Remote execution (nativelink)</a></h1>
+<p><a href="https://github.com/TraceMachina/nativelink">NativeLink</a> remote-execution / remote-cache
+(Bazel/Buck2 RE), from <code>modules/nixos/nativelink.nix</code> under <code>hyper-modern-nixos.nativelink</code>. <strong>Off
+by default</strong>, R2-backed CAS. This is the <strong>least-mature</strong> piece of the infra.</p>
+<p>There is no upstream NixOS module, so this is a hand-rolled <code>systemd</code> service around the
+<code>nativelink</code> binary from the flake input (it takes a single JSON5 config path). The module generates
+that config from the host’s <code>role</code>.</p>
+<h2 id="current-state-single-box-monolithic-on-ultraviolence"><a class="header" href="#current-state-single-box-monolithic-on-ultraviolence">Current state: single-box monolithic on <code>ultraviolence</code></a></h2>
+<p>Today it’s a single-box <code>monolithic</code> bringup: CAS + scheduler + a local x86_64 worker, all on one
+host, with the CAS/AC stores backed by R2 (local fast tier + R2 slow tier) and TLS terminated at the
+listener via a Tailscale-issued cert.</p>
+<pre><code class="language-nix"># configurations/nixos/ultraviolence/configuration.nix
+age.secrets.nativelink-r2-env.file = …/nativelink-r2-env.age;
+
+hyper-modern-nixos.nativelink = {
+  enable = true;
+  role = "monolithic";
+  publicListen    = "0.0.0.0:50051";    # firewall opens it only on tailscale0
+  workerApiListen = "127.0.0.1:50061";  # private backend, loopback
+  workerApiEndpoint = "grpc://127.0.0.1:50061";
+  openFirewall = true;
+  tls = {
+    enable = true;
+    tailscale = { enable = true; domain = "ultraviolence.osiris-walleye.ts.net"; };
+  };
+  r2 = {
+    enable = true;
+    accountId = "6063b6652178f5cf1cfb87e7e41acf1e";
+    bucket = "straylight-nativelink-cas";
+    environmentFile = "/run/agenix/nativelink-r2-env";  # R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY
+  };
+  localCacheBytes  = 68719476736;  # 64 GiB local NVMe fast tier
+  memoryCacheBytes = 8589934592;   # 8 GiB memory index
+};
+</code></pre>
+<p>The intended multi-arch topology (not yet stood up): split the aarch64 worker out to <code>shimmer</code> (DGX)
+with <code>role = "worker"</code> dialing this host’s <code>worker_api</code> over the tailnet. Remote execution runs
+<strong>native</strong> binaries, so you need one native worker per architecture.</p>
+<p>| <code>role</code> | What runs | |—|—| | <code>monolithic</code> | CAS + scheduler + local worker (single x86_64
+host) | | <code>scheduler</code> | CAS + scheduler only (workers dial in) | | <code>worker</code> | local worker only;
+dials <code>workerApiEndpoint</code> (use on aarch64) |</p>
+<h2 id="storage--secrets"><a class="header" href="#storage--secrets">Storage &amp; secrets</a></h2>
+<p>CAS/AC stores become <code>fast_slow</code> when <code>r2.enable</code>: a local filesystem/memory fast tier in front of
+R2 as the durable slow tier. <code>account_id</code>/<code>bucket</code> are non-secret; creds are read from
+<a href="#secrets-agenix"><code>nativelink-r2-env</code></a> and injected via shellexpand (<code>${R2_ACCESS_KEY_ID}</code> /
+<code>${R2_SECRET_ACCESS_KEY}</code>) so they never enter the store. With <code>r2.enable = false</code>, stores are local
+filesystem only (<code>maxStoreBytes</code>).</p>
+<h2 id="network--tls"><a class="header" href="#network--tls">Network &amp; TLS</a></h2>
+<p><code>publicListen</code> binds all interfaces but <code>openFirewall</code> opens the public (50051) and <code>worker_api</code>
+(50061) ports <strong>only</strong> on <code>trustedInterfaces</code> (<code>tailscale0</code>) — tailnet-only, never internet-exposed.
+TLS terminates at the public listener; a <code>oneshot</code> + daily timer (<code>nativelink-tls-cert</code>)
+provisions/renews a real Tailscale cert for the node’s MagicDNS name, so tailnet clients connect
+over <code>grpcs://</code> (<code>tls=true</code>) with no custom CA.</p>
+<h2 id="the-toolchain--hermeticity-problem"><a class="header" href="#the-toolchain--hermeticity-problem">The toolchain / hermeticity problem</a></h2>
+<p>Standing up CAS + scheduler + worker (this module) is the easy part. Making remote <strong>actions</strong>
+execute correctly is the hard part, and it is <strong>not a server concern</strong> — it lives in the <strong>client</strong>
+(Buck2/Bazel) repo (see the module header):</p>
+<ul>
+<li><strong>Property matching</strong> — the scheduler matches an action’s requested platform properties against
+what a worker advertises (<code>workerProperties</code> + host-derived
+<code>cpu_arch</code>/<code>OSFamily</code>/<code>ISA</code>/<code>container-image</code>/<code>lre-rs</code>). Request a property no worker advertises →
+the action never schedules. This routes work; it does <strong>not</strong> make it reproducible.</li>
+<li><strong>Hermeticity</strong> — a remote worker runs the action’s command on <strong>its</strong> filesystem. The fix
+(NativeLink’s LRE docs) is a content-addressed toolchain: every referenced tool is a
+<code>/nix/store/...</code> path. Because our workers are NixOS and share <code>/nix/store</code>, a Buck2 toolchain
+pointing at store binaries is hermetic <strong>and</strong> cache-shareable. FHS paths are not.</li>
+</ul>
+<p><code>instanceName</code> (default <code>main</code>) must match the client’s <code>.buckconfig instance_name</code>. The module
+ships a default per-action <code>entrypoint</code> wrapper that prepends a baseline nix-pinned toolchain
+(coreutils/bash/findutils/sed/grep/awk) to <code>PATH</code> — the minimum to make non-LRE <code>genrule</code>/<code>sh</code>
+actions run at all (remote actions run with <strong>no</strong> inherited <code>PATH</code>). It is <strong>not</strong> full
+hermeticity; override via <code>workerEntrypoint</code>.</p>
+<blockquote>
+<p>Build note: NativeLink is not in nixpkgs and builds ~640+ derivations from source. Add
+<code>nativelink.cachix.org</code> to <code>nix.settings.substituters</code> before enabling on any host, or expect a
+very long first build.</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="searxng--torrents"><a class="header" href="#searxng--torrents">SearXNG + torrents</a></h1>
+<p>Two tailnet-facing services incubating on <code>ultraviolence</code>, plus the Mullvad Miami exit-node routing
+that sits underneath them. Both are off-by-default <code>hyper-modern-nixos.*</code> modules, so they can
+graduate to a dedicated host by flipping <code>enable</code> elsewhere.</p>
+<p>| service | module | port (on ultraviolence) | reach | |—|—|—|—| | SearXNG |
+<code>modules/nixos/searxng.nix</code> | <code>8889</code> (<code>8888</code> taken by docker there) | tailnet | | flood (web UI) |
+<code>modules/nixos/torrents.nix</code> | <code>3001</code> | tailnet | | transmission (RPC) |
+<code>modules/nixos/torrents.nix</code> | <code>9091</code> | loopback | | transmission (peer) |
+<code>modules/nixos/torrents.nix</code> | <code>51413</code> | all ifaces |</p>
+<p>All egress from the box — including transmission — exits <strong>Mullvad Miami</strong> (see
+<a href="#mullvad-miami-exit-node">Exit node</a> below and <a href="#tailscale">Tailscale</a>).</p>
+<h2 id="searxng"><a class="header" href="#searxng">SearXNG</a></h2>
+<p><code>hyper-modern-nixos.searxng</code> — a privacy-maxed metasearch:</p>
+<ul>
+<li>no metrics / <code>disable-logging</code>, image proxy on, <code>google</code>/<code>bing</code> engines off, a curated engine set
+(ddg, brave, startpage, wikipedia, github, hackernews, arch/nixos wikis).</li>
+<li><strong><code>json</code> / <code>csv</code> / <code>rss</code> formats enabled and the bot-detection <code>limiter</code> OFF</strong> — so the API is
+freely scriptable on the tailnet (e.g. as an LLM web-search backend). Turn <code>limiter = true</code> only
+if ever exposed publicly.</li>
+<li><code>secret_key</code> comes from the agenix env file <code>searxng-env</code>
+(<code>SEARXNG_SECRET=$(openssl rand -hex 32)</code>), via <code>$SEARXNG_SECRET</code> envsubst.</li>
+<li>valkey (<code>redisCreateLocally</code>) backs the rate-limit/cache store; runs under uwsgi (<code>http</code> socket).</li>
+</ul>
+<pre><code class="language-nix">hyper-modern-nixos.searxng = {
+  enable = true;
+  listenAddress = "0.0.0.0"; # tailnet-reachable (firewall gates to tailscale0)
+  port = 8889;               # 8888 collides with a docker container here
+};
+age.secrets.searxng-env.file = ../../../secrets/agenix/machines/searxng-env.age;
+</code></pre>
+<p>Use the JSON API:</p>
+<pre><code class="language-bash">curl -s 'http://ultraviolence.osiris-walleye.ts.net:8889/search?q=nixos&amp;format=json' | jq .
+</code></pre>
+<p>Options: <code>port</code>, <code>listenAddress</code>, <code>baseUrl</code>, <code>environmentFile</code>, <code>openTailnet</code>, <code>limiter</code>.
+Authoritative source: <code>modules/nixos/searxng.nix</code>.</p>
+<h2 id="transmission--flood"><a class="header" href="#transmission--flood">Transmission + flood</a></h2>
+<p><code>hyper-modern-nixos.torrents</code> — <code>transmission_4</code> daemon + <code>flood</code> web UI:</p>
+<ul>
+<li>transmission RPC binds <strong>loopback only</strong> (<code>127.0.0.1:9091</code>); flood is the client. Peer port
+<code>51413</code> is opened for connectivity; <code>encryption = required</code>, dht/pex/utp on.</li>
+<li>RPC password from the agenix <code>credentialsFile</code> (<code>transmission-rpc</code>, JSON <code>{"rpc-password":"…"}</code>) —
+transmission salts it on first start.</li>
+<li><code>download-dir</code> + <code>incomplete-dir</code> are pre-created via <code>systemd.tmpfiles</code> (transmission’s sandbox
+needs <code>incomplete-dir</code> to exist before start).</li>
+<li>flood is served on the tailnet (<code>floodPort = 3001</code>).</li>
+<li><strong>No per-app killswitch</strong>: transmission follows the host default route, so it exits wherever the
+box exits (Miami, via the exit node).</li>
+</ul>
+<pre><code class="language-nix">hyper-modern-nixos.torrents.enable = true;
+age.secrets.transmission-rpc.file = ../../../secrets/agenix/machines/transmission-rpc.age;
+</code></pre>
+<p>First use of flood:</p>
+<ol>
+<li>Open <code>http://ultraviolence.osiris-walleye.ts.net:3001</code>.</li>
+<li>Choose <strong>Transmission</strong>, host <code>127.0.0.1</code>, port <code>9091</code>, user <code>transmission</code>.</li>
+<li>Password: <code>sudo cat /run/agenix/transmission-rpc</code> on the box (the <code>rpc-password</code> value).</li>
+</ol>
+<p>Options: <code>downloadDir</code>, <code>peerPort</code>, <code>rpcPort</code>, <code>floodPort</code>, <code>credentialsFile</code>, <code>openTailnet</code>.
+Authoritative source: <code>modules/nixos/torrents.nix</code>.</p>
+<h2 id="mullvad-miami-exit-node"><a class="header" href="#mullvad-miami-exit-node">Mullvad Miami exit node</a></h2>
+<p>The “exit via Miami” uses <strong>Tailscale’s built-in Mullvad exit nodes</strong> (the Mullvad add-on, enabled
+in the Tailscale admin console — not the local <code>mullvad</code> daemon). Exit-node selection is a runtime,
+per-device knob, so the <a href="#tailscale">Tailscale module</a> applies it via a
+<code>tailscale set</code> <strong>oneshot</strong> (<code>tailscale-exit-node.service</code>), not <code>up</code> flags.</p>
+<p>Pinned declaratively on ultraviolence:</p>
+<pre><code class="language-nix">hyper-modern-nixos.network.tailscale.exitNode = "us-mia-wg-001.mullvad.ts.net";
+</code></pre>
+<p>This runs <code>tailscale set --exit-node=us-mia-wg-001.mullvad.ts.net --exit-node-allow-lan-access</code> so
+the LAN/tailnet stays reachable while all other egress exits Miami.</p>
+<p>There are ~6 <code>us-mia-*</code> relays. To switch at runtime (e.g. if Mullvad retires <code>-001</code>):</p>
+<pre><code class="language-bash">tailscale exit-node list --filter=USA | grep -i miami   # see the options
+sudo tailscale set --exit-node=us-mia-wg-002.mullvad.ts.net --exit-node-allow-lan-access
+sudo tailscale set --exit-node=                          # clear (back to direct)
+</code></pre>
+<p>Verify the egress location:</p>
+<pre><code class="language-bash">curl -s https://am.i.mullvad.net/json | jq '{city, country, server: .mullvad_exit_ip_hostname}'
+# -&gt; { "city": "Miami, FL", "country": "USA", "server": "us-mia-wg-001" }
+</code></pre>
+<blockquote>
+<p>Note: <code>ultraviolence</code> runs with the host firewall <strong>off</strong> (fleet default), so the
+<code>tailscale0</code>-scoped firewall rules in these modules don’t actually gate the ports — they’re
+reachable on any of the box’s interfaces (fine for an incubation host on the LAN/tailnet; tighten
+before exposing more broadly).</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="deploying-a-host"><a class="header" href="#deploying-a-host">Deploying a host</a></h1>
+<p>How to push a NixOS closure to a machine in the fleet. The flake exposes one <code>nixosConfiguration</code>
+per entry in the <code>hosts</code> table of <code>configurations/default.nix</code>: <code>ultraviolence</code>, <code>watchtower</code>,
+<code>weyl</code>, <code>guccimane</code>, <code>shannon</code>, <code>shimmer</code> (aarch64), and <code>test-vm</code>.</p>
+<h2 id="tldr"><a class="header" href="#tldr">TL;DR</a></h2>
+<pre><code class="language-bash"># the local box (ultraviolence) — switch in place
+nixos-rebuild switch --flake .#ultraviolence
+
+# a remote box over the tailnet — build locally first, then push
+nixos-rebuild build  --flake .#watchtower                       # eval + build, no activate
+nixos-rebuild switch --flake .#watchtower \
+  --target-host watchtower --use-remote-sudo
+</code></pre>
+<h2 id="the-proven-remote-pattern"><a class="header" href="#the-proven-remote-pattern">The proven remote pattern</a></h2>
+<p>Build the closure <strong>locally first</strong>, then activate it on the target. Building locally means the
+build host realises from the <a href="#binary-cache-attic">attic cache</a> (cache hit on most paths) and
+only the diff is copied to the target over the tailnet:</p>
+<pre><code class="language-bash"># 1. eval + build locally (cache hit; nothing activates)
+nixos-rebuild build --flake .#watchtower
+
+# 2. activate on the remote, copying the closure over the tailnet.
+#    --use-remote-sudo: run activation under sudo on the target so you SSH in
+#    as your normal user, not root.
+nixos-rebuild switch --flake .#watchtower \
+  --target-host watchtower \
+  --use-remote-sudo
+</code></pre>
+<p><code>--target-host watchtower</code> resolves over MagicDNS — the box must be on the tailnet. Declarative
+Tailscale enrollment (below, and <a href="#tailscale">Tailscale</a>) is what keeps it
+reachable across a rebuild that restarts <code>tailscaled</code>.</p>
+<p>For the local machine you don’t need <code>--target-host</code>:</p>
+<pre><code class="language-bash">nixos-rebuild switch --flake .#ultraviolence
+</code></pre>
+<h2 id="devshell-commands"><a class="header" href="#devshell-commands">Devshell commands</a></h2>
+<p><code>devshell.toml</code> wraps the everyday operations (<code>nix develop</code> / direnv to enter — see
+<a href="#dev-shells">Dev shells</a>). These use <a href="https://github.com/viperML/nh"><code>nh</code></a>:</p>
+<p>| Command | Runs | Purpose | | ———–– | —————— |
+––––––––––––––––––––––– | | <code>switch-os</code> | <code>nh os switch .</code> | Build + switch
+the current host’s NixOS config | | <code>switch-home</code> | <code>nh home switch .</code> | Build + switch the
+standalone home config | | <code>treefmt</code> | <code>nix fmt</code> | Format the tree |</p>
+<p><code>nh os switch .</code> is the local equivalent of <code>nixos-rebuild switch --flake .#&lt;thishost&gt;</code> with a nicer
+closure diff.</p>
+<h2 id="dry-run-safety"><a class="header" href="#dry-run-safety">Dry-run safety</a></h2>
+<p>Always preview what will change before you <code>switch</code>, especially on remote infra:</p>
+<pre><code class="language-bash"># realise the closure but DON'T activate it (safe; just builds)
+nixos-rebuild build --flake .#watchtower
+
+# build, then show what activating WOULD start/stop/restart — no changes made
+nixos-rebuild dry-activate --flake .#watchtower \
+  --target-host watchtower --use-remote-sudo
+</code></pre>
+<p><code>dry-activate</code> prints the systemd units that would be (re)started and the config generation diff
+without touching the running system. Use it before flipping infra switches on <code>watchtower</code>.</p>
+<h2 id="staged-rollout-watchtower"><a class="header" href="#staged-rollout-watchtower">Staged rollout (watchtower)</a></h2>
+<p><code>watchtower</code> carries the fleet’s stateful infra: the shared
+<a href="#postgresql">PostgreSQL</a>, the monolithic <a href="#binary-cache-attic"><code>atticd</code></a>,
+and <a href="#backups-restic--r2">restic backups</a>. It is brought up <strong>incrementally</strong> using local
+boolean flags in <code>configurations/nixos/watchtower/configuration.nix</code>:</p>
+<pre><code class="language-nix">enableInfra  = true;   # postgres + monolithic atticd (the fleet cache backend)
+enableBackup = false;  # restic timer (only after the by-hand `restic init`)
+</code></pre>
+<p>The pattern:</p>
+<ol>
+<li><strong>Baseline deploy</strong> — both flags <code>false</code>. Brings up only the safe baseline: declarative Tailscale
+enrollment + SSH. Confirm the box comes up healthy and stays reachable on the tailnet.</li>
+<li>Flip <code>enableInfra = true</code>, rebuild, verify postgres + atticd are healthy. This also re-enables
+<code>watchtower</code>’s firewall (<code>hyper-modern-nixos.network.firewall.enable</code>) so the postgres
+<code>tailscale0</code>-scoped 5432 rule actually bites — the rest of the fleet runs firewall-off.</li>
+<li>Do the <a href="#b--restic-first-backup-by-hand">restic first backup by hand</a>, then flip
+<code>enableBackup = true</code>, rebuild.</li>
+</ol>
+<p>Rebuild + verify <strong>between each flip</strong>. The <code>lib.mkIf enableInfra</code> / <code>lib.mkIf enableBackup</code> guards
+gate both the <code>age.secrets</code> declarations and the service options, so a baseline deploy never
+references secrets that aren’t wired yet.</p>
+<h2 id="tailscale-safety-net"><a class="header" href="#tailscale-safety-net">Tailscale safety net</a></h2>
+<p><code>watchtower</code> (and any remote box) sets:</p>
+<pre><code class="language-nix">hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
+</code></pre>
+<p>so if a rebuild restarts <code>tailscaled</code>, the node <strong>re-auths from the key</strong> rather than stranding
+itself off the tailnet. See <a href="#tailscale">Tailscale</a> and
+<a href="#adding-a-host">Adding a host</a> for wiring the key.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="adding-a-host"><a class="header" href="#adding-a-host">Adding a host</a></h1>
+<p>A NixOS host is <strong>one entry in the <code>hosts</code> table</strong> plus a <code>configurations/nixos/&lt;host&gt;/</code> directory,
+then key + secret wiring. The flake machinery in <code>configurations/default.nix</code> does the rest
+(<code>mkHost</code> builds each entry into a <code>nixosConfiguration</code>).</p>
+<h2 id="1-create-the-host-directory"><a class="header" href="#1-create-the-host-directory">1. Create the host directory</a></h2>
+<pre><code>configurations/nixos/&lt;host&gt;/
+├── configuration.nix          # the actual host config
+├── default.nix                # imports the shared module set + configuration.nix
+└── hardware-configuration.nix # from `nixos-generate-config` on the box
+</code></pre>
+<p><code>default.nix</code> is boilerplate — copy it verbatim (see <code>configurations/nixos/guccimane/default.nix</code>):</p>
+<pre><code class="language-nix">{ flake, ... }:
+let
+  inherit (flake) inputs;
+  inherit (inputs) self;
+in
+{
+  imports = [
+    self.nixosModules.default   # the whole hyper-modern-nixos module set
+    ./configuration.nix
+  ];
+}
+</code></pre>
+<p><code>configuration.nix</code> destructures <code>{ flake, ... }</code> and imports its hardware config plus the agenix
+module (pattern from <code>configurations/nixos/guccimane/configuration.nix</code>):</p>
+<pre><code class="language-nix">{ flake, ... }:
+let
+  inherit (flake) inputs;
+in
+{
+  imports = [
+    ./hardware-configuration.nix
+    inputs.agenix.nixosModules.default
+  ];
+
+  networking.hostName = "&lt;host&gt;";
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+
+  # users (b7r6 etc.), SSH keys, groups, nix settings, the attic client cache,
+  # tailscale, the firewall — all come from self.nixosModules.default. You only
+  # add what's host-specific here.
+
+  system.stateVersion = "25.05";
+}
+</code></pre>
+<p>Users, SSH <code>authorizedKeys</code>, groups, and <code>nix.settings</code> come from the fleet-wide
+<code>hyper-modern-nixos.users</code> model (<code>modules/nixos/myusers.nix</code>) — don’t redeclare <code>users.users</code> per
+host.</p>
+<h2 id="2-register-the-host"><a class="header" href="#2-register-the-host">2. Register the host</a></h2>
+<p>Add it to the <code>hosts</code> table in <code>configurations/default.nix</code>:</p>
+<pre><code class="language-nix">hosts = {
+  ultraviolence = { };
+  watchtower    = { };
+  # ...
+  &lt;host&gt;        = { };                    # x86_64-linux (the default)
+  shimmer.system = "aarch64-linux";       # aarch64 hosts set system explicitly
+};
+</code></pre>
+<p><code>system</code> defaults to <code>x86_64-linux</code>; set <code>&lt;host&gt;.system = "aarch64-linux"</code> for ARM boxes (the DGX
+<code>shimmer</code> does this).</p>
+<h2 id="3-scan--add-the-host-key-then-rekey-secrets"><a class="header" href="#3-scan--add-the-host-key-then-rekey-secrets">3. Scan + add the host key, then rekey secrets</a></h2>
+<p>Secrets are encrypted to recipient public keys listed in <code>secrets/keys.nix</code> (single source of
+truth). A new host can only decrypt secrets once <strong>its ed25519 host key is listed there</strong> and every
+<code>.age</code> file has been re-keyed to include it.</p>
+<pre><code class="language-bash"># from the secrets devshell, or via flake app:
+nix run .#scan-host-key &lt;host&gt;        # ssh-keyscan -t ed25519 over the tailnet
+</code></pre>
+<p>Paste the printed line under <code>hosts.&lt;host&gt;</code> in <code>secrets/keys.nix</code>:</p>
+<pre><code class="language-nix">hosts = {
+  # ...
+  &lt;host&gt; = [ "ssh-ed25519 AAAA...the scanned key..." ];
+};
+</code></pre>
+<p>Then re-encrypt every secret to the updated recipient set:</p>
+<pre><code class="language-bash">nix run .#rekey-secrets               # runs `agenix -r`
+</code></pre>
+<p>See <a href="#secrets-agenix">Secrets (agenix)</a> for the recipient model (<code>mkGlobalSecret</code>
+encrypts to all user keys + every configured host).</p>
+<blockquote>
+<p>If the box isn’t reachable yet, you can read the key on the host itself with
+<code>ssh &lt;host&gt; cat /etc/ssh/ssh_host_ed25519_key.pub</code> and paste the <code>key-type key</code> pair. Hosts with
+no key listed (e.g. a powered-down laptop) are simply skipped by <code>configuredHosts</code> in
+<code>secrets/secrets.nix</code>.</p>
+</blockquote>
+<h2 id="4-wire-the-tailscale-safety-net"><a class="header" href="#4-wire-the-tailscale-safety-net">4. Wire the Tailscale safety net</a></h2>
+<p>So a rebuild can’t strand the box off the tailnet, declare the auth-key secret and point the option
+at it (pattern from <code>watchtower</code>):</p>
+<pre><code class="language-nix">age.secrets.tailscale-auth-key.file =
+  ../../../secrets/agenix/machines/tailscale-auth-key.age;
+
+hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
+</code></pre>
+<p>The key must be <strong>reusable + pre-authorized</strong> (ideally tagged, <code>ephemeral=false</code>) from the Tailscale
+admin console. See <a href="#tailscale">Tailscale</a>.</p>
+<h2 id="5-build--deploy"><a class="header" href="#5-build--deploy">5. Build + deploy</a></h2>
+<pre><code class="language-bash">nixos-rebuild build --flake .#&lt;host&gt;                 # eval + cache hit, no activate
+nixos-rebuild switch --flake .#&lt;host&gt; \
+  --target-host &lt;host&gt; --use-remote-sudo             # activate over the tailnet
+</code></pre>
+<p>See <a href="#deploying-a-host">Deploying a host</a> for the dry-run and staged-rollout patterns, and
+<a href="#the-fleet">The fleet</a> for what each box does.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="dev-shells"><a class="header" href="#dev-shells">Dev shells</a></h1>
+<p>The flake ships two dev shells:</p>
+<ul>
+<li><strong><code>default</code></strong> — the everyday shell, with the <a href="https://github.com/viperML/nh"><code>nh</code></a> workflow
+commands and the operator’s <strong>user secrets</strong> auto-loaded into the environment.</li>
+<li><strong><code>secrets</code></strong> — the agenix/passage administration surface.</li>
+</ul>
+<h2 id="the-default-shell"><a class="header" href="#the-default-shell">The default shell</a></h2>
+<pre><code class="language-bash">nix develop          # or: direnv allow (the repo has an .envrc)
+</code></pre>
+<p>Wired from <code>devshell.toml</code> (via <code>modules/flake/toplevel.nix</code>, which imports it into
+<code>devshells.default</code>). Commands:</p>
+<p>| Command | Category | Runs | | —————————– | ———– |
+———————————–– | | <code>switch-os</code> | development | <code>nh os switch .</code> | |
+<code>switch-home</code> | development | <code>nh home switch .</code> | | <code>treefmt</code> | development | <code>nix fmt</code> | |
+<code>tailscale-up-current-user</code> | network | <code>sudo tailscale up --operator=$(whoami)</code> | |
+<code>list-tailscale-networks</code> | network | <code>sudo tailscale switch --list</code> | | <code>build-usb</code> | installer |
+<code>./scripts/build-usb.sh</code> |</p>
+<h3 id="auto-loaded-user-secrets-agenix-shell"><a class="header" href="#auto-loaded-user-secrets-agenix-shell">Auto-loaded user secrets (agenix-shell)</a></h3>
+<p>On shell entry, <code>modules/flake/devshell.nix</code> uses <strong>agenix-shell</strong> to decrypt the operator’s <em>user</em>
+secrets (under <code>secrets/agenix/users/b7r6/</code>) to a tmpfs under <code>$XDG_RUNTIME_DIR</code> and export them.
+Decryption uses whichever of these SSH identities is present: <code>~/.ssh/id_ed25519</code>,
+<code>~/.ssh/id_ed25519_b7r6</code>, <code>~/.ssh/id_ed25519_yubikey</code>.</p>
+<p>Each secret is exported <strong>twice</strong> — the contents as <code>&lt;NAME&gt;</code> (good for tokens) and the tmpfs path as
+<code>&lt;NAME&gt;_PATH</code> (good for file-shaped secrets):</p>
+<p>| Var | Source | Shape | | —————————— | ——————— | —— | |
+<code>HF_TOKEN</code> | <code>hf-token.age</code> | token | | <code>ATUIN_KEY</code> | <code>atuin-key.age</code> | token | | <code>NETRC</code> /
+<code>NETRC_PATH</code> | <code>netrc.age</code> | file | | <code>RCLONE_CONF</code> / <code>RCLONE_CONF_PATH</code> | <code>rclone-conf.age</code> | file
+|</p>
+<p><strong>Scope is deliberate:</strong> only the user secrets the operator has a license to are loaded. Machine
+secrets (restic password, atticd RS256, R2 env files) are <em>not</em> loaded into the interactive shell —
+they belong to systemd services on the hosts, decrypted by host keys at activation. See
+<a href="#secrets-agenix">Secrets (agenix)</a>.</p>
+<h2 id="the-secrets-shell"><a class="header" href="#the-secrets-shell">The secrets shell</a></h2>
+<pre><code class="language-bash">nix develop .#secrets
+</code></pre>
+<p>Provided by <code>secrets/default.nix</code> (a flake-parts module imported in <code>modules/flake/toplevel.nix</code>).
+Every admin command is a real shellcheck/shfmt- clean script under <code>secrets/sh/</code>, wrapped as a
+<code>writeShellApplication</code> with pinned <code>runtimeInputs</code>, and exposed <strong>both</strong> as a shell command <strong>and</strong>
+a flake app (<code>nix run .#&lt;name&gt;</code>). Each command is git-root-aware: it <code>cd</code>s into the repo’s
+<code>secrets/</code> and sets <code>RULES=secrets/secrets.nix</code> so <code>agenix</code> finds its recipients no matter where you
+invoke it.</p>
+<p>| Command | Purpose | | —————–– |
+———————————————————— | | <code>list-secrets</code> | List all defined
+secrets | | <code>view-secret</code> | Decrypt + print a secret | | <code>edit-secret</code> | Decrypt to <code>$EDITOR</code>,
+re-encrypt on save | | <code>new-secret</code> | Create a new secret | | <code>rotate-secret</code> | Re-generate /
+replace a secret’s contents | | <code>rekey-secrets</code> | Re-encrypt every secret to the current <code>keys.nix</code>
+recipients (<code>agenix -r</code>) | | <code>init-secrets</code> | Bootstrap the secret tree | | <code>validate-secrets</code> |
+Sanity-check definitions vs. files | | <code>scan-host-key</code> | <code>ssh-keyscan -t ed25519 &lt;host&gt;</code> → line for
+<code>keys.nix</code> | | <code>init-passage</code> | Bootstrap the passage store | | <code>secrets-usage</code> | Print the usage
+banner (also the shell’s <code>shellHook</code>) |</p>
+<p>Run any of them as a flake app without entering the shell, e.g.:</p>
+<pre><code class="language-bash">nix run .#scan-host-key shimmer
+nix run .#rekey-secrets
+</code></pre>
+<p>The shell also brings <code>agenix</code>, <code>age</code>, <code>rage</code>, <code>ssh-to-age</code>, <code>passage</code>, <code>age-plugin-yubikey</code>, and
+<code>yubikey-manager</code> onto <code>PATH</code> for manual operations.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="runbooks"><a class="header" href="#runbooks">Runbooks</a></h1>
+<p>Copy-pasteable procedures for the stateful infra. These are the one-time / recovery steps that
+aren’t expressed declaratively — everything else is in the modules. See
+<a href="#deploying-a-host">Deploying a host</a> for the rebuild commands these reference.</p>
+<hr>
+<h2 id="a--stand-up-the-central-attic-cache-on-watchtower"><a class="header" href="#a--stand-up-the-central-attic-cache-on-watchtower">A — Stand up the central attic cache on watchtower</a></h2>
+<p><code>watchtower</code> runs the <code>monolithic-shared</code> attic profile: the single shared PostgreSQL + the
+monolithic <code>atticd</code> (the only node that migrates and runs GC), backed by R2. Most of this is
+declarative — these are the <strong>one-time bootstrap</strong> steps. See
+<a href="#binary-cache-attic">Binary cache (attic)</a>.</p>
+<p>Prereqs: the <code>atticd-rs256.age</code> secret exists and is rekeyed to <code>watchtower</code> (carries
+<code>ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64</code>, <code>PGPASSWORD</code>, and the R2 <code>AWS_*</code> creds). The
+<code>enableInfra = true</code> flag is set in <code>configurations/nixos/watchtower/configuration.nix</code>.</p>
+<ol>
+<li>
+<p><strong>Deploy the infra.</strong> On switch the declarative chain runs automatically:</p>
+<ul>
+<li>postgres comes up; <code>ensureDatabases</code>/<code>ensureUsers</code> create the <code>atticd</code> role
+<ul>
+<li>db (<code>ensureDBOwnership</code>);</li>
+</ul>
+</li>
+<li>the <code>postgresql-role-passwords</code> oneshot sets the <code>atticd</code> role password from the agenix secret
+(<code>PGPASSWORD</code>), so md5 login matches the client;</li>
+<li><code>atticd</code> (monolithic) connects over loopback, <strong>runs migrations</strong>, serves.</li>
+</ul>
+<pre><code class="language-bash">nixos-rebuild switch --flake .#watchtower \
+  --target-host watchtower --use-remote-sudo
+ssh watchtower systemctl status postgresql atticd
+</code></pre>
+</li>
+<li>
+<p><strong>Mint an admin token</strong> (RS256 signing secret is already loaded into atticd):</p>
+<pre><code class="language-bash">ssh watchtower 'atticd-atticadm make-token \
+  --sub bootstrap --validity 1h \
+  --pull "*" --push "*" --create-cache "*" --configure-cache "*"'
+</code></pre>
+</li>
+<li>
+<p><strong>Create + publish the cache, once</strong>, using that token with the <code>attic</code> CLI:</p>
+<pre><code class="language-bash">attic login hypermodern http://watchtower.osiris-walleye.ts.net:8080 &lt;TOKEN&gt;
+attic cache create    hypermodern
+attic cache configure hypermodern --public      # anonymous pull
+attic cache info       hypermodern              # prints the public key
+</code></pre>
+<p>The public key must match the fleet-wide <code>hyper-modern-nixos.attic-node.publicKey</code>
+(<code>hypermodern:x+kBunu5nD1KOhzCIawyZeq8w0LV0GC6A7suIRoHTm8=</code>). After the row exists, the
+<code>attic-cache-keypair-restore</code> oneshot (runbook D) keeps its signing key stable.</p>
+</li>
+<li>
+<p>Other hosts use <code>profile = "replica"</code> and pull/push automatically via <code>watch-store</code>.</p>
+</li>
+</ol>
+<hr>
+<h2 id="b--restic-first-backup-by-hand"><a class="header" href="#b--restic-first-backup-by-hand">B — restic first backup by hand</a></h2>
+<p>The backup module sets <code>initialize = false</code> <strong>by design</strong>: you create and verify the repo by hand
+before any timer touches your data. See <a href="#backups-restic--r2">Backups (restic → R2)</a>. On
+<code>watchtower</code> the secrets are <code>restic-password</code> (repo passphrase) and <code>restic-r2-env.watchtower</code>
+(<code>RESTIC_REPOSITORY</code> + R2 <code>AWS_*</code>), both gated on <code>enableBackup</code>.</p>
+<p>Deploy with <code>enableBackup</code> still <code>false</code> (so the secrets decrypt but the timer isn’t active), then
+on the host:</p>
+<ol>
+<li>
+<p><strong>Init the repo:</strong></p>
+<pre><code class="language-bash">sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
+  env $(sudo cat /run/agenix/restic-r2-env | xargs) \
+  restic init
+</code></pre>
+</li>
+<li>
+<p><strong>First backup + verify:</strong></p>
+<pre><code class="language-bash">sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
+  env $(sudo cat /run/agenix/restic-r2-env | xargs) \
+  restic backup /home
+
+sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
+  env $(sudo cat /run/agenix/restic-r2-env | xargs) \
+  restic snapshots
+</code></pre>
+</li>
+<li>
+<p><strong>Then flip the timer on.</strong> Set <code>enableBackup = true</code> in
+<code>configurations/nixos/watchtower/configuration.nix</code> and rebuild. The systemd unit
+(<code>restic-backups-system.service</code>) takes over the same repo with the same password + env file,
+plus retention (<code>pruneOpts</code>) and a post-backup <code>restic check --read-data-subset=10%</code>.</p>
+</li>
+</ol>
+<blockquote>
+<p><strong>Losing <code>restic-password</code> = unrecoverable backups.</strong> Keep an out-of-band copy.</p>
+</blockquote>
+<hr>
+<h2 id="c--postgresql-collation-version-mismatch-after-a-glibc-bump"><a class="header" href="#c--postgresql-collation-version-mismatch-after-a-glibc-bump">C — PostgreSQL collation-version mismatch after a glibc bump</a></h2>
+<p>A NixOS upgrade can bump glibc and change ICU/libc collation versions, after which postgres warns
+<code>database "&lt;db&gt;" has a collation version mismatch</code>. Refresh the recorded version on the affected
+databases <strong>and <code>template1</code></strong>:</p>
+<pre><code class="language-bash">ssh watchtower
+sudo -u postgres psql -c 'ALTER DATABASE atticd    REFRESH COLLATION VERSION;'
+sudo -u postgres psql -c 'ALTER DATABASE postgres  REFRESH COLLATION VERSION;'
+sudo -u postgres psql -c 'ALTER DATABASE template1 REFRESH COLLATION VERSION;'
+</code></pre>
+<p>Refreshing <code>template1</code> ensures freshly-created databases inherit the correct version. If you suspect
+text indexes were built under the old collation, <code>REINDEX DATABASE atticd;</code> afterwards.</p>
+<hr>
+<h2 id="d--cache-signing-keypair-recovery"><a class="header" href="#d--cache-signing-keypair-recovery">D — Cache signing keypair recovery</a></h2>
+<p>attic stores the cache’s signing keypair <strong>only</strong> in the postgres <code>cache</code> table and has no import
+CLI — a postgres wipe would regenerate it and break every client’s trusted public key. We persist it
+in agenix (<code>attic-cache-keypair.age</code>) and restore it on activation.</p>
+<p>This is <strong>automatic</strong> on the <code>monolithic-shared</code> node: the <code>attic-cache-keypair-restore</code> oneshot
+(<code>modules/nixos/attic-node.nix</code>) runs after <code>postgresql-role-passwords</code> and before <code>atticd</code>, and
+<code>UPDATE</code>s the keypair on the existing <code>cache</code> row from the agenix secret. To force it after a
+postgres restore:</p>
+<pre><code class="language-bash">ssh watchtower
+# ensure the cache row exists first (runbook A step 3), then:
+sudo systemctl restart attic-cache-keypair-restore.service
+sudo systemctl restart atticd.service
+attic cache info hypermodern    # public key must equal the fleet's publicKey
+</code></pre>
+<p>The restore only <strong>updates an existing row</strong> — the row itself is created once at bootstrap by
+<code>attic cache create</code> (runbook A).</p>
+<hr>
+<h2 id="e--rekey-all-secrets-after-addingrotating-a-host-key"><a class="header" href="#e--rekey-all-secrets-after-addingrotating-a-host-key">E — Rekey all secrets after adding/rotating a host key</a></h2>
+<p>After editing <code>secrets/keys.nix</code> (added or rotated a host/user key), re-encrypt every <code>.age</code> file to
+the new recipient set:</p>
+<pre><code class="language-bash">nix run .#rekey-secrets        # runs `agenix -r` from secrets/
+</code></pre>
+<p>A host can only decrypt a secret once its key is in <code>keys.nix</code> <strong>and</strong> the secret has been rekeyed
+to include it. See <a href="#3-scan--add-the-host-key-then-rekey-secrets">Adding a host</a>
+and <a href="#secrets-agenix">Secrets (agenix)</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="module-options"><a class="header" href="#module-options">Module options</a></h1>
+<p>Reference for the <code>hyper-modern-nixos.*</code> options exposed by the NixOS infra modules under
+<code>modules/nixos/</code>. The authoritative source is the module that declares each option (linked per
+section) — option descriptions and defaults live there. This page summarizes the <strong>infra-relevant</strong>
+options.</p>
+<h2 id="networktailscale--networkfirewall"><a class="header" href="#networktailscale--networkfirewall"><code>network.tailscale.*</code> / <code>network.firewall.*</code></a></h2>
+<p>Source: <code>modules/nixos/network.nix</code>. The <code>network</code> module is enabled by default
+(<code>hyper-modern-nixos.network.enable = true</code>).</p>
+<p>| Option | Type / default | Description | | ———————————————–– |
+—————————————–– |
+————————————————————————— | |
+<code>network.tailscale.authKeyFile</code> | <code>null or path</code> / <code>null</code> | Auth-key file for <strong>declarative</strong>
+enrollment (an agenix runtime path). When set, <code>tailscaled</code> enrolls non-interactively — a rebuild
+can’t strand a remote box. | | <code>network.tailscale.acceptRoutes</code> | <code>bool</code> / <code>true</code> | Accept subnet
+routes advertised by other nodes. | | <code>network.tailscale.acceptDNS</code> | <code>bool</code> / <code>true</code> | Accept
+MagicDNS / tailnet DNS. | | <code>network.tailscale.advertiseRoutes</code> | <code>listOf str</code> / <code>[ ]</code> | Subnets
+this node advertises (subnet router). | | <code>network.tailscale.advertiseExitNode</code> | <code>bool</code> / <code>false</code> |
+Advertise this node as an exit node. | | <code>network.tailscale.acceptExitNode</code> | <code>bool</code> / <code>false</code> |
+Allow LAN access while using an exit node. | | <code>network.tailscale.exitNode</code> | <code>null or str</code> / <code>null</code>
+| Route egress through this exit node via the <code>tailscale set</code> oneshot (e.g. Mullvad <code>us-mia-*</code>). | |
+<code>network.tailscale.advertiseConnector</code> | <code>bool</code> / <code>false</code> | Advertise as a Tailscale app connector.
+| | <code>network.tailscale.sshAdvertise</code> | <code>bool</code> / <code>true</code> | Advertise Tailscale SSH. | |
+<code>network.tailscale.tags</code> | <code>listOf str</code> / <code>[ ]</code> | Tags to advertise (must be authorized by the
+tailnet ACL). | | <code>network.tailscale.hostname</code> | <code>null or str</code> / <code>null</code> | Override the registered
+Tailscale hostname. | | <code>network.tailscale.encryptState</code> | <code>bool</code> / <code>false</code> | Encrypt <code>tailscaled</code>
+state via TPM 2.0. Off — boxes are reflashed often. | | <code>network.firewall.enable</code> | <code>bool</code> / <code>true</code>
+| Tailscale-aware firewall. The fleet runs firewall-off; the DB host opts back in so
+interface-scoped rules bite. | | <code>network.tailnet.domain</code> | <code>str</code> / <code>"example.ts.net"</code> | Tailnet
+domain. | | <code>network.useBackupResolver</code> | <code>bool</code> / <code>false</code> | Use backup DNS resolvers in addition to
+Tailscale DNS. |</p>
+<p>See <a href="#tailscale">Tailscale</a>.</p>
+<h2 id="databasespostgres"><a class="header" href="#databasespostgres"><code>databases.postgres.*</code></a></h2>
+<p>Source: <code>modules/nixos/postgres.nix</code>. <strong>Off by default</strong> — the fleet runs exactly one shared
+postgres (on <code>watchtower</code>).</p>
+<p>| Option | Type / default | Description | | –––––––––––––––––––––– |
+——————————————————— |
+————————————————————————— | |
+<code>databases.postgres.enable</code> | <code>bool</code> / <code>false</code> | Enable the PostgreSQL server. | |
+<code>databases.postgres.package</code> | package / <code>postgresql_16</code> | Server package. | |
+<code>databases.postgres.tailnet.enable</code> | <code>bool</code> / <code>false</code> | Listen on the tailnet + permit md5 auth
+from the tailnet CIDRs. | | <code>databases.postgres.tailnet.interface</code> | <code>str</code> / <code>"tailscale0"</code> |
+Interface whose address postgres additionally binds (firewall scope). | |
+<code>databases.postgres.tailnet.cidrs</code> | <code>listOf str</code> / <code>[100.64.0.0/10, fd7a:115c:a1e0::/48]</code> | Source
+CIDRs permitted (md5) in <code>pg_hba</code> for tailnet access. | | <code>databases.postgres.ensureDatabases</code> |
+<code>listOf str</code> / <code>[ ]</code> | Databases to create declaratively. | | <code>databases.postgres.ensureUsers</code> |
+<code>listOf attrs</code> / <code>[ ]</code> | Roles to create declaratively (peer-auth only; no store password). | |
+<code>databases.postgres.settings</code> | <code>attrs</code> / <code>{ }</code> | Extra <code>services.postgresql.settings</code>. | |
+<code>databases.postgres.rolePasswords.&lt;role&gt;.secret</code> | <code>str</code> | agenix secret <strong>name</strong> to source the role
+password from (runtime, never the store). | | <code>databases.postgres.rolePasswords.&lt;role&gt;.var</code> | <code>str</code>
+/ <code>"PGPASSWORD"</code> | Env var within the secret holding the password. | | <code>databases.redis.enable</code> |
+<code>bool</code> / <code>false</code> | Enable Redis. |</p>
+<p>See <a href="#postgresql">PostgreSQL</a>.</p>
+<h2 id="attic-node-the-profile-selector"><a class="header" href="#attic-node-the-profile-selector"><code>attic-node.*</code> (the profile selector)</a></h2>
+<p>Source: <code>modules/nixos/attic-node.nix</code>. The high-level “be a cache node” knob — selects a profile
+over the orthogonal <code>attic</code> axes (mode × database × storage). A host sets just this plus the
+<code>atticd-rs256</code> / <code>attic-push-token</code> secrets.</p>
+<p>| Option | Type / default | Description | | ———————————– |
+—————————————————————————–– |
+————————————————————————— | | <code>attic-node.enable</code>
+| <code>bool</code> / <code>false</code> | Be an attic cache node. | | <code>attic-node.profile</code> | enum <code>standalone</code> |
+<code>replica</code> | <code>monolithic-shared</code> / <code>"standalone"</code> | <code>standalone</code>: self-contained. <code>replica</code>:
+api-server against the shared pg + R2. <code>monolithic-shared</code>: the one node that migrates + runs GC. |
+| <code>attic-node.environmentFile</code> | <code>str</code> / <code>"/run/agenix/atticd-rs256"</code> | Env file: RS256 secret (+ R2
+<code>AWS_*</code>, + <code>PGPASSWORD</code> for shared profiles). | | <code>attic-node.pushTokenFile</code> | <code>null or str</code> /
+<code>"/run/agenix/attic-push-token"</code> | Push JWT for <code>watch-store</code>. <code>null</code> = pull-only. | |
+<code>attic-node.sharedDatabaseUrl</code> | <code>str</code> /
+<code>postgresql://atticd@watchtower.osiris-walleye.ts.net/atticd</code> | Passwordless shared-pg URL for
+<code>replica</code> (PGPASSWORD via env file). | | <code>attic-node.standalonePostgres</code> | <code>bool</code> / <code>false</code> |
+<code>standalone</code> only: use a local postgres instead of sqlite. | | <code>attic-node.r2.enable</code> | <code>bool</code> /
+<code>false</code> | Back storage with R2 (forced on for shared profiles). | | <code>attic-node.r2.bucket</code> | <code>str</code> /
+<code>"straylight-attic-cache"</code> | R2 chunk-store bucket. | | <code>attic-node.r2.endpoint</code> | <code>str</code> / R2 S3
+endpoint | R2 S3 endpoint. | | <code>attic-node.publicKey</code> | <code>str</code> /
+<code>hypermodern:x+kBunu5nD1KOhzCIawyZeq8w0LV0GC6A7suIRoHTm8=</code> | The <code>hypermodern</code> cache binary-cache
+public key. | | <code>attic-node.cacheName</code> | <code>str</code> / <code>"hypermodern"</code> | Cache name (URL path segment + DB
+cache row). | | <code>attic-node.keypairSecret</code> | <code>null or str</code> / <code>"attic-cache-keypair"</code> |
+<code>monolithic-shared</code> only: agenix secret holding the NixKeypair, restored into the <code>cache</code> row on
+activation. |</p>
+<h2 id="attic-the-low-level-atticd-module"><a class="header" href="#attic-the-low-level-atticd-module"><code>attic.*</code> (the low-level atticd module)</a></h2>
+<p>Source: <code>modules/nixos/attic.nix</code>. Driven by <code>attic-node</code> in normal use; set directly only for
+bespoke topologies. <strong>Off by default.</strong></p>
+<p>| Option | Type / default | Description | | ———————————–– |
+———————————————– |
+———————————————————————— | | <code>attic.enable</code> | <code>bool</code>
+/ <code>false</code> | Run <code>atticd</code>. | | <code>attic.mode</code> | enum <code>monolithic</code> | <code>api-server</code> | <code>garbage-collector</code>
+/ <code>"monolithic"</code> | atticd run mode. Only one node may run GC. | | <code>attic.databaseUrl</code> |
+<code>null or str</code> / <code>null</code> | <strong>Passwordless</strong> postgres URL (PGPASSWORD via env file). <code>null</code> = sqlite. |
+| <code>attic.environmentFile</code> | <code>null or path</code> / <code>null</code> | Env file with
+<code>ATTIC_SERVER_TOKEN_RS256_SECRET*</code> (required when enabled). | | <code>attic.listen</code> | <code>str</code> /
+<code>"[::]:8080"</code> | Bind address (port opened only on <code>trustedInterfaces</code>). | |
+<code>attic.trustedInterfaces</code> | <code>listOf str</code> / <code>[ "tailscale0" ]</code> | Interfaces the port is opened on. |
+| <code>attic.openFirewall</code> | <code>bool</code> / <code>true</code> | Open the listen port (on <code>trustedInterfaces</code> only). | |
+<code>attic.storage.type</code> | enum <code>local</code> | <code>s3</code> / <code>"local"</code> | Storage backend. | | <code>attic.storage.path</code> |
+<code>str</code> / <code>"/var/lib/atticd/storage"</code> | Local storage dir (<code>type = local</code>). | | <code>attic.storage.region</code>
+| <code>str</code> / <code>"auto"</code> | S3 region (R2 = <code>auto</code>). | | <code>attic.storage.bucket</code> | <code>str</code> / <code>""</code> | S3 bucket
+(<code>type = s3</code>). | | <code>attic.storage.endpoint</code> | <code>str</code> / <code>""</code> | Custom S3 endpoint (R2/Minio). | |
+<code>attic.settings</code> | <code>attrs</code> / <code>{ }</code> | Extra <code>services.atticd.settings</code> (TOML). | |
+<code>attic.clientCache.enable</code> | <code>bool</code> / <code>false</code> | Use a cache as substituter + <code>watch-store</code>
+auto-push. | | <code>attic.clientCache.name</code> | <code>str</code> / <code>"hypermodern"</code> | Cache name (URL path segment). |
+| <code>attic.clientCache.endpoint</code> | <code>str</code> | Base atticd URL (no trailing slash, no cache name). | |
+<code>attic.clientCache.publicKey</code> | <code>str</code> | Cache binary-cache public key. | |
+<code>attic.clientCache.priority</code> | <code>int</code> / <code>10</code> | Substituter priority (lower = tried first; beats
+<code>cache.nixos.org</code>). | | <code>attic.clientCache.pushTokenFile</code> | <code>null or path</code> / <code>null</code> | Push JWT file.
+<code>null</code> = pull-only (no <code>watch-store</code>). |</p>
+<p>See <a href="#binary-cache-attic">Binary cache (attic)</a>.</p>
+<h2 id="backup"><a class="header" href="#backup"><code>backup.*</code></a></h2>
+<p>Source: <code>modules/nixos/backup.nix</code>. restic backups, <strong>off by default</strong> — do the first run by hand
+(<code>initialize = false</code>). See <a href="#backups-restic--r2">Backups (restic → R2)</a> and the
+<a href="#b--restic-first-backup-by-hand">restic runbook</a>.</p>
+<p>| Option | Type / default | Description | | –––––––––––––– |
+————————————————————— |
+———————————————————————— | | <code>backup.enable</code> |
+<code>bool</code> / <code>false</code> | Enable the restic timer. | | <code>backup.repository</code> | <code>str</code> / <code>""</code> | Repo location.
+Leave empty when <code>RESTIC_REPOSITORY</code> is in the env file. | | <code>backup.passwordFile</code> | <code>path</code> /
+<code>"/run/agenix/restic-password"</code> | Repo passphrase file (agenix runtime path; never the store). | |
+<code>backup.environmentFile</code> | <code>null or path</code> / <code>null</code> | Env file with backend creds (+
+<code>RESTIC_REPOSITORY</code> for the S3/R2 path). | | <code>backup.paths</code> | <code>listOf str</code> /
+<code>[ /home /etc /var/lib ]</code> | Paths to back up. | | <code>backup.exclude</code> | <code>listOf str</code> / large default |
+Glob excludes — caches, re-fetchable ML weights, build scratch. | | <code>backup.timerConfig</code> | <code>attrs</code> /
+<code>{ OnCalendar = "daily"; Persistent; RandomizedDelaySec = "1h"; }</code> | systemd timer config. | |
+<code>backup.pruneOpts</code> | <code>listOf str</code> / <code>--keep-daily 7</code> … <code>--keep-yearly 3</code> | Retention policy
+(<code>restic forget</code>). |</p>
+<h2 id="searxng--torrents-incubating-services"><a class="header" href="#searxng--torrents-incubating-services"><code>searxng.*</code> / <code>torrents.*</code> (incubating services)</a></h2>
+<p>See <a href="#searxng--torrents">SearXNG + torrents</a> for the full writeup.</p>
+<ul>
+<li><code>hyper-modern-nixos.searxng.{enable,port,listenAddress,baseUrl,environmentFile,openTailnet,limiter}</code>
+— privacy-maxed SearXNG metasearch (JSON API on, <code>limiter</code> off by default). Source:
+<code>modules/nixos/searxng.nix</code>.</li>
+<li><code>hyper-modern-nixos.torrents.{enable,downloadDir,peerPort,rpcPort,floodPort,credentialsFile,openTailnet}</code>
+— transmission_4 + flood. Source: <code>modules/nixos/torrents.nix</code>.</li>
+</ul>
+<h2 id="other-infra-options"><a class="header" href="#other-infra-options">Other infra options</a></h2>
+<ul>
+<li><code>hyper-modern-nixos.users.*</code> — fleet-wide user model (groups, authorized keys, admin flag).
+Source: <code>modules/nixos/myusers.nix</code>.</li>
+<li><code>hyper-modern-nixos.secrets.enable</code> — 1Password + Yubikey/PAM packages. Source:
+<code>modules/nixos/secrets.nix</code>.</li>
+</ul>
+<blockquote>
+<p>This table is not exhaustive across every home-manager module. For the authoritative type,
+default, and prose for any option, read the <code>mkOption</code> / <code>mkEnableOption</code> declaration in the
+module named at the top of each section.</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="checks-nixos-tests"><a class="header" href="#checks-nixos-tests">Checks (NixOS tests)</a></h1>
+<p>Two NixOS VM tests prove the stateful infra paths end-to-end. They live in <code>checks/</code> and are
+registered in <code>modules/flake/toplevel.nix</code> under <code>checks</code> — <strong>x86_64-linux only</strong> (a <code>nixosTest</code>
+needs a Linux builder):</p>
+<pre><code class="language-nix">checks = inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
+  attic-cache   = import ../../checks/attic-cache.nix   { inherit pkgs inputs; };
+  backup-restic = import ../../checks/backup-restic.nix { inherit pkgs; };
+};
+</code></pre>
+<h2 id="running-them"><a class="header" href="#running-them">Running them</a></h2>
+<pre><code class="language-bash"># individually
+nix build .#checks.x86_64-linux.attic-cache
+nix build .#checks.x86_64-linux.backup-restic
+
+# everything the flake checks (incl. these VM tests, fmt, etc.)
+nix flake check
+</code></pre>
+<h2 id="attic-cache"><a class="header" href="#attic-cache"><code>attic-cache</code></a></h2>
+<p>Source: <code>checks/attic-cache.nix</code>. A single VM plays both postgres host and an atticd node,
+exercising the <strong>substantive</strong> new code paths behind the central-postgres + replicated api-server
+redesign — with <strong>no R2 and no real secrets</strong>:</p>
+<ul>
+<li><code>hyper-modern-nixos.databases.postgres</code> (opt-in, declarative <code>atticd</code> role+db);</li>
+<li><code>hyper-modern-nixos.attic</code> in <strong>monolithic</strong> mode with a <strong>passwordless</strong> <code>databaseUrl</code>
+(<code>postgresql://atticd@localhost/atticd</code>) + <code>PGPASSWORD</code> from a build-time env file (a <em>test</em>
+secret, in the store on purpose — proving the plumbing, not secrecy);</li>
+<li><code>clientCache</code> → <code>localhost:8080</code> as a substituter-first cache.</li>
+</ul>
+<p>Storage is <strong>local</strong>, not minio — R2/S3 is just a swappable backend; the wiring under test is mode +
+db + substituter, which is backend-agnostic. Monolithic (not bare api-server) is used because only a
+monolithic node runs migrations.</p>
+<p>What the <code>testScript</code> asserts:</p>
+<ol>
+<li><code>postgresql.service</code> is up and owns the <code>atticd</code> database.</li>
+<li><code>atticd.service</code> becomes active and binds <code>8080</code> — proving the passwordless URL + <code>PGPASSWORD</code>
+plumbing authenticates (sqlx would fail otherwise).</li>
+<li>The rendered atticd config uses the postgres URL, <strong>not</strong> the upstream sqlite default, and
+contains no leaked password.</li>
+<li><code>/etc/nix/nix.conf</code> lists <code>localhost:8080/hypermodern</code> + its public key.</li>
+<li><code>GET /hypermodern/nix-cache-info</code> returns <strong><code>401</code></strong> (not-yet-public cache), <strong>not <code>500</code></strong> — a
+clean 401 proves migrations ran and the auth layer serves.</li>
+<li><code>atticd-atticadm make-token</code> mints a token — proving the RS256 signing secret loaded from the env
+file.</li>
+</ol>
+<h2 id="backup-restic"><a class="header" href="#backup-restic"><code>backup-restic</code></a></h2>
+<p>Source: <code>checks/backup-restic.nix</code>. Proves the restic → S3(R2) backup mechanism is sound, full round
+trip. R2 is S3-compatible, so a <strong>local minio stands in for R2</strong> — the code path under test
+(<code>services.restic</code> via <code>hyper-modern-nixos.backup</code> + <code>RESTIC_REPOSITORY</code> from the env file +
+password file) is identical.</p>
+<blockquote>
+<p>minio is flagged insecure in nixpkgs; the test permits it <strong>only inside the test VM’s node pkgs</strong>
+(<code>config.permittedInsecurePackages</code>, <code>node.pkgs = lib.mkForce …</code>), never on the fleet. The
+restic→S3 path under test is unaffected by minio’s advisory flag.</p>
+</blockquote>
+<p>The <code>testScript</code> proves the full round trip:</p>
+<ol>
+<li>minio (S3) up + bucket created (<code>mc mb</code>).</li>
+<li>Manual <code>restic init</code> — the module sets <code>initialize = false</code> by design (mirrors the
+<a href="#b--restic-first-backup-by-hand">runbook</a>).</li>
+<li>Seed real data (<code>important.txt</code>, <code>blob.bin</code>) + an excluded <code>model.safetensors</code>, then run the
+generated <code>restic-backups-system.service</code>; assert <code>Result=success</code>.</li>
+<li>A snapshot exists (<code>restic snapshots --json</code>).</li>
+<li><strong>Excludes bite</strong>: <code>important.txt</code> + <code>blob.bin</code> are in the snapshot, <code>*.safetensors</code> is <strong>not</strong>.</li>
+<li>Repo integrity: <code>restic check --read-data-subset=100%</code> (the module runs <code>--read-data-subset=10%</code>
+post-backup).</li>
+<li><strong>Restore round trip</strong>: restore <code>latest</code> to a clean dir and byte-compare (<code>cmp</code>); confirm the
+excluded file is absent.</li>
+</ol>
+<p>See <a href="#backups-restic--r2">Backups (restic → R2)</a> and
+<a href="#binary-cache-attic">Binary cache (attic)</a>.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+
+    </div>
+    </body>
+</html>
