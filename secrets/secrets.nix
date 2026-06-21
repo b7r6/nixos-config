@@ -72,6 +72,7 @@ in
   # any host's repo.
   "agenix/machines/restic-r2-env.ultraviolence.age".publicKeys = mkGlobalSecret;
   "agenix/machines/restic-r2-env.watchtower.age".publicKeys = mkGlobalSecret;
+  "agenix/machines/restic-r2-env.guccimane.age".publicKeys = mkGlobalSecret;
 
   # nativelink R2 backend creds (env file, shellexpand'd in the JSON5 config):
   #   R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY

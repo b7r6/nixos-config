@@ -8,6 +8,12 @@ in
     inputs.agenix.nixosModules.default
   ];
 
+  # ── Tailscale safety net ────────────────────────────────────────────────────
+  # Declarative enrollment so the tailscaled restart on switch can't strand this
+  # remote box off the tailnet (the deploy itself runs over the tailnet).
+  age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;
+  hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
+
   hyper-modern-nixos.hyper-wayland = {
     enable = true;
   };
@@ -56,6 +62,18 @@ in
   hyper-modern-nixos.attic-node = {
     enable = true;
     profile = "replica";
+  };
+
+  # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
+  # Module self-wires its secrets from the names below (per-host R2 env:
+  # restic-r2-env.guccimane). FIRST init is declarative + idempotent:
+  #   nix run .#restic-init -- guccimane
+  # then the daily timer drives it. /home only first; widen later.
+  hyper-modern-nixos.backup = {
+    enable = true;
+    passwordSecret = "restic-password";
+    environmentSecret = "restic-r2-env.guccimane";
+    paths = [ "/home" ];
   };
 
   time.timeZone = "America/New_York";
