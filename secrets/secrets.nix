@@ -49,13 +49,14 @@ in
   # Decrypted to /run/agenix/ on the target host (root, 0400).
 
   # Tailscale auth keys. NOTE: the three below are STALE — they were minted for
-  # retired tailnets (parabolic-surf / straylight-evaluation / v4.surf). The
-  # live tailnet is osiris-walleye.ts.net. They are kept only so the files
-  # decrypt cleanly during the secrets refactor; they are regenerated and wired
-  # into declarative enrollment in the tailscale phase. Do not rely on them.
-  "agenix/machines/tailscale-auth-key.parabolic-surf.age".publicKeys = mkGlobalSecret;
-  "agenix/machines/tailscale-auth-key.straylight-evaluation.age".publicKeys = mkGlobalSecret;
-  "agenix/machines/tailscale-auth-key.v4.surf.age".publicKeys = mkGlobalSecret;
+  # Tailscale auth key for the live tailnet (osiris-walleye.ts.net). Consumed by
+  # hyper-modern-nixos.network.tailscale.authKeyFile for DECLARATIVE enrollment:
+  # a host with this wired joins the tailnet non-interactively, so a rebuild /
+  # reinstall can't strand a remote box. Use a REUSABLE, PRE-AUTHORIZED key
+  # (ideally tagged + ephemeral=false) from the Tailscale admin console. The 3
+  # prior keys (parabolic-surf / straylight-evaluation / v4.surf) were for
+  # retired tailnets and have been removed.
+  "agenix/machines/tailscale-auth-key.age".publicKeys = mkGlobalSecret;
 
   # restic repository password (modules/nixos/common/backup.nix). High-entropy
   # passphrase (`openssl rand -base64 48`). LOSING THIS = UNRECOVERABLE BACKUPS;

@@ -21,6 +21,14 @@ in
   age.secrets.restic-password.file = ../../../secrets/agenix/machines/restic-password.age;
   age.secrets.restic-r2-env.file = ../../../secrets/agenix/machines/restic-r2-env.ultraviolence.age;
 
+  # ── Tailscale declarative enrollment (test bed) ─────────────────────────────
+  # ultraviolence is already on the tailnet; wiring authKeyFile just makes
+  # enrollment declarative (idempotent — tailscaled won't re-auth a Running
+  # node). This proves the auth-key secret + module path before we rely on it to
+  # bring up remote hosts.
+  age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;
+  hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
+
   # Root-readable copy of the SAME rclone.conf (R2 remote + creds) for the
   # system mount service. The encrypted file is the user secret, but it's
   # encrypted to all host keys too, so the host can decrypt it at the NixOS
