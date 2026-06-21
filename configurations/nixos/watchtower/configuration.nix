@@ -1,6 +1,16 @@
-{ flake, ... }:
+{ flake, lib, ... }:
 let
   inherit (flake) inputs;
+
+  # ── Incremental rollout switches ────────────────────────────────────────────
+  # First deploy brings up ONLY the safe baseline (tailscale declarative
+  # enrollment + ssh), so we can confirm watchtower comes up healthy and stays
+  # reachable. Then flip these on ONE AT A TIME, rebuilding + verifying between:
+  #   1. enableInfra      -> postgres + monolithic atticd (the fleet cache backend)
+  #   2. enableBackup     -> restic timer (after the by-hand `restic init`)
+  # Keep both false for the initial infra-off deploy.
+  enableInfra = false;
+  enableBackup = false;
 in
 {
   imports = [
@@ -23,10 +33,18 @@ in
   networking.hostName = "watchtower";
   networking.networkmanager.enable = true;
 
+  # ── Tailscale safety net (ALWAYS on) ────────────────────────────────────────
+  # Declarative enrollment so this remote box can't fall off the tailnet during
+  # the incremental rollout — if a rebuild restarts tailscaled, it re-auths from
+  # the key rather than stranding the node. Tested live on ultraviolence first.
+  hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
+
   # watchtower hosts the shared postgres (and atticd). Unlike the rest of the
   # fleet (firewall off), it re-enables its firewall so the postgres module's
-  # interface-scoped 5432 rule (tailscale0 only) actually takes effect.
-  hyper-modern-nixos.network.firewall.enable = true;
+  # interface-scoped 5432 rule (tailscale0 only) actually takes effect. Gated
+  # with the infra rollout so the baseline deploy keeps the fleet firewall-off
+  # default (no surprise port changes before the services exist).
+  hyper-modern-nixos.network.firewall.enable = lib.mkIf enableInfra true;
 
   hardware.graphics = {
     enable = true;
@@ -67,10 +85,20 @@ in
   # carries the RS256 secret, PGPASSWORD (sqlx reads it), and the R2 AWS_* creds
   # — none touch the store. The pg role password is set out-of-band once (see
   # the deploy runbook). Replicas elsewhere point at this postgres over MagicDNS.
-  age.secrets.atticd-rs256.file = ../../../secrets/agenix/machines/atticd-rs256.age;
-  age.secrets.attic-push-token.file = ../../../secrets/agenix/machines/attic-push-token.age;
+  age.secrets = lib.mkMerge [
+    # tailscale safety net: ALWAYS present
+    { tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age; }
+    (lib.mkIf enableInfra {
+      atticd-rs256.file = ../../../secrets/agenix/machines/atticd-rs256.age;
+      attic-push-token.file = ../../../secrets/agenix/machines/attic-push-token.age;
+    })
+    (lib.mkIf enableBackup {
+      restic-password.file = ../../../secrets/agenix/machines/restic-password.age;
+      restic-r2-env.file = ../../../secrets/agenix/machines/restic-r2-env.watchtower.age;
+    })
+  ];
 
-  hyper-modern-nixos.attic-node = {
+  hyper-modern-nixos.attic-node = lib.mkIf enableInfra {
     enable = true;
     profile = "monolithic-shared";
   };
@@ -86,10 +114,9 @@ in
   #   THEN flip enable = true and rebuild.
   # Starting with /home only to validate the path with a small upload; widen to
   # /etc + /var/lib (incl. the atticd metadata under /var/lib) once trusted.
-  age.secrets.restic-password.file = ../../../secrets/agenix/machines/restic-password.age;
-  age.secrets.restic-r2-env.file = ../../../secrets/agenix/machines/restic-r2-env.watchtower.age;
-
-  hyper-modern-nixos.backup = {
+  # (restic secrets are declared in the age.secrets mkMerge above, gated on
+  # enableBackup.)
+  hyper-modern-nixos.backup = lib.mkIf enableBackup {
     enable = true;
     passwordFile = "/run/agenix/restic-password";
     environmentFile = "/run/agenix/restic-r2-env";
