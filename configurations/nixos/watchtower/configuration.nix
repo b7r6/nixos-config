@@ -9,7 +9,7 @@ let
   #   1. enableInfra      -> postgres + monolithic atticd (the fleet cache backend)
   #   2. enableBackup     -> restic timer (after the by-hand `restic init`)
   # Keep both false for the initial infra-off deploy.
-  enableInfra = false;
+  enableInfra = true;
   enableBackup = false;
 in
 {
@@ -91,6 +91,7 @@ in
     (lib.mkIf enableInfra {
       atticd-rs256.file = ../../../secrets/agenix/machines/atticd-rs256.age;
       attic-push-token.file = ../../../secrets/agenix/machines/attic-push-token.age;
+      attic-cache-keypair.file = ../../../secrets/agenix/machines/attic-cache-keypair.age;
     })
     (lib.mkIf enableBackup {
       restic-password.file = ../../../secrets/agenix/machines/restic-password.age;

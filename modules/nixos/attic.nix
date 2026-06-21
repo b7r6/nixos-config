@@ -199,7 +199,7 @@ in
 
       publicKey = lib.mkOption {
         type = lib.types.str;
-        example = "hypermodern:IxmiCAZWTeYmnOafmhz39qrn0wXj+aNvBy9dczJTcAs=";
+        example = "hypermodern:x+kBunu5nD1KOhzCIawyZeq8w0LV0GC6A7suIRoHTm8=";
         description = "The cache's binary-cache public key (from `attic cache info`).";
       };
 
@@ -281,6 +281,18 @@ in
 
       # Client CLI for `attic login` / `attic push` / `attic use`.
       environment.systemPackages = [ pkgs.attic-client ];
+
+      # If this node sets local postgres role passwords (monolithic-shared on
+      # the pg host), atticd must wait for that oneshot — otherwise it races the
+      # password being set and crash-loops on md5 auth until the next restart.
+      # Condition on the INPUT option (not config.systemd.services, which would
+      # recurse while defining systemd.services.atticd).
+      systemd.services.atticd =
+        lib.mkIf (config.hyper-modern-nixos.databases.postgres.rolePasswords != { })
+          {
+            after = [ "postgresql-role-passwords.service" ];
+            wants = [ "postgresql-role-passwords.service" ];
+          };
 
       # Open the port ONLY on the trusted (tailscale) interfaces, so the cache
       # is tailnet-reachable but not exposed to the public internet even though

@@ -80,6 +80,42 @@ in
         default = { };
         description = "Extra settings merged into services.postgresql.settings.";
       };
+
+      # ── Declarative role passwords ──────────────────────────────────────────
+      # ensureUsers cannot set a password. This wires a post-start oneshot that
+      # runs `ALTER ROLE <name> PASSWORD …` for each entry, sourcing the password
+      # from an AGENIX SECRET (by name) and taking the named env var. Idempotent
+      # on every boot/rebuild; the password is read at runtime and NEVER enters
+      # the store. Single source of truth: the SAME secret the client (e.g.
+      # atticd) reads PGPASSWORD from, so they can't drift.
+      #
+      # Purely declarative + host-agnostic: this module GRANTS the postgres user
+      # read access to the named secret (age.secrets.<name>.group = "postgres",
+      # mode 0440), so the postgres-run oneshot can read it without any manual
+      # chown. The secret stays root-owned; atticd reads it via systemd
+      # EnvironmentFile (as root, pre-DynamicUser) so group-read doesn't affect it.
+      rolePasswords = lib.mkOption {
+        type = lib.types.attrsOf (
+          lib.types.submodule {
+            options = {
+              secret = lib.mkOption {
+                type = lib.types.str;
+                description = "agenix secret NAME (decrypts to /run/agenix/<name>) to source the password from.";
+              };
+              var = lib.mkOption {
+                type = lib.types.str;
+                default = "PGPASSWORD";
+                description = "Env var name within the secret holding the role password.";
+              };
+            };
+          }
+        );
+        default = { };
+        example = {
+          atticd.secret = "atticd-rs256";
+        };
+        description = "role name -> { secret; var; } to set that role's password declaratively.";
+      };
     };
 
     redis.enable = lib.mkEnableOption "Redis server (off by default)";
@@ -91,16 +127,15 @@ in
         enable = true;
         inherit (cfg.postgres) package ensureDatabases ensureUsers;
 
-        # Bind loopback always; add the tailscale interface address when tailnet
-        # access is enabled. listen_addresses takes addresses, not interface
-        # names, so resolve the tailscale0 v4 address at runtime is not possible
-        # declaratively — instead we bind all addresses ('*') and rely on (a) the
-        # box having no public-facing postgres port open and (b) pg_hba below
-        # restricting to loopback + the tailnet CIDRs. This is the documented
-        # pattern for tailnet-only postgres.
-        settings = lib.recursiveUpdate {
-          listen_addresses = lib.mkDefault (if cfg.postgres.tailnet.enable then "*" else "localhost");
-        } cfg.postgres.settings;
+        # When tailnet access is enabled, listen on ALL addresses (enableTCPIP is
+        # the blessed NixOS knob → listen_addresses = "*"). Exposure is gated by
+        # (a) the firewall opening 5432 only on tailscale0 and (b) pg_hba below
+        # restricting md5 auth to loopback + the tailnet CIDRs. listen_addresses
+        # takes addresses (not interface names), so binding the specific tailscale
+        # IP isn't possible declaratively; "*" + firewall + pg_hba is the pattern.
+        enableTCPIP = cfg.postgres.tailnet.enable;
+
+        settings = cfg.postgres.settings;
 
         # Authentication: local peer for admin; md5 over the tailnet for clients.
         authentication = lib.mkIf cfg.postgres.tailnet.enable (
@@ -125,6 +160,63 @@ in
       networking.firewall.interfaces.${cfg.postgres.tailnet.interface} =
         lib.mkIf cfg.postgres.tailnet.enable
           { allowedTCPPorts = [ 5432 ]; };
+
+      # Grant the postgres user read access to each referenced secret, so the
+      # postgres-run oneshot below can source it — purely declarative, no manual
+      # chown. Root-owned, postgres group, 0440. atticd reads the same file via
+      # systemd EnvironmentFile (as root) so this doesn't affect it. Only emitted
+      # when rolePasswords is non-empty (so a host without agenix — e.g. a VM
+      # test — that doesn't use rolePasswords never touches the age option).
+      age.secrets = lib.mkIf (cfg.postgres.rolePasswords != { }) (
+        lib.mapAttrs' (
+          _role: spec:
+          lib.nameValuePair spec.secret {
+            group = "postgres";
+            mode = "0440";
+          }
+        ) cfg.postgres.rolePasswords
+      );
+
+      # Declaratively set role passwords from agenix secrets, after postgres is
+      # up. Idempotent ALTER ROLE; runs as the postgres superuser via peer auth.
+      # The password is sourced at runtime (never the store).
+      systemd.services.postgresql-role-passwords = lib.mkIf (cfg.postgres.rolePasswords != { }) {
+        description = "set postgres role passwords from agenix secrets";
+        after = [ "postgresql.service" ];
+        requires = [ "postgresql.service" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          User = "postgres";
+          RemainAfterExit = true;
+        };
+        script = lib.concatStringsSep "\n" (
+          lib.mapAttrsToList (
+            role: spec:
+            let
+              pgbin = "${config.services.postgresql.package}/bin/psql";
+              envFile = "/run/agenix/${spec.secret}";
+              # the literal shell var reference, e.g. $PGPASSWORD
+              varRef = "$" + spec.var;
+            in
+            ''
+              if [ -r "${envFile}" ]; then
+                # shellcheck disable=SC1090
+                pw=$( set -a; . "${envFile}"; printf '%s' "${varRef}" )
+                if [ -n "$pw" ]; then
+                  ${pgbin} -v ON_ERROR_STOP=1 \
+                    -c "ALTER ROLE \"${role}\" WITH LOGIN PASSWORD '$pw';" \
+                    || echo "warning: failed to set password for role ${role}" >&2
+                else
+                  echo "warning: ${spec.var} empty in ${envFile} for role ${role}" >&2
+                fi
+              else
+                echo "warning: secret ${envFile} for role ${role} not readable" >&2
+              fi
+            ''
+          ) cfg.postgres.rolePasswords
+        );
+      };
     })
 
     (lib.mkIf cfg.redis.enable { services.redis.servers."".enable = true; })

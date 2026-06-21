@@ -15,7 +15,7 @@
 # spirit, but driven through the same options the fleet uses). Storage is LOCAL
 # here (R2 is just a different storage backend; the wiring under test is mode +
 # db + substituter, which is backend-agnostic).
-{ pkgs }:
+{ pkgs, inputs }:
 let
   # A throwaway RS256 + PGPASSWORD env file, generated at build time. This is a
   # TEST secret living in the store ON PURPOSE — the whole point is to prove the
@@ -34,6 +34,7 @@ pkgs.testers.runNixOSTest {
 
   nodes.machine = { ... }: {
     imports = [
+      inputs.agenix.nixosModules.default
       ../modules/nixos/postgres.nix
       ../modules/nixos/attic.nix
     ];
@@ -71,7 +72,7 @@ pkgs.testers.runNixOSTest {
         enable = true;
         name = "hypermodern";
         endpoint = "http://localhost:8080";
-        publicKey = "hypermodern:IxmiCAZWTeYmnOafmhz39qrn0wXj+aNvBy9dczJTcAs=";
+        publicKey = "hypermodern:x+kBunu5nD1KOhzCIawyZeq8w0LV0GC6A7suIRoHTm8=";
         # no pushTokenFile -> watch-store stays off (pull-only) for the test
       };
     };
@@ -104,7 +105,7 @@ pkgs.testers.runNixOSTest {
 
     # nix is configured to consult the local hypermodern cache first.
     machine.succeed("grep -q 'localhost:8080/hypermodern' /etc/nix/nix.conf")
-    machine.succeed("grep -q 'hypermodern:IxmiCAZWTeYmnOafmhz39qrn0wXj' /etc/nix/nix.conf")
+    machine.succeed("grep -q 'hypermodern:x+kBunu5nD1KOhzCIawyZeq8w0LV0GC6A7suIRoHTm8=' /etc/nix/nix.conf")
 
     # The server is alive and DB-backed: hitting a cache endpoint returns a
     # real HTTP response (401 for the not-yet-public 'hypermodern' cache, NOT a

@@ -127,8 +127,26 @@ in
 
     publicKey = lib.mkOption {
       type = lib.types.str;
-      default = "hypermodern:IxmiCAZWTeYmnOafmhz39qrn0wXj+aNvBy9dczJTcAs=";
+      default = "hypermodern:x+kBunu5nD1KOhzCIawyZeq8w0LV0GC6A7suIRoHTm8=";
       description = "The `hypermodern` cache's binary-cache public key.";
+    };
+
+    cacheName = lib.mkOption {
+      type = lib.types.str;
+      default = "hypermodern";
+      description = "The cache name (URL path segment + DB cache row).";
+    };
+
+    keypairSecret = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = "attic-cache-keypair";
+      description = ''
+        monolithic-shared only: agenix secret NAME holding the cache's NixKeypair
+        string. Restored into the postgres `cache` table on activation so the
+        signing identity is STABLE across a postgres wipe (attic only stores it in
+        the DB and can't import it). null disables restore (use the DB-generated
+        key, which changes on a wipe).
+      '';
     };
   };
 
@@ -199,6 +217,55 @@ in
               ensureDBOwnership = true;
             }
           ];
+          # Set the atticd role's password declaratively from the SAME agenix
+          # secret atticd reads PGPASSWORD from, so md5 login and the client
+          # password can't drift. The postgres module grants postgres group-read
+          # on this secret. No password in the store.
+          rolePasswords.atticd = {
+            secret = "atticd-rs256";
+            var = "PGPASSWORD";
+          };
+        };
+
+        # Persist the cache signing keypair: agenix holds it (postgres-readable),
+        # and a oneshot restores it into the `cache` row so the signing identity
+        # survives a postgres wipe. Runs after the role-password service (so auth
+        # works) and only UPDATEs an EXISTING cache row (the row is created at
+        # bootstrap by `attic cache create`; this keeps its key stable thereafter).
+        age.secrets = lib.mkIf (cfg.keypairSecret != null) {
+          ${cfg.keypairSecret} = {
+            group = "postgres";
+            mode = "0440";
+          };
+        };
+
+        systemd.services.attic-cache-keypair-restore = lib.mkIf (cfg.keypairSecret != null) {
+          description = "restore the attic cache signing keypair into postgres";
+          after = [ "postgresql-role-passwords.service" ];
+          requires = [ "postgresql.service" ];
+          wantedBy = [ "multi-user.target" ];
+          before = [ "atticd.service" ];
+          serviceConfig = {
+            Type = "oneshot";
+            User = "postgres";
+            RemainAfterExit = true;
+          };
+          script =
+            let
+              psql = "${config.services.postgresql.package}/bin/psql -d atticd -v ON_ERROR_STOP=1";
+              secretPath = "/run/agenix/${cfg.keypairSecret}";
+            in
+            ''
+              if [ ! -r "${secretPath}" ]; then
+                echo "warning: keypair secret ${secretPath} not readable; skipping" >&2
+                exit 0
+              fi
+              kp=$(cat "${secretPath}")
+              # Only update if the cache row already exists (created at bootstrap).
+              # Idempotent: sets keypair to the agenix-held value every activation.
+              ${psql} -c "UPDATE cache SET keypair = '$kp' WHERE name = '${cfg.cacheName}';" \
+                || echo "warning: failed to restore cache keypair (cache '${cfg.cacheName}' may not exist yet)" >&2
+            '';
         };
       })
 

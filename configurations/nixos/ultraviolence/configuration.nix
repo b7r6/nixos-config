@@ -60,19 +60,18 @@ in
     };
   };
 
-  # ── attic binary cache: STANDALONE (self-contained, no fleet dependency) ────
-  # ultraviolence runs a self-contained monolithic atticd: local sqlite metadata
-  # + the shared R2 chunk store (it already has R2 creds in its env file). This
-  # switches cleanly TODAY, before watchtower's shared postgres exists. Flip to
-  # `profile = "replica"` once watchtower is up + migrated — that's the only
-  # change needed (mode/database/storage all derive from the profile).
+  # ── attic binary cache: REPLICA (api-server against watchtower's central pg) ─
+  # Now that watchtower's monolithic-shared backend is up + migrated, ultraviolence
+  # is a stateless api-server replica: it connects to watchtower's postgres over
+  # the tailnet, shares the R2 chunk store + RS256 secret, consults its OWN
+  # localhost:8080 first, and watch-store pushes every build into the shared
+  # cache (deduplicating against the existing R2 chunks). One source of truth.
   age.secrets.atticd-rs256.file = ../../../secrets/agenix/machines/atticd-rs256.age;
   age.secrets.attic-push-token.file = ../../../secrets/agenix/machines/attic-push-token.age;
 
   hyper-modern-nixos.attic-node = {
     enable = true;
-    profile = "standalone";
-    r2.enable = true; # local sqlite metadata, R2 chunk store
+    profile = "replica";
   };
 
   # ── NativeLink remote execution (single-box monolithic bringup) ─────────────
