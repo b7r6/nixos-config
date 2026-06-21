@@ -135,6 +135,25 @@ in
       };
     };
 
+    mullvadDaemon = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = ''
+          Run the Mullvad VPN DAEMON (services.mullvad-vpn). OFF by default.
+
+          The daemon installs an nftables KILLSWITCH (a `table inet mullvad` with
+          `policy drop` chains that only permit traffic via `wg0-mullvad`). When
+          it's enabled but NOT connected to a relay — our situation, since we
+          route Mullvad via Tailscale's exit-node add-on, not this daemon — that
+          lockdown can be (re)applied on boot/network-change with no wg0-mullvad
+          interface up, STRANDING the host's network (remediated by hand with
+          `nft flush ruleset`). So we keep the daemon off fleet-wide. Turn it on
+          ONLY on a host that genuinely uses the Mullvad daemon directly.
+        '';
+      };
+    };
+
     useBackupResolver = mkOption {
       type = types.bool;
       default = false;
@@ -230,7 +249,10 @@ in
         "net.ipv6.conf.all.forwarding" = 1;
       };
 
-      services.mullvad-vpn = {
+      # Mullvad DAEMON: off by default (its killswitch nft ruleset strands the
+      # network on boot when enabled-but-disconnected — see mullvadDaemon option).
+      # We route Mullvad via Tailscale's exit-node add-on, not this daemon.
+      services.mullvad-vpn = mkIf cfg.mullvadDaemon.enable {
         enable = true;
         package = pkgs.mullvad-vpn;
       };
@@ -269,17 +291,19 @@ in
         # networkmanager.dns = "none";
       };
 
-      environment.systemPackages = with pkgs; [
-        wget
-        ethtool
-        curl
-        dig
-        inetutils
-        mullvad-vpn
-        nmap
-        tailscale
-        traceroute
-      ];
+      environment.systemPackages =
+        (with pkgs; [
+          wget
+          ethtool
+          curl
+          dig
+          inetutils
+          nmap
+          tailscale
+          traceroute
+        ])
+        # the mullvad CLI/package only ships alongside its daemon.
+        ++ lib.optional cfg.mullvadDaemon.enable pkgs.mullvad-vpn;
     }
   );
 }
