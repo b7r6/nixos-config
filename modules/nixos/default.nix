@@ -43,6 +43,8 @@
     ./attic-node.nix
     ./nativelink.nix
     ./rclone-mount.nix
+    ./searxng.nix
+    ./torrents.nix
 
     # ── Development ──
     ./android.nix

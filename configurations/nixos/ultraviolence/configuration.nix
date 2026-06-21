@@ -59,6 +59,22 @@ in
     profile = "replica";
   };
 
+  # ── Incubating services (tailnet-only) ──────────────────────────────────────
+  # SearXNG metasearch + transmission/flood torrent stack, both reachable on the
+  # tailnet. When ultraviolence routes through the Mullvad Miami exit node
+  # (`tailscale set --exit-node=<mullvad-mia>`), all egress — including
+  # transmission — exits Miami (no separate killswitch, per the chosen posture).
+  age.secrets.searxng-env.file = ../../../secrets/agenix/machines/searxng-env.age;
+  age.secrets.transmission-rpc.file = ../../../secrets/agenix/machines/transmission-rpc.age;
+
+  hyper-modern-nixos.searxng = {
+    enable = true;
+    listenAddress = "0.0.0.0"; # tailnet-reachable (firewall gates to tailscale0)
+    port = 8889; # 8888 is taken by the hatchet docker container on this host
+  };
+
+  hyper-modern-nixos.torrents.enable = true;
+
   # ── NativeLink remote execution (single-box monolithic bringup) ─────────────
   # CAS + scheduler + a local x86_64 worker, all on this host. Split the aarch64
   # worker out to shimmer later by adding role = "worker" there pointing at this

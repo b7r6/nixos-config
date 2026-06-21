@@ -101,6 +101,13 @@ in
   #   hypermodern:x+kBunu5nD1KOhzCIawyZeq8w0LV0GC6A7suIRoHTm8=
   "agenix/machines/attic-cache-keypair.age".publicKeys = mkGlobalSecret;
 
+  # SearXNG signing key env file: SEARXNG_SECRET=<openssl rand -hex 32>.
+  "agenix/machines/searxng-env.age".publicKeys = mkGlobalSecret;
+
+  # transmission RPC secret (JSON): {"rpc-password":"…"}. transmission salts it
+  # on first start.
+  "agenix/machines/transmission-rpc.age".publicKeys = mkGlobalSecret;
+
   # ── User Secrets (agenix-deployed via home-manager) ──────────────────────────
   "agenix/users/b7r6/netrc.age".publicKeys = mkGlobalSecret;
   "agenix/users/b7r6/atuin-key.age".publicKeys = mkGlobalSecret;

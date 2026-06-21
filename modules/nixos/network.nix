@@ -71,6 +71,25 @@ in
         description = "Allow LAN access while using an exit node.";
       };
 
+      exitNode = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        example = "us-mia-wg-001.mullvad.ts.net";
+        description = ''
+          Pin the exit node this host routes through (the node's MagicDNS name or
+          tailscale IP). Mainly for Mullvad-via-Tailscale exit nodes (enable the
+          Mullvad add-on in the admin console first).
+
+          Applied via a `tailscale set` ONESHOT (tailscale-exit-node.service),
+          NOT via `tailscale up` flags — exit-node is a runtime, per-device knob,
+          so `set` is the idiomatic path and doesn't get clobbered by re-running
+          `up`. Flip at runtime any time with `tailscale set --exit-node=<node>`
+          (or `--exit-node=` to clear); a rebuild re-asserts whatever is pinned
+          here (null = explicitly cleared). Always pairs with
+          --exit-node-allow-lan-access so the LAN/tailnet stays reachable.
+        '';
+      };
+
       advertiseConnector = mkOption {
         type = types.bool;
         default = false;
@@ -177,6 +196,31 @@ in
           if [ -n "$NETDEV" ]; then
             ${pkgs.ethtool}/bin/ethtool -K "$NETDEV" rx-udp-gro-forwarding on rx-gro-list off || true
           fi
+        '';
+      };
+
+      # Exit-node selection via `tailscale set` (NOT up flags) so it's a clean
+      # runtime knob that a rebuild re-asserts without clobbering manual `set`s.
+      # Only emitted when a node is pinned — to CLEAR a pin, set exitNode=null
+      # AND run `tailscale set --exit-node=` once by hand. Ordered after
+      # tailscaled so the daemon + MagicDNS are up.
+      systemd.services.tailscale-exit-node = mkIf (ts.exitNode != null) {
+        description = "route this host through the Tailscale exit node ${ts.exitNode}";
+        after = [
+          "tailscaled.service"
+          "network-online.target"
+        ];
+        wants = [ "network-online.target" ];
+        requires = [ "tailscaled.service" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        script = ''
+          ${config.services.tailscale.package}/bin/tailscale set \
+            --exit-node=${ts.exitNode} --exit-node-allow-lan-access \
+            || echo "warning: failed to set exit-node ${ts.exitNode}" >&2
         '';
       };
 
