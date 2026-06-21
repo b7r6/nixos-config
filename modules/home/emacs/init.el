@@ -325,8 +325,8 @@
 
       ;; Font lock
       (font-lock-builtin-face ((,class (:foreground ,matrix))))
-      (font-lock-comment-face ((,class (:foreground ,comment :slant italic))))
-      (font-lock-comment-delimiter-face ((,class (:foreground ,comment :slant italic))))
+      (font-lock-comment-face ((,class (:foreground ,comment))))
+      (font-lock-comment-delimiter-face ((,class (:foreground ,comment))))
       (font-lock-doc-face ((,class (:foreground ,fg-alt))))
       (font-lock-constant-face ((,class (:foreground ,sky))))
       (font-lock-function-name-face ((,class (:foreground ,link))))

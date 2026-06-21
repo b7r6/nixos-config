@@ -6,6 +6,7 @@
     ./fmt.nix
     ./overlays.nix
     ./devshell.nix
+    ./docs.nix
     ./themes
 
     # secrets administration subsystem (devShells.secrets + flake apps)
@@ -51,7 +52,7 @@
     # ── Checks (NixOS VM tests) ─────────────────────────────────────────────────
     # Linux-only (nixosTest needs a Linux builder).
     checks = inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
-      attic-cache = import ../../checks/attic-cache.nix { inherit pkgs; };
+      attic-cache = import ../../checks/attic-cache.nix { inherit pkgs inputs; };
       backup-restic = import ../../checks/backup-restic.nix { inherit pkgs; };
     };
 
