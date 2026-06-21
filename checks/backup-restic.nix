@@ -14,7 +14,7 @@
 #   4. a snapshot exists; prune + check (the module's --read-data-subset) ran
 #   5. RESTORE the data to a clean dir and byte-compare (integrity round trip)
 #   6. excludes actually bite (a *.safetensors is NOT in the snapshot)
-{ pkgs }:
+{ pkgs, inputs }:
 let
   testPassword = "correct-horse-battery-staple";
   accessKey = "testaccesskey";
@@ -53,7 +53,12 @@ pkgs.testers.runNixOSTest {
   );
 
   nodes.machine = { pkgs, ... }: {
-    imports = [ ../modules/nixos/backup.nix ];
+    imports = [
+      # agenix so the age.secrets option exists (backup.nix references it, gated
+      # off here since passwordSecret/environmentSecret = null below).
+      inputs.agenix.nixosModules.default
+      ../modules/nixos/backup.nix
+    ];
 
     # local S3 (stand-in for R2)
     services.minio = {
@@ -69,6 +74,10 @@ pkgs.testers.runNixOSTest {
 
     hyper-modern-nixos.backup = {
       enable = true;
+      # disable secret self-wiring: this isolated VM has no agenix/flake; it
+      # provides its own test password/env files directly.
+      passwordSecret = null;
+      environmentSecret = null;
       passwordFile = "${testPasswordFile}";
       environmentFile = "${testEnvFile}";
       paths = [ "/var/data" ];

@@ -1,22 +1,18 @@
-{ flake, lib, ... }:
+{ flake, ... }:
 let
   inherit (flake) inputs;
-
-  # ── Incremental rollout switches ────────────────────────────────────────────
-  # First deploy brings up ONLY the safe baseline (tailscale declarative
-  # enrollment + ssh), so we can confirm watchtower comes up healthy and stays
-  # reachable. Then flip these on ONE AT A TIME, rebuilding + verifying between:
-  #   1. enableInfra      -> postgres + monolithic atticd (the fleet cache backend)
-  #   2. enableBackup     -> restic timer (after the by-hand `restic init`)
-  # Keep both false for the initial infra-off deploy.
-  enableInfra = true;
-  enableBackup = false;
 in
 {
   imports = [
     ./hardware-configuration.nix
     inputs.agenix.nixosModules.default
   ];
+
+  # ── Incremental rollout ─────────────────────────────────────────────────────
+  # Modules self-wire their own agenix secrets, so staging is just enabling
+  # service modules one at a time (each is its own `enable`), rebuilding +
+  # verifying between. The safe baseline is tailscale + ssh with NO service
+  # modules enabled; then attic-node; then backup. To stage, comment a block out.
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -41,10 +37,8 @@ in
 
   # watchtower hosts the shared postgres (and atticd). Unlike the rest of the
   # fleet (firewall off), it re-enables its firewall so the postgres module's
-  # interface-scoped 5432 rule (tailscale0 only) actually takes effect. Gated
-  # with the infra rollout so the baseline deploy keeps the fleet firewall-off
-  # default (no surprise port changes before the services exist).
-  hyper-modern-nixos.network.firewall.enable = lib.mkIf enableInfra true;
+  # interface-scoped 5432 rule (tailscale0 only) actually takes effect.
+  hyper-modern-nixos.network.firewall.enable = true;
 
   hardware.graphics = {
     enable = true;
@@ -76,51 +70,32 @@ in
     pulse.enable = true;
   };
 
-  # ── Central cache node: monolithic-shared (the fleet backend) ───────────────
-  # watchtower hosts the single shared postgres + the monolithic atticd that
-  # runs migrations + serves + the ONLY garbage collector (gc can't be
-  # replicated). The `monolithic-shared` profile bundles all of that: it enables
-  # the tailnet-reachable postgres (atticd role+db, md5 from the tailnet CIDRs),
-  # connects atticd over loopback, and backs storage with R2. The env file
-  # carries the RS256 secret, PGPASSWORD (sqlx reads it), and the R2 AWS_* creds
-  # — none touch the store. The pg role password is set out-of-band once (see
-  # the deploy runbook). Replicas elsewhere point at this postgres over MagicDNS.
-  age.secrets = lib.mkMerge [
-    # tailscale safety net: ALWAYS present
-    { tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age; }
-    (lib.mkIf enableInfra {
-      atticd-rs256.file = ../../../secrets/agenix/machines/atticd-rs256.age;
-      attic-push-token.file = ../../../secrets/agenix/machines/attic-push-token.age;
-      attic-cache-keypair.file = ../../../secrets/agenix/machines/attic-cache-keypair.age;
-    })
-    (lib.mkIf enableBackup {
-      restic-password.file = ../../../secrets/agenix/machines/restic-password.age;
-      restic-r2-env.file = ../../../secrets/agenix/machines/restic-r2-env.watchtower.age;
-    })
-  ];
+  # tailscale auth-key secret (host-wired opt-in; the module consumes the path).
+  age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;
 
-  hyper-modern-nixos.attic-node = lib.mkIf enableInfra {
+  # ── Central cache node: monolithic-shared (the fleet backend) ───────────────
+  # watchtower hosts the single shared postgres + the monolithic atticd that runs
+  # migrations + serves + the ONLY garbage collector (gc can't be replicated).
+  # The profile bundles it all (tailnet postgres with the atticd role+db, atticd
+  # over loopback, R2 storage) and SELF-WIRES its secrets (atticd-rs256,
+  # attic-push-token, attic-cache-keypair) — so this is the whole declaration.
+  hyper-modern-nixos.attic-node = {
     enable = true;
     profile = "monolithic-shared";
   };
 
   # ── restic → Cloudflare R2 backups ──────────────────────────────────────────
   # Per-host repo: s3:…/backups-restic/watchtower (isolated locks + retention).
-  #   restic-password           : the repo encryption passphrase (shared secret)
-  #   restic-r2-env.watchtower  : RESTIC_REPOSITORY + R2 AWS_* creds for THIS host
-  # FIRST run is BY HAND (see BACKUP.md) before this timer touches anything:
+  # The module self-wires its secrets from the names below. FIRST run is BY HAND
+  # (see the runbook / docs) before this timer is trusted:
   #   sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
-  #     env $(cat /run/agenix/restic-r2-env | xargs) restic init
-  #   …then one manual `restic backup /home` + `restic snapshots` to verify,
-  #   THEN flip enable = true and rebuild.
-  # Starting with /home only to validate the path with a small upload; widen to
-  # /etc + /var/lib (incl. the atticd metadata under /var/lib) once trusted.
-  # (restic secrets are declared in the age.secrets mkMerge above, gated on
-  # enableBackup.)
-  hyper-modern-nixos.backup = lib.mkIf enableBackup {
+  #     env $(sudo cat /run/agenix/restic-r2-env.watchtower | xargs) restic init
+  #   …then one manual `restic backup /home` + `restic snapshots` to verify.
+  # Starting with /home only; widen to /etc + /var/lib once trusted.
+  hyper-modern-nixos.backup = {
     enable = true;
-    passwordFile = "/run/agenix/restic-password";
-    environmentFile = "/run/agenix/restic-r2-env";
+    passwordSecret = "restic-password";
+    environmentSecret = "restic-r2-env.watchtower";
     paths = [ "/home" ];
   };
 

@@ -33,9 +33,20 @@
 # profile only changes mode/database/storage — the cache identity (name, public
 # key, push token) is constant, so a host can be flipped standalone↔replica by
 # changing one enum with no other churn.
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  flake,
+  ...
+}:
 let
   cfg = config.hyper-modern-nixos.attic-node;
+
+  # This module SELF-WIRES the agenix secrets it needs (the .age files live in
+  # the repo; flake.self is the repo root). So a host only sets
+  # `attic-node = { enable = true; profile = "…"; }` — no parallel age.secrets
+  # gating. The decrypted runtime paths stay /run/agenix/<name>.
+  machineSecrets = flake.self + "/secrets/agenix/machines";
 
   isStandalone = cfg.profile == "standalone";
   usesSharedPg = cfg.profile == "replica" || cfg.profile == "monolithic-shared";
@@ -162,6 +173,15 @@ in
           }
         ];
 
+        # Self-wire the agenix secrets this node needs. Every profile needs the
+        # atticd env (RS256 + R2 [+ PGPASSWORD for shared]) and a push token for
+        # watch-store. The host imports the agenix nixos module; this sets the
+        # .age files so the host doesn't gate them in lockstep.
+        age.secrets = {
+          atticd-rs256.file = machineSecrets + "/atticd-rs256.age";
+          attic-push-token.file = machineSecrets + "/attic-push-token.age";
+        };
+
         hyper-modern-nixos.attic = {
           enable = true;
           inherit mode;
@@ -234,6 +254,7 @@ in
         # bootstrap by `attic cache create`; this keeps its key stable thereafter).
         age.secrets = lib.mkIf (cfg.keypairSecret != null) {
           ${cfg.keypairSecret} = {
+            file = machineSecrets + "/${cfg.keypairSecret}.age";
             group = "postgres";
             mode = "0440";
           };

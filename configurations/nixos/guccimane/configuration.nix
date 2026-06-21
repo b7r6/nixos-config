@@ -52,9 +52,7 @@ in
   # b7r6 SSH keys + groups come from the fleet-wide hyper-modern-nixos.users
   # model (modules/nixos/default.nix + myusers.nix).
 
-  # ── attic api-server replica (shared pg + R2 + RS256, local substituter) ────
-  age.secrets.atticd-rs256.file = ../../../secrets/agenix/machines/atticd-rs256.age;
-  age.secrets.attic-push-token.file = ../../../secrets/agenix/machines/attic-push-token.age;
+  # ── attic api-server replica (module self-wires its secrets) ────────────────
   hyper-modern-nixos.attic-node = {
     enable = true;
     profile = "replica";

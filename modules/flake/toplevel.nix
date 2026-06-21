@@ -53,7 +53,7 @@
     # Linux-only (nixosTest needs a Linux builder).
     checks = inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
       attic-cache = import ../../checks/attic-cache.nix { inherit pkgs inputs; };
-      backup-restic = import ../../checks/backup-restic.nix { inherit pkgs; };
+      backup-restic = import ../../checks/backup-restic.nix { inherit pkgs inputs; };
     };
 
     packages = inputs.nixpkgs.lib.mkMerge [

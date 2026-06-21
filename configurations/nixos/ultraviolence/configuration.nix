@@ -8,19 +8,6 @@ in
     inputs.agenix.nixosModules.default
   ];
 
-  # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
-  # Two agenix secrets decrypt at boot to /run/agenix/:
-  #   restic-password : the repo encryption passphrase
-  #   restic-r2-env   : env file carrying this host's RESTIC_REPOSITORY, scoped
-  #                     to a PER-MACHINE prefix in one shared bucket:
-  #                       s3:https://<acct>.r2.cloudflarestorage.com/<bucket>/ultraviolence
-  #                     + AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / REGION
-  # The repo URL lives in the env file (not here) to keep the R2 account id out
-  # of the nix store. Do the FIRST `restic init`/backup BY HAND (see BACKUP.md)
-  # before flipping enable = true; the timer then drives the same repo.
-  age.secrets.restic-password.file = ../../../secrets/agenix/machines/restic-password.age;
-  age.secrets.restic-r2-env.file = ../../../secrets/agenix/machines/restic-r2-env.ultraviolence.age;
-
   # ── Tailscale declarative enrollment (test bed) ─────────────────────────────
   # ultraviolence is already on the tailnet; wiring authKeyFile just makes
   # enrollment declarative (idempotent — tailscaled won't re-auth a Running
@@ -36,13 +23,15 @@ in
   # at ~/.config/rclone/rclone.conf via the home-manager agenix module.
   age.secrets.rclone-conf.file = ../../../secrets/agenix/users/b7r6/rclone-conf.age;
 
+  # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
+  # The module self-wires its secrets from the names below (per-host R2 env:
+  # restic-r2-env.ultraviolence). RESTIC_REPOSITORY + creds live in that env
+  # file (R2 account id out of the store). FIRST init/backup BY HAND (see docs)
+  # before this timer is trusted. /home only first; widen later.
   hyper-modern-nixos.backup = {
     enable = true;
-    # repository intentionally left empty: RESTIC_REPOSITORY comes from the env file.
-    passwordFile = "/run/agenix/restic-password";
-    environmentFile = "/run/agenix/restic-r2-env";
-    # First R2 backup is scoped to /home only to validate the path with a
-    # smaller upload; widen to /etc + /var/lib once the repo is trusted.
+    passwordSecret = "restic-password";
+    environmentSecret = "restic-r2-env.ultraviolence";
     paths = [ "/home" ];
   };
 
@@ -61,14 +50,10 @@ in
   };
 
   # ── attic binary cache: REPLICA (api-server against watchtower's central pg) ─
-  # Now that watchtower's monolithic-shared backend is up + migrated, ultraviolence
-  # is a stateless api-server replica: it connects to watchtower's postgres over
-  # the tailnet, shares the R2 chunk store + RS256 secret, consults its OWN
-  # localhost:8080 first, and watch-store pushes every build into the shared
-  # cache (deduplicating against the existing R2 chunks). One source of truth.
-  age.secrets.atticd-rs256.file = ../../../secrets/agenix/machines/atticd-rs256.age;
-  age.secrets.attic-push-token.file = ../../../secrets/agenix/machines/attic-push-token.age;
-
+  # Stateless api-server replica: connects to watchtower's postgres over the
+  # tailnet, shares the R2 chunk store + RS256 secret, consults its OWN
+  # localhost:8080 first, watch-store pushes every build (dedup vs R2). The
+  # module SELF-WIRES its agenix secrets (atticd-rs256, attic-push-token).
   hyper-modern-nixos.attic-node = {
     enable = true;
     profile = "replica";

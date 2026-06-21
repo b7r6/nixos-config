@@ -24,13 +24,40 @@
 #     restic -r /path/to/repo snapshots          # verify
 # then set hyper-modern-nixos.backup.enable = true and rebuild.
 
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  # `flake` comes from specialArgs on real hosts. Defaulted to null so contexts
+  # that import this module without it (e.g. an isolated nixosTest that wires its
+  # own secret paths and sets passwordSecret/environmentSecret = null) still
+  # evaluate — machineSecrets is only forced when a secret name is non-null.
+  flake ? null,
+  ...
+}:
 let
   cfg = config.hyper-modern-nixos.backup;
+  machineSecrets = flake.self + "/secrets/agenix/machines";
 in
 {
   options.hyper-modern-nixos.backup = {
     enable = lib.mkEnableOption "restic backups (off by default; do the first run by hand)";
+
+    # ── Self-wired agenix secrets (by name) ─────────────────────────────────────
+    # When set, the module wires age.secrets.<name>.file itself (from the repo)
+    # and derives the runtime path, so a host only sets enable + paths. The R2
+    # env secret is PER-HOST (restic-r2-env.<host>.age), hence configurable.
+    passwordSecret = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = "restic-password";
+      description = "agenix secret NAME for the repo passphrase (null = wire passwordFile yourself).";
+    };
+
+    environmentSecret = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "restic-r2-env.watchtower";
+      description = "agenix secret NAME for the R2 env file (null = wire environmentFile yourself).";
+    };
 
     repository = lib.mkOption {
       type = lib.types.str;
@@ -45,18 +72,19 @@ in
 
     passwordFile = lib.mkOption {
       type = lib.types.path;
-      default = "/run/agenix/restic-password";
+      default = "/run/agenix/${cfg.passwordSecret}";
+      defaultText = "/run/agenix/\${passwordSecret}";
       description = ''
-        Path to the file containing the restic repository password. Defaults to
-        the conventional agenix runtime path; a host that enables backups should
-        declare `age.secrets.restic-password` (file = restic-password.age) and
-        import the agenix nixos module. NEVER put this in the nix store.
+        Runtime path to the repo password file. Defaults to the agenix runtime
+        path derived from passwordSecret (which the module also wires). NEVER a
+        store path.
       '';
     };
 
     environmentFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
-      default = null;
+      default = if cfg.environmentSecret != null then "/run/agenix/${cfg.environmentSecret}" else null;
+      defaultText = "/run/agenix/\${environmentSecret} (or null)";
       description = ''
         Optional path to an env file with backend credentials (e.g.
         AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY, B2_ACCOUNT_ID / B2_ACCOUNT_KEY).
@@ -165,6 +193,23 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # Self-wire the agenix secrets by name (the .age files live in the repo).
+    # A host only sets enable + paths; the module declares the secrets so there
+    # is no parallel age.secrets gating. (Host imports the agenix nixos module.)
+    # Only emitted when a secret name is set, so contexts without agenix (an
+    # isolated VM test with passwordSecret/environmentSecret = null) never touch
+    # the age option.
+    age.secrets = lib.mkIf (cfg.passwordSecret != null || cfg.environmentSecret != null) (
+      lib.mkMerge (
+        lib.optional (cfg.passwordSecret != null) {
+          ${cfg.passwordSecret}.file = machineSecrets + "/${cfg.passwordSecret}.age";
+        }
+        ++ lib.optional (cfg.environmentSecret != null) {
+          ${cfg.environmentSecret}.file = machineSecrets + "/${cfg.environmentSecret}.age";
+        }
+      )
+    );
+
     # The repo location may come from either the nix option OR the env file
     # (RESTIC_REPOSITORY). The upstream restic module asserts EXACTLY ONE of
     # repository / repositoryFile / environmentFile carries it, so when
