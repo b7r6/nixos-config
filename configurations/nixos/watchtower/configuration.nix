@@ -75,5 +75,26 @@ in
     profile = "monolithic-shared";
   };
 
+  # ── restic → Cloudflare R2 backups ──────────────────────────────────────────
+  # Per-host repo: s3:…/backups-restic/watchtower (isolated locks + retention).
+  #   restic-password           : the repo encryption passphrase (shared secret)
+  #   restic-r2-env.watchtower  : RESTIC_REPOSITORY + R2 AWS_* creds for THIS host
+  # FIRST run is BY HAND (see BACKUP.md) before this timer touches anything:
+  #   sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
+  #     env $(cat /run/agenix/restic-r2-env | xargs) restic init
+  #   …then one manual `restic backup /home` + `restic snapshots` to verify,
+  #   THEN flip enable = true and rebuild.
+  # Starting with /home only to validate the path with a small upload; widen to
+  # /etc + /var/lib (incl. the atticd metadata under /var/lib) once trusted.
+  age.secrets.restic-password.file = ../../../secrets/agenix/machines/restic-password.age;
+  age.secrets.restic-r2-env.file = ../../../secrets/agenix/machines/restic-r2-env.watchtower.age;
+
+  hyper-modern-nixos.backup = {
+    enable = true;
+    passwordFile = "/run/agenix/restic-password";
+    environmentFile = "/run/agenix/restic-r2-env";
+    paths = [ "/home" ];
+  };
+
   system.stateVersion = "25.05";
 }

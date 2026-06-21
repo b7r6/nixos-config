@@ -753,11 +753,17 @@
 
 (defun hypermodern/css-reset ()
   "Strip typography crimes. Color only."
-  (dolist (face '(italic bold bold-italic
-                         font-lock-comment-face font-lock-doc-face
-                         font-lock-keyword-face font-lock-builtin-face
-                         font-lock-function-name-face font-lock-type-face
-                         font-lock-warning-face))
+
+  ;; Nuclear option: redefine base italic/bold faces so inheritance doesn't override
+  (set-face-attribute 'italic nil :slant 'normal :underline nil :weight 'normal)
+  (set-face-attribute 'bold nil :weight 'normal)
+  (set-face-attribute 'bold-italic nil :weight 'normal :slant 'normal)
+
+  ;; Also reset specific font-lock faces (belt-and-suspenders)
+  (dolist (face '(font-lock-comment-face font-lock-doc-face
+                                         font-lock-keyword-face font-lock-builtin-face
+                                         font-lock-function-name-face font-lock-type-face
+                                         font-lock-warning-face))
     (when (facep face)
       (set-face-attribute face nil :weight 'normal :slant 'normal)))
 

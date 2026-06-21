@@ -19,7 +19,7 @@ in
   # of the nix store. Do the FIRST `restic init`/backup BY HAND (see BACKUP.md)
   # before flipping enable = true; the timer then drives the same repo.
   age.secrets.restic-password.file = ../../../secrets/agenix/machines/restic-password.age;
-  age.secrets.restic-r2-env.file = ../../../secrets/agenix/machines/restic-r2-env.age;
+  age.secrets.restic-r2-env.file = ../../../secrets/agenix/machines/restic-r2-env.ultraviolence.age;
 
   # Root-readable copy of the SAME rclone.conf (R2 remote + creds) for the
   # system mount service. The encrypted file is the user secret, but it's

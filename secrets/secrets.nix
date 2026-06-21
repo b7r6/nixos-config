@@ -62,11 +62,15 @@ in
   # keep an independent out-of-band copy.
   "agenix/machines/restic-password.age".publicKeys = mkGlobalSecret;
 
-  # restic R2 backend env file (services.restic…environmentFile). Contents:
+  # restic R2 backend env file, ONE PER HOST (services.restic…environmentFile):
   #   RESTIC_REPOSITORY=s3:https://<ACCOUNT_ID>.r2.cloudflarestorage.com/<BUCKET>/<host>
   #   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_DEFAULT_REGION=auto
-  # R2 token scoped Object R&W to JUST the backups bucket.
-  "agenix/machines/restic-r2-env.age".publicKeys = mkGlobalSecret;
+  # Per-host so each machine gets an isolated repo (own locks, own retention)
+  # under a per-host prefix in the shared bucket. R2 token scoped Object R&W to
+  # JUST the backups bucket. Kept mkGlobalSecret so any operator box can restore
+  # any host's repo.
+  "agenix/machines/restic-r2-env.ultraviolence.age".publicKeys = mkGlobalSecret;
+  "agenix/machines/restic-r2-env.watchtower.age".publicKeys = mkGlobalSecret;
 
   # nativelink R2 backend creds (env file, shellexpand'd in the JSON5 config):
   #   R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY
