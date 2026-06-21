@@ -16,9 +16,27 @@ in
 
   networking.hosts = { };
 
-  # TODO[b7r6]: we've got to either converge or diverge on
-  # `autowire`, this in-between isn't working out...
   hyper-modern-nixos.nvidia.enable = true;
+
+  # ── Fleet services (BLOCKED on shannon's host key) ──────────────────────────
+  # shannon's ed25519 host key is not yet in secrets/keys.nix (laptop was off),
+  # so it can't decrypt ANY agenix secret. Once it boots:
+  #   1. nix run .#scan-host-key -- shannon   (paste into keys.nix)
+  #   2. nix run .#rekey-secrets               (so shannon can decrypt)
+  #   3. create restic-r2-env.shannon.age (per-host R2 repo)
+  #   4. uncomment the block below + deploy + `nix run .#restic-init -- shannon`
+  #
+  # hyper-modern-nixos.attic-node = { enable = true; profile = "replica"; };
+  #
+  # age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;
+  # hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
+  #
+  # hyper-modern-nixos.backup = {
+  #   enable = true;
+  #   passwordSecret = "restic-password";
+  #   environmentSecret = "restic-r2-env.shannon";
+  #   paths = [ "/home" ];
+  # };
 
   # Wayland/Hyprland via the consolidated common module (nixpkgs hyprland).
   # Previously this host pinned a now-removed `inputs.hyprland`; the fleet

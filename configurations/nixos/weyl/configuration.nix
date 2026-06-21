@@ -75,5 +75,19 @@ in
     profile = "replica";
   };
 
+  # ── Tailscale safety net ────────────────────────────────────────────────────
+  age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;
+  hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
+
+  # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
+  # Per-host repo (backups-restic/weyl). Module self-wires its secrets.
+  # FIRST init declarative + idempotent:  nix run .#restic-init -- weyl
+  hyper-modern-nixos.backup = {
+    enable = true;
+    passwordSecret = "restic-password";
+    environmentSecret = "restic-r2-env.weyl";
+    paths = [ "/home" ];
+  };
+
   system.stateVersion = "25.05"; # Did you read the comment?
 }
