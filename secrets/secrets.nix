@@ -123,6 +123,18 @@ in
   #   hypermodern:x+kBunu5nD1KOhzCIawyZeq8w0LV0GC6A7suIRoHTm8=
   "agenix/machines/attic-cache-keypair.age".publicKeys = mkGlobalSecret;
 
+  # Supabase stack secrets — ONE env file consumed by every service unit via
+  # systemd EnvironmentFile (modules/nixos/supabase). Generated as a unit by
+  # `nix run .#gen-supabase-secrets` (mirrors upstream utils/generate-keys.sh):
+  #   JWT_SECRET                      (>= 32 chars; HS256 signer)
+  #   ANON_KEY / SERVICE_ROLE_KEY     (HS256 JWTs DERIVED from JWT_SECRET)
+  #   POSTGRES_PASSWORD               (the supabase cluster's postgres password)
+  #   SECRET_KEY_BASE (64) / VAULT_ENC_KEY (32) / PG_META_CRYPTO_KEY (32+)
+  #   DASHBOARD_USERNAME / DASHBOARD_PASSWORD   (Studio basic-auth)
+  # The ANON/SERVICE JWTs are only valid against the JWT_SECRET in the SAME file,
+  # so rotate the bundle as a unit. Never enters the nix store.
+  "agenix/machines/supabase-env.age".publicKeys = mkGlobalSecret;
+
   # SearXNG signing key env file: SEARXNG_SECRET=<openssl rand -hex 32>.
   "agenix/machines/searxng-env.age".publicKeys = mkGlobalSecret;
 

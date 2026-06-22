@@ -103,5 +103,15 @@
     # the operator devshell / VSCode see bit-identical tools to the CAS fleet.
     straylight-prelude.url = "github:sensenet-ai/straylight-prelude/b7r6/dev-0x04";
     straylight-prelude.inputs.nixpkgs.follows = "nixpkgs";
+
+    # Self-hosted Supabase. NOT a flake — we consume its docker/ tree as a SOURCE
+    # for the version-coupled config files (volumes/api/kong.yml, the db init
+    # SQL, volumes/pooler/pooler.exs) that ship OUTSIDE the container images and
+    # are pinned in lockstep with the image tags in modules/nixos/supabase. There
+    # is no upstream NixOS module (native support is on their roadmap; this is the
+    # community-contribution shape until then). flake = false so it's a plain
+    # content-addressed checkout, never evaluated.
+    supabase.url = "github:supabase/supabase";
+    supabase.flake = false;
   };
 }

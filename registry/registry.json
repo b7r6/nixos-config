@@ -11,7 +11,8 @@
         "postgres",
         "attic",
         "registry",
-        "monitoring"
+        "monitoring",
+        "studio"
       ],
       "tailnet": "watchtower",
       "tailnet_ipv4": "100.122.228.122",

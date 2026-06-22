@@ -82,10 +82,25 @@ in
     };
   };
 
+  # ── Supabase (full self-hosted stack) ───────────────────────────────────────
+  # Phase one: a SELF-CONTAINED Supabase on its OWN postgres cluster
+  # (/var/lib/supabase/db) — it connects to NOTHING in the existing fleet, so
+  # atticd's cluster, signing keypair, and pgBackRest `main` stanza are untouched.
+  # Kong (the one ingress) binds loopback; nginx fronts it on studio.sju1.s4.gl
+  # with the wildcard cert. The module self-wires the supabase-env agenix bundle
+  # (generate it with `nix run .#gen-supabase-secrets`). See
+  # docs/src/services/supabase.md. Browsing atticd/Forgejo in Studio + CDC to
+  # ClickHouse are deferred to post-rewrite.
+  hyper-modern-nixos.supabase = {
+    enable = true;
+    publicUrl = "https://studio.sju1.s4.gl";
+  };
+
   # ── Reverse proxy + internal ACME (nginx → loopback services) ───────────────
   # nginx terminates TLS on the logical names with a real wildcard cert
   # (*.sju1.s4.gl via DNS-01/Njalla) and proxies to loopback. registry.sju1.s4.gl
-  # → the zot above. CoreDNS already resolves that name to this host.
+  # → the zot above; studio.sju1.s4.gl → Kong (Supabase's gateway). CoreDNS
+  # already resolves those names to this host.
   hyper-modern-nixos.reverseProxy = {
     enable = true;
     services.registry = {
@@ -93,6 +108,7 @@ in
       # OCI image layers are multi-MB/GB; the default 1m cap → HTTP 413 on push.
       maxBodySize = "0";
     };
+    services.studio.port = 8000; # → Kong → Studio/auth/rest/realtime/storage
   };
 
   hardware.graphics = {

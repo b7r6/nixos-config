@@ -27,6 +27,7 @@
 
 - [SearXNG + torrents](./services/searxng-torrents.md)
 - [OCI registry (zot)](./services/registry.md)
+- [Supabase (self-hosted)](./services/supabase.md)
 
 # Operations
 

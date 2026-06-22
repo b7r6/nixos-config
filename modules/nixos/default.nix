@@ -48,6 +48,7 @@
     ./nativelink.nix
     ./rclone-mount.nix
     ./searxng.nix
+    ./supabase.nix
     ./torrents.nix
     ./registry.nix
     ./media.nix

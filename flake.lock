@@ -1761,6 +1761,7 @@
         "nvf": "nvf",
         "straylight-prelude": "straylight-prelude",
         "stylix": "stylix",
+        "supabase": "supabase",
         "systems": "systems_9",
         "treefmt-nix": "treefmt-nix_5",
         "xremap-flake": "xremap-flake"
@@ -1869,6 +1870,22 @@
       "original": {
         "owner": "danth",
         "repo": "stylix",
+        "type": "github"
+      }
+    },
+    "supabase": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1782147473,
+        "narHash": "sha256-q47+9td+6Qxd3ZHYhjAhtjK64tTIItW82ULUXePQPaU=",
+        "owner": "supabase",
+        "repo": "supabase",
+        "rev": "7ff3264b5f5af09a990b242da54e1a4649442586",
+        "type": "github"
+      },
+      "original": {
+        "owner": "supabase",
+        "repo": "supabase",
         "type": "github"
       }
     },
