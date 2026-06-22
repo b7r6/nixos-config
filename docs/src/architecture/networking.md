@@ -87,14 +87,36 @@ on, pure data) with read-only `registry` / `hosts` / `managedHosts` and query
 validation (duplicate IPs, hosts in undeclared zones) runs as build assertions on
 top of Dhall's type checking. CoreDNS/nginx/cloudflared (next) read from here.
 
-## Layer 1 — CoreDNS (on every box)
+## Layer 1 — CoreDNS (implemented)
 
-Adapt ps-v4's CoreDNS module (zones generated from the registry, Prometheus
-metrics, caching, upstream forwarding) — but feed it from the **Dhall registry**,
-not hand-written Nix zone strings. Split-horizon: CoreDNS answers internal
-`logical` names with `tailnet_ipv4` (LAN/tailnet addresses), and forwards
-everything else out. This is what makes "a movie stays on the LAN" true — the
-internal name resolves to an internal IP, never to a Cloudflare edge.
+`modules/nixos/coredns.nix` (`hyper-modern-nixos.coredns`, off by default), built
+on stock `services.coredns`. Authoritative for the internal zone `sju1.s4.gl`,
+**generated from the topology registry** (never hand-written Nix zone strings —
+the ps-v4 mistake we avoided), forwarding everything else out (MagicDNS
+`100.100.100.100` first so `*.ts.net` still resolves). Three record kinds, all
+derived from the registry:
+
+| Record | Source | Example |
+| --- | --- | --- |
+| `<host>.sju1.s4.gl` A | `tailnet_ipv4` (every host) | `ultraviolence.sju1.s4.gl → 100.71.82.73` |
+| `<host>.lan.sju1.s4.gl` A | `lan_ipv4` (static-leased boxes only) | (pending wired leases) |
+| `<service>.sju1.s4.gl` CNAME | host running that `services` tag | `registry.sju1.s4.gl → watchtower…` |
+
+The NS glue is auto-derived from the resolver's own registry entry. It binds
+`0.0.0.0` so **both** LAN devices (the Google TV, via the `lan.` records) and
+tailnet boxes resolve it. Split-horizon is what makes "a movie stays on the LAN"
+true: an internal name resolves to a `tailnet_ipv4`/`lan_ipv4`, never to a
+Cloudflare edge.
+
+> **Proven live on watchtower** (the fleet resolver): `ultraviolence.sju1.s4.gl`
+> → tailnet IP; `registry.sju1.s4.gl` → `watchtower` (CNAME chain);
+> `one.one.one.one` forwards out; `*.osiris-walleye.ts.net` still resolves via
+> MagicDNS. `:53` was free (resolved inactive).
+
+> Not yet enabled fleet-wide — watchtower is the single resolver for now. LAN
+> clients (the Google TV) point DNS at it (router DHCP option 6) once the `lan.`
+> records are populated. Per-host CoreDNS / a second resolver for redundancy is a
+> later step.
 
 ## Layer 2 — nginx reverse proxy (on every box that serves)
 
