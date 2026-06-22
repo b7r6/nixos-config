@@ -266,6 +266,31 @@ in
         '';
       };
 
+      # Apply accept-dns via `tailscale set` (NOT just up flags) so it takes on
+      # the RUNNING daemon at every activation. up-flags only apply on first `up`;
+      # a host that flips acceptDNS later (e.g. when it starts owning its resolver
+      # via CoreDNS) needs `set` to re-assert it, or tailscaled keeps managing
+      # resolv.conf (CorpDNS stays true). Ordered after tailscaled.
+      systemd.services.tailscale-accept-dns = {
+        description = "apply tailscale --accept-dns=${if ts.acceptDNS then "true" else "false"}";
+        after = [
+          "tailscaled.service"
+          "network-online.target"
+        ];
+        wants = [ "network-online.target" ];
+        requires = [ "tailscaled.service" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        script = ''
+          ${config.services.tailscale.package}/bin/tailscale set \
+            --accept-dns=${if ts.acceptDNS then "true" else "false"} \
+            || echo "warning: failed to set --accept-dns" >&2
+        '';
+      };
+
       # IP forwarding only when this node actually routes traffic.
       boot.kernel.sysctl = mkIf routes {
         "net.ipv4.ip_forward" = 1;
