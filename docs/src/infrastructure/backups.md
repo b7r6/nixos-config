@@ -152,6 +152,11 @@ is the durability the system-of-record (e.g. Forgejo) needs.
 It is **not** streaming replication: there is no second postgres and no failover.
 PITR is single-node *recoverability*; HA is a separate, later project.
 
+> **Proven live on watchtower** (2026-06): stanza `main` status ok; WAL archives
+> continuously to R2; a full base backup (187 MB → 49 MB compressed) and a
+> **restore rehearsal** (full cluster reconstructed from R2 to a scratch dir,
+> 1318 files, valid PG 16) both completed. PITR is trusted, not a rumor.
+
 How it wires up:
 
 - postgres gets `archive_mode = on`, `wal_level = replica`, and
