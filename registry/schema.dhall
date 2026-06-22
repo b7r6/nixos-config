@@ -26,8 +26,13 @@ let Host =
           , --  the stable internal name: <physical>.<dc>.<internalDomain>
             --  (e.g. watchtower.sju1.s4.gl). Derived in hosts.dhall.
             logical : Text
-          , --  internal (tailnet) address — what CoreDNS serves internally
+          , --  internal (tailnet) address — what CoreDNS serves for <host>.<dc>.<dom>
             tailnet_ipv4 : Text
+          , --  LAN address (static-leased wired iface) — what CoreDNS serves for
+            --  <host>.lan.<dc>.<dom>, so NON-tailnet LAN devices (e.g. a Google TV
+            --  reaching Jellyfin) can resolve fleet services. None on laptops (they
+            --  roam — no stable LAN address) and any host without a static lease.
+            lan_ipv4 : Optional Text
           , --  public/provider address — null on a NAT'd tailnet-only host
             provider_ipv4 : Optional Text
           , --  coordination/locality grouping (forward-compat); coincides with
@@ -42,7 +47,11 @@ let Host =
             managed : Bool
           }
       , default =
-        { provider_ipv4 = None Text, services = [] : List Text, managed = True }
+        { lan_ipv4 = None Text
+        , provider_ipv4 = None Text
+        , services = [] : List Text
+        , managed = True
+        }
       }
 
 let Zone =
