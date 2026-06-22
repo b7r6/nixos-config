@@ -40,8 +40,7 @@ let
 
   # Build a Neovim theme package using the Lean generator
   mkNeovimTheme =
-    pkgs:
-    _:
+    pkgs: _:
     let
       generator = pkgs.callPackage ../../../packages/ono-sendai-generator { };
     in

@@ -59,29 +59,27 @@ in
         }
       '';
       type = types.attrsOf (
-        types.submodule (
-          _: {
-            options = {
-              path = mkOption {
-                type = types.str;
-                description = "Absolute path to the state directory.";
-              };
-              class = mkOption {
-                type = types.enum [
-                  "authoritative"
-                  "reconstructible"
-                  "ephemeral"
-                ];
-                description = ''
-                  - authoritative: irreplaceable, app-managed → persisted AND backed up.
-                  - reconstructible: cache/CAS whose truth is in R2 / re-derivable →
-                    persisted (avoid slow refetch on reboot) but NOT backed up.
-                  - ephemeral: scratch → neither persisted nor backed up.
-                '';
-              };
+        types.submodule (_: {
+          options = {
+            path = mkOption {
+              type = types.str;
+              description = "Absolute path to the state directory.";
             };
-          }
-        )
+            class = mkOption {
+              type = types.enum [
+                "authoritative"
+                "reconstructible"
+                "ephemeral"
+              ];
+              description = ''
+                - authoritative: irreplaceable, app-managed → persisted AND backed up.
+                - reconstructible: cache/CAS whose truth is in R2 / re-derivable →
+                  persisted (avoid slow refetch on reboot) but NOT backed up.
+                - ephemeral: scratch → neither persisted nor backed up.
+              '';
+            };
+          };
+        })
       );
     };
 

@@ -7,7 +7,6 @@
 #
 
 {
-  flake,
   config,
   lib,
   pkgs,
