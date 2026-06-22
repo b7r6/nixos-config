@@ -6,8 +6,8 @@
 
 # `// why`
 
-restic backups, driven by `modules/nixos/common/backup.nix` (`hyper-modern-nixos.backup`). The
-module is **off by default** and refuses to do anything until a host opts in.
+restic backups, driven by `modules/nixos/backup.nix` (`hyper-modern-nixos.backup`). The module is
+**off by default** and refuses to do anything until a host opts in.
 
 The rule: **the first backup is done by hand.** You initialize the repo, run one full backup, and
 verify a restore — all manually — *before* any systemd timer is allowed near your data. Once you

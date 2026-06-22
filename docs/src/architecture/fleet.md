@@ -34,8 +34,9 @@ new infra is proven first:
   [attic](../infrastructure/attic.md).
 - nativelink **monolithic** — CAS + scheduler + local x86_64 worker, R2-backed, TLS terminated with
   a Tailscale-issued cert. See [nativelink](../infrastructure/nativelink.md).
-- restic → R2 backups, `rcloneMount` of the R2 bucket at `/mnt/r2`, declarative Tailscale
-  enrollment, Hyprland (`hyper-wayland`), nvidia.
+- restic → R2 backups, declarative Tailscale enrollment, Hyprland (`hyper-wayland`), nvidia. (The R2
+  `rcloneMount` is now fleet-wide — see [the rclone mount note](#fleet-wide-r2-mounts) — not an
+  ultraviolence distinguishing feature.)
 
 ### watchtower (x86_64, central services)
 
@@ -46,9 +47,9 @@ local `enableInfra` / `enableBackup` switches:
   (`atticd` role+db, tailnet-reachable) **and** the monolithic atticd that runs migrations, serves,
   and the single garbage collector. Exactly one such node. See
   [postgres](../infrastructure/postgres.md) and [attic](../infrastructure/attic.md).
-- Re-enables its firewall (`hyper-modern-nixos.network.firewall.enable = true`) so the postgres
-  module's interface-scoped `5432`-on-`tailscale0` rule takes effect — the rest of the fleet runs
-  firewall-off.
+- The postgres module's interface-scoped `5432`-on-`tailscale0` rule takes effect because the
+  firewall is on fleet-wide (default `true`) — watchtower inherits the fleet-on default, no special
+  opt-in.
 - restic → R2 (per-host repo `…/backups-restic/watchtower`), gated on `enableBackup`.
 
 ### weyl, guccimane (x86_64 workstations)
@@ -80,6 +81,19 @@ table.
 `configurations/nixos/test-vm/`. A throwaway VM that imports **only** `self.nixosModules.wayland`
 (not the full `default` aggregator) to iterate on the wayland module in isolation, with an inline
 `test` user.
+
+## Fleet-wide R2 mounts
+
+Every host (via the `hyper-modern-nixos.rcloneMount` fleet default, on in
+`modules/nixos/default.nix`) gets **two** rclone FUSE mounts off the `straylight-r2` remote's
+`host-mount` bucket:
+
+- `/mnt/r2/common` → `host-mount/common` — **shared** by the whole fleet.
+- `/mnt/r2/<hostname>` → `host-mount/<host>` — this host's **isolated** subtree.
+
+The per-host subtree is derived from `config.networking.hostName`, and the module **self-wires** the
+`rclone-conf` agenix secret, so there is nothing per-host to configure — importing the default
+module is enough. See [reference/options](../reference/options.md#rclone-mounts).
 
 ## Decommissioned
 

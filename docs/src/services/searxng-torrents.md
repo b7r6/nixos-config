@@ -103,7 +103,8 @@ curl -s https://am.i.mullvad.net/json | jq '{city, country, server: .mullvad_exi
 # -> { "city": "Miami, FL", "country": "USA", "server": "us-mia-wg-001" }
 ```
 
-> Note: `ultraviolence` runs with the host firewall **off** (fleet default), so the
-> `tailscale0`-scoped firewall rules in these modules don't actually gate the ports — they're
-> reachable on any of the box's interfaces (fine for an incubation host on the LAN/tailnet; tighten
-> before exposing more broadly).
+> Note: the host firewall is **on fleet-wide** (the module default), so the `tailscale0`-scoped
+> firewall rules in these modules **do** gate the ports — SearXNG and flood are reachable only on
+> the tailnet, even though they bind broadly (binding the `tailscale0` IP directly races boot, so
+> `0.0.0.0` + a `tailscale0`-only firewall rule is the pattern). To reach either off-tailnet, front
+> it with `tailscale serve` / `tailscale funnel` rather than opening a public firewall port.

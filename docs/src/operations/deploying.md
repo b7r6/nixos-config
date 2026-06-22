@@ -7,16 +7,44 @@ per entry in the `hosts` table of `configurations/default.nix`: `ultraviolence`,
 ## TL;DR
 
 ```bash
+# whole fleet (or named hosts), including self — the easy button
+nix run .#deploy-fleet                  # every deployable host
+nix run .#deploy-fleet -- watchtower weyl   # just these
+
 # the local box (ultraviolence) — switch in place
 nixos-rebuild switch --flake .#ultraviolence
 
 # a remote box over the tailnet — build locally first, then push
-nixos-rebuild build  --flake .#watchtower                       # eval + build, no activate
 nixos-rebuild switch --flake .#watchtower \
   --target-host watchtower --use-remote-sudo
 ```
 
+## `deploy-fleet` (the easy button)
+
+`nix run .#deploy-fleet [-- host…]` deploys the whole fleet (or the named hosts), encoding the
+patterns below so you don't have to remember them. For each target it picks one of three paths:
+
+- **self** (matches the host's `networking.hostName`) — a local `nixos-rebuild switch`.
+- **remote, same arch as the builder** — build the closure locally (attic cache hit), `nix copy` it
+  over the tailnet, register it as the system profile generation
+  (`nix-env -p /nix/var/nix/profiles/system --set`, so it survives reboot and the bootloader entry
+  is installed), then a **backgrounded** `switch-to-configuration switch`. Backgrounding matters:
+  the `tailscaled` restart during activation can drop the SSH-over-tailnet session mid-switch; the
+  [auth-key safety net](../infrastructure/tailscale.md) brings the box back, and backgrounding
+  avoids a wedged session.
+- **remote, different arch** (e.g. aarch64 `shimmer` from an x86_64 builder) — `git pull` +
+  `nixos-rebuild switch` **on the host** (it pulls cached paths from attic); no
+  cross-build/emulation.
+
+It builds the closure with `nix build --no-link --print-out-paths` rather than `nixos-rebuild build`
+— `nixos-rebuild-ng` (the Python rewrite) dropped `--print-out-paths`. `test-vm` is excluded. Env
+knobs: `FLAKE` (default `.`) and `REMOTE_FLAKE_DIR` (default `src/nixos-config`, the cross-arch
+checkout path on the host). On the cross-arch path, push your branch first so the host's `git pull`
+sees it.
+
 ## The proven remote pattern
+
+`deploy-fleet` automates this; the manual flow is still useful for one-offs and debugging.
 
 Build the closure **locally first**, then activate it on the target. Building locally means the
 build host realises from the [attic cache](../infrastructure/attic.md) (cache hit on most paths) and
@@ -89,9 +117,9 @@ The pattern:
 
 1. **Baseline deploy** — both flags `false`. Brings up only the safe baseline: declarative Tailscale
    enrollment + SSH. Confirm the box comes up healthy and stays reachable on the tailnet.
-2. Flip `enableInfra = true`, rebuild, verify postgres + atticd are healthy. This also re-enables
-   `watchtower`'s firewall (`hyper-modern-nixos.network.firewall.enable`) so the postgres
-   `tailscale0`-scoped 5432 rule actually bites — the rest of the fleet runs firewall-off.
+2. Flip `enableInfra = true`, rebuild, verify postgres + atticd are healthy. The postgres
+   `tailscale0`-scoped 5432 rule enforces because the firewall is on fleet-wide (default `true`);
+   flipping `enableInfra` only adds the postgres/atticd services, not the firewall.
 3. Do the [restic first backup by hand](./runbooks.md#b--restic-first-backup-by-hand), then flip
    `enableBackup = true`, rebuild.
 

@@ -108,11 +108,25 @@ ethtool -K "$NETDEV" rx-udp-gro-forwarding on rx-gro-list off
 
 ## Firewall posture
 
-`services.tailscale.openFirewall = true` and `tailscale0` is a `trustedInterface` (all traffic on it
-allowed). Public ports are minimal: TCP `22` and `3000`, UDP `41641` (the Tailscale endpoint), with
-`checkReversePath = "loose"`.
+The firewall is **on fleet-wide** (`hyper-modern-nixos.network.firewall.enable`, default `true`).
+Because `tailscale0` is a `trustedInterface` (all traffic on it allowed), enabling it never blocks
+the tailnet or SSH — it only closes the **public** interfaces. Public ports are minimal: TCP `22`
+and `3000`, UDP `41641` (the Tailscale endpoint), with `checkReversePath = "loose"`.
+
+The backend is the modern **nftables** backend (`hyper-modern-nixos.network.firewall.nftables`,
+default `true` → `networking.nftables.enable`). All rules are expressed through high-level
+`networking.firewall.*` options (no raw `iptables`/`extraCommands`), so the backend renders them
+natively into a single inspectable `nft list ruleset` (`table inet nixos-fw`).
 
 Per-service, interface-scoped ports merge in cleanly on top — e.g. [postgres](./postgres.md) opens
 `5432` only on `tailscale0`, and [attic](./attic.md)/[nativelink](./nativelink.md) open their
-gRPC/HTTP ports only on the trusted interfaces. The fleet otherwise runs firewall-off; the DB host
-re-enables its firewall so those interface-scoped rules bite.
+gRPC/HTTP ports only on the trusted interfaces. Because the firewall is on everywhere, those
+interface-scoped rules actually **enforce** the tailnet-only posture on every host (they're no-ops
+when the firewall is off). No host needs to "re-enable" the firewall.
+
+### Exposing a service publicly
+
+To reach a service from outside the tailnet, use **`tailscale serve`** (tailnet HTTPS) or
+**`tailscale funnel`** (public HTTPS) terminating at the tailscaled proxy — the service itself stays
+bound to loopback/tailnet and you never punch a hole in the firewall. Only add a public
+`allowedTCPPorts` entry for the rare service that must face the raw internet directly.

@@ -60,14 +60,18 @@ A handful of always-on essentials don't gate (`base`, `nix`, `packages`, `greetd
 hyper-modern-nixos.network = {
   enable = true;
   tailnet.domain = "osiris-walleye.ts.net";
-  firewall.enable = lib.mkDefault false;   # watchtower opts back in
   useBackupResolver = true;
 };
+hyper-modern-nixos.rcloneMount.enable = lib.mkDefault true;   # /mnt/r2 mounts fleet-wide
 hyper-modern-nixos.users.defaultAuthorizedKeys = [ "ssh-ed25519 …" /* b7r6 */ ];
 ```
 
-`firewall.enable` is `mkDefault false` so a host that needs interface-scoped port rules (e.g.
-[watchtower](./fleet.md)'s postgres) can flip it back on.
+The firewall is **on fleet-wide** (the module default `firewall.enable = true`); `tailscale0` is
+trusted so this never blocks the tailnet — it just closes public interfaces and makes per-service
+`tailscale0`-scoped rules enforce. A host that genuinely needs the firewall off sets
+`firewall.enable = false` explicitly. `rcloneMount.enable` is `mkDefault true`, so every host gets
+the shared `/mnt/r2/common` + per-host `/mnt/r2/<hostname>` mounts (the module self-wires its
+secret).
 
 ## The self-enabling role / profile pattern
 

@@ -93,7 +93,10 @@ Deployed via the home-manager agenix module under `agenix/users/b7r6/`:
 
 | Secret | Purpose | |---|---| | `netrc` | machine credentials (`~/.netrc`) | | `atuin-key` | atuin
 shell-history sync key | | `hf-token` | HuggingFace token | | `rclone-conf` | full `rclone.conf` (R2
-remote + creds), also used by the system rclone mount |
+remote + creds). Also consumed by the **fleet-wide system rclone mount**
+([rcloneMount](../reference/options.md#rclone-mounts)) — the module self-wires this secret on every
+host (root-readable `/run/agenix/rclone-conf`), so no per-host `age.secrets.rclone-conf` is needed.
+|
 
 ## Admin devShell + flake apps
 

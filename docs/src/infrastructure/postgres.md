@@ -23,10 +23,9 @@ Package defaults to `postgresql_16`.
 When `tailnet.enable` is set, exposure is gated at **two layers** (defense in depth):
 
 1. **Firewall** — port `5432` is opened **only** on `tailnet.interface` (`tailscale0`), via
-   `networking.firewall.interfaces`. Postgres is more sensitive than a pull cache, so the host
-   should re-enable its firewall (`hyper-modern-nixos.network.firewall.enable = true`) so this
-   interface-scoped rule actually bites. The rest of the fleet runs firewall-off; the DB host opts
-   back in (watchtower does exactly this).
+   `networking.firewall.interfaces`. The firewall is on fleet-wide (default `true`), so this
+   interface-scoped rule actually bites with no special opt-in: `5432` is reachable on the tailnet
+   but never on a public interface.
 2. **`pg_hba`** — md5 auth permitted only from loopback + the tailnet CIDRs.
 
 `enableTCPIP` is driven by `tailnet.enable` (it sets `listen_addresses = "*"`, the blessed NixOS

@@ -28,14 +28,15 @@ sh/              # executable artifacts
 ## // usage
 
 ```bash
-# deploy to host
-just deploy <hostname>
+# deploy the whole fleet (or named hosts), including self
+nix run .#deploy-fleet
+nix run .#deploy-fleet -- <hostname> [<hostname>…]
 
-# rebuild locally
-just rebuild
+# rebuild the local box in place
+nixos-rebuild switch --flake .#<hostname>
 
 # format everything
-just fmt
+nix fmt
 ```
 
 ## // philosophy

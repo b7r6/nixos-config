@@ -28,10 +28,13 @@ Allow LAN access while using an exit node. | | `network.tailscale.exitNode` | `n
 tailnet ACL). | | `network.tailscale.hostname` | `null or str` / `null` | Override the registered
 Tailscale hostname. | | `network.tailscale.encryptState` | `bool` / `false` | Encrypt `tailscaled`
 state via TPM 2.0. Off — boxes are reflashed often. | | `network.firewall.enable` | `bool` / `true`
-| Tailscale-aware firewall. The fleet runs firewall-off; the DB host opts back in so
-interface-scoped rules bite. | | `network.tailnet.domain` | `str` / `"example.ts.net"` | Tailnet
-domain. | | `network.useBackupResolver` | `bool` / `false` | Use backup DNS resolvers in addition to
-Tailscale DNS. |
+| Tailscale-aware firewall, **on fleet-wide**. `tailscale0` is trusted (never blocks the tailnet);
+it closes public interfaces and makes per-service `tailscale0`-scoped rules enforce. Public exposure
+goes via `tailscale serve`/`funnel`, not by opening ports. | | `network.firewall.nftables` | `bool`
+/ `true` | Use the modern nftables backend (`networking.nftables.enable`) — one inspectable
+`nft list ruleset`. | | `network.tailnet.domain` | `str` / `"example.ts.net"` | Tailnet domain. | |
+`network.useBackupResolver` | `bool` / `false` | Use backup DNS resolvers in addition to Tailscale
+DNS. |
 
 See [Tailscale](../infrastructure/tailscale.md).
 
@@ -138,6 +141,28 @@ Glob excludes — caches, re-fetchable ML weights, build scratch. | | `backup.ti
 `{ OnCalendar = "daily"; Persistent; RandomizedDelaySec = "1h"; }` | systemd timer config. | |
 `backup.pruneOpts` | `listOf str` / `--keep-daily 7` … `--keep-yearly 3` | Retention policy
 (`restic forget`). |
+
+## `rcloneMount.*` (fleet-wide R2 mounts) {#rclone-mounts}
+
+Source: `modules/nixos/rclone-mount.nix`. **On by default fleet-wide** (`mkDefault true` in the
+aggregator). Every host mounts the shared `/mnt/r2/common` and its own `/mnt/r2/<hostname>` off the
+`straylight-r2` remote's `host-mount` bucket. The per-host subtree is derived from
+`networking.hostName`, and the module self-wires the `rclone-conf` agenix secret — nothing per-host
+to declare.
+
+| Option | Type / default | Description | | ---------------------------- |
+--------------------------------------------------------------- |
+------------------------------------------------------------------------ | | `rcloneMount.enable` |
+`bool` / `true` | Master switch for the system rclone mount service. | | `rcloneMount.r2.enable` |
+`bool` / `true` | Mount the standard fleet layout (`/mnt/r2/common` + `/mnt/r2/<hostname>`). | |
+`rcloneMount.r2.remote` | `str` / `"straylight-r2"` | rclone remote name (from the decrypted
+rclone.conf). | | `rcloneMount.r2.bucket` | `str` / `"host-mount"` | R2 bucket holding the common +
+per-host subtrees. | | `rcloneMount.r2.base` | `str` / `"/mnt/r2"` | Local base dir for `common/` +
+`<hostname>/`. | | `rcloneMount.secret` | `null or str` / `"users/b7r6/rclone-conf"` | agenix secret
+path the module self-wires to `configPath` (null = wire it yourself). | | `rcloneMount.configPath` |
+`path` / `"/run/agenix/rclone-conf"` | Root-readable rclone.conf (agenix runtime path, never the
+store). | | `rcloneMount.mounts` | `attrsOf submodule` / `{ }` | Low-level escape hatch: extra
+`remote`→`where` mounts, merged over the `r2` convenience mounts. |
 
 ## `searxng.*` / `torrents.*` (incubating services)
 
