@@ -94,6 +94,10 @@ in
   age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;
   hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
 
+  # CoreDNS as this node's own resolver (resolves *.sju1.s4.gl, incl. the
+  # nativelink scheduler/CAS FQDNs; tailscale stops managing resolv.conf).
+  hyper-modern-nixos.coredns.enable = true;
+
   # ── NativeLink: the ONLY aarch64 CAS shard (weight 2) + worker ──────────────
   # From the typed Dhall fleet (out/shimmer.json): a CAS shard server + an
   # aarch64 worker dialing watchtower's scheduler. Multi-arch RE runs native

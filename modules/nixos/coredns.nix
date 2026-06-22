@@ -88,10 +88,23 @@ let
     ${serviceRecords}
   '';
 
-  corefile = pkgs.writeText "Corefile" ''
+  # A plain Nix STRING (not pkgs.writeText) so services.coredns.config consumes it
+  # directly — readFile of a derivation would be import-from-derivation, which
+  # `nix flake check` can't evaluate. The zone FILE is still a derivation,
+  # referenced by store path here (CoreDNS reads it at runtime; not IFD).
+  corefile = ''
     ${zone}:${toString cfg.port} {
         bind ${cfg.bindAddress}
         file ${zoneFile} ${zone}
+        ${optionalString cfg.prometheus "prometheus ${cfg.bindAddress}:9153"}
+        errors
+        ${optionalString cfg.debug "log"}
+    }
+
+    ${topo.registry.tailnetSuffix}:${toString cfg.port} {
+        bind ${cfg.bindAddress}
+        forward . ${cfg.magicDnsServer}
+        cache ${toString cfg.cacheTTL}
         ${optionalString cfg.prometheus "prometheus ${cfg.bindAddress}:9153"}
         errors
         ${optionalString cfg.debug "log"}
@@ -149,11 +162,22 @@ in
     forwardServers = mkOption {
       type = types.listOf types.str;
       default = [
-        "100.100.100.100" # tailscale MagicDNS first (so *.ts.net resolves)
         "1.1.1.1"
         "8.8.8.8"
       ];
-      description = "Upstreams for non-internal names (MagicDNS first).";
+      description = "Upstreams for general (non-internal, non-tailnet) names.";
+    };
+
+    magicDnsServer = mkOption {
+      type = types.str;
+      default = "100.100.100.100";
+      description = ''
+        Where to forward the tailnet suffix zone (the registry's tailnetSuffix) —
+        Tailscale MagicDNS. We run our OWN resolver (tailscale --accept-dns=false),
+        own the sju1.s4.gl zone, send general names to forwardServers, and forward
+        ONLY *.<tailnetSuffix> here — keeping MagicDNS's one useful bit without its
+        resolv.conf meddling.
+      '';
     };
 
     ttl = mkOption {
@@ -191,6 +215,19 @@ in
       default = false;
       description = "Enable CoreDNS query logging.";
     };
+
+    ownResolver = mkOption {
+      type = types.bool;
+      default = true;
+      description = ''
+        Make this node's CoreDNS the node's OWN resolver: tell tailscale to stop
+        managing /etc/resolv.conf (--accept-dns=false) and point the node at
+        127.0.0.1. We then own resolution end-to-end — authoritative for
+        sju1.s4.gl, forward *.<tailnetSuffix> to MagicDNS, everything else to the
+        public upstreams — instead of MagicDNS (which doesn't know our zone). Off
+        only if some other resolver should own resolv.conf on this node.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -203,12 +240,24 @@ in
 
     services.coredns = {
       enable = true;
-      config = builtins.readFile corefile;
+      config = corefile;
     };
 
-    networking.firewall = lib.mkIf cfg.openFirewall {
-      allowedTCPPorts = [ cfg.port ];
-      allowedUDPPorts = [ cfg.port ];
-    };
+    # Own the node's resolution: stop tailscale managing resolv.conf, point at
+    # our local CoreDNS. (acceptDNS=false is the tailscale --accept-dns=false flag.)
+    hyper-modern-nixos.network.tailscale.acceptDNS = lib.mkIf cfg.ownResolver (lib.mkForce false);
+
+    networking = lib.mkMerge [
+      (lib.mkIf cfg.ownResolver {
+        nameservers = lib.mkForce [ "127.0.0.1" ];
+        # NetworkManager/resolvconf must not re-point us elsewhere.
+        networkmanager.dns = lib.mkForce "none";
+        search = [ "${cfg.dc}.${topo.registry.internalDomain}" ];
+      })
+      (lib.mkIf cfg.openFirewall {
+        firewall.allowedTCPPorts = [ cfg.port ];
+        firewall.allowedUDPPorts = [ cfg.port ];
+      })
+    ];
   };
 }

@@ -77,6 +77,10 @@ in
   # unless nativelink.cachix.org is added in modules/nixos/common/nix.nix.
   age.secrets.nativelink-r2-env.file = ../../../secrets/agenix/machines/nativelink-r2-env.age;
 
+  # CoreDNS as this node's own resolver (resolves *.sju1.s4.gl, incl. the
+  # nativelink scheduler/CAS FQDNs; tailscale stops managing resolv.conf).
+  hyper-modern-nixos.coredns.enable = true;
+
   # NativeLink: this host's role + topology come from the typed Dhall fleet
   # (nativelink/fleet.dhall → out/ultraviolence.json): a CAS shard (small, weight
   # 1 — disk pressure) + an x86_64 worker dialing watchtower's scheduler over the
