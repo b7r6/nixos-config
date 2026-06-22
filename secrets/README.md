@@ -34,7 +34,7 @@ secrets/
 ```bash
 # Enter the secrets shell
 cd secrets
-# (direnv auto-activates, or: nix develop ..#secrets)
+# (direnv auto-activates, or: nix develop .#secrets)
 
 # List all secrets
 list-secrets
@@ -63,7 +63,7 @@ Secrets in `agenix/` are deployed by NixOS at activation time:
 1. Create the secret file:
 
    ```bash
-   new-agenix-secret agenix/users/b7r6/new-secret.age
+   new-secret agenix/users/b7r6/new-secret.age
    ```
 
 2. Add to `secrets.nix`:

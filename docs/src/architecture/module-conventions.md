@@ -39,11 +39,13 @@ safe to import all of them unconditionally. That is exactly what the aggregator 
 { lib, ... }: {
   imports = [
     ./base.nix ./nix.nix ./packages.nix ./greetd.nix ./myusers.nix ./secrets.nix
+    ./state.nix ./topology.nix
     ./bluetooth.nix ./nvidia.nix ./radeon.nix ./usb.nix
-    ./network.nix ./network-manager.nix
+    ./network.nix ./network-manager.nix ./coredns.nix ./reverse-proxy.nix
     ./docker.nix ./libvirt.nix
     ./postgres.nix ./backup.nix ./attic.nix ./attic-node.nix
-    ./nativelink.nix ./rclone-mount.nix
+    ./nativelink.nix ./rclone-mount.nix ./searxng.nix ./torrents.nix
+    ./registry.nix ./media.nix
     ./android.nix ./appimage.nix ./nix-ld.nix
     ./impermanence.nix ./impurity.nix ./xremap.nix
     ./dgx-spark ./wayland
@@ -110,14 +112,15 @@ Secrets are referenced by their **decrypted runtime path** under `/run/agenix`, 
 the Nix store. The pattern at a host:
 
 ```nix
-age.secrets.restic-password.file = …/secrets/agenix/machines/restic-password.age;
-
 hyper-modern-nixos.backup = {
   enable = true;
-  passwordFile = "/run/agenix/restic-password";   # runtime path
-  environmentFile = "/run/agenix/restic-r2-env";   # env file w/ R2 creds + repo URL
+  passwordSecret    = "restic-password";           # module self-wires age.secrets.<name>.file
+  environmentSecret = "restic-r2-env.watchtower";   # PER-HOST; env file w/ R2 creds + repo URL
 };
 ```
+
+A host only names its secrets; the module wires `age.secrets.<name>.file` and derives the runtime
+path (`environmentSecret = "restic-r2-env.watchtower"` → `/run/agenix/restic-r2-env.watchtower`).
 
 Things that would leak into the world-readable store (R2 account ids, AWS keys, postgres passwords,
 repo URLs) live **inside** the decrypted env file, not in Nix expressions. Module option defaults

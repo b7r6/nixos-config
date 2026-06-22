@@ -15,7 +15,9 @@ declarative — these are the **one-time bootstrap** steps. See
 
 Prereqs: the `atticd-rs256.age` secret exists and is rekeyed to `watchtower` (carries
 `ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64`, `PGPASSWORD`, and the R2 `AWS_*` creds). The
-`enableInfra = true` flag is set in `configurations/nixos/watchtower/configuration.nix`.
+`hyper-modern-nixos.attic-node` block is enabled (its own `enable = true`) in
+`configurations/nixos/watchtower/configuration.nix` — modules self-wire their secrets, so staging is
+just uncommenting that block and rebuilding.
 
 1. **Deploy the infra.** On switch the declarative chain runs automatically:
 
@@ -61,16 +63,18 @@ ______________________________________________________________________
 The backup module sets `initialize = false` **by design**: you create and verify the repo by hand
 before any timer touches your data. See [Backups (restic → R2)](../infrastructure/backups.md). On
 `watchtower` the secrets are `restic-password` (repo passphrase) and `restic-r2-env.watchtower`
-(`RESTIC_REPOSITORY` + R2 `AWS_*`), both gated on `enableBackup`.
+(`RESTIC_REPOSITORY` + R2 `AWS_*`), both self-wired by the `hyper-modern-nixos.backup` module's own
+`enable`.
 
-Deploy with `enableBackup` still `false` (so the secrets decrypt but the timer isn't active), then
-on the host:
+Deploy with the `hyper-modern-nixos.backup` block enabled (so the secrets decrypt) — `initialize =
+false` means the timer can't create or touch the repo until you've done it by hand — then on the
+host:
 
 1. **Init the repo:**
 
    ```bash
    sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
-     env $(sudo cat /run/agenix/restic-r2-env | xargs) \
+     env $(sudo cat /run/agenix/restic-r2-env.watchtower | xargs) \
      restic init
    ```
 
@@ -78,18 +82,19 @@ on the host:
 
    ```bash
    sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
-     env $(sudo cat /run/agenix/restic-r2-env | xargs) \
+     env $(sudo cat /run/agenix/restic-r2-env.watchtower | xargs) \
      restic backup /home
 
    sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
-     env $(sudo cat /run/agenix/restic-r2-env | xargs) \
+     env $(sudo cat /run/agenix/restic-r2-env.watchtower | xargs) \
      restic snapshots
    ```
 
-3. **Then flip the timer on.** Set `enableBackup = true` in
-   `configurations/nixos/watchtower/configuration.nix` and rebuild. The systemd unit
-   (`restic-backups-system.service`) takes over the same repo with the same password + env file,
-   plus retention (`pruneOpts`) and a post-backup `restic check --read-data-subset=10%`.
+3. **Then let the timer take over.** With the `hyper-modern-nixos.backup` block enabled in
+   `configurations/nixos/watchtower/configuration.nix` (uncomment it if it was staged out) and
+   rebuilt, the systemd unit (`restic-backups-system.service`) takes over the same repo with the
+   same password + env file, plus retention (`pruneOpts`) and a post-backup
+   `restic check --read-data-subset=10%`.
 
 > **Losing `restic-password` = unrecoverable backups.** Keep an out-of-band copy.
 

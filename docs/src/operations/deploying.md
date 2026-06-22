@@ -105,28 +105,33 @@ without touching the running system. Use it before flipping infra switches on `w
 ## Staged rollout (watchtower)
 
 `watchtower` carries the fleet's stateful infra: the shared
-[PostgreSQL](../infrastructure/postgres.md), the monolithic [`atticd`](../infrastructure/attic.md),
-and [restic backups](../infrastructure/backups.md). It is brought up **incrementally** using local
-boolean flags in `configurations/nixos/watchtower/configuration.nix`:
+[PostgreSQL](../infrastructure/postgres.md) (with PITR), the monolithic
+[`atticd`](../infrastructure/attic.md), and [restic backups](../infrastructure/backups.md). It is
+brought up **incrementally** in `configurations/nixos/watchtower/configuration.nix`. There is no
+boolean-flag/`mkIf` indirection: each service module sets its own `enable` directly
+(`hyper-modern-nixos.databases.postgres.backup.pitr.enable`, `hyper-modern-nixos.registry.enable`,
+`hyper-modern-nixos.nativelink.enable`, `hyper-modern-nixos.attic-node.enable`,
+`hyper-modern-nixos.backup.enable`), and the modules self-wire their own agenix secrets.
 
-```nix
-enableInfra  = true;   # postgres + monolithic atticd (the fleet cache backend)
-enableBackup = false;  # restic timer (only after the by-hand `restic init`)
-```
+Staging is therefore just **commenting service blocks in or out**, as the file's own comment
+(`watchtower/configuration.nix:11-15`) says: because each module self-wires its own secrets, you bring
+the box up one module at a time, rebuilding and verifying between. The safe baseline is Tailscale +
+SSH with every service block commented out; uncomment them in dependency order from there.
 
 The pattern:
 
-1. **Baseline deploy** — both flags `false`. Brings up only the safe baseline: declarative Tailscale
-   enrollment + SSH. Confirm the box comes up healthy and stays reachable on the tailnet.
-2. Flip `enableInfra = true`, rebuild, verify postgres + atticd are healthy. The postgres
-   `tailscale0`-scoped 5432 rule enforces because the firewall is on fleet-wide (default `true`);
-   flipping `enableInfra` only adds the postgres/atticd services, not the firewall.
-3. Do the [restic first backup by hand](./runbooks.md#b--restic-first-backup-by-hand), then flip
-   `enableBackup = true`, rebuild.
+1. **Baseline deploy** — all service blocks commented out. Brings up only the safe baseline:
+   declarative Tailscale enrollment + SSH. Confirm the box comes up healthy and stays reachable on
+   the tailnet.
+2. Uncomment the infra blocks (postgres PITR, registry, nativelink, attic-node), rebuild, verify
+   each is healthy. The postgres `tailscale0`-scoped 5432 rule enforces because the firewall is on
+   fleet-wide (default `true`); uncommenting these blocks only adds the services, not the firewall.
+3. Do the [restic first backup by hand](./runbooks.md#b--restic-first-backup-by-hand), then uncomment
+   the `hyper-modern-nixos.backup` block and rebuild.
 
-Rebuild + verify **between each flip**. The `lib.mkIf enableInfra` / `lib.mkIf enableBackup` guards
-gate both the `age.secrets` declarations and the service options, so a baseline deploy never
-references secrets that aren't wired yet.
+Rebuild + verify **between each step**. Because each module self-wires its `age.secrets` behind its
+own `enable`, a baseline deploy with the service blocks commented out never references secrets that
+aren't wired yet.
 
 ## Tailscale safety net
 

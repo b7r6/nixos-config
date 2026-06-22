@@ -11,8 +11,10 @@ so it cannot brick a box.
 
 ## Per-host repo layout
 
-One R2 bucket, **one repo per machine** under a per-host prefix (`backups-restic/<host>`), so each
+One R2 bucket, **one repo per machine** under a per-host prefix (`<bucket>/<host>`), so each
 host gets an isolated repo — own locks, own retention — while sharing the same bucket and R2 token.
+The bucket name isn't pinned in code; it lives only in the encrypted env file as part of
+`RESTIC_REPOSITORY`.
 
 The repo URL and backend creds live in a **per-host agenix env file**
 ([`restic-r2-env.<host>`](./secrets.md)), keeping the account id out of the Nix store:
@@ -29,16 +31,18 @@ The repo password is the separate [`restic-password`](./secrets.md) secret (shar
 
 ```nix
 # configurations/nixos/watchtower/configuration.nix
-age.secrets.restic-password.file = …/restic-password.age;
-age.secrets.restic-r2-env.file   = …/restic-r2-env.watchtower.age;
-
 hyper-modern-nixos.backup = {
   enable = true;
-  passwordFile    = "/run/agenix/restic-password";
-  environmentFile = "/run/agenix/restic-r2-env";   # carries RESTIC_REPOSITORY
-  paths = [ "/home" ];                              # widen to /etc /var/lib once trusted
+  passwordSecret    = "restic-password";          # module self-wires age.secrets
+  environmentSecret = "restic-r2-env.watchtower";  # PER-HOST; carries RESTIC_REPOSITORY
+  paths = [ "/home" ];                             # widen to /etc /var/lib once trusted
 };
 ```
+
+A host only names its secrets — the module declares `age.secrets.<name>.file` from the
+repo and derives the runtime path itself (`environmentSecret = "restic-r2-env.watchtower"`
+→ `environmentFile = "/run/agenix/restic-r2-env.watchtower"`), so there is no parallel
+hand-written `age.secrets` entry to keep in sync.
 
 When the env file provides `RESTIC_REPOSITORY`, leave `.repository` empty — the module passes
 `repository = null` so restic's upstream "exactly one source" assertion passes and the env file is
@@ -81,25 +85,25 @@ The very first backup is **manual**, before any timer is enabled:
 ```sh
 # decrypted secrets must be present on the host
 sudo test -r /run/agenix/restic-password
-sudo test -r /run/agenix/restic-r2-env
+sudo test -r /run/agenix/restic-r2-env.watchtower
 
 export RESTIC_PASSWORD_FILE=/run/agenix/restic-password
 
 # 1. init the repo (RESTIC_REPOSITORY + R2 creds come from the env file)
 sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
-  env $(sudo cat /run/agenix/restic-r2-env | xargs) restic init
+  env $(sudo cat /run/agenix/restic-r2-env.watchtower | xargs) restic init
 
 # 2. one full backup (env file in scope)
 sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
-  env $(sudo cat /run/agenix/restic-r2-env | xargs) restic backup /home
+  env $(sudo cat /run/agenix/restic-r2-env.watchtower | xargs) restic backup /home
 
 # 3. VERIFY — snapshots, integrity, trial restore
 sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
-  env $(sudo cat /run/agenix/restic-r2-env | xargs) restic snapshots
+  env $(sudo cat /run/agenix/restic-r2-env.watchtower | xargs) restic snapshots
 sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
-  env $(sudo cat /run/agenix/restic-r2-env | xargs) restic check --read-data-subset=10%
+  env $(sudo cat /run/agenix/restic-r2-env.watchtower | xargs) restic check --read-data-subset=10%
 sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
-  env $(sudo cat /run/agenix/restic-r2-env | xargs) \
+  env $(sudo cat /run/agenix/restic-r2-env.watchtower | xargs) \
   restic restore latest --target /tmp/restore-test --include /etc/hostname
 ```
 

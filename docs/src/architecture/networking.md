@@ -92,14 +92,17 @@ top of Dhall's type checking. CoreDNS/nginx/cloudflared (next) read from here.
 `modules/nixos/coredns.nix` (`hyper-modern-nixos.coredns`, off by default), built
 on stock `services.coredns`. Authoritative for the internal zone `sju1.s4.gl`,
 **generated from the topology registry** (never hand-written Nix zone strings —
-the ps-v4 mistake we avoided), forwarding everything else out (MagicDNS
-`100.100.100.100` first so `*.ts.net` still resolves). Three record kinds, all
-derived from the registry:
+the ps-v4 mistake we avoided). The Corefile is three separate server blocks: the
+authoritative internal zone, a **dedicated block for the tailnet suffix**
+(`osiris-walleye.ts.net`) that forwards to MagicDNS `100.100.100.100` (so
+`*.ts.net` still resolves), and a `.` **catch-all** forwarding the rest to public
+upstreams (`1.1.1.1`, `8.8.8.8`). Three record kinds, all derived from the
+registry:
 
 | Record | Source | Example |
 | --- | --- | --- |
 | `<host>.sju1.s4.gl` A | `tailnet_ipv4` (every host) | `ultraviolence.sju1.s4.gl → 100.71.82.73` |
-| `<host>.lan.sju1.s4.gl` A | `lan_ipv4` (static-leased boxes only) | (pending wired leases) |
+| `<host>.lan.sju1.s4.gl` A | `lan_ipv4` (hosts with a wired lease) | `watchtower.lan.sju1.s4.gl → 192.168.40.98` |
 | `<service>.sju1.s4.gl` CNAME | host running that `services` tag | `registry.sju1.s4.gl → watchtower…` |
 
 The NS glue is auto-derived from the resolver's own registry entry. It binds
@@ -150,14 +153,16 @@ because the names never face the public internet. The token is the
 Public exposure is a separate horizon — see Layer 3; nginx still terminates/serves
 internally, cloudflared dials in for the deliberately-public doors.
 
-## Layer 3 — cloudflared (the public edge, opt-in)
+## Layer 3 — cloudflared (the public edge, opt-in) (planned — not in the repo yet)
 
-Near-copy of straylight-infra's `cloudflared.nix`: tunnel token via agenix,
+**Not implemented.** No `cloudflared` module exists in this repo yet; this is a
+design sketch of the next layer, not shipped config. Once built, it will be a
+near-copy of straylight-infra's `cloudflared.nix`: tunnel token via agenix,
 declarative `ingress` (hostname/path → local service), `dev`/`prod` env selecting
-the secret, catch-all 404. **Off by default; every public hostname is an explicit
-ingress entry** — the discipline is keeping that list short. Cloudflare terminates
-TLS at its edge and the tunnel dials out to nginx/loopback; no inbound ports on
-our origin.
+the secret, catch-all 404. **Off by default; every public hostname an explicit
+ingress entry** — the discipline is keeping that list short. Cloudflare will
+terminate TLS at its edge and the tunnel will dial out to nginx/loopback; no
+inbound ports on our origin.
 
 **Trust note (named, not hand-waved):** a tunnel is TLS-to-edge, *not* E2E —
 Cloudflare sees plaintext of whatever flows through it. Fine for the public doors;

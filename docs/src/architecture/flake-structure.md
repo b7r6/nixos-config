@@ -20,13 +20,14 @@ inputs.flake-parts.lib.mkFlake { inherit inputs; } {
 
 Inputs of note (most `follows` nixpkgs):
 
-- `nixpkgs` → `nixpkgs-unstable`
+- `nixpkgs` → `sensenet-ai/nixpkgs` (the fork at HEAD, **not** upstream nixpkgs-unstable); the whole tree rides it via `follows = "nixpkgs"`
 - `agenix`, `agenix-shell` — secrets at rest + devshell autoload
 - `home-manager` — used both as a NixOS module and standalone
 - `disko`, `impermanence`, `impurity`, `nixos-generators`
 - `devshell`, `treefmt-nix` — tooling
 - `emacs-overlay` — `pkgs.emacs-pgtk` tracking emacs-31 master
 - `nativelink` — provides the `nativelink` binary (no upstream NixOS module)
+- `straylight-prelude` — the Buck2 prelude/toolchain-closure source for the nativelink RE fleet
 - `stylix`, `nvf`, `nix4nvchad`, `xremap-flake`, `nix-vscode-extensions`, `nix-index-database`,
   `nix-compile`
 

@@ -27,10 +27,13 @@ run `dedupe = false` (the dedupe index would otherwise need a remote DB), `gc` o
 
 ## Exposure
 
-Tailnet-only. zot binds `0.0.0.0` (binding the `tailscale0` IP races boot), and
-the firewall — **on fleet-wide** — opens the port (`5000`) **only on
-`tailscale0`**, so it's never publicly reachable. To expose it off-tailnet, front
-it with `tailscale serve` rather than opening a public port.
+On `watchtower` zot binds **`127.0.0.1`** and is fronted by **nginx/TLS** at
+`registry.sju1.s4.gl` (see [below](#nginx-front--tls)). The module *default* is
+`listenAddress = "0.0.0.0"` (binding the `tailscale0` IP directly races boot),
+with the firewall — **on fleet-wide** — opening the port (`5000`) **only on
+`tailscale0`**; that's the tailnet-only posture for a node *without* the reverse
+proxy. watchtower overrides `listenAddress` to loopback because zot now sits
+behind nginx rather than facing the tailnet directly.
 
 ## Credentials
 
@@ -41,7 +44,16 @@ store (same pattern as the other R2 consumers).
 
 ```nix
 # configurations/nixos/watchtower/configuration.nix
-hyper-modern-nixos.registry.enable = true;   # that's the whole declaration
+hyper-modern-nixos.registry = {
+  enable = true;
+  listenAddress = "127.0.0.1";               # behind nginx — bind loopback
+};
+
+# nginx fronts it at registry.sju1.s4.gl with the wildcard cert
+hyper-modern-nixos.reverseProxy = {
+  enable = true;
+  services.registry.port = 5000;
+};
 ```
 
 ## Options
@@ -82,26 +94,33 @@ skopeo inspect --tls-verify=false docker://watchtower:5000/test/busybox:latest
 > `straylight-oci` R2 bucket (verified independently via rclone); pull round-trip
 > returned the full manifest.
 
-> TLS: the example uses `--dest-tls-verify=false` because zot serves plain HTTP on
-> the tailnet here (the tailnet is already encrypted). zot *can* terminate TLS
-> natively (`http.tls.{cert,key}`), but the planned direction is a different one —
-> see below.
+> TLS: zot itself serves plain HTTP on loopback (`127.0.0.1:5000`); the
+> public-facing TLS is terminated by **nginx** at `registry.sju1.s4.gl` (see
+> below). The `--dest-tls-verify=false` flag is only for pushing *directly* to
+> the loopback port (e.g. on-box). zot *can* terminate TLS natively
+> (`http.tls.{cert,key}`), but we let nginx be the single TLS edge instead.
 
-## Planned: nginx front + TLS (replacing `tailscale serve`)
+## nginx front + TLS
 
-> Status: **designing.** Captured here so the future session starts grounded.
+> Status: **live on watchtower.** zot binds `127.0.0.1:5000` and nginx fronts it
+> at `registry.sju1.s4.gl` with a real wildcard cert.
 
-The fleet will grow an **nginx reverse proxy on every box**, routing on CoreDNS
-names, to escape `tailscale serve`'s limits (one cert per node, HTTPS-only, no
-wildcards, no arbitrary vhosts). When that lands, every HTTP service —
+watchtower runs the **nginx reverse proxy** (`hyper-modern-nixos.reverseProxy`),
+routing on CoreDNS names, which escapes `tailscale serve`'s limits (one cert per
+node, HTTPS-only, no wildcards, no arbitrary vhosts). Every HTTP service —
 zot/searxng/forgejo/… — converges on the same shape: **bind `127.0.0.1`, let
-nginx be the vhost router.** For zot that's a one-line `listenAddress = "127.0.0.1"`
-flip plus an nginx vhost; the module already supports it.
+nginx be the vhost router.** For zot that's `listenAddress = "127.0.0.1"` plus
+`reverseProxy.services.registry.port = 5000`. nginx terminates TLS on
+`registry.sju1.s4.gl` with a **real wildcard cert** (`*.sju1.s4.gl`, issued via
+DNS-01 against the public `s4.gl` domain through Njalla) and proxies to the
+loopback upstream. CoreDNS already resolves `registry.sju1.s4.gl` to this host's
+tailnet/LAN IP, so clients hit nginx over the tailnet/LAN and never touch the
+zot port directly.
 
 This homelab layer is a **dress rehearsal for the production edge**, which will be
 one of two shapes — both of which sit on top of the *same* internal substrate
-(services on loopback + nginx + CoreDNS), so building that substrate now is
-rework-free either way:
+(services on loopback + nginx + CoreDNS), so this substrate is rework-free
+either way:
 
 - **Public ACME TLS** — nginx terminates HTTPS with real certs. On NixOS the
   idiomatic path is `security.acme` + `virtualHosts.<n>.enableACME`; for
@@ -113,6 +132,7 @@ rework-free either way:
   management on our side; Cloudflare terminates at the edge and the tunnel dials
   out to nginx/services. Far simpler than the old `argo-tunnel` era.
 
-The open decision is purely the **edge/cert strategy** (ACME-vs-tunnel, and for
-internal HTTPS: own-CA wildcard vs DNS-01 real certs). The internal nginx+CoreDNS
-substrate is common to all of them.
+Internal HTTPS is already settled (and live): **DNS-01 real wildcard certs**,
+the first option above. The only open decision is the **production edge/cert
+strategy** (public ACME vs Cloudflare Tunnel) — and the internal nginx+CoreDNS
+substrate, which is live now, is common to both.

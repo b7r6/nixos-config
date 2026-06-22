@@ -83,9 +83,14 @@ Decrypted to `/run/agenix/<name>` on the target host. Names only below — value
 | `restic-password` | restic repo passphrase ([Backups](./backups.md)) — **losing this = unrecoverable backups** |
 | `restic-r2-env.<host>` | per-host restic R2 backend env (`RESTIC_REPOSITORY` + R2 creds), one per fleet host |
 | `nativelink-r2-env` | nativelink R2 CAS creds ([Remote execution](./nativelink.md)) |
+| `zot-r2-env` | zot OCI registry R2 creds (`AWS_*`) for the `straylight-oci` bucket |
+| `pgbackrest-r2-env` | pgBackRest PITR R2 repo creds (`PGBACKREST_REPO1_S3_*`) for the `straylight-pg-pitr` bucket ([postgres](./postgres.md)) |
+| `njalla-acme-token` | Njalla `NJALLA_TOKEN` for ACME DNS-01 against `s4.gl` (internal nginx vhost certs) |
 | `atticd-rs256` | atticd RS256 JWT signing secret + `PGPASSWORD` + R2 `AWS_*` ([attic](./attic.md)) |
 | `attic-push-token` | raw JWT for `watch-store` auto-push to the `hypermodern` cache |
 | `attic-cache-keypair` | the cache's `NixKeypair` (restored into postgres on activation) |
+| `searxng-env` | SearXNG `SEARXNG_SECRET` signing key env |
+| `transmission-rpc` | transmission RPC creds (`{"rpc-password":"…"}`), salted on first start |
 
 ## User secrets
 
@@ -96,6 +101,7 @@ Deployed via the home-manager agenix module under `agenix/users/b7r6/`:
 | `netrc` | machine credentials (`~/.netrc`) |
 | `atuin-key` | atuin shell-history sync key |
 | `hf-token` | HuggingFace token |
+| `njalla-api-key` | Njalla API key for user/DNS operations |
 | `rclone-conf` | full `rclone.conf` (R2 remote + creds). Also consumed by the **fleet-wide system rclone mount** ([rcloneMount](../reference/options.md#rclone-mounts)) — the module self-wires this secret on every host (root-readable `/run/agenix/rclone-conf`), so no per-host `age.secrets.rclone-conf` is needed. |
 
 ## Admin devShell + flake apps

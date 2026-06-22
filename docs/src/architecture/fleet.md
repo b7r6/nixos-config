@@ -15,9 +15,14 @@ The live machines, from `secrets/keys.nix` (the authoritative recipient list) an
 | `shimmer` | aarch64 | NixOS | DGX Spark (GB10); uses `disko` + the `dgx-spark` module |
 | `shannon` | x86_64 | NixOS | laptop, frequently powered down (still fleet) |
 | `gossamer` | aarch64 | DGX OS | **not** a `nixosConfiguration`; global Nix; attic client / build node |
-| `test-vm` | aarch64\* | NixOS | wayland-module test VM; imports only `self.nixosModules.wayland` |
+| `test-vm` | x86_64\* | NixOS | wayland-module test VM; imports only `self.nixosModules.wayland` |
 
-\* `test-vm` defaults to `aarch64-linux` (`mkDefault`) for Apple-Silicon dev.
+\* `test-vm` **builds** as `x86_64-linux`. Its host dir sets
+`nixpkgs.hostPlatform = lib.mkDefault "aarch64-linux"` (for Apple-Silicon dev), but `mkHost` in
+`configurations/default.nix` injects `{ nixpkgs.hostPlatform = system; }` at regular priority with
+`system` defaulting to `"x86_64-linux"`, which overrides the host dir's `mkDefault` (priority 1000).
+The `mkDefault "aarch64-linux"` is therefore effectively dead — to actually build aarch64 you'd set
+`test-vm.system = "aarch64-linux"` in the `hosts` attrset.
 
 Only the seven NixOS hosts appear in the `hosts` table in
 [`configurations/default.nix`](./flake-structure.md) and thus in `nixosConfigurations`. `gossamer`
@@ -43,8 +48,9 @@ new infra is proven first:
 
 ### watchtower (x86_64, central services)
 
-`configurations/nixos/watchtower/configuration.nix`. The fleet backend, rolled out incrementally via
-local `enableInfra` / `enableBackup` switches:
+`configurations/nixos/watchtower/configuration.nix`. The fleet backend, rolled out incrementally by
+**commenting service blocks in or out** (each module sets its own `enable`; there are no boolean
+indirection flags) — see [staged rollout](../operations/deploying.md#staged-rollout-watchtower):
 
 - `hyper-modern-nixos.attic-node.profile = "monolithic-shared"` — hosts the shared postgres
   (`atticd` role+db, tailnet-reachable) **and** the monolithic atticd that runs migrations, serves,
@@ -53,7 +59,8 @@ local `enableInfra` / `enableBackup` switches:
 - The postgres module's interface-scoped `5432`-on-`tailscale0` rule takes effect because the
   firewall is on fleet-wide (default `true`) — watchtower inherits the fleet-on default, no special
   opt-in.
-- restic → R2 (per-host repo `…/backups-restic/watchtower`), gated on `enableBackup`.
+- restic → R2 (per-host repo `…/<bucket>/watchtower`, the bucket set inside the encrypted env file),
+  enabled via `hyper-modern-nixos.backup.enable` once the first backup is initialized by hand.
 
 ### weyl, guccimane (x86_64 workstations)
 

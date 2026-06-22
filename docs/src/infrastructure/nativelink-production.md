@@ -19,8 +19,12 @@
 > - **aarch64 / SBSA — TODO** (its own project, post-acceptance — see below).
 >
 > Grounded in: the NativeLink docs (architecture, production, LRE, persistent
-> workers) and the working prior art in `~/src/straylight/straylight-prelude`
-> (`nix/modules/flake/{nativelink,ociutils}`, `dhall/`).
+> workers) and the working prior art in `straylight-prelude`
+> (`nix/modules/flake/{nativelink,ociutils}`, `dhall/`). `straylight-prelude` is
+> now also a pinned **flake input** (`flake.nix`,
+> `github:sensenet-ai/straylight-prelude/b7r6/dev-0x04`,
+> `inputs.nixpkgs.follows = "nixpkgs"`) — the source of the Buck2 toolchain
+> closure — while the cited internal files live in that external input.
 
 ## The four roles, deployed for real
 
@@ -67,10 +71,15 @@ blob digest, with per-shard **`weight`** for unevenly-sized nodes:
   shard: { stores: [
     { store: { ref_store: { name: "CAS_watchtower"    } }, weight: 4 },
     { store: { ref_store: { name: "CAS_guccimane"     } }, weight: 4 },
-    { store: { ref_store: { name: "CAS_shimmer"       } }, weight: 2 },
+    { store: { ref_store: { name: "CAS_shimmer"       } }, weight: 2 },  // NOT in the live ring (deferred)
     { store: { ref_store: { name: "CAS_ultraviolence" } }, weight: 1 },  // tight on disk
   ] } }
 ```
+
+The live rendered ring (`nativelink/out/watchtower.json`) **excludes shimmer** —
+it's `enabled = False` in `fleet.dhall`, so today the ring is only
+watchtower:4 / guccimane:4 / ultraviolence:1. The `CAS_shimmer` entry above (weight
+`2`) is illustrative of where it rejoins once aarch64 is stood up.
 
 Weights are illustrative (calibrate to actual free NVMe per node); ultraviolence's
 `weight: 1` against the servers' `4` reflects its disk pressure. As disks change
@@ -96,8 +105,8 @@ Because blobs are content-addressed, a blob is identical on every shard/host —
 
 ## worker_api over the tailnet
 
-The scheduler's `worker_api` (currently loopback `:50061`) must be reachable by
-remote workers. It binds the tailnet; workers dial the logical name CoreDNS now
+The scheduler's `worker_api` must be reachable by
+remote workers. It binds the tailnet on `0.0.0.0:50061`; workers dial the logical name CoreDNS now
 serves: `grpc://watchtower.sju1.s4.gl:50061`. Plaintext over the encrypted
 tailnet — it's the private backend, not the client-facing API.
 
@@ -177,7 +186,8 @@ modes (`exact`/`minimum`/`priority`) must agree across scheduler, worker, and
 client. A typed **Dhall schema** turns all of that into an evaluation-time type
 error, the same way `registry/` did for topology.
 
-Plan (mirrors the prior-art `straylight-prelude/dhall/` structure):
+Plan (mirrors the prior-art `straylight-prelude/dhall/` structure — now a pinned
+flake input, see the status block):
 
 - `nativelink/schema.dhall` — typed `Store`/`Scheduler`/`Worker`/`Server`/`Config`
   with the array-of-named-objects shape baked in, `ref_store` names as a checked
@@ -186,8 +196,11 @@ Plan (mirrors the prior-art `straylight-prelude/dhall/` structure):
   weighted CAS shard ring, the three workers, their platform properties) authored
   against the schema.
 - A render to committed JSON (IFD-free, like the topology registry) consumed by
-  the nixos module, which stops hand-generating JSON5 and instead validates +
-  renders the Dhall.
+  the nixos module: live hosts (`dhallHost`) consume the rendered Dhall
+  (`nativelink/out/<host>.json`) instead of hand-generated JSON5. The legacy
+  in-Nix JSON generator is **retained as a fallback** (see the module comment,
+  `nativelink.nix:361-362`) until the Dhall path is proven fleet-wide, then
+  removed.
 
 ## Build stages
 

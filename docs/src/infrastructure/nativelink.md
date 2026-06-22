@@ -2,49 +2,59 @@
 
 [NativeLink](https://github.com/TraceMachina/nativelink) remote-execution / remote-cache
 (Bazel/Buck2 RE), from `modules/nixos/nativelink.nix` under `hyper-modern-nixos.nativelink`. **Off
-by default**, R2-backed CAS. This is the **least-mature** piece of the infra.
+by default**, R2-backed CAS.
 
 There is no upstream NixOS module, so this is a hand-rolled `systemd` service around the
-`nativelink` binary from the flake input (it takes a single JSON5 config path). The module generates
-that config from the host's `role`.
+`nativelink` binary from the flake input (it takes a single JSON5 config path). Live hosts get that
+config from the typed **Dhall fleet** (`nativelink/`, rendered to committed `nativelink/out/<host>.json`);
+the legacy in-Nix `role` generator is retained only as a fallback (see below).
 
-## Current state: single-box monolithic on `ultraviolence`
+## Current state: 3-host Dhall fleet (scheduler@`watchtower`)
 
-Today it's a single-box `monolithic` bringup: CAS + scheduler + a local x86_64 worker, all on one
-host, with the CAS/AC stores backed by R2 (local fast tier + R2 slow tier) and TLS terminated at the
-listener via a Tailscale-issued cert.
+Today it's a Dhall-driven multi-arch fleet across `watchtower`, `guccimane`, and `ultraviolence`:
+scheduler on `watchtower`, a weighted CAS shard ring (watchtower:4 / guccimane:4 / ultraviolence:1),
+and an x86_64 worker on each. CAS/AC stores are R2-backed (local NVMe fast tier + shared R2 slow
+tier). Workers dial the scheduler's `worker_api` over the tailnet at
+`grpc://watchtower.sju1.s4.gl:50061`.
+
+Each live host sets `dhallHost = "<host>"`, which makes the module consume that host's rendered
+config (`nativelink/out/<host>.json`) and **ignore** the legacy `role`/entrypoint/TLS path entirely.
 
 ```nix
-# configurations/nixos/ultraviolence/configuration.nix
+# configurations/nixos/watchtower/configuration.nix (guccimane/ultraviolence mirror this)
 age.secrets.nativelink-r2-env.file = …/nativelink-r2-env.age;
 
 hyper-modern-nixos.nativelink = {
   enable = true;
-  role = "monolithic";
-  publicListen    = "0.0.0.0:50051";    # firewall opens it only on tailscale0
-  workerApiListen = "127.0.0.1:50061";  # private backend, loopback
-  workerApiEndpoint = "grpc://127.0.0.1:50061";
-  openFirewall = true;
-  tls = {
-    enable = true;
-    tailscale = { enable = true; domain = "ultraviolence.osiris-walleye.ts.net"; };
-  };
+  dhallHost = "watchtower";   # consume nativelink/out/watchtower.json; ignore legacy role
+  openFirewall = true;        # firewall opens 50051/50052/50061 only on tailscale0
   r2 = {
     enable = true;
     accountId = "6063b6652178f5cf1cfb87e7e41acf1e";
     bucket = "straylight-nativelink-cas";
     environmentFile = "/run/agenix/nativelink-r2-env";  # R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY
   };
-  localCacheBytes  = 68719476736;  # 64 GiB local NVMe fast tier
-  memoryCacheBytes = 8589934592;   # 8 GiB memory index
 };
 ```
 
-The intended multi-arch topology (not yet stood up): split the aarch64 worker out to `shimmer` (DGX)
-with `role = "worker"` dialing this host's `worker_api` over the tailnet. Remote execution runs
-**native** binaries, so you need one native worker per architecture.
+The x86_64 fleet is **live and connected**. The aarch64 half is deferred: `shimmer` (DGX) is the
+intended aarch64 CAS shard + executor but is `enabled = False` in `fleet.dhall` (the nativelink flake's
+LLVM 22 `compiler-rt` won't build for `aarch64-unknown-linux-musl` yet). Remote execution runs
+**native** binaries, so an aarch64 action needs an aarch64 worker; that lands when shimmer is
+re-enabled.
 
-| `role` | What runs |
+For the full production architecture — sharded CAS, DNS ownership, the OCI-toolchain plan, the
+SBSA/aarch64 circle-back — see [NativeLink production architecture](./nativelink-production.md).
+
+### Legacy `role` path (superseded)
+
+The module still carries a legacy in-Nix generator that assembles a config from a host's `role`
+(`monolithic`/`scheduler`/`worker`) with `publicListen`/`workerApiListen`/`workerApiEndpoint` and
+TLS-at-the-listener (`tls.tailscale`) options. **No live host uses it** — every deployed host sets
+`dhallHost`, which takes priority and ignores `role`. It is retained as a fallback (see
+[production notes](./nativelink-production.md)) until the Dhall path is proven fleet-wide.
+
+| `role` (legacy) | What runs |
 | --- | --- |
 | `monolithic` | CAS + scheduler + local worker (single x86_64 host) |
 | `scheduler` | CAS + scheduler only (workers dial in) |
@@ -60,11 +70,15 @@ filesystem only (`maxStoreBytes`).
 
 ## Network & TLS
 
-`publicListen` binds all interfaces but `openFirewall` opens the public (50051) and `worker_api`
-(50061) ports **only** on `trustedInterfaces` (`tailscale0`) — tailnet-only, never internet-exposed.
-TLS terminates at the public listener; a `oneshot` + daily timer (`nativelink-tls-cert`)
-provisions/renews a real Tailscale cert for the node's MagicDNS name, so tailnet clients connect
-over `grpcs://` (`tls=true`) with no custom CA.
+Under the live Dhall fleet, every node binds on `0.0.0.0` but `openFirewall` opens the fixed fleet
+ports — public (50051), CAS shard (50052), and `worker_api` (50061) — **only** on `trustedInterfaces`
+(`tailscale0`), so the RE endpoint is tailnet-only, never internet-exposed. Traffic is plaintext over
+the encrypted tailnet; there is no per-listener TLS in the rendered fleet config.
+
+> The legacy `role` path additionally offered TLS-at-the-listener: a `oneshot` + daily timer
+> (`nativelink-tls-cert`) provisioning/renewing a real Tailscale cert for the node's MagicDNS name so
+> clients connect over `grpcs://` (`tls=true`). That path is superseded by `dhallHost` and unused by
+> any live host.
 
 ## The toolchain / hermeticity problem
 
