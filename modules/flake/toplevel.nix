@@ -160,7 +160,11 @@
 
                 elif [ "$system" = "$builder_system" ]; then
                   echo "// deploy // $host = remote (same arch) → build here, copy, register+bg switch"
-                  if ! out=$(nixos-rebuild build --flake "$flake#$host" --no-link --print-out-paths | tail -1); then
+                  # Build the toplevel via `nix build` (stable --print-out-paths),
+                  # NOT `nixos-rebuild build` — nixos-rebuild-ng (the Python
+                  # rewrite) dropped --print-out-paths, and we want the system
+                  # closure path to nix-copy + register on the remote anyway.
+                  if ! out=$(nix build --no-link --print-out-paths "$flake#nixosConfigurations.$host.config.system.build.toplevel" | tail -1); then
                     echo "// deploy // build FAILED for $host" >&2; fail=1; continue
                   fi
                   if [ -z "$out" ]; then echo "// deploy // build produced no path for $host" >&2; fail=1; continue; fi
