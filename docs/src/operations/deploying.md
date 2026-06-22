@@ -77,10 +77,11 @@ nixos-rebuild switch --flake .#ultraviolence
 `devshell.toml` wraps the everyday operations (`nix develop` / direnv to enter — see
 [Dev shells](./dev-shells.md)). These use [`nh`](https://github.com/viperML/nh):
 
-| Command | Runs | Purpose | | ------------- | ------------------ |
----------------------------------------------- | | `switch-os` | `nh os switch .` | Build + switch
-the current host's NixOS config | | `switch-home` | `nh home switch .` | Build + switch the
-standalone home config | | `treefmt` | `nix fmt` | Format the tree |
+| Command | Runs | Purpose |
+| --- | --- | --- |
+| `switch-os` | `nh os switch .` | Build + switch the current host's NixOS config |
+| `switch-home` | `nh home switch .` | Build + switch the standalone home config |
+| `treefmt` | `nix fmt` | Format the tree |
 
 `nh os switch .` is the local equivalent of `nixos-rebuild switch --flake .#<thishost>` with a nicer
 closure diff.

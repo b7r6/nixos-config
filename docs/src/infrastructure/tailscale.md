@@ -33,18 +33,20 @@ console. The secret is [`tailscale-auth-key`](./secrets.md).
 
 All under `hyper-modern-nixos.network.tailscale`:
 
-| Option | Type / default | Effect | |---|---|---| | `authKeyFile` | path, `null` | declarative
-enrollment (an agenix runtime path, never the store) | | `acceptRoutes` | bool, `true` |
-`--accept-routes` — accept subnet routes from other nodes | | `acceptDNS` | bool, `true` |
-`--accept-dns` — accept MagicDNS / tailnet DNS | | `advertiseRoutes` | list, `[ ]` |
-`--advertise-routes=…` — be a subnet router | | `advertiseExitNode` | bool, `false` |
-`--advertise-exit-node` | | `acceptExitNode` | bool, `false` | `--exit-node-allow-lan-access` | |
-`exitNode` | str, `null` | route egress through this exit node, via a `tailscale set` oneshot (see
-[Using an exit node](#using-an-exit-node-exitnode)) | | `advertiseConnector` | bool, `false` |
-`--advertise-connector` — be an app connector | | `sshAdvertise` | bool, `true` | advertise
-Tailscale SSH (`--ssh=false` when off) | | `tags` | list, `[ ]` | `--advertise-tags=…` (must be
-authorized by the tailnet ACL) | | `hostname` | str, `null` | `--hostname=…` override the registered
-name | | `encryptState` | bool, `false` | TPM-encrypt the `tailscaled` state file |
+| Option | Type / default | Effect |
+| --- | --- | --- |
+| `authKeyFile` | path, `null` | declarative enrollment (an agenix runtime path, never the store) |
+| `acceptRoutes` | bool, `true` | `--accept-routes` — accept subnet routes from other nodes |
+| `acceptDNS` | bool, `true` | `--accept-dns` — accept MagicDNS / tailnet DNS |
+| `advertiseRoutes` | list, `[ ]` | `--advertise-routes=…` — be a subnet router |
+| `advertiseExitNode` | bool, `false` | `--advertise-exit-node` |
+| `acceptExitNode` | bool, `false` | `--exit-node-allow-lan-access` |
+| `exitNode` | str, `null` | route egress through this exit node, via a `tailscale set` oneshot (see [Using an exit node](#using-an-exit-node-exitnode)) |
+| `advertiseConnector` | bool, `false` | `--advertise-connector` — be an app connector |
+| `sshAdvertise` | bool, `true` | advertise Tailscale SSH (`--ssh=false` when off) |
+| `tags` | list, `[ ]` | `--advertise-tags=…` (must be authorized by the tailnet ACL) |
+| `hostname` | str, `null` | `--hostname=…` override the registered name |
+| `encryptState` | bool, `false` | TPM-encrypt the `tailscaled` state file |
 
 `encryptState` is **off** by default: our boxes are reflashed often, where a TPM can enter
 DA-lockout and crash-loop `tailscaled` (per straylight's note). When off, the module passes

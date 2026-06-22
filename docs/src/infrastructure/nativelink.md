@@ -44,9 +44,11 @@ The intended multi-arch topology (not yet stood up): split the aarch64 worker ou
 with `role = "worker"` dialing this host's `worker_api` over the tailnet. Remote execution runs
 **native** binaries, so you need one native worker per architecture.
 
-| `role` | What runs | |---|---| | `monolithic` | CAS + scheduler + local worker (single x86_64
-host) | | `scheduler` | CAS + scheduler only (workers dial in) | | `worker` | local worker only;
-dials `workerApiEndpoint` (use on aarch64) |
+| `role` | What runs |
+| --- | --- |
+| `monolithic` | CAS + scheduler + local worker (single x86_64 host) |
+| `scheduler` | CAS + scheduler only (workers dial in) |
+| `worker` | local worker only; dials `workerApiEndpoint` (use on aarch64) |
 
 ## Storage & secrets
 

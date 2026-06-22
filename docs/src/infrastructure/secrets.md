@@ -77,26 +77,26 @@ secrets/
 
 Decrypted to `/run/agenix/<name>` on the target host. Names only below — values are never stored:
 
-| Secret | Purpose | |---|---| | `tailscale-auth-key` | declarative tailnet enrollment
-([Tailscale](./tailscale.md)) | | `restic-password` | restic repo passphrase
-([Backups](./backups.md)) — **losing this = unrecoverable backups** | |
-`restic-r2-env.ultraviolence` | per-host restic R2 backend env (`RESTIC_REPOSITORY` + R2 creds) | |
-`restic-r2-env.watchtower` | per-host restic R2 backend env | | `nativelink-r2-env` | nativelink R2
-CAS creds ([Remote execution](./nativelink.md)) | | `atticd-rs256` | atticd RS256 JWT signing secret
-\+ `PGPASSWORD` + R2 `AWS_*` ([attic](./attic.md)) | | `attic-push-token` | raw JWT for `watch-store`
-auto-push to the `hypermodern` cache | | `attic-cache-keypair` | the cache's `NixKeypair` (restored
-into postgres on activation) |
+| Secret | Purpose |
+| --- | --- |
+| `tailscale-auth-key` | declarative tailnet enrollment ([Tailscale](./tailscale.md)) |
+| `restic-password` | restic repo passphrase ([Backups](./backups.md)) — **losing this = unrecoverable backups** |
+| `restic-r2-env.<host>` | per-host restic R2 backend env (`RESTIC_REPOSITORY` + R2 creds), one per fleet host |
+| `nativelink-r2-env` | nativelink R2 CAS creds ([Remote execution](./nativelink.md)) |
+| `atticd-rs256` | atticd RS256 JWT signing secret + `PGPASSWORD` + R2 `AWS_*` ([attic](./attic.md)) |
+| `attic-push-token` | raw JWT for `watch-store` auto-push to the `hypermodern` cache |
+| `attic-cache-keypair` | the cache's `NixKeypair` (restored into postgres on activation) |
 
 ## User secrets
 
 Deployed via the home-manager agenix module under `agenix/users/b7r6/`:
 
-| Secret | Purpose | |---|---| | `netrc` | machine credentials (`~/.netrc`) | | `atuin-key` | atuin
-shell-history sync key | | `hf-token` | HuggingFace token | | `rclone-conf` | full `rclone.conf` (R2
-remote + creds). Also consumed by the **fleet-wide system rclone mount**
-([rcloneMount](../reference/options.md#rclone-mounts)) — the module self-wires this secret on every
-host (root-readable `/run/agenix/rclone-conf`), so no per-host `age.secrets.rclone-conf` is needed.
-|
+| Secret | Purpose |
+| --- | --- |
+| `netrc` | machine credentials (`~/.netrc`) |
+| `atuin-key` | atuin shell-history sync key |
+| `hf-token` | HuggingFace token |
+| `rclone-conf` | full `rclone.conf` (R2 remote + creds). Also consumed by the **fleet-wide system rclone mount** ([rcloneMount](../reference/options.md#rclone-mounts)) — the module self-wires this secret on every host (root-readable `/run/agenix/rclone-conf`), so no per-host `age.secrets.rclone-conf` is needed. |
 
 ## Admin devShell + flake apps
 
@@ -113,17 +113,19 @@ nix develop .#secrets          # drop into the admin shell (prints the usage ban
 nix run .#rekey-secrets        # …or run any command as a flake app
 ```
 
-| Command / app | What it does | |---|---| | `list-secrets` | list every `.age` + on-disk status;
-flags secrets declared in `secrets.nix` but **missing** on disk | | `view-secret <path>` | decrypt
-to stdout (uses `EDITOR=cat`, no rewrite) | | `edit-secret <path>` | open in `$EDITOR` (creating if
-absent) | | `new-secret <path>` | create from `$EDITOR` input; reminds you to add it to
-`secrets.nix` | | `rotate-secret <path>` | timestamped (gitignored) backup, then re-edit | |
-`rekey-secrets` | `agenix -r` — re-encrypt **all** secrets to the current `keys.nix` recipients | |
-`init-secrets` | create empty placeholders for any secret declared but missing | |
-`validate-secrets` | verify every secret decrypts with the operator's `~/.ssh` identities | |
-`scan-host-key <host>` | `ssh-keyscan` a host's ed25519 key, formatted for pasting into `keys.nix` |
-| `init-passage` | write `~/.passage/identities` from your SSH keys | | `secrets-usage` | the help
-banner |
+| Command / app | What it does |
+| --- | --- |
+| `list-secrets` | list every `.age` + on-disk status; flags secrets declared in `secrets.nix` but **missing** on disk |
+| `view-secret <path>` | decrypt to stdout (uses `EDITOR=cat`, no rewrite) |
+| `edit-secret <path>` | open in `$EDITOR` (creating if absent) |
+| `new-secret <path>` | create from `$EDITOR` input; reminds you to add it to `secrets.nix` |
+| `rotate-secret <path>` | timestamped (gitignored) backup, then re-edit |
+| `rekey-secrets` | `agenix -r` — re-encrypt **all** secrets to the current `keys.nix` recipients |
+| `init-secrets` | create empty placeholders for any secret declared but missing |
+| `validate-secrets` | verify every secret decrypts with the operator's `~/.ssh` identities |
+| `scan-host-key <host>` | `ssh-keyscan` a host's ed25519 key, formatted for pasting into `keys.nix` |
+| `init-passage` | write `~/.passage/identities` from your SSH keys |
+| `secrets-usage` | the help banner |
 
 ### Common flows
 

@@ -92,13 +92,16 @@ stack) and wires the rest of the flake modules:
 
 ## Flake outputs (summary)
 
-| Output | Source | | --- | --- | | `nixosConfigurations.<host>` | `mkHost` over the `hosts` table |
-| `legacyPackages.<sys>.homeConfigurations.<user>` | auto-found `configurations/home/*.nix` | |
-`nixosModules.{default,dgx-spark,wayland}` | `modules/nixos/*` | | `homeModules.default` |
-`modules/home` | | `packages.<sys>` | fonts, `ono-sendai-generator`, USB installer images | |
-`apps.<sys>` | `deploy-fleet`, `build-usb`, `docs-serve`, `restic-init`, secret-admin apps | |
-`devShells.<sys>.{default,secrets}` | `modules/flake/devshell.nix` + `secrets/` | | `checks.<sys>` |
-`checks/attic-cache.nix`, `checks/backup-restic.nix` |
+| Output | Source |
+| --- | --- |
+| `nixosConfigurations.<host>` | `mkHost` over the `hosts` table |
+| `legacyPackages.<sys>.homeConfigurations.<user>` | auto-found `configurations/home/*.nix` |
+| `nixosModules.{default,dgx-spark,wayland}` | `modules/nixos/*` |
+| `homeModules.default` | `modules/home` |
+| `packages.<sys>` | fonts, `ono-sendai-generator`, USB installer images |
+| `apps.<sys>` | `deploy-fleet`, `build-usb`, `docs-serve`, `restic-init`, secret-admin apps |
+| `devShells.<sys>.{default,secrets}` | `modules/flake/devshell.nix` + `secrets/` |
+| `checks.<sys>` | `checks/attic-cache.nix`, `checks/backup-restic.nix` |
 
 For the detailed walk-through see [flake structure](./flake-structure.md); for the machines see
 [the fleet](./fleet.md).

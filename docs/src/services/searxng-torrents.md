@@ -4,11 +4,12 @@ Two tailnet-facing services incubating on `ultraviolence`, plus the Mullvad Miam
 that sits underneath them. Both are off-by-default `hyper-modern-nixos.*` modules, so they can
 graduate to a dedicated host by flipping `enable` elsewhere.
 
-| service | module | port (on ultraviolence) | reach | |---|---|---|---| | SearXNG |
-`modules/nixos/searxng.nix` | `8889` (`8888` taken by docker there) | tailnet | | flood (web UI) |
-`modules/nixos/torrents.nix` | `3001` | tailnet | | transmission (RPC) |
-`modules/nixos/torrents.nix` | `9091` | loopback | | transmission (peer) |
-`modules/nixos/torrents.nix` | `51413` | all ifaces |
+| service | module | port (on ultraviolence) | reach |
+| --- | --- | --- | --- |
+| SearXNG | `modules/nixos/searxng.nix` | `8889` (`8888` taken by docker there) | tailnet |
+| flood (web UI) | `modules/nixos/torrents.nix` | `3001` | tailnet |
+| transmission (RPC) | `modules/nixos/torrents.nix` | `9091` | loopback |
+| transmission (peer) | `modules/nixos/torrents.nix` | `51413` | all ifaces |
 
 All egress from the box — including transmission — exits **Mullvad Miami** (see
 [Exit node](#mullvad-miami-exit-node) below and [Tailscale](../infrastructure/tailscale.md)).

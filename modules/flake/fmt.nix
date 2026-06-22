@@ -72,11 +72,14 @@
         programs.keep-sorted.enable = true;
         settings.formatter.keep-sorted.excludes = [ ];
 
-        # `mdformat`: markdown with an emphasis on `README.md` style documents
+        # `mdformat`: markdown with an emphasis on `README.md` style documents.
+        # The mdBook docs (docs/) are excluded: mdformat's `wrap` reflows GFM
+        # tables across lines, which breaks them (a GFM row must be one line),
+        # so docs tables are hand-authored in multi-line form and left alone.
         programs.mdformat.enable = true;
         programs.mdformat.settings.number = true;
         programs.mdformat.settings.wrap = lineLength;
-        settings.formatter.mdformat.excludes = [ ];
+        settings.formatter.mdformat.excludes = [ "docs/**" ];
 
         # `nixfmt`: nixlang formatter...
         programs.nixfmt.enable = true;

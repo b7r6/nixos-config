@@ -62,11 +62,12 @@ The defaults exclude everything re-downloadable, so R2 only ever holds irreplace
 
 ## Schedule, retention, integrity
 
-| Setting | Default | |---|---| | `timerConfig` | `OnCalendar=daily`, `Persistent=true`,
-`RandomizedDelaySec=1h` | | `pruneOpts` |
-`--keep-daily 7 --keep-weekly 5 --keep-monthly 12 --keep-yearly 3` | | `checkOpts` |
-`--read-data-subset=10%` (runs after each backup) | | `initialize` | `false` — the repo **must**
-exist already |
+| Setting | Default |
+| --- | --- |
+| `timerConfig` | `OnCalendar=daily`, `Persistent=true`, `RandomizedDelaySec=1h` |
+| `pruneOpts` | `--keep-daily 7 --keep-weekly 5 --keep-monthly 12 --keep-yearly 3` |
+| `checkOpts` | `--read-data-subset=10%` (runs after each backup) |
+| `initialize` | `false` — the repo **must** exist already |
 
 The timer (`restic-backups-system.timer`) runs the backup, prunes to the retention policy, then runs
 a partial integrity check so a slowly-corrupting repo is caught by the timer rather than at restore

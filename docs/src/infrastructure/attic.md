@@ -51,11 +51,11 @@ on every node** so tokens verify fleet-wide.
 so any host switches cleanly **regardless of fleet state**. The cache identity (name, public key,
 push token) is constant, so a host flips between profiles by changing one enum with no other churn.
 
-| Profile | Mode | Database | Storage | Fleet dependency | |---|---|---|---|---| | `standalone` |
-monolithic | local sqlite (or local pg via `standalonePostgres`) | local fs (or R2 via `r2.enable`)
-| **none** — activates anywhere, today | | `replica` | api-server | shared pg over the tailnet | R2
-| needs shared pg **up + already migrated** | | `monolithic-shared` | monolithic | local pg (it
-**is** the pg host) | R2 | watchtower's role: pg + the single GC + migrations |
+| Profile | Mode | Database | Storage | Fleet dependency |
+| --- | --- | --- | --- | --- |
+| `standalone` | monolithic | local sqlite (or local pg via `standalonePostgres`) | local fs (or R2 via `r2.enable`) | **none** — activates anywhere, today |
+| `replica` | api-server | shared pg over the tailnet | R2 | needs shared pg **up + already migrated** |
+| `monolithic-shared` | monolithic | local pg (it **is** the pg host) | R2 | watchtower's role: pg + the single GC + migrations |
 
 `standalone` is the profile to run before watchtower's shared postgres exists, or for any island
 cache. `replica` requires the shared backend up — a bare api-server does not run migrations.

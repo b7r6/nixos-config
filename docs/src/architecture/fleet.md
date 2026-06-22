@@ -5,14 +5,16 @@ The live machines, from `secrets/keys.nix` (the authoritative recipient list) an
 
 ## Live hosts
 
-| Host | Arch | Kind | Role | | --- | --- | --- | --- | | `ultraviolence` | x86_64 | NixOS | primary
-workstation / infra host; attic **replica**; nativelink monolithic | | `watchtower` | x86_64 | NixOS
-| central services: shared postgres + monolithic attic backend + the single GC | | `weyl` | x86_64 |
-NixOS | nvidia workstation | | `guccimane` | x86_64 | NixOS | nvidia workstation | | `shimmer` |
-aarch64 | NixOS | DGX Spark (GB10); uses `disko` + the `dgx-spark` module | | `shannon` | x86_64 |
-NixOS | laptop, frequently powered down (still fleet) | | `gossamer` | aarch64 | DGX OS | **not** a
-`nixosConfiguration`; global Nix; attic client / build node | | `test-vm` | aarch64\* | NixOS |
-wayland-module test VM; imports only `self.nixosModules.wayland` |
+| Host | Arch | Kind | Role |
+| --- | --- | --- | --- |
+| `ultraviolence` | x86_64 | NixOS | primary workstation / infra host; attic **replica**; nativelink monolithic |
+| `watchtower` | x86_64 | NixOS | central services: shared postgres + monolithic attic backend + the single GC |
+| `weyl` | x86_64 | NixOS | nvidia workstation |
+| `guccimane` | x86_64 | NixOS | nvidia workstation |
+| `shimmer` | aarch64 | NixOS | DGX Spark (GB10); uses `disko` + the `dgx-spark` module |
+| `shannon` | x86_64 | NixOS | laptop, frequently powered down (still fleet) |
+| `gossamer` | aarch64 | DGX OS | **not** a `nixosConfiguration`; global Nix; attic client / build node |
+| `test-vm` | aarch64\* | NixOS | wayland-module test VM; imports only `self.nixosModules.wayland` |
 
 \* `test-vm` defaults to `aarch64-linux` (`mkDefault`) for Apple-Silicon dev.
 

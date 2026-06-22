@@ -12,16 +12,19 @@ options.hyper-modern-nixos.<feature> = { ... };
 
 Real examples, with their files:
 
-| Option | File | | --- | --- | | `hyper-modern-nixos.network` | `modules/nixos/network.nix` | |
-`hyper-modern-nixos.nvidia` / `.radeon` | `modules/nixos/{nvidia,radeon}.nix` | |
-`hyper-modern-nixos.docker` / `.libvirt` | `modules/nixos/{docker,libvirt}.nix` | |
-`hyper-modern-nixos.databases.postgres` | `modules/nixos/postgres.nix` | |
-`hyper-modern-nixos.attic` | `modules/nixos/attic.nix` | | `hyper-modern-nixos.attic-node` |
-`modules/nixos/attic-node.nix` | | `hyper-modern-nixos.backup` | `modules/nixos/backup.nix` | |
-`hyper-modern-nixos.nativelink` | `modules/nixos/nativelink.nix` | |
-`hyper-modern-nixos.rcloneMount` | `modules/nixos/rclone-mount.nix` | | `hyper-modern-nixos.users` |
-`modules/nixos/myusers.nix` | | `hyper-modern-nixos.wayland` / `.hyper-wayland` |
-`modules/nixos/wayland` |
+| Option | File |
+| --- | --- |
+| `hyper-modern-nixos.network` | `modules/nixos/network.nix` |
+| `hyper-modern-nixos.nvidia` / `.radeon` | `modules/nixos/{nvidia,radeon}.nix` |
+| `hyper-modern-nixos.docker` / `.libvirt` | `modules/nixos/{docker,libvirt}.nix` |
+| `hyper-modern-nixos.databases.postgres` | `modules/nixos/postgres.nix` |
+| `hyper-modern-nixos.attic` | `modules/nixos/attic.nix` |
+| `hyper-modern-nixos.attic-node` | `modules/nixos/attic-node.nix` |
+| `hyper-modern-nixos.backup` | `modules/nixos/backup.nix` |
+| `hyper-modern-nixos.nativelink` | `modules/nixos/nativelink.nix` |
+| `hyper-modern-nixos.rcloneMount` | `modules/nixos/rclone-mount.nix` |
+| `hyper-modern-nixos.users` | `modules/nixos/myusers.nix` |
+| `hyper-modern-nixos.wayland` / `.hyper-wayland` | `modules/nixos/wayland` |
 
 This makes "ours vs. upstream" obvious at a host call site, and keeps grep honest.
 
