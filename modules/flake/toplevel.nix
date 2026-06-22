@@ -322,6 +322,7 @@
       backup-restic = import ../../checks/backup-restic.nix { inherit pkgs inputs; };
       clickhouse-keeper = import ../../checks/clickhouse-keeper.nix { inherit pkgs; };
       clickhouse-server = import ../../checks/clickhouse-server.nix { inherit pkgs; };
+      otel-ingest = import ../../checks/otel-ingest.nix { inherit pkgs; };
     };
 
     packages = inputs.nixpkgs.lib.mkMerge [
