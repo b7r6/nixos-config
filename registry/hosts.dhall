@@ -17,12 +17,11 @@
 --  suffix (tailnetSuffix) is a SEPARATE namespace from s4.gl.
 --
 --  lan_ipv4 (the <host>.lan.<dc>.s4.gl mode, so non-tailnet LAN devices like the
---  Google TV can reach Jellyfin etc.): TODO — static the WIRED interface on the
---  non-laptop boxes (DHCP reservation, or static outside the DHCP pool), then drop
---  each box's wired IP here. Pending: watchtower, ultraviolence, shimmer,
---  guccimane. Laptops (shannon, weyl) stay None (roam / no stable lease); gossamer
---  stays None for now (DGX-OS spark; future PXE-install test case). Until set, no
---  lan.* record is emitted for that host.
+--  Google TV can reach Jellyfin etc.): the current DHCP leases of the WIRED NICs,
+--  used as-is (the router is a vendor black box; not statically reserving yet). If
+--  the router reshuffles a lease, it's a one-line edit here. Laptops (shannon,
+--  weyl) stay None (roam / no stable lease); gossamer stays None for now (DGX-OS
+--  spark; future PXE-install test case).
 let schema = ./schema.dhall
 
 let Host = schema.Host
@@ -50,6 +49,7 @@ in  schema.Registry::{
         , dc = "sju1"
         , logical = logicalOf "watchtower" "sju1"
         , tailnet_ipv4 = "100.122.228.122"
+        , lan_ipv4 = Some "192.168.40.98"
         , zone = "sju1"
         , role = "server"
         , services = [ "postgres", "attic", "registry", "monitoring" ]
@@ -60,6 +60,7 @@ in  schema.Registry::{
         , dc = "sju1"
         , logical = logicalOf "ultraviolence" "sju1"
         , tailnet_ipv4 = "100.71.82.73"
+        , lan_ipv4 = Some "192.168.40.115"
         , zone = "sju1"
         , role = "workstation"
         , services = [ "nativelink", "searxng", "torrents", "attic-replica" ]
@@ -70,6 +71,7 @@ in  schema.Registry::{
         , dc = "sju1"
         , logical = logicalOf "shimmer" "sju1"
         , tailnet_ipv4 = "100.116.42.95"
+        , lan_ipv4 = Some "192.168.40.232"
         , zone = "sju1"
         , role = "accelerator"
         , services = [] : List Text
@@ -80,6 +82,7 @@ in  schema.Registry::{
         , dc = "sju1"
         , logical = logicalOf "guccimane" "sju1"
         , tailnet_ipv4 = "100.89.101.109"
+        , lan_ipv4 = Some "192.168.40.81"
         , zone = "sju1"
         , role = "server"
         , services = [] : List Text
