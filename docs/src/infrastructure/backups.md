@@ -176,7 +176,11 @@ hyper-modern-nixos.databases.postgres.backup.pitr = {
 ### Bringup (once, by hand)
 
 ```sh
-# 1. R2: create the bucket `straylight-pg-pitr` and an Object R&W token scoped to it.
+# 1. R2: create a DEDICATED bucket `straylight-pg-pitr` (separate from the restic
+#    `backups-restic` bucket, which is preserved untouched). The credentials may
+#    reuse the existing account-wide R2 token — the bucket boundary keeps rclone
+#    tooling from touching the PITR repo by accident. (A future hardening is a
+#    token scoped to ONLY this bucket, for credential blast-radius isolation.)
 # 2. agenix: store the creds (PGBACKREST_* env), rekeyed to all hosts:
 nix run .#new-secret -- agenix/machines/pgbackrest-r2-env.age
 #   PGBACKREST_REPO1_S3_KEY=<r2 access key id>
