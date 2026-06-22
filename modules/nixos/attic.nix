@@ -74,7 +74,7 @@ in
     databaseUrl = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
-      example = "postgresql://atticd@watchtower.osiris-walleye.ts.net/atticd";
+      example = "postgresql://atticd@watchtower.example.ts.net/atticd";
       description = ''
         PASSWORDLESS postgres connection string for the shared backend. attic
         uses sea-orm + sqlx-postgres, and sqlx honours libpq env vars — so the
@@ -193,7 +193,7 @@ in
 
       endpoint = lib.mkOption {
         type = lib.types.str;
-        example = "http://ultraviolence.risk-nunki.ts.net:8080";
+        example = "http://ultraviolence.example.ts.net:8080";
         description = "Base atticd URL (no trailing slash, no cache name).";
       };
 

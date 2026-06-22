@@ -428,7 +428,7 @@ in
 
         domain = lib.mkOption {
           type = lib.types.str;
-          example = "ultraviolence.osiris-walleye.ts.net";
+          example = "ultraviolence.example.ts.net";
           description = "MagicDNS name to issue the cert for (must be this node's name; tailnet HTTPS must be enabled).";
         };
       };
@@ -443,7 +443,7 @@ in
     workerApiEndpoint = lib.mkOption {
       type = lib.types.str;
       default = "grpc://127.0.0.1:50061";
-      example = "grpc://weyl.risk-nunki.ts.net:50061";
+      example = "grpc://weyl.example.ts.net:50061";
       description = "Where a `worker` role dials the scheduler. Point this at the monolithic/scheduler host over the tailnet.";
     };
 

@@ -1,7 +1,8 @@
 # The fleet
 
 The live machines, from `secrets/keys.nix` (the authoritative recipient list) and
-`configurations/nixos/`. Tailnet domain is `osiris-walleye.ts.net`.
+`configurations/nixos/`. The tailnet MagicDNS suffix lives once in
+`hyper-modern-nixos.network.tailnet.domain` (see [Tailscale](../infrastructure/tailscale.md)).
 
 ## Live hosts
 

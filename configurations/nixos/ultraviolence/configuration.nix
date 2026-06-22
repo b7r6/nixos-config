@@ -1,6 +1,9 @@
-{ flake, ... }:
+{ flake, config, ... }:
 let
   inherit (flake) inputs;
+  # This host's tailnet FQDN, derived from the canonical suffix (single source:
+  # hyper-modern-nixos.network.tailnet.domain) — never hardcode the .ts.net name.
+  tailnetFqdn = "${config.networking.hostName}.${config.hyper-modern-nixos.network.tailnet.domain}";
 in
 {
   imports = [
@@ -95,7 +98,7 @@ in
       enable = true;
       tailscale = {
         enable = true;
-        domain = "ultraviolence.osiris-walleye.ts.net";
+        domain = tailnetFqdn;
       };
     };
 

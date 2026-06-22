@@ -42,6 +42,9 @@
 let
   cfg = config.hyper-modern-nixos.attic-node;
 
+  # Single source of truth for the tailnet MagicDNS suffix — never hardcode it.
+  tailnetDomain = config.hyper-modern-nixos.network.tailnet.domain;
+
   # This module SELF-WIRES the agenix secrets it needs (the .age files live in
   # the repo; flake.self is the repo root). So a host only sets
   # `attic-node = { enable = true; profile = "…"; }` — no parallel age.secrets
@@ -103,10 +106,12 @@ in
     # ── database ────────────────────────────────────────────────────────────
     sharedDatabaseUrl = lib.mkOption {
       type = lib.types.str;
-      default = "postgresql://atticd@watchtower.osiris-walleye.ts.net/atticd";
+      default = "postgresql://atticd@watchtower.${tailnetDomain}/atticd";
+      defaultText = "postgresql://atticd@watchtower.\${network.tailnet.domain}/atticd";
       description = ''
         Passwordless shared-postgres connection string for replica /
-        monolithic-shared (PGPASSWORD via env file). Ignored by standalone.
+        monolithic-shared (PGPASSWORD via env file). Ignored by standalone. The
+        tailnet suffix is derived from network.tailnet.domain (single source).
       '';
     };
 

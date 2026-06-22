@@ -48,8 +48,8 @@ in
   # ── Machine Secrets ──────────────────────────────────────────────────────────
   # Decrypted to /run/agenix/ on the target host (root, 0400).
 
-  # Tailscale auth keys. NOTE: the three below are STALE — they were minted for
-  # Tailscale auth key for the live tailnet (osiris-walleye.ts.net). Consumed by
+  # Tailscale auth key for the live tailnet (the MagicDNS suffix is NOT pinned
+  # here — it lives once in hyper-modern-nixos.network.tailnet.domain). Consumed by
   # hyper-modern-nixos.network.tailscale.authKeyFile for DECLARATIVE enrollment:
   # a host with this wired joins the tailnet non-interactively, so a rebuild /
   # reinstall can't strand a remote box. Use a REUSABLE, PRE-AUTHORIZED key

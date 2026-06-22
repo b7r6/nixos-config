@@ -5,8 +5,11 @@ reachable over `tailscale0` and **only** over `tailscale0`. Configured by
 `modules/nixos/network.nix` under `hyper-modern-nixos.network.tailscale.*` (adapted from
 `straylight-infra`'s `fxy.services.tailscale`).
 
-Tailnet domain: **`osiris-walleye.ts.net`** (MagicDNS). Set via
-`hyper-modern-nixos.network.tailnet.domain`.
+Tailnet domain (MagicDNS) is set in **one** place —
+`hyper-modern-nixos.network.tailnet.domain` (in `modules/nixos/default.nix`) — and
+everything that needs a FQDN derives the suffix from there rather than hardcoding
+it. (Current value: `osiris-walleye.ts.net`; subject to change, hence the single
+source.)
 
 ## The safety net: declarative enrollment
 
