@@ -95,6 +95,12 @@ The per-host subtree is derived from `config.networking.hostName`, and the modul
 `rclone-conf` agenix secret, so there is nothing per-host to configure — importing the default
 module is enough. See [reference/options](../reference/options.md#rclone-mounts).
 
+**Freshness:** rclone's dir cache is lazy (it LISTs the remote only on access, once the cached entry
+is older than `--dir-cache-time`; R2 has no change-polling, so `--poll-interval` is inert). The
+**common** mount uses a short `--dir-cache-time=5s` so a peer's write shows up within a few seconds
+of the next `ls` — idle mounts issue no requests, and an R2 LIST is a near-free Class A op. The
+**per-host** mount keeps `12h`: nothing else writes there, so its cache can never be stale.
+
 ## Decommissioned
 
 Pruned from the fleet and **not** to be re-added without a real host (per the note in
