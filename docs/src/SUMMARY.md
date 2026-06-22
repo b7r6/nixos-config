@@ -19,6 +19,7 @@
 - [PostgreSQL](./infrastructure/postgres.md)
 - [Backups (restic → R2)](./infrastructure/backups.md)
 - [Remote execution (nativelink)](./infrastructure/nativelink.md)
+- [NativeLink production architecture](./infrastructure/nativelink-production.md)
 
 # Services
 
