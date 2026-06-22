@@ -1,0 +1,141 @@
+# Networking design (DNS, TLS, edge)
+
+> Status: **design**, being implemented in sequence. This records the decisions
+> and the layering so the build doesn't drift. Grounded in two pieces of prior
+> art — `~/src/ps-v4` (topology-registry + CoreDNS generator) and
+> `~/src/straylight/straylight-infra` (`fxy.*` tag-roles + a working
+> `cloudflared.nix` / `nginx-reverse-proxy.nix`) — taking the best of each and
+> avoiding the obvious mistakes in both.
+
+## The problem, in order
+
+1. **DNS is the blocker.** We have no internal naming: services are reached by
+   raw `host:port` over the tailnet, and `tailscale serve` (one cert per node,
+   HTTPS-only, no wildcards, no arbitrary vhosts) is too limited to be the
+   answer. Everything downstream — internal TLS, nginx vhosts, the public edge —
+   needs real names that resolve first. **So DNS leads.**
+2. **TLS is split-horizon.** We want **internal ACME** *and* **Cloudflare** — not
+   either/or. Bulk/internal traffic (media, registry pulls, postgres) must stay
+   on the LAN/tailnet with internally-trusted TLS; only deliberately-public doors
+   go through Cloudflare. Hairpinning a movie stream up to Cloudflare and back is
+   the anti-pattern we are explicitly avoiding.
+3. **The edge is `cloudflared`.** Outbound tunnel, no inbound ports, an identity
+   bouncer (Cloudflare Access) in front. "Invisible fleet, one guarded door" —
+   raises attacker cost without claiming invulnerability. Per-service opt-in.
+
+## The keystone: a typed topology registry (Dhall)
+
+Both prior-art repos converge on "a host registry drives service composition,"
+but each makes a mistake we won't repeat:
+
+- **ps-v4** hand-writes zone files via Nix string interpolation — fragile,
+  stringly-typed, no validation until CoreDNS rejects it at runtime.
+- **straylight-infra** routes everything through Colmena tag→role indirection —
+  implicit and hard to trace ("eh", per the operator).
+
+**Decision: the registry is authored in Dhall** (already first-class here — see
+`.nix-compile.dhall`, `dhall` in the formatter). Dhall gives a real schema with
+types, so the registry is validated *at evaluation* (no dup IPs, every host in a
+known zone, names well-formed), and it generates the downstream artifacts (Nix
+host attrs, CoreDNS zones, nginx vhosts, cloudflared ingress) from one source
+instead of three hand-maintained lists (today's `keys.nix` + `lib/monitors.nix`
++ `configurations/default.nix`).
+
+Each host carries the **three-name identity** from ps-v4 (its one genuinely great
+idea), plus role/zone and the address split:
+
+| Field | Example | Purpose |
+| --- | --- | --- |
+| `physical` | `watchtower` | the NixOS attr name |
+| `tailnet` | `watchtower.osiris-walleye.ts.net` | MagicDNS |
+| `logical` | `watchtower.hsv.straylight.internal` (TBD scheme) | the stable internal name nginx/DNS use |
+| `tailnet_ipv4` | `100.x.y.z` | internal address (served by CoreDNS today) |
+| `provider_ipv4` | `null` now; real on Latitude later | public/provider address (forward-compat for bare metal) |
+| `roles` | `[ "services" "registry" ]` | drives service composition + DNS service CNAMEs |
+
+The `tailnet_ipv4` vs `provider_ipv4` split matters little on today's tailnet-only
+fleet but is exactly what a Latitude/bare-metal move needs — so it's built in now.
+
+## Layer 1 — CoreDNS (on every box)
+
+Adapt ps-v4's CoreDNS module (zones generated from the registry, Prometheus
+metrics, caching, upstream forwarding) — but feed it from the **Dhall registry**,
+not hand-written Nix zone strings. Split-horizon: CoreDNS answers internal
+`logical` names with `tailnet_ipv4` (LAN/tailnet addresses), and forwards
+everything else out. This is what makes "a movie stays on the LAN" true — the
+internal name resolves to an internal IP, never to a Cloudflare edge.
+
+## Layer 2 — nginx reverse proxy (on every box that serves)
+
+Adapt straylight-infra's `nginx-reverse-proxy.nix` (vhosts, upstreams, websocket,
+headers — trimmed of the trading-grade load-balancing/health-check machinery we
+don't need yet). Services bind **loopback**; nginx is the vhost router on the
+`logical` names. Two TLS sources, by horizon:
+
+- **Internal ACME** — `security.acme` + `virtualHosts.<n>.enableACME` with
+  **DNS-01** against a real domain we control (HTTP-01 can't validate internal
+  names). Real, browser-trusted certs for internal `logical` names, with **no CA
+  to distribute** to every box. (An internal CA + wildcard is the fallback if we
+  ever want fully-offline issuance.)
+- **Public** — see Layer 3; nginx still terminates/serves, cloudflared dials in.
+
+## Layer 3 — cloudflared (the public edge, opt-in)
+
+Near-copy of straylight-infra's `cloudflared.nix`: tunnel token via agenix,
+declarative `ingress` (hostname/path → local service), `dev`/`prod` env selecting
+the secret, catch-all 404. **Off by default; every public hostname is an explicit
+ingress entry** — the discipline is keeping that list short. Cloudflare terminates
+TLS at its edge and the tunnel dials out to nginx/loopback; no inbound ports on
+our origin.
+
+**Trust note (named, not hand-waved):** a tunnel is TLS-to-edge, *not* E2E —
+Cloudflare sees plaintext of whatever flows through it. Fine for the public doors;
+it is the reason internal/bulk traffic does **not** use this path.
+
+## How the horizons compose
+
+```
+              ┌─────────────── public internet ───────────────┐
+              │                                                │
+        Cloudflare edge (TLS term + Access bouncer)            │
+              │  cloudflared (outbound tunnel, opt-in ingress) │
+   ───────────┼────────────────────────────────────────────────
+   origin box │  nginx (vhosts on logical names)               │
+              │   ├── internal ACME TLS (DNS-01)  ◄── LAN/tailnet clients
+              │   └── loopback upstream ─► service (zot/forgejo/searxng/…)
+              │  CoreDNS (logical → tailnet_ipv4, split-horizon)
+              └── tailscale (the encrypted fabric underneath)
+```
+
+Internal clients resolve a `logical` name via CoreDNS → an internal IP → nginx on
+that box → loopback service, with internal-ACME TLS. The movie never leaves the
+LAN. A *public* name resolves (at Cloudflare) to the tunnel → nginx → service.
+Same nginx, same service binding; only the path in differs.
+
+## What we deliberately drop from the prior art
+
+- **Colmena tag→role deployment** (straylight-infra) — we already have
+  `nix run .#deploy-fleet`; the tag indirection is implicit and not worth it.
+- **Geo-zones / ZK ensembles / venue keys** (ps-v4) — trading-fleet specifics
+  irrelevant to a homelab; the registry keeps `zone`/`region` *fields* for
+  forward-compat but no ensemble machinery.
+- **Hand-written Nix zone strings** (ps-v4) — replaced by Dhall-generated zones.
+
+## Build order
+
+1. **Dhall topology registry** + the Nix bridge that exposes it (validated;
+   consolidates `keys.nix`/`monitors.nix`/host lists).
+2. **CoreDNS** module, zones from the registry, split-horizon, on every box.
+3. **nginx reverse proxy** module + internal ACME (DNS-01) for `logical` names.
+4. **cloudflared** module (off by default), first public door as a proof.
+
+Each lands and is proven before the next. DNS first, because everything else
+needs names that resolve.
+
+## Open decisions
+
+- The exact `logical` naming scheme + which **real domain** backs DNS-01 (we have
+  domains available; choice pending).
+- Internal ACME via DNS-01 on a public domain **vs** an internal CA + wildcard
+  (leaning DNS-01: no CA distribution, real trust chain).
+- Which DNS provider lego uses for DNS-01 (tied to the domain choice).

@@ -9,6 +9,7 @@
 - [Module conventions](./architecture/module-conventions.md)
 - [The fleet](./architecture/fleet.md)
 - [State & backup model](./architecture/state-and-backup.md)
+- [Networking design (DNS/TLS/edge)](./architecture/networking.md)
 
 # Infrastructure
 
