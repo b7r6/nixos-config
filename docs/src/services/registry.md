@@ -83,6 +83,36 @@ skopeo inspect --tls-verify=false docker://watchtower:5000/test/busybox:latest
 > returned the full manifest.
 
 > TLS: the example uses `--dest-tls-verify=false` because zot serves plain HTTP on
-> the tailnet here. For TLS, terminate with a Tailscale-issued cert (as
-> [nativelink](../infrastructure/nativelink.md) does) or front with `tailscale
-> serve`.
+> the tailnet here (the tailnet is already encrypted). zot *can* terminate TLS
+> natively (`http.tls.{cert,key}`), but the planned direction is a different one —
+> see below.
+
+## Planned: nginx front + TLS (replacing `tailscale serve`)
+
+> Status: **designing.** Captured here so the future session starts grounded.
+
+The fleet will grow an **nginx reverse proxy on every box**, routing on CoreDNS
+names, to escape `tailscale serve`'s limits (one cert per node, HTTPS-only, no
+wildcards, no arbitrary vhosts). When that lands, every HTTP service —
+zot/searxng/forgejo/… — converges on the same shape: **bind `127.0.0.1`, let
+nginx be the vhost router.** For zot that's a one-line `listenAddress = "127.0.0.1"`
+flip plus an nginx vhost; the module already supports it.
+
+This homelab layer is a **dress rehearsal for the production edge**, which will be
+one of two shapes — both of which sit on top of the *same* internal substrate
+(services on loopback + nginx + CoreDNS), so building that substrate now is
+rework-free either way:
+
+- **Public ACME TLS** — nginx terminates HTTPS with real certs. On NixOS the
+  idiomatic path is `security.acme` + `virtualHosts.<n>.enableACME`; for
+  internal CoreDNS names this needs **DNS-01 against a real public domain** (HTTP-01
+  can't validate non-public names). nginx also gained native in-process ACME
+  (`ngx_http_acme_module`, ~2025), but NixOS's `security.acme`/lego is the
+  established route.
+- **Cloudflare Tunnel** (`cloudflared`, outbound) — no inbound ports, no cert
+  management on our side; Cloudflare terminates at the edge and the tunnel dials
+  out to nginx/services. Far simpler than the old `argo-tunnel` era.
+
+The open decision is purely the **edge/cert strategy** (ACME-vs-tunnel, and for
+internal HTTPS: own-CA wildcard vs DNS-01 real certs). The internal nginx+CoreDNS
+substrate is common to all of them.
