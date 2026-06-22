@@ -118,6 +118,38 @@ philosophy "**namespaces, not daemons**"):
   **Firecracker** for network-isolated builds. Lighter, daemonless, and already
   built in straylight-prelude.
 
+### The vN+1 refinement (what reading the prior art actually showed)
+
+Studying both prior arts (`straylight-prelude/toolchains.nix`, `re-section.dhall`;
+aleph) clarified the real mechanism, which is subtler than "run actions in a
+container":
+
+- The Buck2 **toolchain rules still point at `/nix/store` paths**
+  (`[haskell] ghc = ${ghc}/bin/ghc`, `[lean] lean = ${lean}/bin/lean`, …). The
+  toolchain *is* a nix closure; the buckconfig names its store paths.
+- So hermeticity requires the worker's execution environment to **contain those
+  store paths**. In the prior art `container-image = nix-worker` is just a string
+  tag the worker self-advertises; the paths are present because the worker baked
+  the closure in.
+- **Our fleet is better positioned:** the workers are a NixOS fleet sharing
+  `/nix/store` via the [attic](./attic.md) cache. A toolchain closure is therefore
+  **materializable on any (same-arch) worker by store path** — attic substitutes
+  it — with no per-action image pull at all.
+
+So zot's role is precise: it is the **portable, digest-addressed distribution** of
+a toolchain closure for (a) the prelude to *verify a toolchain exists* before
+dispatching (`container-image = <digest>`), and (b) a future non-NixOS or
+cross-substituter worker that can't just `nix copy` the closure. The image is built
+reproducibly from the nix closure (`dockerTools.streamLayeredImage` / the `nix2gpu`
+amenity — daemonless), pushed to `registry.sju1.s4.gl`, and the worker **presents**
+it (or the already-substituted store paths) into the sandbox via bwrap.
+
+Net: **nix builds the closure (reproducible), attic distributes it to NixOS
+workers, zot distributes it as a digest-pinned image to everyone else, the
+`container-image` property is the toolchain identity, bwrap presents it.** The
+client toolchain rules are unchanged; what we fixed is making the *closure present
+and verifiable*, which is the thing that was a coincidence before.
+
 Image *build* path (keep nix where it's good): `pkgs.dockerTools.streamLayeredImage`
 packs a nix toolchain closure into a reproducible, content-addressed OCI image (no
 Docker daemon) → push to zot → prelude references it by digest. Reproducible build,
