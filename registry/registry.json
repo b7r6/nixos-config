@@ -53,7 +53,9 @@
       "managed": true,
       "physical": "guccimane",
       "role": "server",
-      "services": [],
+      "services": [
+        "drop"
+      ],
       "tailnet": "guccimane",
       "tailnet_ipv4": "100.89.101.109",
       "zone": "sju1"

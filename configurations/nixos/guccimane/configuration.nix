@@ -105,14 +105,27 @@ in
   hyper-modern-nixos.pinchflat.enable = true;
 
   # ── R2 dropbox: shareable URLs for private files (secret-gist model) ────────
-  # `drop <file>` → unguessable token dir in the straylight-drop public bucket →
-  # prints https://drop.s4.gl/d/<token>/<file>. Bucket not listable, so the token
-  # is the capability. See docs/src/architecture/dropbox.md.
-  # NOTE: needs the `straylight-drop` remote in the rclone.conf agenix secret and
-  # the bucket+domain provisioned Cloudflare-side (provisioning checklist in doc).
+  # `drop <file>` → unguessable token dir in the straylight-drop bucket → prints
+  # https://drop.sju1.s4.gl/d/<token>/<file>. Bucket not listable + autoindex off,
+  # so the token is the capability. STAGED on the tailnet (CoreDNS + internal TLS)
+  # for now; graduate to truly-public DNS all at once later. See
+  # docs/src/architecture/dropbox.md.
   hyper-modern-nixos.dropbox = {
     enable = true;
     mountEnable = true; # bucket exists + remote resolves; mount the share
+    domain = "drop.sju1.s4.gl";
+  };
+
+  # nginx fronts the dropbox mount at drop.sju1.s4.gl. CoreDNS resolves the `drop`
+  # service tag (registry/hosts.dhall) → guccimane; the wildcard *.sju1.s4.gl cert
+  # comes via Njalla DNS-01. Static root over the FUSE mount; autoindex off keeps
+  # the bucket non-listable.
+  hyper-modern-nixos.reverseProxy = {
+    enable = true;
+    services.drop = {
+      root = "/mnt/r2/drop";
+      maxBodySize = "0"; # large file fetches, no cap
+    };
   };
 
   # ── restic → Cloudflare R2 backups ─────────────────────────────────────────

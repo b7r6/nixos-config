@@ -176,6 +176,50 @@ in
       description = "Extra settings merged into services.atticd.settings (TOML). e.g. database.url, storage.";
     };
 
+    # ── Chunking ──────────────────────────────────────────────────────────────
+    # attic content-defined-chunks NARs over `nar-size-threshold`, storing each
+    # chunk as a separate object (global dedup). The SERVE path reassembles them;
+    # upstream fetched chunks with a HARDCODED prefetch depth of 2, which
+    # serializes high-latency object-store GETs (R2 ~150ms each) — a chunked NAR
+    # cost ~N serial round-trips (1 MiB ⇒ ~2.2s). Our attic fork makes the
+    # prefetch depth configurable (chunking.nar-prefetch); with a deep enough
+    # window the N GETs overlap into ~1 round-trip, so we keep dedup-friendly
+    # chunk sizes and just raise the prefetch.
+    chunking = {
+      narSizeThreshold = lib.mkOption {
+        type = lib.types.int;
+        default = 65536; # 64 KiB — upstream default; dedup-friendly (prefetch fixes the latency)
+        description = "NARs at or below this size are stored unchunked (0 = disable chunking; 1 = always chunk).";
+      };
+      minSize = lib.mkOption {
+        type = lib.types.int;
+        default = 16384; # 16 KiB (upstream default)
+        description = "Preferred minimum chunk size.";
+      };
+      avgSize = lib.mkOption {
+        type = lib.types.int;
+        default = 65536; # 64 KiB (upstream default)
+        description = "Preferred average (target) chunk size.";
+      };
+      maxSize = lib.mkOption {
+        type = lib.types.int;
+        default = 262144; # 256 KiB (upstream default)
+        description = "Preferred maximum chunk size.";
+      };
+      narPrefetch = lib.mkOption {
+        type = lib.types.int;
+        default = 32;
+        description = ''
+          Concurrent chunk-prefetch depth when SERVING a NAR (our fork's
+          chunking.nar-prefetch). Upstream hardcoded 2, serializing R2 chunk GETs.
+          Measured on guccimane→R2: depth 2 served a 10 MiB NAR in ~22s
+          (extrapolated) / a 1 MiB NAR in ~1.3s; depth 16 → 1 MiB in ~0.34s and
+          10 MiB in ~2.8s; depth 32 pushes the large-NAR case further. Tune up
+          for very high-latency stores; down if it pressures the store / memory.
+        '';
+      };
+    };
+
     # ── Client side: make this (or any) host USE an attic cache ───────────────
     # Wires the cache as a substituter (consulted first, the documented NixOS
     # pattern), trusts its public key, and runs `attic watch-store` to auto-push
@@ -209,7 +253,10 @@ in
         description = ''
           Substituter priority. LOWER = consulted earlier. Default 10 beats
           cache.nixos.org (40) and nix-community (~40), so this cache is tried
-          first.
+          first — correct, because this fleet mostly serves paths NOT in upstream
+          (aarch64, CUDA, custom builds). The cache is on the critical path and
+          MUST be fast; we fix the serve path (chunking/local cache), not hide it
+          behind the CDN.
         '';
       };
 
@@ -266,6 +313,15 @@ in
         settings = lib.recursiveUpdate (
           {
             inherit (cfg) listen;
+            # Fast-by-default chunking (see the chunking option — serial R2 chunk
+            # fetches make small chunks pathologically slow on the serve path).
+            chunking = {
+              nar-size-threshold = cfg.chunking.narSizeThreshold;
+              min-size = cfg.chunking.minSize;
+              avg-size = cfg.chunking.avgSize;
+              max-size = cfg.chunking.maxSize;
+              nar-prefetch = cfg.chunking.narPrefetch; # our fork's serve-path knob
+            };
             storage =
               if cfg.storage.type == "s3" then
                 {

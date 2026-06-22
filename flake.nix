@@ -88,6 +88,15 @@
     nativelink.url = "github:TraceMachina/nativelink";
     nativelink.inputs.nixpkgs.follows = "nixpkgs";
 
+    # attic binary cache — our fork (sensenet-ai) carrying the configurable
+    # NAR chunk-prefetch fix (chunking.nar-prefetch). Upstream hardcodes prefetch
+    # depth 2, which serializes chunk GETs against R2 (~150ms each) and makes
+    # cold multi-GB pulls crawl. Its overlay (attic.overlays.default) provides the
+    # patched pkgs.attic-server consumed by modules/nixos/attic.nix.
+    # See docs/src/architecture/attic-prefetch.md.
+    attic.url = "github:sensenet-ai/attic/b7r6/nar-prefetch-concurrency";
+    attic.inputs.nixpkgs.follows = "nixpkgs";
+
     # straylight-prelude: the Buck2 prelude generator (sensenet-ai). Source of the
     # exact toolchain closure the RE workers run (llvm-git 22, ghc-with-packages,
     # rustc/cargo, lean4, python-env, nvidia-sdk, purescript) + buck2 itself, so

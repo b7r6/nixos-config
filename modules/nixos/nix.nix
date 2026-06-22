@@ -66,6 +66,11 @@ in
 
     inputs.nix-vscode-extensions.overlays.default
 
+    # Patched attic (sensenet-ai fork): configurable NAR chunk prefetch
+    # (chunking.nar-prefetch). Provides pkgs.attic-server / attic-client used by
+    # modules/nixos/attic.nix. Fixes serialized R2 chunk GETs on the serve path.
+    inputs.attic.overlays.default
+
     # emacs-pgtk -> 31.x (master). modules/home/emacs uses it.
     inputs.emacs-overlay.overlays.default
     # python312 doc build broken (Sphinx/docutils 0.22 on py3.13)

@@ -105,6 +105,16 @@ in
                 default = true;
                 description = "Enable WebSocket upgrade headers.";
               };
+              root = mkOption {
+                type = types.nullOr types.str;
+                default = null;
+                description = ''
+                  Serve a STATIC directory instead of proxying. When set, the
+                  vhost roots here (autoindex OFF — directory listing disabled,
+                  which is what keeps the dropbox "unguessable, not crawlable")
+                  and `upstream`/`port`/`websockets` are ignored.
+                '';
+              };
               maxBodySize = mkOption {
                 type = types.str;
                 default = "1m";
@@ -184,10 +194,20 @@ in
           useACMEHost = wildcardCert; # share the one wildcard cert
           # Per-vhost body cap; registries need this lifted for layer pushes.
           extraConfig = "client_max_body_size ${svc.maxBodySize};";
-          locations."/" = {
-            proxyPass = "http://${svc.upstream}";
-            proxyWebsockets = svc.websockets;
-          };
+          locations."/" =
+            if svc.root != null then
+              {
+                # static file serving (e.g. the dropbox FUSE mount). autoindex off
+                # so the bucket root is never listable — the token path is the only
+                # way in, preserving the "secret-gist" property.
+                root = svc.root;
+                extraConfig = "autoindex off;";
+              }
+            else
+              {
+                proxyPass = "http://${svc.upstream}";
+                proxyWebsockets = svc.websockets;
+              };
         }
       ) cfg.services;
     };
