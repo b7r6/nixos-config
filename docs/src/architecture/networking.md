@@ -47,14 +47,42 @@ idea), plus role/zone and the address split:
 | Field | Example | Purpose |
 | --- | --- | --- |
 | `physical` | `watchtower` | the NixOS attr name |
-| `tailnet` | `watchtower.osiris-walleye.ts.net` | MagicDNS |
-| `logical` | `watchtower.hsv.straylight.internal` (TBD scheme) | the stable internal name nginx/DNS use |
+| `tailnet` | `watchtower` | MagicDNS short label (suffix added centrally) |
+| `logical` | `watchtower.straylight.internal` (placeholder scheme) | the stable internal name nginx/DNS use |
 | `tailnet_ipv4` | `100.x.y.z` | internal address (served by CoreDNS today) |
 | `provider_ipv4` | `null` now; real on Latitude later | public/provider address (forward-compat for bare metal) |
-| `roles` | `[ "services" "registry" ]` | drives service composition + DNS service CNAMEs |
+| `role` | `server` / `workstation` / `laptop` / `accelerator` | coarse machine kind |
+| `services` | `[ "postgres" "attic" "registry" ]` | service tags; drives DNS CNAMEs + composition |
+| `managed` | `true` | is this a deployable nixosConfiguration? (gossamer = false) |
 
 The `tailnet_ipv4` vs `provider_ipv4` split matters little on today's tailnet-only
 fleet but is exactly what a Latitude/bare-metal move needs — so it's built in now.
+
+### Implemented (registry layer)
+
+The registry lives in `registry/`:
+
+- **`registry/schema.dhall`** — the typed schema (`Host`, `Zone`, `Registry`).
+- **`registry/hosts.dhall`** — the data: all 7 hosts (6 managed + gossamer), with
+  real `tailnet_ipv4` and placeholder `logical` names (`<physical>.straylight.internal`
+  until the naming scheme + domain are settled — a one-line change in `hosts.dhall`).
+- **`registry/registry.json`** — the **committed** Dhall→JSON render that Nix reads.
+
+Dhall is the source of truth (typechecked + total). Nix reads the committed JSON
+rather than rendering at eval time — import-from-derivation breaks under
+`nix flake check`, and a committed artifact is the standard IFD-free pattern (like
+a lockfile). Two dev commands keep it honest:
+
+```sh
+nix run .#topology-render   # Dhall → registry/registry.json (after editing *.dhall)
+nix run .#topology-check    # CI guard: committed JSON in sync with the Dhall?
+```
+
+`modules/nixos/topology.nix` exposes it as `hyper-modern-nixos.topology` (always
+on, pure data) with read-only `registry` / `hosts` / `managedHosts` and query
+`helpers` (`hostsWithService`, `hostsByRole`, `self`, `tailnetFqdn`). Semantic
+validation (duplicate IPs, hosts in undeclared zones) runs as build assertions on
+top of Dhall's type checking. CoreDNS/nginx/cloudflared (next) read from here.
 
 ## Layer 1 — CoreDNS (on every box)
 
