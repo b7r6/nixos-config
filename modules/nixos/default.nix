@@ -52,6 +52,7 @@
     ./torrents.nix
     ./registry.nix
     ./media.nix
+    ./otel.nix
 
     # ── Development ──
     ./android.nix
@@ -89,6 +90,14 @@
   # declare. mkDefault so an individual host can still cleanly opt out. (test-vm
   # imports only the wayland module, not this one, so it's unaffected.)
   hyper-modern-nixos.rcloneMount.enable = lib.mkDefault true;
+
+  # ── Fleet-wide observability agent ──────────────────────────────────────────
+  # Every host that imports this module runs the OTel agent: host metrics +
+  # journald → the gateway (the registry's `clickhouse`-tagged host) over the
+  # tailnet. mkDefault so a host can opt out. The gateway endpoint is derived
+  # from the registry, so there's nothing per-host to declare. (test-vm imports
+  # only the wayland module, not this one, so it's unaffected.)
+  hyper-modern-nixos.observability.otel.agent.enable = lib.mkDefault true;
 
   # ── Fleet-wide user model ───────────────────────────────────────────────────
   # Groups + SSH keys declared ONCE here apply to every managed user on every

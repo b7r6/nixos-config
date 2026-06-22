@@ -95,6 +95,13 @@ in
     s3.enable = true;
   };
 
+  # ── OTel gateway: the ingestion spine's sink (OTLP → ClickHouse) ────────────
+  # Co-located with the ClickHouse server: agents fleet-wide push OTLP here over
+  # the tailnet, and the clickhouse exporter writes logs/metrics/traces into the
+  # local server (loopback :9000), owning its MergeTree schema. watchtower also
+  # runs the agent (below, fleet-wide) so it ships its own host metrics/logs.
+  hyper-modern-nixos.observability.otel.gateway.enable = true;
+
   # ── Reverse proxy + internal ACME (nginx → loopback services) ───────────────
   # nginx terminates TLS on the logical names with a real wildcard cert
   # (*.sju1.s4.gl via DNS-01/Njalla) and proxies to loopback. registry.sju1.s4.gl
