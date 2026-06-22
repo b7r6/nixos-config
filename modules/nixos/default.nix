@@ -12,7 +12,7 @@
 # Flat layout: each module is a sibling file here (no common/ or services/
 # nesting). Gated modules cost nothing when off, so importing them all keeps
 # host configs to "import this + set options" with zero per-host import lists.
-{ ... }: {
+{ lib, ... }: {
   imports = [
     # ── Core system (always-on) ──
     ./base.nix
@@ -74,6 +74,14 @@
     tailnet.domain = "osiris-walleye.ts.net";
     useBackupResolver = true;
   };
+
+  # ── Fleet-wide R2 mounts ────────────────────────────────────────────────────
+  # Every host that imports this module mounts the shared /mnt/r2/common and its
+  # own /mnt/r2/<hostname> off the straylight-r2 `host-mount` bucket. The module
+  # self-wires the rclone.conf agenix secret, so there's nothing per-host to
+  # declare. mkDefault so an individual host can still cleanly opt out. (test-vm
+  # imports only the wayland module, not this one, so it's unaffected.)
+  hyper-modern-nixos.rcloneMount.enable = lib.mkDefault true;
 
   # ── Fleet-wide user model ───────────────────────────────────────────────────
   # Groups + SSH keys declared ONCE here apply to every managed user on every

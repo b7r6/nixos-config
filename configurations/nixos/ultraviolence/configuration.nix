@@ -24,12 +24,9 @@ in
     exitNode = "us-mia-wg-001.mullvad.ts.net";
   };
 
-  # Root-readable copy of the SAME rclone.conf (R2 remote + creds) for the
-  # system mount service. The encrypted file is the user secret, but it's
-  # encrypted to all host keys too, so the host can decrypt it at the NixOS
-  # level into /run/agenix/rclone-conf (root, 600). The user gets its own copy
-  # at ~/.config/rclone/rclone.conf via the home-manager agenix module.
-  age.secrets.rclone-conf.file = ../../../secrets/agenix/users/b7r6/rclone-conf.age;
+  # NOTE: the system rclone mount (/mnt/r2/common + /mnt/r2/ultraviolence) and
+  # its rclone-conf secret are now fleet defaults — see modules/nixos/default.nix
+  # and modules/nixos/rclone-mount.nix. Nothing host-specific to declare here.
 
   # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
   # The module self-wires its secrets from the names below (per-host R2 env:
@@ -41,20 +38,6 @@ in
     passwordSecret = "restic-password";
     environmentSecret = "restic-r2-env.ultraviolence";
     paths = [ "/home" ];
-  };
-
-  # ── system-wide rclone mount of the R2 bucket ───────────────────────────────
-  # Mounts the straylight-r2 remote at /mnt/r2 for any user/service. Uses the
-  # root-decrypted rclone.conf above. Dedicated `host-mount` bucket (separate
-  # from the restic `backups-restic` bucket), per-host path so each machine
-  # gets its own subtree: host-mount:host-mount/<hostname>.
-  hyper-modern-nixos.rcloneMount = {
-    enable = true;
-    configPath = "/run/agenix/rclone-conf";
-    mounts.r2 = {
-      remote = "straylight-r2:host-mount/ultraviolence";
-      where = "/mnt/r2";
-    };
   };
 
   # ── attic binary cache: REPLICA (api-server against watchtower's central pg) ─
