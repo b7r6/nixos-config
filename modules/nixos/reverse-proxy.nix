@@ -200,7 +200,7 @@ in
                 # static file serving (e.g. the dropbox FUSE mount). autoindex off
                 # so the bucket root is never listable — the token path is the only
                 # way in, preserving the "secret-gist" property.
-                root = svc.root;
+                inherit (svc) root;
                 extraConfig = "autoindex off;";
               }
             else

@@ -80,7 +80,7 @@ in
     hyper-modern-nixos.rcloneMount.enable = lib.mkIf cfg.mountEnable (lib.mkDefault true);
     hyper-modern-nixos.rcloneMount.mounts = lib.mkIf cfg.mountEnable {
       drop = {
-        remote = cfg.remote;
+        inherit (cfg) remote;
         where = cfg.mountPoint;
         readOnly = false;
         extraArgs = [

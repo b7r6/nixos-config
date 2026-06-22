@@ -22,11 +22,7 @@
 # Exposure: tailnet-only. The fleet firewall trusts tailscale0, and we open the
 # port there explicitly. NOT fronted by nginx here (add a reverseProxy.services
 # entry on the host if you want a vhost + TLS — note: heavy websockets).
-{
-  config,
-  lib,
-  ...
-}:
+{ config, lib, ... }:
 let
   cfg = config.hyper-modern-nixos.pinchflat;
 in
@@ -112,7 +108,7 @@ in
     virtualisation.oci-containers.backend = "docker";
 
     virtualisation.oci-containers.containers.pinchflat = {
-      image = cfg.image;
+      inherit (cfg) image;
       # Pull the pinned tag from zot; never auto-upgrade silently.
       pull = "missing";
       ports = [ "${toString cfg.port}:8945" ];
