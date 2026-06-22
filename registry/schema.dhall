@@ -19,14 +19,20 @@ let Host =
             physical : Text
           , --  Tailscale MagicDNS short label (suffix added centrally, never here)
             tailnet : Text
-          , --  the stable internal name (the <id>.<role>.<…>.<domain> scheme;
-            --  placeholder until the naming scheme + domain are settled)
+          , --  nearest Equinix DC code (the geo key), e.g. "sju1" (San Juan),
+            --  "mia2", "lon2". Single-site today; this is how the fleet grows
+            --  distributed. Used as the subdomain in the logical name.
+            dc : Text
+          , --  the stable internal name: <physical>.<dc>.<internalDomain>
+            --  (e.g. watchtower.sju1.s4.gl). Derived in hosts.dhall.
             logical : Text
           , --  internal (tailnet) address — what CoreDNS serves internally
             tailnet_ipv4 : Text
           , --  public/provider address — null on a NAT'd tailnet-only host
             provider_ipv4 : Optional Text
-          , --  coordination/locality grouping (forward-compat; "home" for now)
+          , --  coordination/locality grouping (forward-compat); coincides with
+            --  `dc` while single-site, but stays a separate axis for multi-DC
+            --  zones (apac/emea/amer-style) later.
             zone : Text
           , --  coarse machine kind: workstation | server | laptop | accelerator
             role : Text
@@ -47,7 +53,8 @@ let Registry =
           { --  the tailnet MagicDNS suffix — the ONE place it is named in this
             --  tree; mirrors hyper-modern-nixos.network.tailnet.domain.
             tailnetSuffix : Text
-          , --  the internal logical-DNS domain (placeholder; pending the real one)
+          , --  the internal logical-DNS domain (our real domain: s4.gl on Njalla;
+            --  enables real DNS-01 ACME for internal names).
             internalDomain : Text
           , zones : List Zone.Type
           , hosts : List Host.Type

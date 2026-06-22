@@ -1,7 +1,8 @@
 {
   "hosts": [
     {
-      "logical": "watchtower.straylight.internal",
+      "dc": "sju1",
+      "logical": "watchtower.sju1.s4.gl",
       "managed": true,
       "physical": "watchtower",
       "role": "server",
@@ -13,10 +14,11 @@
       ],
       "tailnet": "watchtower",
       "tailnet_ipv4": "100.122.228.122",
-      "zone": "home"
+      "zone": "sju1"
     },
     {
-      "logical": "ultraviolence.straylight.internal",
+      "dc": "sju1",
+      "logical": "ultraviolence.sju1.s4.gl",
       "managed": true,
       "physical": "ultraviolence",
       "role": "workstation",
@@ -28,50 +30,55 @@
       ],
       "tailnet": "ultraviolence",
       "tailnet_ipv4": "100.71.82.73",
-      "zone": "home"
+      "zone": "sju1"
     },
     {
-      "logical": "shimmer.straylight.internal",
+      "dc": "sju1",
+      "logical": "shimmer.sju1.s4.gl",
       "managed": true,
       "physical": "shimmer",
       "role": "accelerator",
       "services": [],
       "tailnet": "shimmer",
       "tailnet_ipv4": "100.116.42.95",
-      "zone": "home"
+      "zone": "sju1"
     },
     {
-      "logical": "guccimane.straylight.internal",
+      "dc": "sju1",
+      "logical": "guccimane.sju1.s4.gl",
       "managed": true,
       "physical": "guccimane",
       "role": "workstation",
       "services": [],
       "tailnet": "guccimane",
       "tailnet_ipv4": "100.89.101.109",
-      "zone": "home"
+      "zone": "sju1"
     },
     {
-      "logical": "shannon.straylight.internal",
+      "dc": "sju1",
+      "logical": "shannon.sju1.s4.gl",
       "managed": true,
       "physical": "shannon",
       "role": "laptop",
       "services": [],
       "tailnet": "shannon",
       "tailnet_ipv4": "100.120.215.82",
-      "zone": "home"
+      "zone": "sju1"
     },
     {
-      "logical": "weyl.straylight.internal",
+      "dc": "sju1",
+      "logical": "weyl.sju1.s4.gl",
       "managed": true,
       "physical": "weyl",
       "role": "workstation",
       "services": [],
       "tailnet": "weyl",
       "tailnet_ipv4": "100.111.80.81",
-      "zone": "home"
+      "zone": "sju1"
     },
     {
-      "logical": "gossamer.straylight.internal",
+      "dc": "sju1",
+      "logical": "gossamer.sju1.s4.gl",
       "managed": false,
       "physical": "gossamer",
       "role": "accelerator",
@@ -80,15 +87,15 @@
       ],
       "tailnet": "gossamer",
       "tailnet_ipv4": "100.110.55.28",
-      "zone": "home"
+      "zone": "sju1"
     }
   ],
-  "internalDomain": "straylight.internal",
+  "internalDomain": "s4.gl",
   "tailnetSuffix": "osiris-walleye.ts.net",
   "zones": [
     {
-      "description": "single-site homelab tailnet (pre-distribution)",
-      "name": "home"
+      "description": "San Juan (single-site homelab; nearest Equinix = sju1)",
+      "name": "sju1"
     }
   ]
 }

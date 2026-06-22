@@ -6,91 +6,103 @@
 --  host = one entry here (+ its configurations/nixos/<name>/). Everything
 --  downstream (CoreDNS, nginx, cloudflared) derives from this.
 --
---  PLACEHOLDERS (swap in ONE place when settled — see networking.md "Open
---  decisions"):
---    - `internalDomain`  : the real internal logical-DNS domain.
---    - each `logical`    : the <id>.<role>.<region>.<zone>.<domain> scheme.
+--  Naming scheme: logical = <physical>.<dc>.s4.gl, where <dc> is the nearest
+--  Equinix DC code (e.g. sju1 = San Juan). s4.gl is our real domain (Njalla), so
+--  internal names can get real DNS-01 ACME certs. The fleet is single-site (sju1)
+--  today; new DCs become new subdomains under s4.gl with no restructuring.
+--
 --  tailnet_ipv4 values are REAL (read from the live tailnet). provider_ipv4 is
 --  None everywhere today (NAT'd tailnet-only fleet); set it when a host gets a
---  public address (e.g. on a Latitude bare-metal move).
+--  public address (e.g. on a Latitude bare-metal move). The Tailscale MagicDNS
+--  suffix (tailnetSuffix) is a SEPARATE namespace from s4.gl.
 let schema = ./schema.dhall
 
 let Host = schema.Host
 
-let internalDomain = "straylight.internal"
+let internalDomain = "s4.gl"
 
-let logicalOf = \(physical : Text) -> "${physical}.${internalDomain}"
+let logicalOf =
+      \(physical : Text) ->
+      \(dc : Text) ->
+        "${physical}.${dc}.${internalDomain}"
 
 in  schema.Registry::{
     , tailnetSuffix = "osiris-walleye.ts.net"
     , internalDomain
     , zones =
       [ schema.Zone::{
-        , name = "home"
-        , description = "single-site homelab tailnet (pre-distribution)"
+        , name = "sju1"
+        , description = "San Juan (single-site homelab; nearest Equinix = sju1)"
         }
       ]
     , hosts =
       [ Host::{
         , physical = "watchtower"
         , tailnet = "watchtower"
-        , logical = logicalOf "watchtower"
+        , dc = "sju1"
+        , logical = logicalOf "watchtower" "sju1"
         , tailnet_ipv4 = "100.122.228.122"
-        , zone = "home"
+        , zone = "sju1"
         , role = "server"
         , services = [ "postgres", "attic", "registry", "monitoring" ]
         }
       , Host::{
         , physical = "ultraviolence"
         , tailnet = "ultraviolence"
-        , logical = logicalOf "ultraviolence"
+        , dc = "sju1"
+        , logical = logicalOf "ultraviolence" "sju1"
         , tailnet_ipv4 = "100.71.82.73"
-        , zone = "home"
+        , zone = "sju1"
         , role = "workstation"
         , services = [ "nativelink", "searxng", "torrents", "attic-replica" ]
         }
       , Host::{
         , physical = "shimmer"
         , tailnet = "shimmer"
-        , logical = logicalOf "shimmer"
+        , dc = "sju1"
+        , logical = logicalOf "shimmer" "sju1"
         , tailnet_ipv4 = "100.116.42.95"
-        , zone = "home"
+        , zone = "sju1"
         , role = "accelerator"
         , services = [] : List Text
         }
       , Host::{
         , physical = "guccimane"
         , tailnet = "guccimane"
-        , logical = logicalOf "guccimane"
+        , dc = "sju1"
+        , logical = logicalOf "guccimane" "sju1"
         , tailnet_ipv4 = "100.89.101.109"
-        , zone = "home"
+        , zone = "sju1"
         , role = "workstation"
         , services = [] : List Text
         }
       , Host::{
         , physical = "shannon"
         , tailnet = "shannon"
-        , logical = logicalOf "shannon"
+        , dc = "sju1"
+        , logical = logicalOf "shannon" "sju1"
         , tailnet_ipv4 = "100.120.215.82"
-        , zone = "home"
+        , zone = "sju1"
         , role = "laptop"
         , services = [] : List Text
         }
       , Host::{
         , physical = "weyl"
         , tailnet = "weyl"
-        , logical = logicalOf "weyl"
+        , dc = "sju1"
+        , logical = logicalOf "weyl" "sju1"
         , tailnet_ipv4 = "100.111.80.81"
-        , zone = "home"
+        , zone = "sju1"
         , role = "workstation"
         , services = [] : List Text
         }
       , Host::{
         , physical = "gossamer"
         , tailnet = "gossamer"
-        , logical = logicalOf "gossamer"
+        , dc = "sju1"
+        , logical = logicalOf "gossamer" "sju1"
         , tailnet_ipv4 = "100.110.55.28"
-        , zone = "home"
+        , zone = "sju1"
         , role = "accelerator"
         , services = [ "attic-client" ]
         , managed = False
