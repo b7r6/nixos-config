@@ -2,6 +2,7 @@
   "hosts": [
     {
       "dc": "sju1",
+      "lan_ipv4": "192.168.40.98",
       "logical": "watchtower.sju1.s4.gl",
       "managed": true,
       "physical": "watchtower",
@@ -18,6 +19,7 @@
     },
     {
       "dc": "sju1",
+      "lan_ipv4": "192.168.40.115",
       "logical": "ultraviolence.sju1.s4.gl",
       "managed": true,
       "physical": "ultraviolence",
@@ -34,6 +36,7 @@
     },
     {
       "dc": "sju1",
+      "lan_ipv4": "192.168.40.232",
       "logical": "shimmer.sju1.s4.gl",
       "managed": true,
       "physical": "shimmer",
@@ -45,6 +48,7 @@
     },
     {
       "dc": "sju1",
+      "lan_ipv4": "192.168.40.81",
       "logical": "guccimane.sju1.s4.gl",
       "managed": true,
       "physical": "guccimane",
