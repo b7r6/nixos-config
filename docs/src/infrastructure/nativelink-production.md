@@ -24,16 +24,24 @@ NativeLink is four RE-API roles that scale independently
 
 Target fleet topology (single-site `sju1` today, multi-arch):
 
-| host | arch | scheduler | CAS shard | worker |
+| host | arch | scheduler | CAS shard (weight) | worker |
 | --- | --- | --- | --- | --- |
-| watchtower | x86_64 | **yes** (the dispatcher) | yes | yes |
-| guccimane | x86_64 | — | yes | yes |
-| shimmer | aarch64 | — | yes | yes (the only aarch64 executor) |
+| watchtower | x86_64 | **yes** (the dispatcher) | yes (large) | yes |
+| guccimane | x86_64 | — | yes (large) | yes |
+| shimmer | aarch64 | — | yes (medium) | yes (the only aarch64 executor) |
+| ultraviolence | x86_64 | — | **yes (small)** | yes |
 
-Scheduler on watchtower; executors on all three. Multi-arch matters: remote
+Scheduler on watchtower; executors on all four. Multi-arch matters: remote
 execution runs **native** binaries, so an aarch64 action must land on shimmer.
 The scheduler's `cpu_arch`/`ISA` exact-match properties route this; the module
 already derives them per host.
+
+ultraviolence is in the CAS ring **deliberately small**: it's tight on disk, so it
+carries a smaller slice. That's the point — a ring where every node is `weight = 1`
+is a toy; weighting by real headroom is the production discipline (and good
+practice for right-sizing the fleet). It also makes the CAS-≠-worker-topology
+point concrete: ultraviolence is a heavy *worker* (nativelink host today) yet a
+*small* CAS shard — the two roles size independently.
 
 ## Sharded CAS (stripe the load)
 
@@ -45,11 +53,17 @@ blob digest, with per-shard **`weight`** for unevenly-sized nodes:
 ```json5
 { name: "CAS_MAIN_STORE",
   shard: { stores: [
-    { store: { ref_store: { name: "CAS_watchtower" } }, weight: 2 },
-    { store: { ref_store: { name: "CAS_guccimane" } }, weight: 2 },
-    { store: { ref_store: { name: "CAS_shimmer"   } }, weight: 1 },
+    { store: { ref_store: { name: "CAS_watchtower"    } }, weight: 4 },
+    { store: { ref_store: { name: "CAS_guccimane"     } }, weight: 4 },
+    { store: { ref_store: { name: "CAS_shimmer"       } }, weight: 2 },
+    { store: { ref_store: { name: "CAS_ultraviolence" } }, weight: 1 },  // tight on disk
   ] } }
 ```
+
+Weights are illustrative (calibrate to actual free NVMe per node); ultraviolence's
+`weight: 1` against the servers' `4` reflects its disk pressure. As disks change
+or the fleet right-sizes, re-weighting is a one-line edit in the Dhall fleet config
+— the ring rebalances by digest.
 
 Key design point the docs make explicit: **CAS topology is separate from worker
 topology.** The shard ring is its own tier; workers just point
