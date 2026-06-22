@@ -39,20 +39,6 @@
                 "store_type": "cas",
                 "endpoints": [
                   {
-                    "address": "grpc://shimmer.sju1.s4.gl:50052"
-                  }
-                ]
-              }
-            },
-            "weight": 2
-          },
-          {
-            "store": {
-              "grpc": {
-                "instance_name": "main",
-                "store_type": "cas",
-                "endpoints": [
-                  {
                     "address": "grpc://ultraviolence.sju1.s4.gl:50052"
                   }
                 ]
@@ -94,20 +80,6 @@
               }
             },
             "weight": 4
-          },
-          {
-            "store": {
-              "grpc": {
-                "instance_name": "main",
-                "store_type": "ac",
-                "endpoints": [
-                  {
-                    "address": "grpc://shimmer.sju1.s4.gl:50052"
-                  }
-                ]
-              }
-            },
-            "weight": 2
           },
           {
             "store": {
