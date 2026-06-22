@@ -51,6 +51,7 @@
     ./torrents.nix
     ./registry.nix
     ./media.nix
+    ./pinchflat.nix
 
     # ── Development ──
     ./android.nix

@@ -98,6 +98,12 @@ in
     enableJellyfin = true;
   };
 
+  # ── Pinchflat: yt-dlp media manager (queue/subscribe playlists) ────────────
+  # Web UI on :8945 (tailnet-only). Image pulled from the fleet zot registry;
+  # downloads land in the shared /var/lib/media so the tagging pipeline +
+  # Navidrome/Jellyfin pick them up. Smoke-testing SoundCloud-source handling.
+  hyper-modern-nixos.pinchflat.enable = true;
+
   # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
   # Module self-wires its secrets from the names below (per-host R2 env:
   # restic-r2-env.guccimane). FIRST init is declarative + idempotent:
