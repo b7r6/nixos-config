@@ -81,6 +81,14 @@ in
   #   R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY
   "agenix/machines/nativelink-r2-env.age".publicKeys = mkGlobalSecret;
 
+  # pgBackRest PITR repo creds for the dedicated R2 bucket. env file exporting
+  # the S3 secrets as PGBACKREST_* vars so they never enter the nix store:
+  #   PGBACKREST_REPO1_S3_KEY=<r2 access key id>
+  #   PGBACKREST_REPO1_S3_KEY_SECRET=<r2 secret access key>
+  # R2 token scoped Object R&W to JUST the straylight-pg-pitr bucket. Global so
+  # any operator box can drive a restore.
+  "agenix/machines/pgbackrest-r2-env.age".publicKeys = mkGlobalSecret;
+
   # atticd RS256 JWT signing secret (single-line env var — systemd
   # EnvironmentFile can't parse a multi-line PEM). MUST be identical on every
   # atticd instance so tokens verify fleet-wide:

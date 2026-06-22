@@ -21,10 +21,15 @@
   config,
   lib,
   pkgs,
+  # `flake` (specialArg) locates the in-repo agenix secrets for self-wiring the
+  # pgBackRest R2 env. Defaulted null so contexts importing this module without
+  # it (e.g. the attic-cache nixosTest, which doesn't use PITR) still evaluate.
+  flake ? null,
   ...
 }:
 let
   cfg = config.hyper-modern-nixos.databases;
+  machineSecrets = flake.self + "/secrets/agenix/machines";
 in
 {
   options.hyper-modern-nixos.databases = {
@@ -158,26 +163,89 @@ in
           '';
         };
 
-        # ── PITR seam (designed-in, OFF) ──────────────────────────────────────
-        # Continuous WAL archiving + base backups for point-in-time recovery is
-        # the production ceiling. The option surface lives here so turning it on
-        # later is a flip, not a module rewrite; the implementation is deferred
-        # until a DB needs sub-day RPO and a tested restore runbook exists.
+        # ── PITR (pgBackRest → R2) ────────────────────────────────────────────
+        # Continuous WAL archiving + periodic base backups for point-in-time
+        # recovery. Drops RPO from ~24h (logical dumps) to ~seconds ON A SINGLE
+        # NODE — survives a full machine wipe with near-zero loss. This is the
+        # durability the system-of-record (e.g. Forgejo) needs; the logical dumps
+        # above stay on as an independent, cross-PG-major fallback.
+        #
+        # NOT streaming replication — that's a separate availability/HA project
+        # (a second postgres on another host). PITR is single-node recoverability.
         pitr = {
           enable = lib.mkOption {
             type = lib.types.bool;
             default = false;
             description = ''
-              Enable WAL archiving + base backups for point-in-time recovery
-              (NOT YET IMPLEMENTED — reserved option surface). Logical dumps above
-              remain the supported path until this lands.
+              Enable pgBackRest WAL archiving + base backups to an S3/R2 repo.
+              Sets archive_mode + wal_level, wires the archive_command, and adds a
+              base-backup timer. Requires `environmentFile` (R2 creds) and a
+              one-time `pgbackrest-stanza-create` (run declaratively on activation).
             '';
           };
 
-          archiveCommand = lib.mkOption {
+          stanza = lib.mkOption {
+            type = lib.types.str;
+            default = "main";
+            description = "pgBackRest stanza name (logical backup-config identifier).";
+          };
+
+          environmentFile = lib.mkOption {
             type = lib.types.nullOr lib.types.str;
-            default = null;
-            description = "Future: postgres archive_command target (e.g. rclone/restic to R2).";
+            default = "/run/agenix/pgbackrest-r2-env";
+            description = ''
+              agenix env file exporting the pgBackRest S3/R2 secrets as
+              PGBACKREST_* env vars (so they never enter the nix store):
+                PGBACKREST_REPO1_S3_KEY=...
+                PGBACKREST_REPO1_S3_KEY_SECRET=...
+              Sourced into postgresql.service (so the archive_command sees it) and
+              the base-backup/stanza units. null = wire it yourself.
+            '';
+          };
+
+          s3 = {
+            bucket = lib.mkOption {
+              type = lib.types.str;
+              default = "straylight-pg-pitr";
+              description = "Dedicated R2 bucket for the WAL+base-backup repo.";
+            };
+            endpoint = lib.mkOption {
+              type = lib.types.str;
+              example = "6063b6652178f5cf1cfb87e7e41acf1e.r2.cloudflarestorage.com";
+              default = "6063b6652178f5cf1cfb87e7e41acf1e.r2.cloudflarestorage.com";
+              description = "R2 S3 endpoint host (account-scoped). Non-secret.";
+            };
+            region = lib.mkOption {
+              type = lib.types.str;
+              default = "auto";
+              description = "S3 region (R2 = auto).";
+            };
+            bundle = lib.mkOption {
+              type = lib.types.bool;
+              default = true;
+              description = "Bundle small files into combined objects (fewer R2 ops; cheaper).";
+            };
+          };
+
+          baseBackup = {
+            onCalendar = lib.mkOption {
+              type = lib.types.str;
+              default = "daily";
+              description = "Timer for the differential base backup.";
+            };
+            fullOnCalendar = lib.mkOption {
+              type = lib.types.str;
+              default = "Sun *-*-* 02:00:00";
+              description = "Timer for a full base backup (weekly anchor for the WAL chain).";
+            };
+          };
+
+          retention = {
+            full = lib.mkOption {
+              type = lib.types.int;
+              default = 4;
+              description = "Number of full backups to retain (repo1-retention-full).";
+            };
           };
         };
       };
@@ -291,19 +359,6 @@ in
         pgPkg = config.services.postgresql.package;
       in
       {
-        # PITR is reserved option surface only — fail loudly if someone flips it
-        # on expecting it to work, rather than silently backing up nothing extra.
-        assertions = [
-          {
-            assertion = !bcfg.pitr.enable;
-            message = ''
-              hyper-modern-nixos.databases.postgres.backup.pitr.enable is true, but
-              PITR/WAL-archiving is not yet implemented (reserved option surface).
-              Use the logical-dump path (backup.enable) for now.
-            '';
-          }
-        ];
-
         # Classify the dump dir as authoritative: persisted across an
         # impermanence reboot AND backed up to R2 (via state.nix → backup.nix).
         hyper-modern-nixos.state.dirs.postgres-dumps = {
@@ -351,6 +406,136 @@ in
           wantedBy = [ "timers.target" ];
           timerConfig = {
             OnCalendar = bcfg.onCalendar;
+            Persistent = true;
+            RandomizedDelaySec = "10m";
+          };
+        };
+      }
+    ))
+
+    # ── PITR: pgBackRest WAL archiving + base backups → R2 ──────────────────────
+    (lib.mkIf (cfg.postgres.enable && cfg.postgres.backup.pitr.enable) (
+      let
+        p = cfg.postgres.backup.pitr;
+        pgDataDir = config.services.postgresql.dataDir;
+        pgbackrest = "${pkgs.pgbackrest}/bin/pgbackrest";
+        stanzaArg = "--stanza=${p.stanza}";
+        # Non-secret pgBackRest config. The S3 KEY/KEY_SECRET are NOT here — they
+        # arrive as PGBACKREST_* env vars from the agenix environmentFile, so no
+        # credential ever enters the nix store.
+        confFile = pkgs.writeText "pgbackrest.conf" ''
+          [global]
+          repo1-type=s3
+          repo1-s3-bucket=${p.s3.bucket}
+          repo1-s3-endpoint=${p.s3.endpoint}
+          repo1-s3-region=${p.s3.region}
+          repo1-s3-uri-style=path
+          repo1-retention-full=${toString p.retention.full}
+          repo1-bundle=${if p.s3.bundle then "y" else "n"}
+          # Compress in transit/at rest; modest level (CPU vs R2 storage, ~free).
+          compress-type=zst
+          compress-level=6
+          process-max=4
+          start-fast=y
+
+          [${p.stanza}]
+          pg1-path=${pgDataDir}
+        '';
+      in
+      {
+        assertions = [
+          {
+            assertion = p.environmentFile != null;
+            message = ''
+              postgres.backup.pitr.enable is true but pitr.environmentFile is null.
+              pgBackRest needs the R2 S3 secrets (PGBACKREST_REPO1_S3_KEY[_SECRET])
+              from an agenix env file — never the nix store. Wire it (default
+              /run/agenix/pgbackrest-r2-env) or set environmentFile yourself.
+            '';
+          }
+        ];
+
+        # Self-wire the agenix secret (the .age lives in the repo).
+        age.secrets.pgbackrest-r2-env.file = machineSecrets + "/pgbackrest-r2-env.age";
+
+        environment.etc."pgbackrest/pgbackrest.conf".source = confFile;
+        environment.systemPackages = [ pkgs.pgbackrest ];
+
+        # PITR requires WAL set up for archiving. mkForce-free merge: these are
+        # added to whatever else is in settings.
+        services.postgresql.settings = {
+          archive_mode = "on";
+          # pgBackRest pushes each completed segment to R2. %p = path, %f = file.
+          archive_command = "${pgbackrest} ${stanzaArg} archive-push %p";
+          wal_level = "replica";
+          max_wal_senders = 3;
+          archive_timeout = 60; # force a segment at least every 60s (bounds RPO)
+        };
+
+        # Feed the R2 secrets into postgresql.service so the archive_command
+        # (a postgres subprocess) inherits PGBACKREST_* from the daemon env.
+        systemd.services.postgresql.serviceConfig.EnvironmentFile = p.environmentFile;
+
+        # One-time, idempotent stanza-create (like restic-init). Safe to re-run:
+        # pgBackRest treats an existing stanza as success. Ordered after postgres.
+        systemd.services.pgbackrest-stanza-create = {
+          description = "pgBackRest one-time stanza-create for ${p.stanza}";
+          after = [ "postgresql.service" ];
+          requires = [ "postgresql.service" ];
+          wantedBy = [ "multi-user.target" ];
+          serviceConfig = {
+            Type = "oneshot";
+            User = "postgres";
+            RemainAfterExit = true;
+            EnvironmentFile = p.environmentFile;
+          };
+          script = ''
+            ${pgbackrest} ${stanzaArg} stanza-create || \
+              ${pgbackrest} ${stanzaArg} stanza-upgrade || true
+            ${pgbackrest} ${stanzaArg} check
+          '';
+        };
+
+        # Base backups: a weekly full (anchors the WAL chain) + a daily diff.
+        # WAL archiving (continuous, via archive_command) is what gives ~seconds
+        # RPO; base backups bound restore time + let old WAL be expired.
+        systemd.services.pgbackrest-backup-diff = {
+          description = "pgBackRest differential base backup";
+          after = [ "postgresql.service" ];
+          requires = [ "postgresql.service" ];
+          serviceConfig = {
+            Type = "oneshot";
+            User = "postgres";
+            EnvironmentFile = p.environmentFile;
+            ExecStart = "${pgbackrest} ${stanzaArg} --type=diff backup";
+          };
+        };
+        systemd.services.pgbackrest-backup-full = {
+          description = "pgBackRest full base backup";
+          after = [ "postgresql.service" ];
+          requires = [ "postgresql.service" ];
+          serviceConfig = {
+            Type = "oneshot";
+            User = "postgres";
+            EnvironmentFile = p.environmentFile;
+            ExecStart = "${pgbackrest} ${stanzaArg} --type=full backup";
+          };
+        };
+
+        systemd.timers.pgbackrest-backup-diff = {
+          description = "schedule pgBackRest differential backups";
+          wantedBy = [ "timers.target" ];
+          timerConfig = {
+            OnCalendar = p.baseBackup.onCalendar;
+            Persistent = true;
+            RandomizedDelaySec = "10m";
+          };
+        };
+        systemd.timers.pgbackrest-backup-full = {
+          description = "schedule pgBackRest full backups";
+          wantedBy = [ "timers.target" ];
+          timerConfig = {
+            OnCalendar = p.baseBackup.fullOnCalendar;
             Persistent = true;
             RandomizedDelaySec = "10m";
           };

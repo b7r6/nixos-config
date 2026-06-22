@@ -71,10 +71,16 @@ staged the way you'd stage it in production:
   data files (`/var/lib/postgresql`), which is corruption-prone and version-locked.
   Logical dumps also restore **across PG majors**, which matters when hosts get
   rebuilt.
-- **Later — PITR.** The module exposes the option surface for WAL archiving +
-  base backups to R2 (point-in-time recovery, RPO of seconds). It's a flip-on
-  capability, not a rewrite — turn it on when a DB holds data that can't tolerate
-  a day of loss, and after a restore runbook is written and tested.
+- **PITR (implemented) — pgBackRest → R2.** `backup.pitr.enable` turns on
+  continuous WAL archiving + weekly-full/daily-diff base backups to a dedicated
+  R2 bucket, dropping RPO from ~24h to ~seconds **on a single node**. This is the
+  durability the system-of-record (Forgejo) needs before it holds real work. The
+  logical dumps stay on as an independent, cross-PG-major fallback. See
+  [Backups → PostgreSQL](../infrastructure/backups.md#postgresql-backups).
+
+  PITR is single-node *recoverability*, **not** streaming replication —
+  master/standby for availability is a separate later project that wants the
+  fleet's always-on server tier + DNS settled first.
 
 ## Service tiering (current + planned)
 

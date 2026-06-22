@@ -115,3 +115,95 @@ systemctl status  restic-backups-system.service
 systemctl start   restic-backups-system.service     # run now
 journalctl -u     restic-backups-system.service -e
 ```
+
+# PostgreSQL backups
+
+Two independent layers, both from `modules/nixos/postgres.nix` under
+`hyper-modern-nixos.databases.postgres.backup`. See the
+[state & backup model](../architecture/state-and-backup.md) for why postgres is
+backed up via **dumps/WAL**, never by restic-ing the live cluster dir.
+
+## Layer 1 — logical dumps (RPO ~24h, cross-version)
+
+`backup.enable` (on whenever postgres is enabled) runs a timer that does
+`pg_dumpall --clean --if-exists | zstd` into `backup.dumpDir`
+(`/var/backup/postgres`). That dir is classified **`authoritative`** state, so
+restic ships it to R2 with everything else. Logical dumps restore **across PG
+majors** — the portable floor, and the belt to PITR's suspenders.
+
+| Setting | Default |
+| --- | --- |
+| `backup.onCalendar` | `daily` |
+| `backup.keep` | `7` local dumps (restic holds the longer history) |
+| `backup.dumpDir` | `/var/backup/postgres` (authoritative → restic'd) |
+
+```sh
+systemctl start postgres-dump.service        # dump now
+ls -la /var/backup/postgres/                  # pg_dumpall-<ts>.sql.zst
+```
+
+## Layer 2 — PITR via pgBackRest (RPO ~seconds, single node)
+
+`backup.pitr.enable` turns on continuous **WAL archiving + base backups** to a
+**dedicated R2 bucket** (`straylight-pg-pitr`), dropping the recovery point from
+~24h to ~seconds **on a single machine** — a full wipe loses almost nothing. This
+is the durability the system-of-record (e.g. Forgejo) needs.
+
+It is **not** streaming replication: there is no second postgres and no failover.
+PITR is single-node *recoverability*; HA is a separate, later project.
+
+How it wires up:
+
+- postgres gets `archive_mode = on`, `wal_level = replica`, and
+  `archive_command = pgbackrest --stanza=<s> archive-push %p` — every completed
+  WAL segment is pushed to R2 (and `archive_timeout = 60` forces a segment at
+  least once a minute, bounding RPO even when idle).
+- A weekly **full** + daily **differential** base backup (`pgbackrest-backup-full`
+  / `-diff` timers) anchor the WAL chain and bound restore time.
+- The R2 secrets arrive as `PGBACKREST_*` env vars from the agenix
+  [`pgbackrest-r2-env`](./secrets.md) file (never the Nix store), fed into
+  `postgresql.service` so the `archive_command` subprocess inherits them.
+- `pgbackrest-stanza-create.service` does the one-time, idempotent stanza setup
+  on activation (like restic-init).
+
+```nix
+hyper-modern-nixos.databases.postgres.backup.pitr = {
+  enable = true;                       # archive_mode + WAL push + base-backup timers
+  # dedicated bucket + R2 endpoint default to straylight-pg-pitr; override if needed
+};
+```
+
+### Bringup (once, by hand)
+
+```sh
+# 1. R2: create the bucket `straylight-pg-pitr` and an Object R&W token scoped to it.
+# 2. agenix: store the creds (PGBACKREST_* env), rekeyed to all hosts:
+nix run .#new-secret -- agenix/machines/pgbackrest-r2-env.age
+#   PGBACKREST_REPO1_S3_KEY=<r2 access key id>
+#   PGBACKREST_REPO1_S3_KEY_SECRET=<r2 secret access key>
+# 3. flip pitr.enable on the postgres host, deploy. Activation runs stanza-create.
+# 4. verify the stanza + take a first full backup BY HAND before trusting it:
+sudo -u postgres pgbackrest --stanza=main check
+sudo -u postgres pgbackrest --stanza=main --type=full backup
+sudo -u postgres pgbackrest --stanza=main info
+```
+
+### Restore runbook (PITR is only trusted once this is tested)
+
+A backup you have never restored is a rumor. Rehearse on a throwaway target
+*before* relying on PITR:
+
+```sh
+# Restore the whole cluster to a scratch dir (does NOT touch the live cluster):
+sudo -u postgres pgbackrest --stanza=main \
+  --pg1-path=/var/lib/postgresql/restore-test restore
+
+# Point-in-time: restore to a specific instant (everything up to that LSN/time):
+sudo -u postgres pgbackrest --stanza=main \
+  --pg1-path=/var/lib/postgresql/restore-test \
+  --type=time --target="2026-06-21 18:00:00+00" restore
+```
+
+A real recovery is: stop postgres, move the damaged cluster aside, `restore` into
+`dataDir`, start postgres (it replays WAL to the target). Write the host-specific
+version of that into a per-incident runbook the first time you do it for real.
