@@ -19,6 +19,12 @@ in
   # managing resolv.conf). See docs/architecture/networking.md.
   hyper-modern-nixos.coredns.enable = true;
 
+  # ── ClickHouse Keeper (coordination plane, member of the 3-node ensemble) ────
+  # Server-less Keeper node; ensemble derived from the `clickhouse-keeper`
+  # registry tag (ultraviolence/guccimane/shimmer). The ClickHouse server itself
+  # lives on watchtower. See docs/infrastructure/clickhouse.md.
+  hyper-modern-nixos.databases.clickhouse.keeper.enable = true;
+
   # ── NativeLink: x86_64 CAS shard (weight 4) + worker ────────────────────────
   # From the typed Dhall fleet (out/guccimane.json): a CAS shard server + an
   # x86_64 worker dialing watchtower's scheduler over the tailnet.

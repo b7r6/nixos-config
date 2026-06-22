@@ -42,6 +42,7 @@
 
     # ── Services (gated) ──
     ./postgres.nix
+    ./clickhouse.nix
     ./backup.nix
     ./attic.nix
     ./attic-node.nix

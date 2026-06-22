@@ -99,6 +99,12 @@ in
     };
   };
 
+  # ── ClickHouse Keeper (coordination plane, member of the 3-node ensemble) ────
+  # Server-less Keeper: this node runs Keeper ONLY (the ClickHouse server lives
+  # on watchtower). Ensemble derived from the `clickhouse-keeper` registry tag
+  # (ultraviolence/guccimane/shimmer). See docs/infrastructure/clickhouse.md.
+  hyper-modern-nixos.databases.clickhouse.keeper.enable = true;
+
   fileSystems."/" = {
     device = "/dev/disk/by-uuid/8d797692-927e-46c4-8047-0c9ea975a41f";
     fsType = "btrfs";
