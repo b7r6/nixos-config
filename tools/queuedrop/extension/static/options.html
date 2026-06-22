@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>queuedrop — options</title>
+    <style>
+      body { font: 14px system-ui, sans-serif; max-width: 28rem; margin: 2rem auto; padding: 0 1rem; }
+      h1 { font-size: 1.1rem; }
+      label { display: block; margin: 1rem 0 0.25rem; font-weight: 600; }
+      input { width: 100%; padding: 0.5rem; box-sizing: border-box; }
+      button { margin-top: 1rem; padding: 0.5rem 1rem; cursor: pointer; }
+      #status { margin-left: 0.75rem; color: #2e7d32; }
+      .hint { color: #777; font-size: 0.85em; }
+    </style>
+  </head>
+  <body>
+    <h1>queuedrop</h1>
+    <label for="endpoint">Queue endpoint</label>
+    <input id="endpoint" type="text" placeholder="http://guccimane:8946/queue" />
+    <div class="hint">The queuedrop server's /queue URL (reachable on your tailnet/LAN).</div>
+
+    <label for="token">Bearer token (optional)</label>
+    <input id="token" type="password" placeholder="leave blank if the server has no token" />
+
+    <div>
+      <button id="save" type="button">Save</button>
+      <span id="status"></span>
+    </div>
+
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

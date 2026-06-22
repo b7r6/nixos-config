@@ -1,0 +1,28 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7C5CFF"/>
+      <stop offset="1" stop-color="#2DD4BF"/>
+    </linearGradient>
+    <linearGradient id="arrow" x1="64" y1="22" x2="64" y2="86" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E8EEFF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- rounded-square gradient tile -->
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#bg)"/>
+
+  <!-- subtle top sheen -->
+  <rect x="4" y="4" width="120" height="60" rx="28" fill="#FFFFFF" opacity="0.08"/>
+
+  <!-- download / drop arrow -->
+  <g>
+    <rect x="56" y="22" width="16" height="34" rx="8" fill="url(#arrow)"/>
+    <path d="M40 50 L64 78 L88 50 Z" fill="url(#arrow)"/>
+  </g>
+
+  <!-- queue tray -->
+  <rect x="34" y="92" width="60" height="12" rx="6" fill="#FFFFFF" opacity="0.95"/>
+  <rect x="44" y="92" width="40" height="12" rx="6" fill="#FFFFFF" opacity="0.0"/>
+</svg>

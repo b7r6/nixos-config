@@ -1,0 +1,9 @@
+{
+	"name": "queuedrop-extension",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"webextension-polyfill": "^0.12.0"
+	}
+}

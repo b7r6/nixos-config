@@ -1,0 +1,50 @@
+{
+	"manifest_version": 3,
+	"name": "queuedrop",
+	"version": "0.1.0",
+	"description": "Queue the current page/link URL to your self-hosted media server (yt-dlp/Pinchflat).",
+	"permissions": [
+		"activeTab",
+		"tabs",
+		"contextMenus",
+		"storage",
+		"notifications"
+	],
+	"host_permissions": ["http://*/*", "https://*/*"],
+	"background": {
+		"service_worker": "background.js",
+		"type": "module"
+	},
+	"icons": {
+		"16": "icon-16.png",
+		"32": "icon-32.png",
+		"48": "icon-48.png",
+		"128": "icon-128.png"
+	},
+	"action": {
+		"default_title": "Queue this tab",
+		"default_icon": {
+			"16": "icon-16.png",
+			"32": "icon-32.png",
+			"48": "icon-48.png",
+			"128": "icon-128.png"
+		}
+	},
+	"options_ui": {
+		"page": "options.html",
+		"open_in_tab": true
+	},
+	"content_scripts": [
+		{
+			"matches": ["*://soundcloud.com/*", "*://*.youtube.com/*"],
+			"js": ["content.js"],
+			"run_at": "document_idle"
+		}
+	],
+	"browser_specific_settings": {
+		"gecko": {
+			"id": "queuedrop@s4.gl",
+			"strict_min_version": "115.0"
+		}
+	}
+}
