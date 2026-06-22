@@ -48,7 +48,8 @@ idea), plus role/zone and the address split:
 | --- | --- | --- |
 | `physical` | `watchtower` | the NixOS attr name |
 | `tailnet` | `watchtower` | MagicDNS short label (suffix added centrally) |
-| `logical` | `watchtower.straylight.internal` (placeholder scheme) | the stable internal name nginx/DNS use |
+| `logical` | `watchtower.sju1.s4.gl` | the stable internal name nginx/DNS use (`<host>.<dc>.s4.gl`) |
+| `dc` | `sju1` | nearest Equinix DC code (geo key; how the fleet grows distributed) |
 | `tailnet_ipv4` | `100.x.y.z` | internal address (served by CoreDNS today) |
 | `provider_ipv4` | `null` now; real on Latitude later | public/provider address (forward-compat for bare metal) |
 | `role` | `server` / `workstation` / `laptop` / `accelerator` | coarse machine kind |
@@ -64,8 +65,10 @@ The registry lives in `registry/`:
 
 - **`registry/schema.dhall`** — the typed schema (`Host`, `Zone`, `Registry`).
 - **`registry/hosts.dhall`** — the data: all 7 hosts (6 managed + gossamer), with
-  real `tailnet_ipv4` and placeholder `logical` names (`<physical>.straylight.internal`
-  until the naming scheme + domain are settled — a one-line change in `hosts.dhall`).
+  real `tailnet_ipv4` and `logical` names `<physical>.<dc>.s4.gl` (e.g.
+  `watchtower.sju1.s4.gl`). **`s4.gl`** is our real domain (Njalla), so internal
+  names can get real DNS-01 ACME certs; **`<dc>`** is the nearest Equinix DC code
+  (`sju1` = San Juan), the geo key the fleet grows distributed along.
 - **`registry/registry.json`** — the **committed** Dhall→JSON render that Nix reads.
 
 Dhall is the source of truth (typechecked + total). Nix reads the committed JSON
@@ -160,10 +163,19 @@ Same nginx, same service binding; only the path in differs.
 Each lands and is proven before the next. DNS first, because everything else
 needs names that resolve.
 
+## Decided
+
+- **Naming scheme + domain: `<host>.<dc>.s4.gl`** — `s4.gl` is our real Njalla
+  domain; `<dc>` is the nearest Equinix DC code (`sju1` = San Juan, single-site
+  today). Internal names are real, public-zone names → real DNS-01 ACME certs.
+- **Internal TLS via DNS-01** on `s4.gl` (not an internal CA): no CA to distribute,
+  real trust chain. Split-horizon CoreDNS resolves `*.s4.gl` internal names to
+  `tailnet_ipv4`; the public `s4.gl` zone (Njalla / future Cloudflare) is separate.
+
 ## Open decisions
 
-- The exact `logical` naming scheme + which **real domain** backs DNS-01 (we have
-  domains available; choice pending).
-- Internal ACME via DNS-01 on a public domain **vs** an internal CA + wildcard
-  (leaning DNS-01: no CA distribution, real trust chain).
-- Which DNS provider lego uses for DNS-01 (tied to the domain choice).
+- Which **DNS-01 provider/credential** lego uses against `s4.gl` — Njalla has an
+  API; alternatively delegate the zone (or an `_acme-challenge` subdomain) to
+  Cloudflare for lego's well-supported CF provider. (Decide at the nginx/ACME step.)
+- The Tailscale **tailnet rename** (separate Tailscale-console task; `tailnetSuffix`
+  in the registry updates in one place when done).
