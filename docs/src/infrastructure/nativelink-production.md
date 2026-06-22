@@ -12,9 +12,11 @@
 >   forward `*.ts.net`→MagicDNS, rest→public). resolv.conf = 127.0.0.1.
 > - **shimmer (aarch64) — DEFERRED.** The nativelink flake's LLVM 22 compiler-rt
 >   won't build for `aarch64-unknown-linux-musl` (`sys/auxv.h`). `enabled = False`
->   in `fleet.dhall`; re-enable when an aarch64 artifact builds.
+>   in `fleet.dhall`; re-enable when an aarch64 artifact builds. **Circle back as
+>   the SBSA story** (below) — not a one-header patch.
 > - **OCI toolchains in zot + bwrap — TODO** (Stage 3).
 > - **Prelude examples all-green via RE — TODO** (the acceptance test).
+> - **aarch64 / SBSA — TODO** (its own project, post-acceptance — see below).
 >
 > Grounded in: the NativeLink docs (architecture, production, LRE, persistent
 > workers) and the working prior art in `~/src/straylight/straylight-prelude`
@@ -199,3 +201,23 @@ Plan (mirrors the prior-art `straylight-prelude/dhall/` structure):
    presentation; prelude digest-verification. The hermeticity payoff.
 
 Each stage lands and is proven before the next.
+
+## Circle-back: aarch64 / SBSA (its own project)
+
+shimmer (and any future arm64 server) is deferred, but the right framing is
+**SBSA — Server Base System Architecture**, the standardized arm64 server target
+the GB10/DGX-class hardware conforms to. The `compiler-rt` / `sys/auxv.h` break we
+hit is a *symptom*, not the problem: the nativelink flake builds bleeding-LLVM
+against `aarch64-unknown-linux-musl` with assumptions that don't hold there. The
+durable fix is not patching one header — it's building the aarch64 toolchain
+against an **SBSA-conformant, server-class target/sysroot** (glibc, not musl-edge),
+which is *also* what makes the OCI toolchain images portable to other arm64 server
+hardware (the whole point of the digest-pinned-image contract over `/nix/store`
+coupling).
+
+So the aarch64 work is: (1) a buildable, SBSA-targeted nativelink + toolchain
+closure for arm64; (2) flip shimmer's `enabled = True` in `fleet.dhall` + restore
+its host nativelink block; (3) it rejoins the CAS ring + becomes the aarch64
+executor; (4) the multi-arch half of the acceptance test (aarch64 prelude examples)
+goes green. Sequenced **after** the x86_64 acceptance is proven — one arch at a
+time, SBSA done properly rather than hacked.
