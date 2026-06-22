@@ -16,6 +16,9 @@
 
 _final: prev: {
 
+  # zot OCI registry — not in nixpkgs, packaged in-repo (packages/zot).
+  zot = prev.callPackage ../../packages/zot { };
+
   # Skip failing inline-snapshot tests (trivial output format diff in upstream).
   # TODO: remove once upstream is fixed.
   python312Packages = prev.python312Packages // {
