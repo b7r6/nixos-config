@@ -22,6 +22,7 @@
 # Services
 
 - [SearXNG + torrents](./services/searxng-torrents.md)
+- [OCI registry (zot)](./services/registry.md)
 
 # Operations
 

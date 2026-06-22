@@ -138,6 +138,23 @@ to declare.
 | `rcloneMount.configPath` | `path` / `"/run/agenix/rclone-conf"` | Root-readable rclone.conf (agenix runtime path, never the store). |
 | `rcloneMount.mounts` | `attrsOf submodule` / `{ }` | Low-level escape hatch: extra `remote`→`where` mounts, merged over the `r2` convenience mounts. |
 
+## `registry.*` (zot OCI registry)
+
+Source: `modules/nixos/registry.nix`. **Off by default.** A plain systemd zot
+service (not the Docker daemon), blobs in R2 via zot's core S3 driver, tailnet-only.
+Local `/var/lib/zot` is `reconstructible` state. See
+[OCI registry (zot)](../services/registry.md).
+
+| Option | Type / default | Description |
+| --- | --- | --- |
+| `registry.enable` | `bool` / `false` | Run the zot registry. |
+| `registry.port` | `port` / `5000` | HTTP port (opened on `tailscale0` only). |
+| `registry.listenAddress` | `str` / `"0.0.0.0"` | Bind address (firewall gates to tailnet). |
+| `registry.openTailnet` | `bool` / `true` | Open `port` on `tailscale0`. |
+| `registry.dataDir` | `str` / `"/var/lib/zot"` | Local cache dir (`reconstructible`). |
+| `registry.secret` | `null or str` / `"zot-r2-env"` | agenix secret with `AWS_*` R2 creds. |
+| `registry.s3.{bucket,endpoint,region}` | `str` | R2 blob store (`straylight-oci`, account endpoint, `auto`). |
+
 ## `searxng.*` / `torrents.*` (incubating services)
 
 See [SearXNG + torrents](../services/searxng-torrents.md) for the full writeup.
