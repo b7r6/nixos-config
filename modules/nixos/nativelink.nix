@@ -352,9 +352,19 @@ let
     }
     // lib.optionalAttrs (role == "monolithic" || role == "worker") { workers = [ localWorker ]; };
 
+  # Config source, in priority order:
+  #   1. cfg.configFile         — operator-supplied path (escape hatch).
+  #   2. cfg.dhallHost          — the typed Dhall fleet config for this host
+  #      (nativelink/out/<host>.json, committed; rendered by `nix run
+  #      .#nativelink-render`). This is the vN+1 path: a valid config is a Dhall
+  #      type-check, and the sharded multi-arch topology lives in nativelink/.
+  #   3. the legacy in-Nix generator (role-based) — kept until the Dhall path is
+  #      proven fleet-wide, then removed.
   configFile =
     if cfg.configFile != null then
       cfg.configFile
+    else if cfg.dhallHost != null then
+      flake.self + "/nativelink/out/${cfg.dhallHost}.json"
     else
       jsonFormat.generate "nativelink.json" (configFor cfg.role);
 in
@@ -380,7 +390,21 @@ in
         monolithic = CAS + scheduler + local worker (single x86_64 host).
         scheduler  = CAS + scheduler only (workers dial in from other hosts).
         worker     = local worker only; dials workerApiEndpoint (use on aarch64).
+        IGNORED when dhallHost is set (the typed fleet config decides the roles).
       '';
+    };
+
+    # ── vN+1: typed Dhall fleet config ──────────────────────────────────────────
+    # When set to a fleet host name, use that host's config from the typed Dhall
+    # fleet (nativelink/out/<host>.json, committed; `nix run .#nativelink-render`)
+    # instead of the legacy in-Nix role generator. The Dhall fleet encodes the
+    # sharded multi-arch topology (scheduler@watchtower, 4-node weighted CAS ring,
+    # per-arch workers). See docs/infrastructure/nativelink-production.md.
+    dhallHost = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "watchtower";
+      description = "Fleet host name whose typed Dhall config to run (null = legacy role generator).";
     };
 
     instanceName = lib.mkOption {

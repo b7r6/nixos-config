@@ -49,6 +49,61 @@
       program = "${self}/scripts/build-usb.sh";
     };
 
+    # `nix run .#nativelink-render` — render the typed Dhall fleet config to the
+    # committed nativelink/out/<host>.json (one per fleet host). Dhall is the
+    # source of truth; committed JSON is IFD-free. Run after editing nativelink/*.dhall.
+    apps.nativelink-render = {
+      type = "app";
+      program = pkgs.lib.getExe (
+        pkgs.writeShellApplication {
+          name = "nativelink-render";
+          runtimeInputs = [
+            pkgs.dhall-json
+            pkgs.jq
+          ];
+          text = ''
+            root="$(git rev-parse --show-toplevel)"
+            cd "$root/nativelink"
+            mkdir -p out
+            dhall-to-json --file render-all.dhall | jq -c '.[]' | while read -r item; do
+              host=$(echo "$item" | jq -r .host)
+              echo "$item" | jq -r .json | jq . > "out/$host.json"
+              echo "// nativelink // rendered out/$host.json"
+            done
+            echo "// nativelink // done (commit nativelink/out/*.json)"
+          '';
+        }
+      );
+    };
+
+    # `nix run .#nativelink-check` — verify committed out/*.json match the Dhall.
+    apps.nativelink-check = {
+      type = "app";
+      program = pkgs.lib.getExe (
+        pkgs.writeShellApplication {
+          name = "nativelink-check";
+          runtimeInputs = [
+            pkgs.dhall-json
+            pkgs.jq
+            pkgs.diffutils
+          ];
+          text = ''
+            root="$(git rev-parse --show-toplevel)"
+            cd "$root/nativelink"
+            fail=0
+            dhall-to-json --file render-all.dhall | jq -c '.[]' | while read -r item; do
+              host=$(echo "$item" | jq -r .host)
+              if ! echo "$item" | jq -r .json | jq . | diff -u "out/$host.json" - >/dev/null; then
+                echo "// nativelink // STALE: out/$host.json (run nix run .#nativelink-render)" >&2
+                exit 1
+              fi
+            done
+            echo "// nativelink // out/*.json in sync with the Dhall fleet"
+          '';
+        }
+      );
+    };
+
     # `nix run .#topology-render` — render the Dhall topology registry to the
     # committed registry/registry.json. Dhall is the source of truth; the JSON is
     # a committed artifact (no import-from-derivation, so `nix flake check` works).
