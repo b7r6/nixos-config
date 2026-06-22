@@ -94,6 +94,23 @@ in
   age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;
   hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
 
+  # ── NativeLink: the ONLY aarch64 CAS shard (weight 2) + worker ──────────────
+  # From the typed Dhall fleet (out/shimmer.json): a CAS shard server + an
+  # aarch64 worker dialing watchtower's scheduler. Multi-arch RE runs native
+  # binaries, so aarch64 actions land here.
+  age.secrets.nativelink-r2-env.file = ../../../secrets/agenix/machines/nativelink-r2-env.age;
+  hyper-modern-nixos.nativelink = {
+    enable = true;
+    dhallHost = "shimmer";
+    openFirewall = true;
+    r2 = {
+      enable = true;
+      accountId = "6063b6652178f5cf1cfb87e7e41acf1e";
+      bucket = "straylight-nativelink-cas";
+      environmentFile = "/run/agenix/nativelink-r2-env";
+    };
+  };
+
   # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
   # Per-host repo (backups-restic/shimmer). Module self-wires its secrets.
   # FIRST init declarative + idempotent:  nix run .#restic-init -- shimmer

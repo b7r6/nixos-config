@@ -90,15 +90,29 @@
           text = ''
             root="$(git rev-parse --show-toplevel)"
             cd "$root/nativelink"
-            fail=0
-            dhall-to-json --file render-all.dhall | jq -c '.[]' | while read -r item; do
+            # Render to a temp dir and diff the whole tree — avoids the
+            # subshell-`exit` gotcha (a `while | read` pipeline runs in a subshell,
+            # so an `exit 1` inside it can't fail the script).
+            tmp="$(mktemp -d)"
+            trap 'rm -rf "$tmp"' EXIT
+            dhall-to-json --file render-all.dhall | jq -c '.[]' > "$tmp/items"
+            while read -r item; do
               host=$(echo "$item" | jq -r .host)
-              if ! echo "$item" | jq -r .json | jq . | diff -u "out/$host.json" - >/dev/null; then
-                echo "// nativelink // STALE: out/$host.json (run nix run .#nativelink-render)" >&2
-                exit 1
+              echo "$item" | jq -r .json | jq . > "$tmp/$host.json"
+            done < "$tmp/items"
+            ok=1
+            for f in out/*.json; do
+              host="$(basename "$f" .json)"
+              if ! diff -u "$f" "$tmp/$host.json" >/dev/null 2>&1; then
+                echo "// nativelink // STALE: $f (run: nix run .#nativelink-render)" >&2
+                ok=0
               fi
             done
-            echo "// nativelink // out/*.json in sync with the Dhall fleet"
+            if [ "$ok" -eq 1 ]; then
+              echo "// nativelink // out/*.json in sync with the Dhall fleet"
+            else
+              exit 1
+            fi
           '';
         }
       );

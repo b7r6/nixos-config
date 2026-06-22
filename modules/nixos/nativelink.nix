@@ -682,10 +682,22 @@ in
     # even though publicListen binds all interfaces.
     networking.firewall = lib.mkIf cfg.openFirewall (
       let
-        ports = [
-          (lib.toInt (lib.last (lib.splitString ":" cfg.publicListen)))
-          (lib.toInt (lib.last (lib.splitString ":" cfg.workerApiListen)))
-        ];
+        # dhallHost: the typed fleet uses fixed ports — public 50051, CAS 50052,
+        # worker_api 50061. Open all three on the trusted interfaces (every node
+        # runs a CAS server the shard ring grpc's to; the scheduler also serves
+        # public + worker_api). Legacy path opens publicListen + workerApiListen.
+        ports =
+          if cfg.dhallHost != null then
+            [
+              50051
+              50052
+              50061
+            ]
+          else
+            [
+              (lib.toInt (lib.last (lib.splitString ":" cfg.publicListen)))
+              (lib.toInt (lib.last (lib.splitString ":" cfg.workerApiListen)))
+            ];
       in
       {
         interfaces = lib.genAttrs cfg.trustedInterfaces (_: {

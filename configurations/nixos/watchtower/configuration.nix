@@ -65,6 +65,23 @@ in
     listenAddress = "127.0.0.1";
   };
 
+  # ── NativeLink: the fleet SCHEDULER (+ CAS shard + worker) ───────────────────
+  # Topology from the typed Dhall fleet (out/watchtower.json): scheduler +
+  # worker_api (workers fleet-wide dial grpc://watchtower.sju1.s4.gl:50061) + this
+  # node's CAS shard (weight 4) + an x86_64 worker. R2 is the shared slow tier.
+  age.secrets.nativelink-r2-env.file = ../../../secrets/agenix/machines/nativelink-r2-env.age;
+  hyper-modern-nixos.nativelink = {
+    enable = true;
+    dhallHost = "watchtower";
+    openFirewall = true;
+    r2 = {
+      enable = true;
+      accountId = "6063b6652178f5cf1cfb87e7e41acf1e";
+      bucket = "straylight-nativelink-cas";
+      environmentFile = "/run/agenix/nativelink-r2-env";
+    };
+  };
+
   # ── Reverse proxy + internal ACME (nginx → loopback services) ───────────────
   # nginx terminates TLS on the logical names with a real wildcard cert
   # (*.sju1.s4.gl via DNS-01/Njalla) and proxies to loopback. registry.sju1.s4.gl

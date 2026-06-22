@@ -1,9 +1,6 @@
-{ flake, config, ... }:
+{ flake, ... }:
 let
   inherit (flake) inputs;
-  # This host's tailnet FQDN, derived from the canonical suffix (single source:
-  # hyper-modern-nixos.network.tailnet.domain) — never hardcode the .ts.net name.
-  tailnetFqdn = "${config.networking.hostName}.${config.hyper-modern-nixos.network.tailnet.domain}";
 in
 {
   imports = [
@@ -80,38 +77,22 @@ in
   # unless nativelink.cachix.org is added in modules/nixos/common/nix.nix.
   age.secrets.nativelink-r2-env.file = ../../../secrets/agenix/machines/nativelink-r2-env.age;
 
+  # NativeLink: this host's role + topology come from the typed Dhall fleet
+  # (nativelink/fleet.dhall → out/ultraviolence.json): a CAS shard (small, weight
+  # 1 — disk pressure) + an x86_64 worker dialing watchtower's scheduler over the
+  # tailnet. The Dhall owns ports/stores/workers; the module just runs the config
+  # and wires the R2 creds. Plaintext over the encrypted tailnet (no per-listener
+  # TLS in the fleet config). See docs/infrastructure/nativelink-production.md.
   hyper-modern-nixos.nativelink = {
     enable = true;
-    role = "monolithic";
-    # Binds all interfaces (TLS-terminated, see tls below) so tailnet clients can
-    # reach it; the firewall (ON fleet-wide) opens :50051 ONLY on tailscale0, so
-    # it is NOT internet-exposed. worker_api stays loopback (private backend).
-    publicListen = "0.0.0.0:50051";
-    workerApiListen = "127.0.0.1:50061";
-    workerApiEndpoint = "grpc://127.0.0.1:50061";
+    dhallHost = "ultraviolence";
     openFirewall = true;
-
-    # TLS terminates at the listener with a real Tailscale-issued cert for this
-    # node's MagicDNS name, so tailnet clients connect over grpcs:// (tls=true)
-    # and trust it without a custom CA. Tailnet HTTPS must be enabled (it is).
-    tls = {
-      enable = true;
-      tailscale = {
-        enable = true;
-        domain = tailnetFqdn;
-      };
-    };
-
-    # CAS/AC backed by R2 with a local fast tier. Sizes overridden DOWN from the
-    # 256 GiB/32 GiB module defaults until this box's disk is cleaned up.
     r2 = {
       enable = true;
       accountId = "6063b6652178f5cf1cfb87e7e41acf1e";
       bucket = "straylight-nativelink-cas";
       environmentFile = "/run/agenix/nativelink-r2-env";
     };
-    localCacheBytes = 68719476736; # 64 GiB local NVMe fast tier (was 256)
-    memoryCacheBytes = 8589934592; # 8 GiB memory index (was 32)
   };
 
   fileSystems."/" = {
