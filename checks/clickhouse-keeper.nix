@@ -17,7 +17,7 @@
 #   2. kill ONE node  → quorum SURVIVES (2/3), writes still succeed;
 #   3. kill a SECOND  → quorum LOST (1/3), writes FAIL (fail-stop, not split);
 #   4. restart both   → the node REJOINS and the cluster recovers.
-{ pkgs, inputs }:
+{ pkgs }:
 let
   smokeTest = pkgs.callPackage ../packages/clickhouse-keeper-smoke-test { };
 
