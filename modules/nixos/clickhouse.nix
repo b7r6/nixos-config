@@ -32,11 +32,13 @@
   config,
   lib,
   pkgs,
+  flake ? null,
   ...
 }:
 let
   cfg = config.hyper-modern-nixos.databases.clickhouse;
   inherit (cfg) keeper;
+  machineSecrets = flake.self + "/secrets/agenix/machines";
 
   topo = config.hyper-modern-nixos.topology;
 
@@ -117,6 +119,92 @@ let
   keeperConfigFile = pkgs.writeText "keeper-config.xml" keeperConfig;
 
   smokeTest = pkgs.callPackage ../../packages/clickhouse-keeper-smoke-test { };
+
+  # ── Server role ─────────────────────────────────────────────────────────────
+  inherit (cfg) server;
+
+  # The server points <zookeeper> at the REMOTE Keeper ensemble (the three
+  # registry-tagged nodes), addressed exactly like the raft config above.
+  zookeeperNodes = lib.concatStrings (
+    map (h: ''
+      <node>
+        <host>${addrOf h}</host>
+        <port>${toString keeper.ports.client}</port>
+      </node>
+    '') ensembleHosts
+  );
+
+  # A single-shard/single-replica cluster defined NOW so all DDL is `ON CLUSTER`
+  # and every table is ReplicatedMergeTree from day one. Growing the fleet later
+  # = adding <replica>/<shard> entries (+ a registry tag), not a schema rewrite.
+  remoteServers = ''
+    <${server.clusterName}>
+      <shard>
+        <internal_replication>true</internal_replication>
+        <replica>
+          <host>${config.networking.hostName}.${topo.registry.tailnetSuffix}</host>
+          <port>${toString server.ports.native}</port>
+        </replica>
+      </shard>
+    </${server.clusterName}>
+  '';
+
+  # S3-disk storage policy: the R2 bucket is the durable tier, fronted by a local
+  # filesystem cache. Creds arrive as AWS_* env from the agenix file (never the
+  # store) via `use_environment_credentials`.
+  s3StorageXml = lib.optionalString server.s3.enable ''
+    <storage_configuration>
+      <disks>
+        <s3_r2>
+          <type>s3</type>
+          <endpoint>${server.s3.endpoint}/${server.s3.bucket}/${config.networking.hostName}/</endpoint>
+          <use_environment_credentials>true</use_environment_credentials>
+          <region>${server.s3.region}</region>
+        </s3_r2>
+        <s3_r2_cache>
+          <type>cache</type>
+          <disk>s3_r2</disk>
+          <path>${server.dataDir}/s3_cache/</path>
+          <max_size>${toString server.s3.cacheMaxBytes}</max_size>
+        </s3_r2_cache>
+      </disks>
+      <policies>
+        <s3_main>
+          <volumes>
+            <main>
+              <disk>s3_r2_cache</disk>
+            </main>
+          </volumes>
+        </s3_main>
+      </policies>
+    </storage_configuration>
+  '';
+
+  serverConfigXml = ''
+    <clickhouse>
+      <listen_host>${server.listenHost}</listen_host>
+
+      <zookeeper>
+    ${zookeeperNodes}  </zookeeper>
+
+      <distributed_ddl>
+        <path>/clickhouse/task_queue/ddl</path>
+      </distributed_ddl>
+
+      <remote_servers>
+    ${remoteServers}  </remote_servers>
+
+      <macros>
+        <cluster>${server.clusterName}</cluster>
+        <shard>01</shard>
+        <replica>${config.networking.hostName}</replica>
+      </macros>
+
+      ${s3StorageXml}
+    </clickhouse>
+  '';
+
+  serverConfigFile = pkgs.writeText "clickhouse-server-overrides.xml" serverConfigXml;
 in
 {
   options.hyper-modern-nixos.databases.clickhouse = {
@@ -230,113 +318,268 @@ in
         };
       };
     };
+
+    server = {
+      enable = lib.mkEnableOption "ClickHouse server (data plane; dials the remote Keeper ensemble)";
+
+      clusterName = lib.mkOption {
+        type = lib.types.str;
+        default = "fleet";
+        description = ''
+          remote_servers cluster name. All DDL is `ON CLUSTER <clusterName>` and
+          tables are ReplicatedMergeTree from day one, so scale-out is a registry
+          edit, not a schema rewrite.
+        '';
+      };
+
+      listenHost = lib.mkOption {
+        type = lib.types.str;
+        default = "127.0.0.1";
+        description = ''
+          Server bind address. Default loopback: the HTTP interface (8123) is
+          fronted by nginx at clickhouse.sju1.s4.gl; the native protocol (9000)
+          is opened on tailscale0 only. Set "::" to bind all interfaces.
+        '';
+      };
+
+      openTailnet = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Open the native protocol port (9000) on tailscale0 only.";
+      };
+
+      dataDir = lib.mkOption {
+        type = lib.types.str;
+        default = "/var/lib/clickhouse";
+        description = ''
+          Local working dir. With the S3 disk on, the durable truth is in R2 and
+          this is the local cache → classified `reconstructible` (persisted across
+          an impermanence reboot, never restic'd).
+        '';
+      };
+
+      secret = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = "clickhouse-r2-env";
+        description = ''
+          agenix machine-secret NAME (decrypts to /run/agenix/<name>) providing the
+          R2 creds as AWS SDK env vars (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY)
+          for the S3 disk. Self-wired; null = wire the EnvironmentFile yourself.
+          Required when s3.enable.
+        '';
+      };
+
+      ports = {
+        http = lib.mkOption {
+          type = lib.types.port;
+          default = 8123;
+          description = "HTTP interface port (fronted by nginx).";
+        };
+        native = lib.mkOption {
+          type = lib.types.port;
+          default = 9000;
+          description = "Native protocol port (tailscale0 only).";
+        };
+      };
+
+      s3 = {
+        enable = lib.mkEnableOption "S3-backed data disk to R2 (durable tier; local dir is cache)";
+
+        bucket = lib.mkOption {
+          type = lib.types.str;
+          default = "straylight-clickhouse";
+          description = "R2 bucket for the S3 data disk.";
+        };
+        endpoint = lib.mkOption {
+          type = lib.types.str;
+          default = "https://6063b6652178f5cf1cfb87e7e41acf1e.r2.cloudflarestorage.com";
+          description = "R2 S3 endpoint (account-scoped). Non-secret.";
+        };
+        region = lib.mkOption {
+          type = lib.types.str;
+          default = "auto";
+          description = "S3 region (R2 = auto).";
+        };
+        cacheMaxBytes = lib.mkOption {
+          type = lib.types.ints.positive;
+          default = 107374182400; # 100 GiB
+          description = "Max size of the local S3 cache disk (bytes).";
+        };
+      };
+    };
   };
 
-  config = lib.mkIf keeper.enable {
-    assertions = [
-      {
-        assertion = serverId != null;
-        message = ''
-          hyper-modern-nixos.databases.clickhouse.keeper is enabled on
-          ${config.networking.hostName}, but this host is not tagged
-          `clickhouse-keeper` in the topology registry (registry/hosts.dhall).
-          The ensemble is registry-derived; add the tag + re-render
-          (nix run .#topology-render).
-        '';
-      }
-      {
-        assertion = lib.allUnique (map (h: h.physical) ensembleHosts);
-        message = "clickhouse-keeper: ensemble members must be unique.";
-      }
-      {
-        assertion = (lib.length ensembleHosts) >= 3;
-        message = ''
-          clickhouse-keeper: the ensemble must have at least 3 members for fault
-          tolerance (found ${toString (lib.length ensembleHosts)}). A 1-node
-          "ensemble" is a toy; a 2-node one is worse than 1 (any loss breaks
-          quorum). Tag at least 3 hosts `clickhouse-keeper`.
-        '';
-      }
-      {
-        assertion = (lib.mod (lib.length ensembleHosts) 2) == 1;
-        message = ''
-          clickhouse-keeper: the ensemble size should be ODD (found
-          ${toString (lib.length ensembleHosts)}). Even sizes gain no extra
-          fault tolerance and risk split votes.
-        '';
-      }
-    ];
+  config = lib.mkMerge [
+    (lib.mkIf keeper.enable {
+      assertions = [
+        {
+          assertion = serverId != null;
+          message = ''
+            hyper-modern-nixos.databases.clickhouse.keeper is enabled on
+            ${config.networking.hostName}, but this host is not tagged
+            `clickhouse-keeper` in the topology registry (registry/hosts.dhall).
+            The ensemble is registry-derived; add the tag + re-render
+            (nix run .#topology-render).
+          '';
+        }
+        {
+          assertion = lib.allUnique (map (h: h.physical) ensembleHosts);
+          message = "clickhouse-keeper: ensemble members must be unique.";
+        }
+        {
+          assertion = (lib.length ensembleHosts) >= 3;
+          message = ''
+            clickhouse-keeper: the ensemble must have at least 3 members for fault
+            tolerance (found ${toString (lib.length ensembleHosts)}). A 1-node
+            "ensemble" is a toy; a 2-node one is worse than 1 (any loss breaks
+            quorum). Tag at least 3 hosts `clickhouse-keeper`.
+          '';
+        }
+        {
+          assertion = (lib.mod (lib.length ensembleHosts) 2) == 1;
+          message = ''
+            clickhouse-keeper: the ensemble size should be ODD (found
+            ${toString (lib.length ensembleHosts)}). Even sizes gain no extra
+            fault tolerance and risk split votes.
+          '';
+        }
+      ];
 
-    # Coordination dir = reconstructible (persist on impermanence, never restic'd
-    # — quorum is the source of truth).
-    hyper-modern-nixos.state.dirs.clickhouse-keeper = {
-      path = keeper.dataDir;
-      class = "reconstructible";
-    };
+      # Coordination dir = reconstructible (persist on impermanence, never restic'd
+      # — quorum is the source of truth).
+      hyper-modern-nixos.state.dirs.clickhouse-keeper = {
+        path = keeper.dataDir;
+        class = "reconstructible";
+      };
 
-    environment.systemPackages = [
-      cfg.package # clickhouse-keeper-client for ops (mntr/ruok/etc.)
-      smokeTest
-    ];
+      environment.systemPackages = [
+        cfg.package # clickhouse-keeper-client for ops (mntr/ruok/etc.)
+        smokeTest
+      ];
 
-    systemd.services.clickhouse-keeper = {
-      description = "ClickHouse Keeper (coordination plane)";
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
-      wantedBy = [ "multi-user.target" ];
-      restartTriggers = [ keeperConfigFile ];
+      systemd.services.clickhouse-keeper = {
+        description = "ClickHouse Keeper (coordination plane)";
+        after = [ "network-online.target" ];
+        wants = [ "network-online.target" ];
+        wantedBy = [ "multi-user.target" ];
+        restartTriggers = [ keeperConfigFile ];
 
-      serviceConfig = {
-        ExecStart = "${cfg.package}/bin/clickhouse keeper --config-file=${keeperConfigFile}";
-        Restart = "on-failure";
-        RestartSec = 5;
-        # Keeper manages its own coordination dir; systemd creates + owns it.
-        StateDirectory = "clickhouse-keeper";
-        User = "clickhouse-keeper";
-        Group = "clickhouse-keeper";
-        # Hardening — Keeper is a network-facing coordination service.
-        NoNewPrivileges = true;
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        PrivateTmp = true;
-        PrivateDevices = true;
-        ProtectKernelTunables = true;
-        ProtectControlGroups = true;
-        ReadWritePaths = [ keeper.dataDir ];
-        RestrictAddressFamilies = [
-          "AF_INET"
-          "AF_INET6"
-          "AF_UNIX"
+        serviceConfig = {
+          ExecStart = "${cfg.package}/bin/clickhouse keeper --config-file=${keeperConfigFile}";
+          Restart = "on-failure";
+          RestartSec = 5;
+          # Keeper manages its own coordination dir; systemd creates + owns it.
+          StateDirectory = "clickhouse-keeper";
+          User = "clickhouse-keeper";
+          Group = "clickhouse-keeper";
+          # Hardening — Keeper is a network-facing coordination service.
+          NoNewPrivileges = true;
+          ProtectSystem = "strict";
+          ProtectHome = true;
+          PrivateTmp = true;
+          PrivateDevices = true;
+          ProtectKernelTunables = true;
+          ProtectControlGroups = true;
+          ReadWritePaths = [ keeper.dataDir ];
+          RestrictAddressFamilies = [
+            "AF_INET"
+            "AF_INET6"
+            "AF_UNIX"
+          ];
+        };
+      };
+
+      users.users.clickhouse-keeper = {
+        isSystemUser = true;
+        group = "clickhouse-keeper";
+        home = keeper.dataDir;
+      };
+      users.groups.clickhouse-keeper = { };
+
+      # Post-start health gate: prove this node answers the ZK protocol + CRUDs.
+      systemd.services.clickhouse-keeper-smoke-test = lib.mkIf keeper.smokeTest {
+        description = "ClickHouse Keeper smoke test (kazoo CRUD + ruok)";
+        after = [ "clickhouse-keeper.service" ];
+        requires = [ "clickhouse-keeper.service" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = "${lib.getExe smokeTest} --host 127.0.0.1 --port ${toString keeper.ports.client}";
+        };
+      };
+
+      # Tailnet-only exposure (enforced — firewall is on fleet-wide).
+      networking.firewall.interfaces = lib.mkIf keeper.openTailnet {
+        tailscale0.allowedTCPPorts = [
+          keeper.ports.client
+          keeper.ports.raft
         ];
       };
-    };
+    })
 
-    users.users.clickhouse-keeper = {
-      isSystemUser = true;
-      group = "clickhouse-keeper";
-      home = keeper.dataDir;
-    };
-    users.groups.clickhouse-keeper = { };
-
-    # Post-start health gate: prove this node answers the ZK protocol + CRUDs.
-    systemd.services.clickhouse-keeper-smoke-test = lib.mkIf keeper.smokeTest {
-      description = "ClickHouse Keeper smoke test (kazoo CRUD + ruok)";
-      after = [ "clickhouse-keeper.service" ];
-      requires = [ "clickhouse-keeper.service" ];
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStart = "${lib.getExe smokeTest} --host 127.0.0.1 --port ${toString keeper.ports.client}";
-      };
-    };
-
-    # Tailnet-only exposure (enforced — firewall is on fleet-wide).
-    networking.firewall.interfaces = lib.mkIf keeper.openTailnet {
-      tailscale0.allowedTCPPorts = [
-        keeper.ports.client
-        keeper.ports.raft
+    # ── Server role ───────────────────────────────────────────────────────────
+    (lib.mkIf server.enable {
+      assertions = [
+        {
+          assertion = (lib.length ensembleHosts) >= 1;
+          message = ''
+            hyper-modern-nixos.databases.clickhouse.server is enabled but no host
+            is tagged `clickhouse-keeper` in the topology registry — the server
+            needs a Keeper ensemble to dial. Tag the ensemble nodes + re-render.
+          '';
+        }
+        {
+          assertion = !server.s3.enable || server.secret != null;
+          message = ''
+            clickhouse server s3.enable is true but .secret is null. The S3 disk
+            needs the R2 creds (AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY) from an
+            agenix env file — never the store. Set .secret (default
+            clickhouse-r2-env) or wire the EnvironmentFile yourself.
+          '';
+        }
       ];
-    };
-  };
+
+      # Local working dir = reconstructible cache (R2 holds the durable truth).
+      hyper-modern-nixos.state.dirs.clickhouse = {
+        path = server.dataDir;
+        class = "reconstructible";
+      };
+
+      # Self-wire the R2 creds secret (root-owned; clickhouse user reads via env).
+      age.secrets = lib.mkIf (server.s3.enable && server.secret != null) {
+        ${server.secret}.file = machineSecrets + "/${server.secret}.age";
+      };
+
+      # Delegate to the upstream module; our overrides XML carries zookeeper,
+      # the cluster, macros, and the S3 storage policy.
+      services.clickhouse = {
+        enable = true;
+        inherit (cfg) package;
+      };
+
+      environment.etc."clickhouse-server/config.d/hyper-modern.xml".source = serverConfigFile;
+
+      systemd.services.clickhouse = {
+        after = [
+          "network-online.target"
+          "agenix.service"
+        ];
+        wants = [ "network-online.target" ];
+        restartTriggers = [
+          serverConfigFile
+        ]
+        ++ lib.optional (server.s3.enable && server.secret != null) "/run/agenix/${server.secret}";
+        serviceConfig = lib.mkIf (server.s3.enable && server.secret != null) {
+          # R2 creds (AWS_*) for the S3 disk — from the agenix env file, never the store.
+          EnvironmentFile = "/run/agenix/${server.secret}";
+        };
+      };
+
+      # HTTP (8123) stays loopback for nginx fronting; native (9000) on tailnet only.
+      networking.firewall.interfaces = lib.mkIf server.openTailnet {
+        tailscale0.allowedTCPPorts = [ server.ports.native ];
+      };
+    })
+  ];
 }

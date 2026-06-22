@@ -87,6 +87,13 @@ in
   # Dedicated R2 bucket straylight-oci (blobs are reconstructible — not restic'd).
   "agenix/machines/zot-r2-env.age".publicKeys = mkGlobalSecret;
 
+  # ClickHouse server S3-disk R2 creds. The ClickHouse <s3> disk reads the AWS
+  # SDK env vars from this file via systemd EnvironmentFile (never the store):
+  #   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+  # Dedicated R2 bucket straylight-clickhouse — the durable truth for the data
+  # tier; /var/lib/clickhouse is just the local cache (reconstructible).
+  "agenix/machines/clickhouse-r2-env.age".publicKeys = mkGlobalSecret;
+
   # Njalla API token for ACME DNS-01 against s4.gl (internal nginx vhost certs).
   # env file: NJALLA_TOKEN=<token>. Consumed by lego via security.acme
   # credentialsFile; scoped to DNS-record management on s4.gl.

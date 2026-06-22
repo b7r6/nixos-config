@@ -82,6 +82,19 @@ in
     };
   };
 
+  # ── ClickHouse server (data plane; dials the REMOTE Keeper ensemble) ────────
+  # The server lives here; the 3-node Keeper ensemble lives on
+  # ultraviolence/guccimane/shimmer (deliberately NOT co-located). HTTP (8123)
+  # binds loopback and is fronted by nginx at clickhouse.sju1.s4.gl; native
+  # (9000) is tailnet-only. Data tier is S3 → R2 (straylight-clickhouse), so
+  # /var/lib/clickhouse is a reconstructible cache. The module self-wires the
+  # clickhouse-r2-env agenix secret (R2 creds) when s3.enable. See
+  # docs/infrastructure/clickhouse.md.
+  hyper-modern-nixos.databases.clickhouse.server = {
+    enable = true;
+    s3.enable = true;
+  };
+
   # ── Reverse proxy + internal ACME (nginx → loopback services) ───────────────
   # nginx terminates TLS on the logical names with a real wildcard cert
   # (*.sju1.s4.gl via DNS-01/Njalla) and proxies to loopback. registry.sju1.s4.gl
@@ -89,6 +102,7 @@ in
   hyper-modern-nixos.reverseProxy = {
     enable = true;
     services.registry.port = 5000;
+    services.clickhouse.port = 8123;
   };
 
   hardware.graphics = {

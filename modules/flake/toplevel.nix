@@ -320,7 +320,8 @@
     checks = inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
       attic-cache = import ../../checks/attic-cache.nix { inherit pkgs inputs; };
       backup-restic = import ../../checks/backup-restic.nix { inherit pkgs inputs; };
-      clickhouse-keeper = import ../../checks/clickhouse-keeper.nix { inherit pkgs inputs; };
+      clickhouse-keeper = import ../../checks/clickhouse-keeper.nix { inherit pkgs; };
+      clickhouse-server = import ../../checks/clickhouse-server.nix { inherit pkgs; };
     };
 
     packages = inputs.nixpkgs.lib.mkMerge [
