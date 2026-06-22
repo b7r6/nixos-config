@@ -455,8 +455,14 @@ in
           }
         ];
 
-        # Self-wire the agenix secret (the .age lives in the repo).
-        age.secrets.pgbackrest-r2-env.file = machineSecrets + "/pgbackrest-r2-env.age";
+        # Self-wire the agenix secret (the .age lives in the repo). Root-owned
+        # but postgres-group-readable (0440) so the daemon, the forked
+        # archive_command, and the backup/stanza oneshots can all read the creds.
+        age.secrets.pgbackrest-r2-env = {
+          file = machineSecrets + "/pgbackrest-r2-env.age";
+          group = "postgres";
+          mode = "0440";
+        };
 
         environment.etc."pgbackrest/pgbackrest.conf".source = confFile;
         environment.systemPackages = [ pkgs.pgbackrest ];
@@ -474,7 +480,24 @@ in
 
         # Feed the R2 secrets into postgresql.service so the archive_command
         # (a postgres subprocess) inherits PGBACKREST_* from the daemon env.
-        systemd.services.postgresql.serviceConfig.EnvironmentFile = p.environmentFile;
+        # CRITICAL ordering: the agenix secret must be decrypted BEFORE postgres
+        # starts, and postgres must RESTART if the secret changes — otherwise the
+        # postmaster comes up without creds and archiving silently fails until a
+        # manual restart. agenix runs as `${p.stanza}`-independent activation; we
+        # bind to its unit + restart-trigger on the (runtime) secret path.
+        systemd.services.postgresql = {
+          serviceConfig.EnvironmentFile = p.environmentFile;
+          after = [ "run-agenix.d.mount" ] ++ lib.optional config.services.openssh.enable "agenix.service";
+          # Re-exec the postmaster when the decrypted env changes so it always
+          # has live creds for the archive_command.
+          restartTriggers = [ p.environmentFile ];
+        };
+
+        # pgBackRest wants its log dir to exist; create it for the postgres user.
+        systemd.tmpfiles.rules = [
+          "d /var/log/pgbackrest 0750 postgres postgres - -"
+          "d /var/lib/pgbackrest 0750 postgres postgres - -"
+        ];
 
         # One-time, idempotent stanza-create (like restic-init). Safe to re-run:
         # pgBackRest treats an existing stanza as success. Ordered after postgres.
