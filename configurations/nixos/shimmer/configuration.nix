@@ -106,6 +106,12 @@ in
   # an aarch64 nativelink artifact builds (cached release, or the musl fix).
   # CoreDNS (above) builds fine on aarch64 and stays on.
 
+  # ── ClickHouse Keeper (coordination plane, the aarch64 ensemble member) ──────
+  # Unlike nativelink (deferred above), aarch64 `clickhouse` substitutes cleanly,
+  # so shimmer is a live Keeper node — the deliberate multi-arch member of the
+  # 3-node ensemble. Server-less (the ClickHouse server is on watchtower).
+  hyper-modern-nixos.databases.clickhouse.keeper.enable = true;
+
   # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
   # Per-host repo (backups-restic/shimmer). Module self-wires its secrets.
   # FIRST init declarative + idempotent:  nix run .#restic-init -- shimmer

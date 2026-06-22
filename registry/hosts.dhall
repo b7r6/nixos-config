@@ -63,7 +63,13 @@ in  schema.Registry::{
         , lan_ipv4 = Some "192.168.40.115"
         , zone = "sju1"
         , role = "workstation"
-        , services = [ "nativelink", "searxng", "torrents", "attic-replica" ]
+        , services =
+          [ "nativelink"
+          , "searxng"
+          , "torrents"
+          , "attic-replica"
+          , "clickhouse-keeper"
+          ]
         }
       , Host::{
         , physical = "shimmer"
@@ -74,7 +80,7 @@ in  schema.Registry::{
         , lan_ipv4 = Some "192.168.40.232"
         , zone = "sju1"
         , role = "accelerator"
-        , services = [] : List Text
+        , services = [ "clickhouse-keeper" ]
         }
       , Host::{
         , physical = "guccimane"
@@ -85,7 +91,7 @@ in  schema.Registry::{
         , lan_ipv4 = Some "192.168.40.81"
         , zone = "sju1"
         , role = "server"
-        , services = [ "drop" ]
+        , services = [ "drop", "clickhouse-keeper" ]
         }
       , Host::{
         , physical = "shannon"
