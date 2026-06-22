@@ -34,6 +34,7 @@
     ./network.nix
     ./network-manager.nix
     ./coredns.nix
+    ./reverse-proxy.nix
 
     # ── Virtualization & containers (gated) ──
     ./docker.nix

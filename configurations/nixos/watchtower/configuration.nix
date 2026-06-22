@@ -56,10 +56,23 @@ in
   hyper-modern-nixos.databases.postgres.backup.pitr.enable = true;
 
   # ── OCI registry (zot → R2) ─────────────────────────────────────────────────
-  # Tailnet-reachable container registry on :5000, blobs in the straylight-oci R2
-  # bucket (reconstructible — not restic'd). Non-daemon systemd service; the
-  # module self-wires the zot-r2-env agenix creds.
-  hyper-modern-nixos.registry.enable = true;
+  # Blobs in the straylight-oci R2 bucket (reconstructible — not restic'd).
+  # Non-daemon systemd service; self-wires the zot-r2-env agenix creds. Now bound
+  # to LOOPBACK and fronted by nginx (below) on registry.sju1.s4.gl with a real
+  # cert — the converged pattern from networking.md.
+  hyper-modern-nixos.registry = {
+    enable = true;
+    listenAddress = "127.0.0.1";
+  };
+
+  # ── Reverse proxy + internal ACME (nginx → loopback services) ───────────────
+  # nginx terminates TLS on the logical names with a real wildcard cert
+  # (*.sju1.s4.gl via DNS-01/Njalla) and proxies to loopback. registry.sju1.s4.gl
+  # → the zot above. CoreDNS already resolves that name to this host.
+  hyper-modern-nixos.reverseProxy = {
+    enable = true;
+    services.registry.port = 5000;
+  };
 
   hardware.graphics = {
     enable = true;
