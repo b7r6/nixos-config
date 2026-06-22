@@ -41,6 +41,12 @@ in
   # kept as a load-bearing assertion for the DB host.
   hyper-modern-nixos.network.firewall.enable = true;
 
+  # ── Split-horizon DNS (CoreDNS, generated from the topology registry) ───────
+  # watchtower is the fleet resolver: authoritative for sju1.s4.gl (host +
+  # lan.<host> + service-alias records derived from registry/), forwards the rest
+  # (MagicDNS first). LAN clients (the Google TV) point DNS here for lan.* names.
+  hyper-modern-nixos.coredns.enable = true;
+
   # ── PostgreSQL PITR (pgBackRest → R2) ───────────────────────────────────────
   # watchtower is the system-of-record DB host. Continuous WAL archiving + base
   # backups to the dedicated straylight-pg-pitr R2 bucket give ~seconds RPO on
