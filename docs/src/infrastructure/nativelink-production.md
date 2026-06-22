@@ -1,10 +1,20 @@
-# NativeLink production architecture (design)
+# NativeLink production architecture
 
-> Status: **design**, implemented in stages. The current single-host `monolithic`
-> deployment (see [nativelink](./nativelink.md)) is the starting point; this is
-> where it goes: a real multi-arch build farm with a sharded CAS, separated
-> scheduler/workers, OCI-toolchains-from-zot, and a **Dhall config layer** so a
-> valid NativeLink config is a type-check, not a Rubik's cube.
+> Status by stage:
+> - **Dhall config layer — DONE.** Typed schema + render in `nativelink/`; a valid
+>   config is a type-check (`nix run .#nativelink-render` / `.#nativelink-check`).
+> - **Multi-arch fleet + sharded CAS — LIVE (x86_64).** scheduler@watchtower +
+>   3-node weighted CAS ring (watchtower:4/guccimane:4/ultraviolence:1) + workers,
+>   worker_api on the tailnet. Deployed and connected: workers dial the scheduler,
+>   the CAS ring's grpc shards resolve over `*.sju1.s4.gl`.
+> - **DNS ownership — LIVE.** We run our own resolver: `tailscale --accept-dns=false`
+>   (via a `tailscale set` oneshot) + CoreDNS per node (authoritative `sju1.s4.gl`,
+>   forward `*.ts.net`→MagicDNS, rest→public). resolv.conf = 127.0.0.1.
+> - **shimmer (aarch64) — DEFERRED.** The nativelink flake's LLVM 22 compiler-rt
+>   won't build for `aarch64-unknown-linux-musl` (`sys/auxv.h`). `enabled = False`
+>   in `fleet.dhall`; re-enable when an aarch64 artifact builds.
+> - **OCI toolchains in zot + bwrap — TODO** (Stage 3).
+> - **Prelude examples all-green via RE — TODO** (the acceptance test).
 >
 > Grounded in: the NativeLink docs (architecture, production, LRE, persistent
 > workers) and the working prior art in `~/src/straylight/straylight-prelude`
