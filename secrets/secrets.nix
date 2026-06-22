@@ -87,6 +87,11 @@ in
   # Dedicated R2 bucket straylight-oci (blobs are reconstructible — not restic'd).
   "agenix/machines/zot-r2-env.age".publicKeys = mkGlobalSecret;
 
+  # Njalla API token for ACME DNS-01 against s4.gl (internal nginx vhost certs).
+  # env file: NJALLA_TOKEN=<token>. Consumed by lego via security.acme
+  # credentialsFile; scoped to DNS-record management on s4.gl.
+  "agenix/machines/njalla-acme-token.age".publicKeys = mkGlobalSecret;
+
   # pgBackRest PITR repo creds for the dedicated R2 bucket. env file exporting
   # the S3 secrets as PGBACKREST_* vars so they never enter the nix store:
   #   PGBACKREST_REPO1_S3_KEY=<r2 access key id>
@@ -129,6 +134,7 @@ in
   "agenix/users/b7r6/netrc.age".publicKeys = mkGlobalSecret;
   "agenix/users/b7r6/atuin-key.age".publicKeys = mkGlobalSecret;
   "agenix/users/b7r6/hf-token.age".publicKeys = mkGlobalSecret;
+  "agenix/users/b7r6/njalla-api-key.age".publicKeys = mkGlobalSecret;
 
   # Full rclone.conf (R2 remote `straylight-r2` + creds). Decrypted by the
   # home-manager agenix module to ~/.config/rclone/rclone.conf (0600), and also
