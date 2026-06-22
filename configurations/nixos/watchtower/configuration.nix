@@ -88,7 +88,11 @@ in
   # → the zot above. CoreDNS already resolves that name to this host.
   hyper-modern-nixos.reverseProxy = {
     enable = true;
-    services.registry.port = 5000;
+    services.registry = {
+      port = 5000;
+      # OCI image layers are multi-MB/GB; the default 1m cap → HTTP 413 on push.
+      maxBodySize = "0";
+    };
   };
 
   hardware.graphics = {

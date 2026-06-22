@@ -105,6 +105,16 @@ in
                 default = true;
                 description = "Enable WebSocket upgrade headers.";
               };
+              maxBodySize = mkOption {
+                type = types.str;
+                default = "1m";
+                description = ''
+                  nginx client_max_body_size for this vhost. The default 1m is
+                  fine for typical web UIs but FAR too small for OCI registry
+                  pushes (multi-MB/GB image layers → HTTP 413). Set "0" to
+                  disable the limit for a registry vhost, or a size like "2g".
+                '';
+              };
             };
           }
         )
@@ -172,6 +182,8 @@ in
         nameValuePair "${sub}.${zone}" {
           forceSSL = true;
           useACMEHost = wildcardCert; # share the one wildcard cert
+          # Per-vhost body cap; registries need this lifted for layer pushes.
+          extraConfig = "client_max_body_size ${svc.maxBodySize};";
           locations."/" = {
             proxyPass = "http://${svc.upstream}";
             proxyWebsockets = svc.websockets;
