@@ -33,6 +33,7 @@
     # ── Networking ──
     ./network.nix
     ./network-manager.nix
+    ./coredns.nix
 
     # ── Virtualization & containers (gated) ──
     ./docker.nix
