@@ -36,8 +36,13 @@ in
 
     image = lib.mkOption {
       type = lib.types.str;
-      default = "registry.sju1.s4.gl/kieraneglin/pinchflat:v2025.6.6";
-      description = "Pinchflat container image (pinned tag from the fleet zot registry).";
+      default = "registry.sju1.s4.gl/kieraneglin/pinchflat:v2025.6.6-cffi";
+      description = ''
+        Pinchflat container image (pinned tag from the fleet zot registry). The
+        `-cffi` tag is our thin overlay adding curl_cffi to the system Python so
+        the bundled yt-dlp gains browser impersonation — required for reliable
+        SoundCloud extraction. Built from packages/pinchflat-image/Dockerfile.
+      '';
     };
 
     port = lib.mkOption {
