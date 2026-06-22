@@ -47,6 +47,7 @@
     ./searxng.nix
     ./torrents.nix
     ./registry.nix
+    ./media.nix
 
     # ── Development ──
     ./android.nix

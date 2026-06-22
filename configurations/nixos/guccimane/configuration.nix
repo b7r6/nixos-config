@@ -64,6 +64,19 @@ in
     profile = "replica";
   };
 
+  # ── media servers: Navidrome (music) + Jellyfin (video, NVENC) ─────────────
+  # Library lives at /var/lib/media (declared authoritative by the module, so
+  # it's restic-backed + impermanence-persisted via the state registry). Ports
+  # are open on the LAN (enp113s0) for the Google TV and on the tailnet
+  # (tailscale0 trusted fleet-wide) for phone/laptop. Jellyfin transcodes on the
+  # 5090 since hyper-modern-nixos.nvidia is enabled above.
+  #   - Navidrome : http://guccimane:4533  (music: /var/lib/media/music)
+  #   - Jellyfin  : http://guccimane:8096  (video: /var/lib/media/video)
+  hyper-modern-nixos.media = {
+    enableNavidrome = true;
+    enableJellyfin = true;
+  };
+
   # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
   # Module self-wires its secrets from the names below (per-host R2 env:
   # restic-r2-env.guccimane). FIRST init is declarative + idempotent:
