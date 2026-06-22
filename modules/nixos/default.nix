@@ -22,6 +22,7 @@
     ./myusers.nix
     ./secrets.nix
     ./state.nix
+    ./topology.nix
 
     # ── Hardware (gated) ──
     ./bluetooth.nix

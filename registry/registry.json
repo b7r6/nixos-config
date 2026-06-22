@@ -1,0 +1,94 @@
+{
+  "hosts": [
+    {
+      "logical": "watchtower.straylight.internal",
+      "managed": true,
+      "physical": "watchtower",
+      "role": "server",
+      "services": [
+        "postgres",
+        "attic",
+        "registry",
+        "monitoring"
+      ],
+      "tailnet": "watchtower",
+      "tailnet_ipv4": "100.122.228.122",
+      "zone": "home"
+    },
+    {
+      "logical": "ultraviolence.straylight.internal",
+      "managed": true,
+      "physical": "ultraviolence",
+      "role": "workstation",
+      "services": [
+        "nativelink",
+        "searxng",
+        "torrents",
+        "attic-replica"
+      ],
+      "tailnet": "ultraviolence",
+      "tailnet_ipv4": "100.71.82.73",
+      "zone": "home"
+    },
+    {
+      "logical": "shimmer.straylight.internal",
+      "managed": true,
+      "physical": "shimmer",
+      "role": "accelerator",
+      "services": [],
+      "tailnet": "shimmer",
+      "tailnet_ipv4": "100.116.42.95",
+      "zone": "home"
+    },
+    {
+      "logical": "guccimane.straylight.internal",
+      "managed": true,
+      "physical": "guccimane",
+      "role": "workstation",
+      "services": [],
+      "tailnet": "guccimane",
+      "tailnet_ipv4": "100.89.101.109",
+      "zone": "home"
+    },
+    {
+      "logical": "shannon.straylight.internal",
+      "managed": true,
+      "physical": "shannon",
+      "role": "laptop",
+      "services": [],
+      "tailnet": "shannon",
+      "tailnet_ipv4": "100.120.215.82",
+      "zone": "home"
+    },
+    {
+      "logical": "weyl.straylight.internal",
+      "managed": true,
+      "physical": "weyl",
+      "role": "workstation",
+      "services": [],
+      "tailnet": "weyl",
+      "tailnet_ipv4": "100.111.80.81",
+      "zone": "home"
+    },
+    {
+      "logical": "gossamer.straylight.internal",
+      "managed": false,
+      "physical": "gossamer",
+      "role": "accelerator",
+      "services": [
+        "attic-client"
+      ],
+      "tailnet": "gossamer",
+      "tailnet_ipv4": "100.110.55.28",
+      "zone": "home"
+    }
+  ],
+  "internalDomain": "straylight.internal",
+  "tailnetSuffix": "osiris-walleye.ts.net",
+  "zones": [
+    {
+      "description": "single-site homelab tailnet (pre-distribution)",
+      "name": "home"
+    }
+  ]
+}
