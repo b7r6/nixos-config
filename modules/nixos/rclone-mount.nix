@@ -30,28 +30,41 @@ let
   cfg = config.hyper-modern-nixos.rcloneMount;
 
   # Sane S3/R2 mount defaults: VFS cache so reads/writes don't round-trip every
-  # byte, generous chunking for big objects, and no per-op bucket HEAD.
-  defaultArgs = [
+  # byte, and no per-op bucket HEAD. `dirCache` is spliced in per-mount below
+  # because the right value differs by mount role (see r2Mounts).
+  baseArgs = [
     "--vfs-cache-mode=writes"
-    "--dir-cache-time=12h"
     "--vfs-cache-max-age=24h"
     "--s3-no-check-bucket"
   ];
+  withDirCache = ttl: baseArgs ++ [ "--dir-cache-time=${ttl}" ];
 
   # The fleet R2 convention mounts, derived purely from the hostname. Only
   # materialised when cfg.r2.enable is true.
+  #
+  # dir-cache-time tuning — rclone's dir cache is LAZY: it LISTs the remote only
+  # on ACCESS, and only once the cached entry is older than --dir-cache-time
+  # (an idle mount issues zero requests; R2 doesn't support --poll-interval, so
+  # that knob is inert here). So this TTL is really "how stale may the listing be
+  # the moment I look before rclone re-checks".
+  #   - common (SHARED, other hosts write here): 5s — effectively "fresh whenever
+  #     I look", with no idle cost. R2 LIST is a Class A op (no egress fee, large
+  #     free tier), so frequent re-lists of this shallow dir are ~free. Without
+  #     this, a long TTL serves a stale listing that never shows peers' writes.
+  #   - per-host (only THIS host writes): 12h — there is no other writer, so the
+  #     cache can never be wrong; the long TTL just minimises LISTs.
   host = config.networking.hostName;
   r2Mounts = lib.optionalAttrs cfg.r2.enable {
     common = {
       remote = "${cfg.r2.remote}:${cfg.r2.bucket}/common";
       where = "${cfg.r2.base}/common";
-      extraArgs = defaultArgs;
+      extraArgs = withDirCache "5s";
       readOnly = false;
     };
     host = {
       remote = "${cfg.r2.remote}:${cfg.r2.bucket}/${host}";
       where = "${cfg.r2.base}/${host}";
-      extraArgs = defaultArgs;
+      extraArgs = withDirCache "12h";
       readOnly = false;
     };
   };
@@ -157,7 +170,9 @@ in
             };
             extraArgs = lib.mkOption {
               type = lib.types.listOf lib.types.str;
-              default = defaultArgs;
+              # rclone's own 5m dir-cache default — a sane middle for an ad-hoc
+              # mount; override per-mount if it needs fresher/staler listings.
+              default = withDirCache "5m";
               description = "Extra flags appended to `rclone mount`.";
             };
             readOnly = lib.mkOption {
