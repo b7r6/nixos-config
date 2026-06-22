@@ -49,6 +49,12 @@ in
   # cross-PG-major fallback. See docs/infrastructure/backups.md#postgresql-backups.
   hyper-modern-nixos.databases.postgres.backup.pitr.enable = true;
 
+  # ── OCI registry (zot → R2) ─────────────────────────────────────────────────
+  # Tailnet-reachable container registry on :5000, blobs in the straylight-oci R2
+  # bucket (reconstructible — not restic'd). Non-daemon systemd service; the
+  # module self-wires the zot-r2-env agenix creds.
+  hyper-modern-nixos.registry.enable = true;
+
   hardware.graphics = {
     enable = true;
     enable32Bit = true;

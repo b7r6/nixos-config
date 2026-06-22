@@ -46,6 +46,7 @@
     ./rclone-mount.nix
     ./searxng.nix
     ./torrents.nix
+    ./registry.nix
 
     # ── Development ──
     ./android.nix
