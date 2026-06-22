@@ -104,6 +104,14 @@ in
   # Navidrome/Jellyfin pick them up. Smoke-testing SoundCloud-source handling.
   hyper-modern-nixos.pinchflat.enable = true;
 
+  # ── R2 dropbox: shareable URLs for private files (secret-gist model) ────────
+  # `drop <file>` → unguessable token dir in the straylight-drop public bucket →
+  # prints https://drop.s4.gl/d/<token>/<file>. Bucket not listable, so the token
+  # is the capability. See docs/src/architecture/dropbox.md.
+  # NOTE: needs the `straylight-drop` remote in the rclone.conf agenix secret and
+  # the bucket+domain provisioned Cloudflare-side (provisioning checklist in doc).
+  hyper-modern-nixos.dropbox.enable = true;
+
   # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
   # Module self-wires its secrets from the names below (per-host R2 env:
   # restic-r2-env.guccimane). FIRST init is declarative + idempotent:

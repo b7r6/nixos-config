@@ -52,6 +52,7 @@
     ./registry.nix
     ./media.nix
     ./pinchflat.nix
+    ./dropbox.nix
 
     # ── Development ──
     ./android.nix
