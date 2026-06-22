@@ -558,6 +558,14 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # nativelink's local store is a reconstructible CAS: content is R2-backed or
+    # re-derivable, so it's persisted across an impermanence reboot (warm cache)
+    # but NOT backed up to R2 — paying to back up re-creatable CAS is waste.
+    hyper-modern-nixos.state.dirs.nativelink = {
+      path = storeRoot;
+      class = "reconstructible";
+    };
+
     assertions = [
       {
         assertion = cfg.role != "worker" || cfg.workerApiEndpoint != "grpc://127.0.0.1:50061";

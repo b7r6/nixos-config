@@ -189,7 +189,12 @@ in
 
     environment.persistence.${cfg.persistPath} = {
       hideMounts = true;
-      inherit (cfg) directories;
+      # The persist-list is the operator-listed `directories` UNION the paths
+      # services declared as authoritative/reconstructible via
+      # hyper-modern-nixos.state.dirs (single source of truth — see state.nix +
+      # docs/architecture/state-and-backup.md). So enabling impermanence cannot
+      # silently drop a service's precious/warm-cache state.
+      directories = lib.unique (cfg.directories ++ config.hyper-modern-nixos.state.persistPaths);
       inherit (cfg) files;
       users = lib.mapAttrs (_: userCfg: {
         inherit (userCfg) directories;

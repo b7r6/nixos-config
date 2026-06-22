@@ -231,6 +231,14 @@ in
   config = lib.mkMerge [
     # ── Server (atticd) ────────────────────────────────────────────────────────
     (lib.mkIf cfg.enable {
+      # atticd's local state is a reconstructible chunk cache: the authoritative
+      # chunks live in R2 (or are re-pushable), so it's persisted across an
+      # impermanence reboot (avoid a cold cache) but NOT backed up to R2.
+      hyper-modern-nixos.state.dirs.atticd = {
+        path = "/var/lib/atticd";
+        class = "reconstructible";
+      };
+
       assertions = [
         {
           assertion = cfg.environmentFile != null;

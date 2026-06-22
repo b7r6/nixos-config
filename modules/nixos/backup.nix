@@ -232,7 +232,13 @@ in
       # null (not "") when empty, so the upstream "exactly one" assertion passes
       # and the env file's RESTIC_REPOSITORY is the sole source of the location.
       repository = if cfg.repository == "" then null else cfg.repository;
-      inherit (cfg) paths exclude pruneOpts;
+      # Back up the operator-listed paths UNION the `authoritative` state paths
+      # declared via hyper-modern-nixos.state.dirs (single source of truth — see
+      # state.nix + docs/architecture/state-and-backup.md). A service that
+      # classifies its state as authoritative is thereby backed up automatically,
+      # with no second list to maintain here.
+      paths = lib.unique (cfg.paths ++ config.hyper-modern-nixos.state.authoritativePaths);
+      inherit (cfg) exclude pruneOpts;
       inherit (cfg) passwordFile;
       environmentFile = lib.mkIf (cfg.environmentFile != null) cfg.environmentFile;
       inherit (cfg) timerConfig;

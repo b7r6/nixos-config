@@ -21,6 +21,7 @@
     ./greetd.nix
     ./myusers.nix
     ./secrets.nix
+    ./state.nix
 
     # ── Hardware (gated) ──
     ./bluetooth.nix

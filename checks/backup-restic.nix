@@ -57,6 +57,9 @@ pkgs.testers.runNixOSTest {
       # agenix so the age.secrets option exists (backup.nix references it, gated
       # off here since passwordSecret/environmentSecret = null below).
       inputs.agenix.nixosModules.default
+      # state.nix defines hyper-modern-nixos.state, which backup.nix reads
+      # (authoritativePaths) to union into the restic paths.
+      ../modules/nixos/state.nix
       ../modules/nixos/backup.nix
     ];
 

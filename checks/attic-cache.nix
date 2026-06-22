@@ -35,6 +35,7 @@ pkgs.testers.runNixOSTest {
   nodes.machine = { ... }: {
     imports = [
       inputs.agenix.nixosModules.default
+      ../modules/nixos/state.nix
       ../modules/nixos/postgres.nix
       ../modules/nixos/attic.nix
     ];

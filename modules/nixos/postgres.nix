@@ -114,6 +114,73 @@ in
         };
         description = "role name -> { secret; var; } to set that role's password declaratively.";
       };
+
+      # ── Backup ──────────────────────────────────────────────────────────────
+      # Logical dumps now; a PITR/WAL-archiving seam for later (see
+      # docs/architecture/state-and-backup.md). We back up DUMPS, never the live
+      # cluster dir — backing up running data files is corruption-prone and
+      # version-locked; logical dumps also restore across PG majors.
+      backup = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = cfg.postgres.enable;
+          defaultText = "config.hyper-modern-nixos.databases.postgres.enable";
+          description = ''
+            Run scheduled logical dumps (pg_dumpall → zstd) into `dumpDir`, and
+            classify that dir as `authoritative` state so restic backs it up.
+            Defaults on whenever postgres is enabled.
+          '';
+        };
+
+        dumpDir = lib.mkOption {
+          type = lib.types.str;
+          default = "/var/backup/postgres";
+          description = ''
+            Directory the logical dumps are written to. Declared as
+            `authoritative` state (persisted across an impermanence reboot AND
+            backed up to R2). Keep it OFF the postgres cluster dir.
+          '';
+        };
+
+        onCalendar = lib.mkOption {
+          type = lib.types.str;
+          default = "daily";
+          description = "systemd OnCalendar for the dump timer.";
+        };
+
+        keep = lib.mkOption {
+          type = lib.types.int;
+          default = 7;
+          description = ''
+            How many timestamped dump files to keep locally in `dumpDir` (restic
+            holds the longer history per its own retention). Older local dumps are
+            pruned after each run.
+          '';
+        };
+
+        # ── PITR seam (designed-in, OFF) ──────────────────────────────────────
+        # Continuous WAL archiving + base backups for point-in-time recovery is
+        # the production ceiling. The option surface lives here so turning it on
+        # later is a flip, not a module rewrite; the implementation is deferred
+        # until a DB needs sub-day RPO and a tested restore runbook exists.
+        pitr = {
+          enable = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+            description = ''
+              Enable WAL archiving + base backups for point-in-time recovery
+              (NOT YET IMPLEMENTED — reserved option surface). Logical dumps above
+              remain the supported path until this lands.
+            '';
+          };
+
+          archiveCommand = lib.mkOption {
+            type = lib.types.nullOr lib.types.str;
+            default = null;
+            description = "Future: postgres archive_command target (e.g. rclone/restic to R2).";
+          };
+        };
+      };
     };
 
     redis.enable = lib.mkEnableOption "Redis server (off by default)";
@@ -216,6 +283,80 @@ in
         );
       };
     })
+
+    # ── Logical dumps → authoritative state (restic backs them up) ──────────────
+    (lib.mkIf (cfg.postgres.enable && cfg.postgres.backup.enable) (
+      let
+        bcfg = cfg.postgres.backup;
+        pgPkg = config.services.postgresql.package;
+      in
+      {
+        # PITR is reserved option surface only — fail loudly if someone flips it
+        # on expecting it to work, rather than silently backing up nothing extra.
+        assertions = [
+          {
+            assertion = !bcfg.pitr.enable;
+            message = ''
+              hyper-modern-nixos.databases.postgres.backup.pitr.enable is true, but
+              PITR/WAL-archiving is not yet implemented (reserved option surface).
+              Use the logical-dump path (backup.enable) for now.
+            '';
+          }
+        ];
+
+        # Classify the dump dir as authoritative: persisted across an
+        # impermanence reboot AND backed up to R2 (via state.nix → backup.nix).
+        hyper-modern-nixos.state.dirs.postgres-dumps = {
+          path = bcfg.dumpDir;
+          class = "authoritative";
+        };
+
+        # Create the dump dir owned by postgres (the dump runs as that user).
+        systemd.tmpfiles.rules = [ "d ${bcfg.dumpDir} 0700 postgres postgres - -" ];
+
+        # pg_dumpall (roles + all DBs) → timestamped zstd file. Logical dump is
+        # the CORRECT restic source: consistent, restorable, version-portable.
+        systemd.services.postgres-dump = {
+          description = "logical pg_dumpall → ${bcfg.dumpDir} (zstd)";
+          after = [ "postgresql.service" ];
+          requires = [ "postgresql.service" ];
+          serviceConfig = {
+            Type = "oneshot";
+            User = "postgres";
+          };
+          path = [
+            pgPkg
+            pkgs.zstd
+            pkgs.coreutils
+            pkgs.findutils
+          ];
+          script = ''
+            set -euo pipefail
+            ts=$(date -u +%Y%m%dT%H%M%SZ)
+            out="${bcfg.dumpDir}/pg_dumpall-$ts.sql.zst"
+            tmp="$out.partial"
+            # pg_dumpall over the local peer-auth socket (no password needed).
+            pg_dumpall --clean --if-exists | zstd -q -19 -T0 -o "$tmp"
+            mv "$tmp" "$out"
+            # Prune to the most recent `keep` local dumps (restic keeps history).
+            ls -1t "${bcfg.dumpDir}"/pg_dumpall-*.sql.zst 2>/dev/null \
+              | tail -n +$((${toString bcfg.keep} + 1)) \
+              | xargs -r rm -f --
+            echo "// pg-dump // wrote $out"
+          '';
+        };
+
+        systemd.timers.postgres-dump = {
+          description = "schedule logical postgres dumps";
+          wantedBy = [ "timers.target" ];
+          timerConfig = {
+            OnCalendar = bcfg.onCalendar;
+            Persistent = true;
+            RandomizedDelaySec = "10m";
+          };
+        };
+      }
+    ))
 
     (lib.mkIf cfg.redis.enable { services.redis.servers."".enable = true; })
   ];
