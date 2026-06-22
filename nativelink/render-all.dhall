@@ -10,4 +10,4 @@ in  Prelude.List.map
       fleet.HostDef.Type
       { host : Text, json : Text }
       (\(h : fleet.HostDef.Type) -> { host = h.name, json = fleet.renderFor h })
-      fleet.hosts
+      fleet.enabledHosts

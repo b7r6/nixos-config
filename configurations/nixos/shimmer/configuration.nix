@@ -98,22 +98,13 @@ in
   # nativelink scheduler/CAS FQDNs; tailscale stops managing resolv.conf).
   hyper-modern-nixos.coredns.enable = true;
 
-  # ── NativeLink: the ONLY aarch64 CAS shard (weight 2) + worker ──────────────
-  # From the typed Dhall fleet (out/shimmer.json): a CAS shard server + an
-  # aarch64 worker dialing watchtower's scheduler. Multi-arch RE runs native
-  # binaries, so aarch64 actions land here.
-  age.secrets.nativelink-r2-env.file = ../../../secrets/agenix/machines/nativelink-r2-env.age;
-  hyper-modern-nixos.nativelink = {
-    enable = true;
-    dhallHost = "shimmer";
-    openFirewall = true;
-    r2 = {
-      enable = true;
-      accountId = "6063b6652178f5cf1cfb87e7e41acf1e";
-      bucket = "straylight-nativelink-cas";
-      environmentFile = "/run/agenix/nativelink-r2-env";
-    };
-  };
+  # ── NativeLink: DEFERRED on shimmer (aarch64) ───────────────────────────────
+  # shimmer is meant to be the aarch64 CAS shard + executor (fleet.dhall has it,
+  # `enabled = False` for now). Blocked: the nativelink flake's LLVM 22 compiler-rt
+  # fails to build for aarch64-unknown-linux-musl (sys/auxv.h — musl/bleeding-LLVM
+  # break). Re-enable here + flip `enabled = True` in nativelink/fleet.dhall once
+  # an aarch64 nativelink artifact builds (cached release, or the musl fix).
+  # CoreDNS (above) builds fine on aarch64 and stays on.
 
   # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
   # Per-host repo (backups-restic/shimmer). Module self-wires its secrets.

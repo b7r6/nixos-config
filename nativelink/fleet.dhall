@@ -37,8 +37,9 @@ let HostDef =
           , casWeight : Natural
           , casFastBytes : Natural
           , isScheduler : Bool
+          , enabled : Bool
           }
-      , default.isScheduler = False
+      , default = { isScheduler = False, enabled = True }
       }
 
 let scheduler = "watchtower"
@@ -73,6 +74,7 @@ let hosts =
         , arch = Arch.aarch64
         , casWeight = 2
         , casFastBytes = 34359738368
+        , enabled = False
         }
       , HostDef::{
         , name = "ultraviolence"
@@ -86,6 +88,9 @@ let hosts =
 let archCpu = \(a : Arch) -> merge { x86_64 = "x86_64", aarch64 = "aarch64" } a
 
 let archISA = \(a : Arch) -> merge { x86_64 = "x86-64", aarch64 = "aarch64" } a
+
+let enabledHosts =
+      Prelude.List.filter HostDef.Type (\(h : HostDef.Type) -> h.enabled) hosts
 
 let schedulerProps =
       [ { name = "cpu_count", mode = schema.MatchMode.minimum }
@@ -146,7 +151,7 @@ let casShardRing =
                 , weight = h.casWeight
                 }
             )
-            hosts
+            enabledHosts
         )
 
 let acShardRing =
@@ -159,7 +164,7 @@ let acShardRing =
                 , weight = h.casWeight
                 }
             )
-            hosts
+            enabledHosts
         )
 
 let schedulerConfig =
@@ -261,6 +266,7 @@ let configFor =
             else  casPlusWorker
 
 in  { hosts
+    , enabledHosts
     , HostDef
     , configFor
     , renderFor = \(h : HostDef.Type) -> r.renderConfig (configFor h)
