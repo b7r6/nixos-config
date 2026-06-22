@@ -41,6 +41,14 @@ in
   # kept as a load-bearing assertion for the DB host.
   hyper-modern-nixos.network.firewall.enable = true;
 
+  # ── PostgreSQL PITR (pgBackRest → R2) ───────────────────────────────────────
+  # watchtower is the system-of-record DB host. Continuous WAL archiving + base
+  # backups to the dedicated straylight-pg-pitr R2 bucket give ~seconds RPO on
+  # this single node — a wipe loses almost nothing. The module self-wires the
+  # pgbackrest-r2-env agenix secret; logical dumps stay on as the independent,
+  # cross-PG-major fallback. See docs/infrastructure/backups.md#postgresql-backups.
+  hyper-modern-nixos.databases.postgres.backup.pitr.enable = true;
+
   hardware.graphics = {
     enable = true;
     enable32Bit = true;
