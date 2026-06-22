@@ -42,8 +42,14 @@ in
 
     remote = lib.mkOption {
       type = lib.types.str;
-      default = "straylight-drop:";
-      description = "rclone remote (a PUBLIC R2 bucket) backing the share, from the decrypted rclone.conf.";
+      default = "straylight-r2:straylight-drop";
+      description = ''
+        rclone remote:path backing the share. Uses the fleet `straylight-r2`
+        remote (the only one in the agenix rclone.conf) pointed at the
+        `straylight-drop` bucket. The bucket must have R2 public access + the
+        drop.s4.gl custom domain attached (Cloudflare-side) for the printed URLs
+        to actually resolve.
+      '';
     };
 
     mountPoint = lib.mkOption {

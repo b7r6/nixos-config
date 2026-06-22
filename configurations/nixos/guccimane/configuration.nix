@@ -110,7 +110,10 @@ in
   # is the capability. See docs/src/architecture/dropbox.md.
   # NOTE: needs the `straylight-drop` remote in the rclone.conf agenix secret and
   # the bucket+domain provisioned Cloudflare-side (provisioning checklist in doc).
-  hyper-modern-nixos.dropbox.enable = true;
+  hyper-modern-nixos.dropbox = {
+    enable = true;
+    mountEnable = true; # bucket exists + remote resolves; mount the share
+  };
 
   # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
   # Module self-wires its secrets from the names below (per-host R2 env:
