@@ -135,6 +135,7 @@ in
   "agenix/users/b7r6/atuin-key.age".publicKeys = mkGlobalSecret;
   "agenix/users/b7r6/hf-token.age".publicKeys = mkGlobalSecret;
   "agenix/users/b7r6/njalla-api-key.age".publicKeys = mkGlobalSecret;
+  "agenix/users/b7r6/cloudflare-r2-env.age".publicKeys = mkGlobalSecret;
 
   # Full rclone.conf (R2 remote `straylight-r2` + creds). Decrypted by the
   # home-manager agenix module to ~/.config/rclone/rclone.conf (0600), and also
