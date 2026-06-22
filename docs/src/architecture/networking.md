@@ -118,19 +118,37 @@ Cloudflare edge.
 > records are populated. Per-host CoreDNS / a second resolver for redundancy is a
 > later step.
 
-## Layer 2 — nginx reverse proxy (on every box that serves)
+## Layer 2 — nginx reverse proxy + internal ACME (implemented)
 
-Adapt straylight-infra's `nginx-reverse-proxy.nix` (vhosts, upstreams, websocket,
-headers — trimmed of the trading-grade load-balancing/health-check machinery we
-don't need yet). Services bind **loopback**; nginx is the vhost router on the
-`logical` names. Two TLS sources, by horizon:
+`modules/nixos/reverse-proxy.nix` (`hyper-modern-nixos.reverseProxy`, off by
+default), built on stock `services.nginx` + `security.acme`. Services bind
+**loopback**; nginx is the vhost router on the `logical` names:
 
-- **Internal ACME** — `security.acme` + `virtualHosts.<n>.enableACME` with
-  **DNS-01** against a real domain we control (HTTP-01 can't validate internal
-  names). Real, browser-trusted certs for internal `logical` names, with **no CA
-  to distribute** to every box. (An internal CA + wildcard is the fallback if we
-  ever want fully-offline issuance.)
-- **Public** — see Layer 3; nginx still terminates/serves, cloudflared dials in.
+```nix
+hyper-modern-nixos.reverseProxy = {
+  enable = true;
+  services.registry.port = 5000;   # → vhost registry.sju1.s4.gl → 127.0.0.1:5000
+};
+```
+
+Each `services.<sub>` becomes a vhost `<sub>.<dc>.s4.gl` proxying to a loopback
+upstream, all under **one wildcard cert `*.sju1.s4.gl`**.
+
+**Internal TLS via ACME DNS-01 (Njalla).** lego supports Njalla natively
+(`dnsProvider = "njalla"`, `NJALLA_TOKEN`), so `security.acme` does a DNS-01
+challenge against `s4.gl` and gets **real, browser-trusted Let's Encrypt certs**
+for the internal names — **no CA to distribute** to clients. DNS-01 (not HTTP-01)
+because the names never face the public internet. The token is the
+`njalla-acme-token` machine secret (`environmentFile`).
+
+> **Proven live on watchtower**: real wildcard cert `CN=*.sju1.s4.gl` issued by
+> Let's Encrypt (via Njalla DNS-01); `curl https://registry.sju1.s4.gl/v2/`
+> succeeds **with no `-k`** (trusted chain) and proxies through to the loopback
+> zot (`/v2/_catalog` returns the pushed image). `tailscale serve` replaced: real
+> certs, arbitrary vhosts, no per-node limits.
+
+Public exposure is a separate horizon — see Layer 3; nginx still terminates/serves
+internally, cloudflared dials in for the deliberately-public doors.
 
 ## Layer 3 — cloudflared (the public edge, opt-in)
 
