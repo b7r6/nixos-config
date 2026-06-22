@@ -19,6 +19,14 @@ in
         "@wheel"
       ];
 
+      # Sandbox OFF, fleet-wide. The build sandbox is a category error in the
+      # nix evaluation model — purity is a property of the derivation, not of a
+      # mount-namespace cage bolted on at realization time (the thing straylight
+      # nix corrects with graded monads, where effects are tracked in the type).
+      # Concretely it also blocks the buck2 RE drivers (`__noChroot = true`),
+      # which need to reach the buck2 daemon / RE fleet. Off here, by design.
+      sandbox = false;
+
       # Binary caches. The private/broken weyl-ai + hyprland cachix caches were
       # removed (they no longer work reliably); keep only the official NixOS
       # cache and the reliable nix-community cache.

@@ -13,7 +13,9 @@
     };
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    # nixpkgs: the sensenet-ai fork at HEAD (NOT upstream nixpkgs-unstable). The
+    # whole tree rides this via `follows = "nixpkgs"`; pin anything we touch to it.
+    nixpkgs.url = "github:sensenet-ai/nixpkgs";
     flake-parts.url = "github:hercules-ci/flake-parts";
     systems.url = "github:nix-systems/default-linux";
 
@@ -85,5 +87,12 @@
     # nativelink.cachix.org to substituters.
     nativelink.url = "github:TraceMachina/nativelink";
     nativelink.inputs.nixpkgs.follows = "nixpkgs";
+
+    # straylight-prelude: the Buck2 prelude generator (sensenet-ai). Source of the
+    # exact toolchain closure the RE workers run (llvm-git 22, ghc-with-packages,
+    # rustc/cargo, lean4, python-env, nvidia-sdk, purescript) + buck2 itself, so
+    # the operator devshell / VSCode see bit-identical tools to the CAS fleet.
+    straylight-prelude.url = "github:sensenet-ai/straylight-prelude/b7r6/dev-0x04";
+    straylight-prelude.inputs.nixpkgs.follows = "nixpkgs";
   };
 }

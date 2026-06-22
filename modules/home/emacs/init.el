@@ -811,8 +811,8 @@
 
 (defvar hypermodern/ui-cursor-style nil)
 (defvar hypermodern/ui-font-preset 'auto)
-(defvar hypermodern/ui-font-size 140)
-(defvar hypermodern/ui-variable-font-size 150)
+(defvar hypermodern/ui-font-size 120)
+(defvar hypermodern/ui-variable-font-size 120)
 (defvar hypermodern/ui-padding nil)
 
 (defvar hypermodern/ui-alpha 100)
