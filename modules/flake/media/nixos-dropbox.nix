@@ -97,7 +97,7 @@ in
 
     # The `drop` CLI, baked with this host's domain/mount/prefix.
     environment.systemPackages = [
-      (pkgs.callPackage ../../packages/drop {
+      (pkgs.callPackage ./packages/drop {
         dropMount = cfg.mountPoint;
         dropDomain = cfg.domain;
         dropPrefix = cfg.prefix;

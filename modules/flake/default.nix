@@ -13,6 +13,7 @@
     ./attic
     ./backup
     ./coredns
+    ./media
     ./nativelink
     ./registry
 

@@ -49,11 +49,11 @@
     ./rclone-mount.nix
     ./searxng.nix
     ./supabase.nix
-    ./torrents.nix
     ./registry.nix
-    ./media.nix
-    ./pinchflat.nix
-    ./dropbox.nix
+    ../flake/media/nixos.nix
+    ../flake/media/nixos-pinchflat.nix
+    ../flake/media/nixos-torrents.nix
+    ../flake/media/nixos-dropbox.nix
 
     # ── Development ──
     ./android.nix
