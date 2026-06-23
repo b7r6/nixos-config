@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                          // hyper-modern-nixos // nativelink
+#                              // hyper-modern-nixos // flake // nativelink/nixos
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # NativeLink remote-execution / remote-cache, OFF BY DEFAULT.
@@ -355,16 +355,16 @@ let
   # Config source, in priority order:
   #   1. cfg.configFile         — operator-supplied path (escape hatch).
   #   2. cfg.dhallHost          — the typed Dhall fleet config for this host
-  #      (nativelink/out/<host>.json, committed; rendered by `nix run
+  #      (data/out/<host>.json, committed; rendered by `nix run
   #      .#nativelink-render`). This is the vN+1 path: a valid config is a Dhall
-  #      type-check, and the sharded multi-arch topology lives in nativelink/.
+  #      type-check, and the sharded multi-arch topology lives in ./data/.
   #   3. the legacy in-Nix generator (role-based) — kept until the Dhall path is
   #      proven fleet-wide, then removed.
   configFile =
     if cfg.configFile != null then
       cfg.configFile
     else if cfg.dhallHost != null then
-      flake.self + "/nativelink/out/${cfg.dhallHost}.json"
+      flake.self + "/modules/flake/nativelink/data/out/${cfg.dhallHost}.json"
     else
       jsonFormat.generate "nativelink.json" (configFor cfg.role);
 in

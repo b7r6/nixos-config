@@ -45,7 +45,7 @@
     ../flake/backup/nixos.nix
     ./attic.nix
     ./attic-node.nix
-    ./nativelink.nix
+    ../flake/nativelink/nixos.nix
     ./rclone-mount.nix
     ./searxng.nix
     ./supabase.nix
