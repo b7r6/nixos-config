@@ -49,119 +49,6 @@
       program = "${self}/scripts/build-usb.sh";
     };
 
-    # `nix run .#nativelink-render` — render the typed Dhall fleet config to the
-    # committed nativelink/out/<host>.json (one per fleet host). Dhall is the
-    # source of truth; committed JSON is IFD-free. Run after editing nativelink/*.dhall.
-    apps.nativelink-render = {
-      type = "app";
-      program = pkgs.lib.getExe (
-        pkgs.writeShellApplication {
-          name = "nativelink-render";
-          runtimeInputs = [
-            pkgs.dhall-json
-            pkgs.jq
-          ];
-          text = ''
-            root="$(git rev-parse --show-toplevel)"
-            cd "$root/nativelink"
-            mkdir -p out
-            dhall-to-json --file render-all.dhall | jq -c '.[]' | while read -r item; do
-              host=$(echo "$item" | jq -r .host)
-              echo "$item" | jq -r .json | jq . > "out/$host.json"
-              echo "// nativelink // rendered out/$host.json"
-            done
-            echo "// nativelink // done (commit nativelink/out/*.json)"
-          '';
-        }
-      );
-    };
-
-    # `nix run .#nativelink-check` — verify committed out/*.json match the Dhall.
-    apps.nativelink-check = {
-      type = "app";
-      program = pkgs.lib.getExe (
-        pkgs.writeShellApplication {
-          name = "nativelink-check";
-          runtimeInputs = [
-            pkgs.dhall-json
-            pkgs.jq
-            pkgs.diffutils
-          ];
-          text = ''
-            root="$(git rev-parse --show-toplevel)"
-            cd "$root/nativelink"
-            # Render to a temp dir and diff the whole tree — avoids the
-            # subshell-`exit` gotcha (a `while | read` pipeline runs in a subshell,
-            # so an `exit 1` inside it can't fail the script).
-            tmp="$(mktemp -d)"
-            trap 'rm -rf "$tmp"' EXIT
-            dhall-to-json --file render-all.dhall | jq -c '.[]' > "$tmp/items"
-            while read -r item; do
-              host=$(echo "$item" | jq -r .host)
-              echo "$item" | jq -r .json | jq . > "$tmp/$host.json"
-            done < "$tmp/items"
-            ok=1
-            for f in out/*.json; do
-              host="$(basename "$f" .json)"
-              if ! diff -u "$f" "$tmp/$host.json" >/dev/null 2>&1; then
-                echo "// nativelink // STALE: $f (run: nix run .#nativelink-render)" >&2
-                ok=0
-              fi
-            done
-            if [ "$ok" -eq 1 ]; then
-              echo "// nativelink // out/*.json in sync with the Dhall fleet"
-            else
-              exit 1
-            fi
-          '';
-        }
-      );
-    };
-
-    # `nix run .#topology-render` — render the Dhall topology registry to the
-    # committed registry/registry.json. Dhall is the source of truth; the JSON is
-    # a committed artifact (no import-from-derivation, so `nix flake check` works).
-    # Run after editing registry/*.dhall, then commit the regenerated JSON.
-    apps.topology-render = {
-      type = "app";
-      program = pkgs.lib.getExe (
-        pkgs.writeShellApplication {
-          name = "topology-render";
-          runtimeInputs = [ pkgs.dhall-json ];
-          text = ''
-            root="$(git rev-parse --show-toplevel)"
-            cd "$root/registry"
-            dhall-to-json --file hosts.dhall > registry.json
-            echo "// topology // rendered registry/registry.json (commit it)"
-          '';
-        }
-      );
-    };
-
-    # `nix run .#topology-check` — verify the committed registry.json is in sync
-    # with the Dhall source (CI/pre-commit guard against a stale artifact).
-    apps.topology-check = {
-      type = "app";
-      program = pkgs.lib.getExe (
-        pkgs.writeShellApplication {
-          name = "topology-check";
-          runtimeInputs = [
-            pkgs.dhall-json
-            pkgs.diffutils
-          ];
-          text = ''
-            root="$(git rev-parse --show-toplevel)"
-            cd "$root/registry"
-            if ! dhall-to-json --file hosts.dhall | diff -u registry.json - ; then
-              echo "// topology // registry.json is STALE — run: nix run .#topology-render" >&2
-              exit 1
-            fi
-            echo "// topology // registry.json is in sync with hosts.dhall"
-          '';
-        }
-      );
-    };
-
     # `nix run .#restic-init -- <host>` — trigger the one-time, idempotent
     # restic-backups-init.service on a host over the tailnet (or locally). The
     # unit uses the host's own agenix-decrypted password/env, so there's nothing
@@ -321,6 +208,7 @@
       attic-cache = import ../../checks/attic-cache.nix { inherit pkgs inputs; };
       backup-restic = import ../../checks/backup-restic.nix { inherit pkgs inputs; };
       coredns = import ../../checks/coredns.nix { inherit pkgs inputs; };
+      nativelink = import ../../checks/nativelink.nix { inherit pkgs inputs; };
     };
 
     packages = inputs.nixpkgs.lib.mkMerge [
