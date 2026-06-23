@@ -230,7 +230,7 @@ let capSvcJSON =
             }
           ]
 
-let Opt/fold = https://prelude.dhall-lang.org/v23.0.0/Optional/fold
+let Opt/fold = https://prelude.dhall-lang.org/v23.0.0/Optional/fold.dhall
 
 let serverToJSON =
       \(s : schema.Server.Type) ->

@@ -7,8 +7,7 @@
 # Owns:
 #   - the NixOS module (./nixos.nix) — `hyper-modern-nixos.coredns`
 #   - the VM test (./checks/dns.nix)
-{ inputs, ... }:
-{
+{ inputs, ... }: {
   flake.nixosModules.coredns = ./nixos.nix;
 
   perSystem = { pkgs, system, ... }: {

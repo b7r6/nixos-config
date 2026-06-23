@@ -19,8 +19,7 @@
 # option, it is used; otherwise the paths list is just `cfg.paths`.
 #
 # ─────────────────────────────────────── "Trust, but verify the restore." ─────
-{ inputs, self, ... }:
-{
+{ inputs, ... }: {
   flake.nixosModules.backup = ./nixos.nix;
 
   perSystem = { pkgs, system, ... }: {

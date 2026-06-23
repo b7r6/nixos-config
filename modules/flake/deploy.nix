@@ -17,8 +17,7 @@
 #     build + switch ON THE HOST over ssh (it pulls cached paths from attic);
 #     no cross-build/emulation here.
 # test-vm is excluded (it's a VM, not a real host).
-{ self, ... }:
-{
+{ self, ... }: {
   perSystem = { pkgs, ... }: {
     apps.deploy-fleet =
       let

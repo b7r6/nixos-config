@@ -1,358 +1,348 @@
 {
-  "stores": [
-    {
-      "name": "CAS_MAIN_STORE",
-      "shard": {
-        "stores": [
-          {
-            "store": {
-              "grpc": {
-                "instance_name": "main",
-                "store_type": "cas",
-                "endpoints": [
-                  {
-                    "address": "grpc://watchtower.sju1.s4.gl:50052"
-                  }
-                ]
-              }
-            },
-            "weight": 4
-          },
-          {
-            "store": {
-              "grpc": {
-                "instance_name": "main",
-                "store_type": "cas",
-                "endpoints": [
-                  {
-                    "address": "grpc://guccimane.sju1.s4.gl:50052"
-                  }
-                ]
-              }
-            },
-            "weight": 4
-          },
-          {
-            "store": {
-              "grpc": {
-                "instance_name": "main",
-                "store_type": "cas",
-                "endpoints": [
-                  {
-                    "address": "grpc://ultraviolence.sju1.s4.gl:50052"
-                  }
-                ]
-              }
-            },
-            "weight": 1
-          }
-        ]
-      }
-    },
-    {
-      "name": "AC_MAIN_STORE",
-      "shard": {
-        "stores": [
-          {
-            "store": {
-              "grpc": {
-                "instance_name": "main",
-                "store_type": "ac",
-                "endpoints": [
-                  {
-                    "address": "grpc://watchtower.sju1.s4.gl:50052"
-                  }
-                ]
-              }
-            },
-            "weight": 4
-          },
-          {
-            "store": {
-              "grpc": {
-                "instance_name": "main",
-                "store_type": "ac",
-                "endpoints": [
-                  {
-                    "address": "grpc://guccimane.sju1.s4.gl:50052"
-                  }
-                ]
-              }
-            },
-            "weight": 4
-          },
-          {
-            "store": {
-              "grpc": {
-                "instance_name": "main",
-                "store_type": "ac",
-                "endpoints": [
-                  {
-                    "address": "grpc://ultraviolence.sju1.s4.gl:50052"
-                  }
-                ]
-              }
-            },
-            "weight": 1
-          }
-        ]
-      }
-    },
-    {
-      "name": "CAS_LOCAL",
-      "fast_slow": {
-        "fast": {
-          "filesystem": {
-            "content_path": "/var/lib/nativelink/content",
-            "temp_path": "/var/lib/nativelink/tmp",
-            "eviction_policy": {
-              "max_bytes": 68719476736
-            }
-          }
-        },
-        "fast_direction": "get",
-        "slow": {
-          "experimental_cloud_object_store": {
-            "provider": "r2",
-            "account_id": "6063b6652178f5cf1cfb87e7e41acf1e",
-            "bucket": "straylight-nativelink-cas",
-            "access_key_id": "${R2_ACCESS_KEY_ID}",
-            "secret_access_key": "${R2_SECRET_ACCESS_KEY}",
-            "key_prefix": "cas/",
-            "retry": {
-              "max_retries": 6,
-              "delay": 0.3,
-              "jitter": 0.5
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "AC_LOCAL",
-      "fast_slow": {
-        "fast": {
-          "memory": {
-            "eviction_policy": {
-              "max_bytes": 67108864
-            }
-          }
-        },
-        "fast_direction": "get",
-        "slow": {
-          "experimental_cloud_object_store": {
-            "provider": "r2",
-            "account_id": "6063b6652178f5cf1cfb87e7e41acf1e",
-            "bucket": "straylight-nativelink-cas",
-            "access_key_id": "${R2_ACCESS_KEY_ID}",
-            "secret_access_key": "${R2_SECRET_ACCESS_KEY}",
-            "key_prefix": "ac/",
-            "retry": {
-              "max_retries": 6,
-              "delay": 0.3,
-              "jitter": 0.5
-            }
-          }
-        }
-      }
-    },
-    {
-      "name": "REMOTE_CAS",
-      "grpc": {
-        "instance_name": "main",
-        "store_type": "cas",
-        "endpoints": [
-          {
-            "address": "grpc://watchtower.sju1.s4.gl:50052"
-          }
-        ]
-      }
-    },
-    {
-      "name": "REMOTE_AC",
-      "grpc": {
-        "instance_name": "main",
-        "store_type": "ac",
-        "endpoints": [
-          {
-            "address": "grpc://watchtower.sju1.s4.gl:50052"
-          }
-        ]
-      }
-    },
-    {
-      "name": "WORKER_FAST_SLOW_STORE",
-      "fast_slow": {
-        "fast": {
-          "filesystem": {
-            "content_path": "/var/lib/nativelink/worker-content",
-            "temp_path": "/var/lib/nativelink/worker-tmp",
-            "eviction_policy": {
-              "max_bytes": 68719476736
-            }
-          }
-        },
-        "fast_direction": "get",
-        "slow": {
-          "ref_store": {
-            "name": "REMOTE_CAS"
-          }
-        }
-      }
-    }
-  ],
-  "global": {
-    "max_open_files": 24576
-  },
-  "schedulers": [
-    {
-      "name": "MAIN_SCHEDULER",
-      "simple": {
-        "supported_platform_properties": {
-          "cpu_count": "minimum",
-          "memory_kb": "minimum",
-          "gpu_count": "minimum",
-          "gpu_model": "exact",
-          "cpu_vendor": "exact",
-          "cpu_arch": "exact",
-          "cpu_model": "exact",
-          "kernel_version": "exact",
-          "OSFamily": "priority",
-          "container-image": "priority",
-          "lre-rs": "priority",
-          "ISA": "exact"
-        }
-      }
-    }
-  ],
-  "servers": [
-    {
-      "name": "public",
-      "listener": {
-        "http": {
-          "socket_address": "0.0.0.0:50051"
-        }
-      },
-      "services": {
-        "cas": [
-          {
-            "instance_name": "main",
-            "cas_store": "CAS_MAIN_STORE"
-          }
-        ],
-        "ac": [
-          {
-            "instance_name": "main",
-            "ac_store": "AC_MAIN_STORE"
-          }
-        ],
-        "execution": [
-          {
-            "instance_name": "main",
-            "cas_store": "CAS_MAIN_STORE",
-            "scheduler": "MAIN_SCHEDULER"
-          }
-        ],
-        "capabilities": [
-          {
-            "instance_name": "main",
-            "remote_execution": {
-              "scheduler": "MAIN_SCHEDULER"
-            }
-          }
-        ],
-        "bytestream": [
-          {
-            "instance_name": "main",
-            "cas_store": "CAS_MAIN_STORE"
-          }
-        ]
-      }
-    },
-    {
-      "name": "worker_api",
-      "listener": {
-        "http": {
-          "socket_address": "0.0.0.0:50061"
-        }
-      },
-      "services": {
-        "worker_api": {
-          "scheduler": "MAIN_SCHEDULER"
-        },
-        "admin": {},
-        "health": {}
-      }
-    },
-    {
-      "name": "cas",
-      "listener": {
-        "http": {
-          "socket_address": "0.0.0.0:50052"
-        }
-      },
-      "services": {
-        "cas": [
-          {
-            "instance_name": "main",
-            "cas_store": "CAS_LOCAL"
-          }
-        ],
-        "ac": [
-          {
-            "instance_name": "main",
-            "ac_store": "AC_LOCAL"
-          }
-        ],
-        "bytestream": [
-          {
-            "instance_name": "main",
-            "cas_store": "CAS_LOCAL"
-          }
-        ],
-        "health": {}
-      }
-    }
-  ],
-  "workers": [
-    {
-      "local": {
-        "worker_api_endpoint": {
-          "uri": "grpc://watchtower.sju1.s4.gl:50061"
-        },
-        "cas_fast_slow_store": "WORKER_FAST_SLOW_STORE",
-        "upload_action_result": {
-          "ac_store": "REMOTE_AC"
-        },
-        "work_directory": "/var/lib/nativelink/work",
-        "platform_properties": {
-          "cpu_arch": {
-            "values": [
-              "x86_64"
-            ]
-          },
-          "OSFamily": {
-            "values": [
-              "linux"
-            ]
-          },
-          "container-image": {
-            "values": [
-              ""
-            ]
-          },
-          "lre-rs": {
-            "values": [
-              ""
-            ]
-          },
-          "ISA": {
-            "values": [
-              "x86-64"
-            ]
-          }
-        }
-      }
-    }
-  ]
+	"stores": [
+		{
+			"name": "CAS_MAIN_STORE",
+			"shard": {
+				"stores": [
+					{
+						"store": {
+							"grpc": {
+								"instance_name": "main",
+								"store_type": "cas",
+								"endpoints": [
+									{
+										"address": "grpc://watchtower.sju1.s4.gl:50052"
+									}
+								]
+							}
+						},
+						"weight": 4
+					},
+					{
+						"store": {
+							"grpc": {
+								"instance_name": "main",
+								"store_type": "cas",
+								"endpoints": [
+									{
+										"address": "grpc://guccimane.sju1.s4.gl:50052"
+									}
+								]
+							}
+						},
+						"weight": 4
+					},
+					{
+						"store": {
+							"grpc": {
+								"instance_name": "main",
+								"store_type": "cas",
+								"endpoints": [
+									{
+										"address": "grpc://ultraviolence.sju1.s4.gl:50052"
+									}
+								]
+							}
+						},
+						"weight": 1
+					}
+				]
+			}
+		},
+		{
+			"name": "AC_MAIN_STORE",
+			"shard": {
+				"stores": [
+					{
+						"store": {
+							"grpc": {
+								"instance_name": "main",
+								"store_type": "ac",
+								"endpoints": [
+									{
+										"address": "grpc://watchtower.sju1.s4.gl:50052"
+									}
+								]
+							}
+						},
+						"weight": 4
+					},
+					{
+						"store": {
+							"grpc": {
+								"instance_name": "main",
+								"store_type": "ac",
+								"endpoints": [
+									{
+										"address": "grpc://guccimane.sju1.s4.gl:50052"
+									}
+								]
+							}
+						},
+						"weight": 4
+					},
+					{
+						"store": {
+							"grpc": {
+								"instance_name": "main",
+								"store_type": "ac",
+								"endpoints": [
+									{
+										"address": "grpc://ultraviolence.sju1.s4.gl:50052"
+									}
+								]
+							}
+						},
+						"weight": 1
+					}
+				]
+			}
+		},
+		{
+			"name": "CAS_LOCAL",
+			"fast_slow": {
+				"fast": {
+					"filesystem": {
+						"content_path": "/var/lib/nativelink/content",
+						"temp_path": "/var/lib/nativelink/tmp",
+						"eviction_policy": {
+							"max_bytes": 68719476736
+						}
+					}
+				},
+				"fast_direction": "get",
+				"slow": {
+					"experimental_cloud_object_store": {
+						"provider": "r2",
+						"account_id": "6063b6652178f5cf1cfb87e7e41acf1e",
+						"bucket": "straylight-nativelink-cas",
+						"access_key_id": "${R2_ACCESS_KEY_ID}",
+						"secret_access_key": "${R2_SECRET_ACCESS_KEY}",
+						"key_prefix": "cas/",
+						"retry": {
+							"max_retries": 6,
+							"delay": 0.3,
+							"jitter": 0.5
+						}
+					}
+				}
+			}
+		},
+		{
+			"name": "AC_LOCAL",
+			"fast_slow": {
+				"fast": {
+					"memory": {
+						"eviction_policy": {
+							"max_bytes": 67108864
+						}
+					}
+				},
+				"fast_direction": "get",
+				"slow": {
+					"experimental_cloud_object_store": {
+						"provider": "r2",
+						"account_id": "6063b6652178f5cf1cfb87e7e41acf1e",
+						"bucket": "straylight-nativelink-cas",
+						"access_key_id": "${R2_ACCESS_KEY_ID}",
+						"secret_access_key": "${R2_SECRET_ACCESS_KEY}",
+						"key_prefix": "ac/",
+						"retry": {
+							"max_retries": 6,
+							"delay": 0.3,
+							"jitter": 0.5
+						}
+					}
+				}
+			}
+		},
+		{
+			"name": "REMOTE_CAS",
+			"grpc": {
+				"instance_name": "main",
+				"store_type": "cas",
+				"endpoints": [
+					{
+						"address": "grpc://watchtower.sju1.s4.gl:50052"
+					}
+				]
+			}
+		},
+		{
+			"name": "REMOTE_AC",
+			"grpc": {
+				"instance_name": "main",
+				"store_type": "ac",
+				"endpoints": [
+					{
+						"address": "grpc://watchtower.sju1.s4.gl:50052"
+					}
+				]
+			}
+		},
+		{
+			"name": "WORKER_FAST_SLOW_STORE",
+			"fast_slow": {
+				"fast": {
+					"filesystem": {
+						"content_path": "/var/lib/nativelink/worker-content",
+						"temp_path": "/var/lib/nativelink/worker-tmp",
+						"eviction_policy": {
+							"max_bytes": 68719476736
+						}
+					}
+				},
+				"fast_direction": "get",
+				"slow": {
+					"ref_store": {
+						"name": "REMOTE_CAS"
+					}
+				}
+			}
+		}
+	],
+	"global": {
+		"max_open_files": 24576
+	},
+	"schedulers": [
+		{
+			"name": "MAIN_SCHEDULER",
+			"simple": {
+				"supported_platform_properties": {
+					"cpu_count": "minimum",
+					"memory_kb": "minimum",
+					"gpu_count": "minimum",
+					"gpu_model": "exact",
+					"cpu_vendor": "exact",
+					"cpu_arch": "exact",
+					"cpu_model": "exact",
+					"kernel_version": "exact",
+					"OSFamily": "priority",
+					"container-image": "priority",
+					"lre-rs": "priority",
+					"ISA": "exact"
+				}
+			}
+		}
+	],
+	"servers": [
+		{
+			"name": "public",
+			"listener": {
+				"http": {
+					"socket_address": "0.0.0.0:50051"
+				}
+			},
+			"services": {
+				"cas": [
+					{
+						"instance_name": "main",
+						"cas_store": "CAS_MAIN_STORE"
+					}
+				],
+				"ac": [
+					{
+						"instance_name": "main",
+						"ac_store": "AC_MAIN_STORE"
+					}
+				],
+				"execution": [
+					{
+						"instance_name": "main",
+						"cas_store": "CAS_MAIN_STORE",
+						"scheduler": "MAIN_SCHEDULER"
+					}
+				],
+				"capabilities": [
+					{
+						"instance_name": "main",
+						"remote_execution": {
+							"scheduler": "MAIN_SCHEDULER"
+						}
+					}
+				],
+				"bytestream": [
+					{
+						"instance_name": "main",
+						"cas_store": "CAS_MAIN_STORE"
+					}
+				]
+			}
+		},
+		{
+			"name": "worker_api",
+			"listener": {
+				"http": {
+					"socket_address": "0.0.0.0:50061"
+				}
+			},
+			"services": {
+				"worker_api": {
+					"scheduler": "MAIN_SCHEDULER"
+				},
+				"admin": {},
+				"health": {}
+			}
+		},
+		{
+			"name": "cas",
+			"listener": {
+				"http": {
+					"socket_address": "0.0.0.0:50052"
+				}
+			},
+			"services": {
+				"cas": [
+					{
+						"instance_name": "main",
+						"cas_store": "CAS_LOCAL"
+					}
+				],
+				"ac": [
+					{
+						"instance_name": "main",
+						"ac_store": "AC_LOCAL"
+					}
+				],
+				"bytestream": [
+					{
+						"instance_name": "main",
+						"cas_store": "CAS_LOCAL"
+					}
+				],
+				"health": {}
+			}
+		}
+	],
+	"workers": [
+		{
+			"local": {
+				"worker_api_endpoint": {
+					"uri": "grpc://watchtower.sju1.s4.gl:50061"
+				},
+				"cas_fast_slow_store": "WORKER_FAST_SLOW_STORE",
+				"upload_action_result": {
+					"ac_store": "REMOTE_AC"
+				},
+				"work_directory": "/var/lib/nativelink/work",
+				"platform_properties": {
+					"cpu_arch": {
+						"values": ["x86_64"]
+					},
+					"OSFamily": {
+						"values": ["linux"]
+					},
+					"container-image": {
+						"values": [""]
+					},
+					"lre-rs": {
+						"values": [""]
+					},
+					"ISA": {
+						"values": ["x86-64"]
+					}
+				}
+			}
+		}
+	]
 }

@@ -42,8 +42,6 @@ let HostDef =
       , default = { isScheduler = False, enabled = True }
       }
 
-let scheduler = "watchtower"
-
 let schedulerFqdn = "watchtower.sju1.s4.gl"
 
 let casPort = "50052"

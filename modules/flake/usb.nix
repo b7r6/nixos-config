@@ -6,9 +6,8 @@
 #
 # Build with: nix build .#usb-aarch64-minimal
 #         or: nix build .#usb-x86_64-gnome
-{ inputs, self, ... }:
-{
-  perSystem = { pkgs, system, ... }: {
+{ inputs, self, ... }: {
+  perSystem = { system, ... }: {
     apps.build-usb = {
       type = "app";
       program = "${self}/scripts/build-usb.sh";

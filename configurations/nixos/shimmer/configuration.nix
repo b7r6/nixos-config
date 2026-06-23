@@ -96,7 +96,17 @@ in
 
   # CoreDNS as this node's own resolver (resolves *.sju1.s4.gl, incl. the
   # nativelink scheduler/CAS FQDNs; tailscale stops managing resolv.conf).
-  hyper-modern-nixos.coredns.enable = true;
+  hyper-modern-nixos.coredns = {
+    enable = true;
+    # shimmer is aarch64-linux but evaluated from x86_64 — the overlay's
+    # callCabal2nix IFD can't build on the wrong arch. Use the x86_64 zone tool
+    # from a build-platform nixpkgs import (the zone output is pure text, arch-independent).
+    zoneToolPackage =
+      let
+        buildPkgs = import flake.inputs.nixpkgs { system = "x86_64-linux"; };
+      in
+      buildPkgs.callPackage (flake.self + "/modules/flake/registry/packages/coredns-zone") { };
+  };
 
   # ── NativeLink: DEFERRED on shimmer (aarch64) ───────────────────────────────
   # shimmer is meant to be the aarch64 CAS shard + executor (fleet.dhall has it,

@@ -4,8 +4,7 @@
 #
 # Constructs the per-system `pkgs` used by all perSystem modules: applies the
 # repo overlay, devshell, vscode-extensions, and emacs-overlay.
-{ inputs, self, ... }:
-{
+{ inputs, self, ... }: {
   perSystem = { system, ... }: {
     _module.args.pkgs = import inputs.nixpkgs {
       inherit system;

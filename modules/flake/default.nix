@@ -4,8 +4,7 @@
 #
 # Root flake-parts module. Imports all sub-modules; the only perSystem here is
 # the devshell and the font packages that don't belong to any component.
-{ inputs, ... }:
-{
+{ inputs, ... }: {
   debug = true;
 
   # ── flakeModules output (the extraction seam) ──────────────────────────────

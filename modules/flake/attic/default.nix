@@ -7,8 +7,7 @@
 # Owns:
 #   - the NixOS modules (./nixos.nix, ./nixos-node.nix)
 #   - the VM test (./checks/cache.nix)
-{ inputs, ... }:
-{
+{ inputs, ... }: {
   flake.nixosModules.attic = ./nixos.nix;
   flake.nixosModules.attic-node = ./nixos-node.nix;
 

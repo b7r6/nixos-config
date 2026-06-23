@@ -16,8 +16,7 @@
 # ─── dependencies ─────────────────────────────────────────────────────────────
 # The NixOS module reads `flake.self + "/modules/flake/registry/data/registry.json"`.
 # The coredns-zone package is also surfaced via the overlay (for coredns.nix).
-{ inputs, self, ... }:
-{
+_: {
   flake.nixosModules.registry = ./nixos.nix;
 
   perSystem = { pkgs, ... }: {

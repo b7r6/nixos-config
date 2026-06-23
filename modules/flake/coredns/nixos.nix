@@ -53,15 +53,18 @@ let
   # We use buildPackages so a cross-arch host (aarch64 shimmer) builds the zone
   # with the BUILD-platform binary; the zone text is host-independent.
   registrySrc = flake.self + "/modules/flake/registry/data";
-  # Both the tool AND the runCommand come from buildPackages: the zone text is
-  # host-independent, so it's built on the BUILD platform. This keeps a cross-arch
-  # host (aarch64 shimmer, evaluated from x86_64) from forcing an aarch64 zone
-  # build during eval — the zone derivation is x86_64, buildable here.
-  buildPkgs = pkgs.buildPackages;
-  zoneTool = buildPkgs.coredns-zone;
+  # The zone text is host-independent — just data — so the zone tool + runCommand
+  # should be for the BUILD platform, not the target host. For same-arch hosts
+  # this doesn't matter, but for shimmer (aarch64 evaluated from x86_64) it does:
+  # shimmer's pkgs is aarch64, and callCabal2nix IFD can't build on x86_64.
+  #
+  # Solution: the module accepts cfg.zoneToolPackage (a package option). The
+  # flake-parts component wires it from perSystem (always the evaluator's arch).
+  # Fallback: pkgs.coredns-zone (works for same-arch hosts via the overlay).
+  zoneTool = cfg.zoneToolPackage;
 
   zoneFile =
-    buildPkgs.runCommand "${zone}.zone"
+    pkgs.runCommand "${zone}.zone"
       {
         nativeBuildInputs = [ zoneTool ];
         # The registry .dhall files carry Unicode (typographic box-drawing in
@@ -70,7 +73,7 @@ let
         # locale so the decode is correct.
         LANG = "C.UTF-8";
         LC_ALL = "C.UTF-8";
-        LOCALE_ARCHIVE = "${buildPkgs.glibcLocales}/lib/locale/locale-archive";
+        LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
       }
       ''
         coredns-zone \
@@ -119,6 +122,18 @@ in
 {
   options.hyper-modern-nixos.coredns = {
     enable = mkEnableOption "split-horizon CoreDNS generated from the topology registry";
+
+    zoneToolPackage = mkOption {
+      type = types.package;
+      default = pkgs.coredns-zone;
+      defaultText = "pkgs.coredns-zone";
+      description = ''
+        The coredns-zone binary used to compile the DNS zone at build time.
+        Override this for cross-arch hosts where the overlay's callCabal2nix
+        can't build natively — set it to the evaluator-platform package from
+        the flake's perSystem.
+      '';
+    };
 
     dc = mkOption {
       type = types.str;

@@ -18,8 +18,7 @@
 #   - `flake.self` (to locate data/out/<host>.json)
 #   - `config.hyper-modern-nixos.state` (from modules/nixos/state.nix)
 # On extraction, these become the flake's own inputs + an optional integration.
-{ inputs, self, ... }:
-{
+_: {
   flake.nixosModules.nativelink = ./nixos.nix;
 
   perSystem = { pkgs, ... }: {
