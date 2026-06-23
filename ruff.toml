@@ -117,21 +117,21 @@ ignore = [
 # these are pragmatic scripts, and chasing Path.open()/contextlib.suppress
 # rewrites risks regressing working, tested tooling.
 "media/pipeline/**" = [
-  "PTH",                         # open() vs Path.open() — fine for scripts
-  "SIM",                         # contextmanager / ternary style prefs
-  "PERF",                        # micro-optimizations
-  "RUF001",                      # ambiguous unicode (our DOMAIN is unicode-heavy)
+  "PTH",     # open() vs Path.open() — fine for scripts
+  "SIM",     # contextmanager / ternary style prefs
+  "PERF",    # micro-optimizations
+  "RUF001",  # ambiguous unicode (our DOMAIN is unicode-heavy)
   "RUF002",
   "RUF003",
-  "PLW1510",                     # subprocess without explicit check=
-  "PLW2901",                     # loop var overwrite
-  "B007",                        # unused loop var
-  "D205",                        # blank line before docstring summary
-  "E501",                        # line length (comment tables)
+  "PLW1510", # subprocess without explicit check=
+  "PLW2901", # loop var overwrite
+  "B007",    # unused loop var
+  "D205",    # blank line before docstring summary
+  "E501",    # line length (comment tables)
 ]
 "tools/queuedrop/server/**" = [
   "PTH",
-  "SIM",                         # try/except/pass for clean Ctrl-C shutdown
+  "SIM",    # try/except/pass for clean Ctrl-C shutdown
   "RUF001",
   "RUF002",
   "RUF003",
