@@ -17,7 +17,7 @@ let
   inherit (lib) mkOption mkEnableOption types;
 
   # Import the pure-Nix color math library (no config dependency)
-  color-lib = import ../../../lib/ono-sendai.nix { inherit lib; };
+  color-lib = import ./lib.nix { inherit lib; };
 
   # ── Theme package builders (parameterized, no config dependency) ─────────────
 
@@ -30,7 +30,7 @@ let
       axis-hue,
     }:
     let
-      generator = pkgs.callPackage ../../../packages/ono-sendai-generator { };
+      generator = pkgs.callPackage ./packages/ono-sendai-generator { };
     in
     pkgs.runCommand "ono-sendai-emacs-theme" { } ''
       mkdir -p $out/share/emacs/site-lisp
@@ -40,10 +40,9 @@ let
 
   # Build a Neovim theme package using the Lean generator
   mkNeovimTheme =
-    pkgs:
-    _:
+    pkgs: _:
     let
-      generator = pkgs.callPackage ../../../packages/ono-sendai-generator { };
+      generator = pkgs.callPackage ./packages/ono-sendai-generator { };
     in
     pkgs.runCommand "ono-sendai-nvim-theme" { } ''
       mkdir -p $out/lua/ono-sendai
@@ -217,7 +216,7 @@ in
             };
           })
 
-          # NOTE: ono-sendai-generator is auto-wired from packages/ by nixos-unified
+          # ono-sendai-generator lives at ./packages/ono-sendai-generator/
 
           # Emacs theme package (if enabled)
           (lib.mkIf (cfg.enable && cfg.editors.emacs) {

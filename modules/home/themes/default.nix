@@ -29,8 +29,8 @@ let
 
   cfg = config.hyper-modern-nixos.themes;
 
-  # Import color math library
-  color-lib = import ../../../lib/ono-sendai.nix { inherit lib; };
+  # Import color math library (lives in the themes flake-parts component)
+  color-lib = import ../../flake/themes/lib.nix { inherit lib; };
 
   # Legacy pre-baked palettes (backward compatibility)
   legacyThemes = {

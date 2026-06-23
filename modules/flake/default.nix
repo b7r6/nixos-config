@@ -188,7 +188,7 @@
       {
         berkeley-mono = pkgs.callPackage ../home/themes/fonts/berkeley-mono { };
         default = pkgs.callPackage ../home/themes/fonts/berkeley-mono { };
-        ono-sendai-generator = pkgs.callPackage ../../packages/ono-sendai-generator { };
+        ono-sendai-generator = pkgs.callPackage ./themes/packages/ono-sendai-generator { };
       }
 
       # ── USB Installer Images ─────────────────────────────────────────────────
