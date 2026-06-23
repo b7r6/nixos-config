@@ -43,8 +43,8 @@
     # ── Services (gated) ──
     ./postgres.nix
     ../flake/backup/nixos.nix
-    ./attic.nix
-    ./attic-node.nix
+    ../flake/attic/nixos.nix
+    ../flake/attic/nixos-node.nix
     ../flake/nativelink/nixos.nix
     ./rclone-mount.nix
     ./searxng.nix
