@@ -1632,6 +1632,21 @@
     },
     "nixpkgs_6": {
       "locked": {
+        "lastModified": 1782135133,
+        "narHash": "sha256-CKuR0GpkICF4MIfCfZug0pk+F2k/5sRquvO3h7oS0Bs=",
+        "owner": "sensenet-ai",
+        "repo": "nixpkgs",
+        "rev": "7f5aa8815f4802279c2982ee1a95a32ce059ee8b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "sensenet-ai",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_7": {
+      "locked": {
         "lastModified": 1767364772,
         "narHash": "sha256-fFUnEYMla8b7UKjijLnMe+oVFOz6HjijGGNS1l7dYaQ=",
         "owner": "nixos",
@@ -1726,16 +1741,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1777407138,
-        "narHash": "sha256-1FpSQJtxZ7fdUUgLvRNmaG4u3oszz6LlDDak78jrl8Y=",
+        "lastModified": 1782181843,
+        "narHash": "sha256-OE+VyP/LsohMS30Ji1O9/TAeQztnGsdjPZK2Isd+ex8=",
         "owner": "sensenet-ai",
-        "repo": "nvidia-sdk",
-        "rev": "88155ebff082cd122d9afaa078992fc1675db4bc",
+        "repo": "nvidia-opensdk",
+        "rev": "274284a693c8851df049a77480b588468572464c",
         "type": "github"
       },
       "original": {
         "owner": "sensenet-ai",
-        "repo": "nvidia-sdk",
+        "repo": "nvidia-opensdk",
         "type": "github"
       }
     },
@@ -1817,19 +1832,17 @@
         "llvm-project": "llvm-project",
         "nativelink": "nativelink_2",
         "nix-compile": "nix-compile_2",
-        "nixpkgs": [
-          "nixpkgs"
-        ],
+        "nixpkgs": "nixpkgs_6",
         "nvidia-sdk": "nvidia-sdk",
         "systems": "systems_7",
         "treefmt-nix": "treefmt-nix_4"
       },
       "locked": {
-        "lastModified": 1782177715,
-        "narHash": "sha256-yMzZ6n1PgC+w0+fn7Mns2hQlJyi6tU3mnvsRDPvP8jI=",
+        "lastModified": 1782182990,
+        "narHash": "sha256-ccXHsKondkdStICDC/xc98aWAo71t/PfAiqLgZZkqYU=",
         "owner": "sensenet-ai",
         "repo": "straylight-prelude",
-        "rev": "21d3423717c1818daf6c5d0cdfc921dccba7e18f",
+        "rev": "d7297ff285b64e135541588e1c64b0272f262dd5",
         "type": "github"
       },
       "original": {
@@ -2134,7 +2147,7 @@
     },
     "treefmt-nix_4": {
       "inputs": {
-        "nixpkgs": "nixpkgs_6"
+        "nixpkgs": "nixpkgs_7"
       },
       "locked": {
         "lastModified": 1769691507,

@@ -102,6 +102,10 @@
     # rustc/cargo, lean4, python-env, nvidia-sdk, purescript) + buck2 itself, so
     # the operator devshell / VSCode see bit-identical tools to the CAS fleet.
     straylight-prelude.url = "github:sensenet-ai/straylight-prelude/main";
-    straylight-prelude.inputs.nixpkgs.follows = "nixpkgs";
+    # Do NOT follow our nixpkgs: the RE worker toolchain closure
+    # (straylight-prelude#fleet-toolchain) must be built from the prelude's OWN
+    # pinned nixpkgs so its store paths are bit-identical to what the Buck2
+    # clients (examples) reference. Overriding nixpkgs here would re-derive the
+    # toolchain under a different nixpkgs and the paths would not match.
   };
 }
