@@ -8,6 +8,19 @@
 {
   debug = true;
 
+  # ── flakeModules output (the extraction seam) ──────────────────────────────
+  # When a component graduates to its own flake, it exposes
+  # `flakeModules.default` and consumers swap the path import for an input.
+  flake.flakeModules = {
+    attic = ./attic;
+    backup = ./backup;
+    coredns = ./coredns;
+    media = ./media;
+    nativelink = ./nativelink;
+    registry = ./registry;
+    themes = ./themes;
+  };
+
   imports = [
     # ── infrastructure (cross-cutting) ──
     inputs.devshell.flakeModule
