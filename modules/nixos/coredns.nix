@@ -20,6 +20,7 @@
   config,
   lib,
   pkgs,
+  flake ? null,
   ...
 }:
 let
@@ -31,67 +32,60 @@ let
     mkEnableOption
     types
     concatStringsSep
-    concatMapStringsSep
-    filter
-    attrValues
     optionalString
     ;
-
-  hosts = attrValues topo.hosts;
 
   # The internal zone is the DC subdomain of the internal domain: <dc>.<domain>.
   # Single-site today (one dc), so one zone. (Multi-DC later = one zone per dc.)
   zone = "${cfg.dc}.${topo.registry.internalDomain}";
 
-  # ── Zone file body, generated from the registry ─────────────────────────────
-  # A-records: <host> → tailnet_ipv4 for every host; <host>.lan → lan_ipv4 for
-  # hosts that have a static lease (Optional → rendered absent when null, so we
-  # filter on its presence).
-  hostRecords = concatMapStringsSep "\n" (h: "${h.physical} IN A ${h.tailnet_ipv4}") hosts;
+  # ── Zone file: COMPILED by the coredns-zone program, at BUILD time ──────────
+  # The topology → BIND-zone transform is a real, compiled GHC-9.12 program
+  # (packages/coredns-zone): it decodes registry/hosts.dhall via the Dhall library
+  # and SEMANTICALLY VALIDATES the result (well-formed NS glue, non-empty zone, no
+  # duplicate A-names, no dangling CNAME targets, no service tag on two hosts) —
+  # refusing to emit a broken zone rather than emitting one silently. DNS is
+  # intolerable to silent-wrong output (a bad zone strands the network we deploy
+  # over), so the generator's failure mode is "build fails", never "serve garbage".
+  #
+  # nixlang's job is purely to RUN the program with this node's params and capture
+  # its stdout into a store path — no record assembly, no service logic, no IFD.
+  # We use buildPackages so a cross-arch host (aarch64 shimmer) builds the zone
+  # with the BUILD-platform binary; the zone text is host-independent.
+  registrySrc = flake.self + "/registry";
+  # Both the tool AND the runCommand come from buildPackages: the zone text is
+  # host-independent, so it's built on the BUILD platform. This keeps a cross-arch
+  # host (aarch64 shimmer, evaluated from x86_64) from forcing an aarch64 zone
+  # build during eval — the zone derivation is x86_64, buildable here.
+  buildPkgs = pkgs.buildPackages;
+  zoneTool = buildPkgs.coredns-zone;
 
-  lanRecords = concatMapStringsSep "\n" (h: "${h.physical}.lan IN A ${h.lan_ipv4}") (
-    filter (h: h ? lan_ipv4 && h.lan_ipv4 != null) hosts
-  );
+  zoneFile =
+    buildPkgs.runCommand "${zone}.zone"
+      {
+        nativeBuildInputs = [ zoneTool ];
+        # The registry .dhall files carry Unicode (typographic box-drawing in
+        # comments); GHC's text IO reads under the ambient locale, which is unset
+        # in the build sandbox (→ "cannot decode byte sequence"). Pin a UTF-8
+        # locale so the decode is correct.
+        LANG = "C.UTF-8";
+        LC_ALL = "C.UTF-8";
+        LOCALE_ARCHIVE = "${buildPkgs.glibcLocales}/lib/locale/locale-archive";
+      }
+      ''
+        coredns-zone \
+          --self-ip ${lib.escapeShellArg cfg.selfTailnetIPv4} \
+          --registry ${registrySrc}/hosts.dhall \
+          --dc ${lib.escapeShellArg cfg.dc} \
+          --ttl ${toString cfg.ttl} \
+          --serial ${lib.escapeShellArg cfg.serial} \
+          > "$out"
+      '';
 
-  # Service CNAMEs: for each service tag → the (first) host running it. e.g.
-  # registry.<zone> → watchtower. Used so clients can name a service, not a box.
-  allServices = lib.unique (lib.concatMap (h: h.services) hosts);
-  serviceRecords = concatMapStringsSep "\n" (
-    svc:
-    let
-      providers = filter (h: builtins.elem svc h.services) hosts;
-      target = (builtins.head providers).physical;
-    in
-    optionalString (providers != [ ]) "${svc} IN CNAME ${target}.${zone}."
-  ) allServices;
-
-  zoneFile = pkgs.writeText "${zone}.zone" ''
-    $TTL ${toString cfg.ttl}
-    $ORIGIN ${zone}.
-    @ IN SOA ns.${zone}. admin.${zone}. (
-        ${cfg.serial} ; serial
-        3600          ; refresh
-        1800          ; retry
-        604800        ; expire
-        ${toString cfg.ttl} ; minimum
-    )
-    @ IN NS ns.${zone}.
-    ns IN A ${cfg.selfTailnetIPv4}
-
-    ; ── hosts: <host>.${zone} → tailnet_ipv4 ──
-    ${hostRecords}
-
-    ; ── LAN: <host>.lan.${zone} → lan_ipv4 (static-leased wired boxes only) ──
-    ${lanRecords}
-
-    ; ── service aliases: <service>.${zone} → host running it ──
-    ${serviceRecords}
-  '';
-
-  # A plain Nix STRING (not pkgs.writeText) so services.coredns.config consumes it
-  # directly — readFile of a derivation would be import-from-derivation, which
-  # `nix flake check` can't evaluate. The zone FILE is still a derivation,
-  # referenced by store path here (CoreDNS reads it at runtime; not IFD).
+  # The Corefile stays in nixlang: it's per-node runtime WIRING (bind address,
+  # ports, forwarders, prometheus toggle), not a computation over the topology —
+  # exactly the glue nixlang is for. It references the rendered zone file by
+  # store path.
   corefile = ''
     ${zone}:${toString cfg.port} {
         bind ${cfg.bindAddress}

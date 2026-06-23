@@ -1,0 +1,47 @@
+cabal-version:      3.0
+name:               coredns-zone
+version:            0.1.0
+synopsis:           Render the typed Dhall topology registry to a CoreDNS zone.
+description:
+  The fleet DNS compiler. Decodes registry/hosts.dhall directly via the Dhall
+  Haskell library (no dhall-to-json hop, no JSON schema mirror) and renders a
+  BIND zone for CoreDNS. DNS is intolerant of silent-wrong output — a bad zone
+  strands the network you deploy over — so the transform is total, the decode is
+  structurally strict (schema drift => loud failure), and semantic DNS invariants
+  (non-empty zone, valid NS glue, no duplicate names, no dangling CNAME targets,
+  no service tag claimed by two hosts) are asserted: the program REFUSES to emit
+  a broken zone rather than emitting one quietly.
+
+license:            BSD-3-Clause
+author:             b7r6
+build-type:         Simple
+
+common warnings
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wmissing-export-lists
+    -Wmissing-home-modules
+    -Wpartial-fields
+    -Wredundant-constraints
+    -Werror
+
+executable coredns-zone
+  import:           warnings
+  main-is:          Main.hs
+  hs-source-dirs:   app
+  default-language: GHC2021
+  default-extensions:
+    DeriveAnyClass
+    DerivingStrategies
+    OverloadedStrings
+    TupleSections
+  build-depends:
+    , base                  >=4.19 && <5
+    , containers
+    , dhall
+    , optparse-applicative
+    , text

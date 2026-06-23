@@ -320,6 +320,7 @@
     checks = inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
       attic-cache = import ../../checks/attic-cache.nix { inherit pkgs inputs; };
       backup-restic = import ../../checks/backup-restic.nix { inherit pkgs inputs; };
+      coredns = import ../../checks/coredns.nix { inherit pkgs inputs; };
     };
 
     packages = inputs.nixpkgs.lib.mkMerge [
@@ -327,6 +328,7 @@
         berkeley-mono = pkgs.callPackage ../home/themes/fonts/berkeley-mono { };
         default = pkgs.callPackage ../home/themes/fonts/berkeley-mono { };
         ono-sendai-generator = pkgs.callPackage ../../packages/ono-sendai-generator { };
+        coredns-zone = pkgs.callPackage ../../packages/coredns-zone { };
       }
 
       # ── USB Installer Images ─────────────────────────────────────────────────
