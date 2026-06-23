@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                               // hyper-modern-nixos // flake // registry/nixos
+#                                             // hyper-modern-nixos // topology
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # The fleet topology registry — the single source of truth for host identity,
@@ -15,6 +15,7 @@
 {
   config,
   lib,
+  pkgs,
   flake ? null,
   ...
 }:
@@ -32,16 +33,29 @@ let
     length
     ;
 
-  # ── Dhall → JSON bridge (committed artifact, NOT import-from-derivation) ─────
-  # The registry's source of truth is data/hosts.dhall (typed + validated by
-  # Dhall). It is rendered to a COMMITTED data/registry.json by the dev command
-  # `nix run .#topology-render`, which topology-check also verifies is in sync.
-  # We read that committed JSON rather than rendering at eval time — IFD
-  # (runCommand + readFile) breaks under `nix flake check`'s no-build evaluator,
-  # and a committed artifact is the standard, IFD-free pattern (like a lockfile).
-  # Regenerate after editing Dhall.
+  # ── Dhall → Nix values, directly at eval via IFD ─────────────────────────────
+  # The registry's source of truth is registry/hosts.dhall (typed + validated by
+  # Dhall). We render it to JSON and read it back AT EVAL TIME — import-from-
+  # derivation, enabled fleet-wide (see nix.nix). No committed registry.json, no
+  # render/check staleness dance. The registry Dhall is fully local (no remote
+  # Prelude), so the build needs only the locale fix (unicode in comments), not
+  # CA certs. buildPackages so cross-arch shimmer doesn't demand an aarch64 build.
+  registrySrc = flake.self + "/modules/flake/registry/data";
+  buildPkgs = pkgs.buildPackages;
+
   registry = builtins.fromJSON (
-    builtins.readFile (flake.self + "/modules/flake/registry/data/registry.json")
+    builtins.readFile (
+      buildPkgs.runCommand "registry.json"
+        {
+          nativeBuildInputs = [ buildPkgs.dhall-json ];
+          LANG = "C.UTF-8";
+          LC_ALL = "C.UTF-8";
+          LOCALE_ARCHIVE = "${buildPkgs.glibcLocales}/lib/locale/locale-archive";
+        }
+        ''
+          dhall-to-json --file ${registrySrc}/hosts.dhall > "$out"
+        ''
+    )
   );
 
   # Host list → attrset keyed by physical name (the NixOS attr name).

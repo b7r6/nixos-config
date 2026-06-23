@@ -24,6 +24,12 @@ _final: prev: {
   # registry into a CoreDNS zone. Consumed by modules/nixos/coredns.nix at build time.
   coredns-zone = prev.callPackage ../flake/registry/packages/coredns-zone { };
 
+  # state-audit — validates state classification against data-loss invariants.
+  state-audit = prev.callPackage ../../packages/state-audit { };
+
+  # gen-supabase-secrets — compiled JWT/crypto generator (replaces bash).
+  gen-supabase-secrets = prev.callPackage ../../packages/gen-supabase-secrets { };
+
   # Skip failing inline-snapshot tests (trivial output format diff in upstream).
   # TODO: remove once upstream is fixed.
   python312Packages = prev.python312Packages // {

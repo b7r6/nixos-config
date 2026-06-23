@@ -44,13 +44,20 @@
     ../../secrets
   ];
 
-  perSystem = { pkgs, ... }: {
+  perSystem = { pkgs, system, ... }: {
     devshells.default.imports = [ (pkgs.devshell.importTOML ../../devshell.toml) ];
 
     packages = {
       berkeley-mono = pkgs.callPackage ../home/themes/fonts/berkeley-mono { };
       default = pkgs.callPackage ../home/themes/fonts/berkeley-mono { };
       ono-sendai-generator = pkgs.callPackage ./themes/packages/ono-sendai-generator { };
+      state-audit = pkgs.callPackage ../../packages/state-audit { };
+      gen-supabase-secrets = pkgs.callPackage ../../packages/gen-supabase-secrets { };
+    };
+
+    # Cross-cutting check: validates the fleet's state classification.
+    checks = inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
+      state-audit = import ../../checks/state-audit.nix { inherit pkgs inputs; };
     };
   };
 }

@@ -58,7 +58,7 @@ in
   # retired tailnets and have been removed.
   "agenix/machines/tailscale-auth-key.age".publicKeys = mkGlobalSecret;
 
-  # restic repository password (modules/flake/backup/nixos.nix). High-entropy
+  # restic repository password (modules/nixos/common/backup.nix). High-entropy
   # passphrase (`openssl rand -base64 48`). LOSING THIS = UNRECOVERABLE BACKUPS;
   # keep an independent out-of-band copy.
   "agenix/machines/restic-password.age".publicKeys = mkGlobalSecret;

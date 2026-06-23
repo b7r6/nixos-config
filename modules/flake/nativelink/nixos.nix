@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                              // hyper-modern-nixos // flake // nativelink/nixos
+#                                          // hyper-modern-nixos // nativelink
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # NativeLink remote-execution / remote-cache, OFF BY DEFAULT.
@@ -73,300 +73,54 @@ let
     else
       inputs.nativelink.packages.${pkgs.stdenv.hostPlatform.system}.nativelink;
 
-  cpuArch = if pkgs.stdenv.hostPlatform.isAarch64 then "aarch64" else "x86_64";
-
-  # JSON5 is a superset of JSON, and nativelink accepts JSON, so we can generate
-  # the config with the plain JSON writer.
-  jsonFormat = pkgs.formats.json { };
-
-  # ── Store / scheduler / worker fragments ─────────────────────────────────────
-  # NativeLink 1.5.x config schema: `stores` and `schedulers` are ARRAYS of
-  # named objects ({ name = "..."; <backend> = {...}; }), NOT maps keyed by
-  # name (the pre-1.x form). `workers` was always an array. Getting this wrong
-  # yields `invalid type: map, expected a sequence` at startup.
+  # Local store root (matches storeRoot in nativelink/fleet.dhall); used by the
+  # systemd tmpfiles / service wiring below.
   storeRoot = "/var/lib/nativelink";
 
-  # R2 slow-tier fragment. account_id/bucket are non-secret; creds come from the
-  # service environment via shellexpand so they never land in the store.
-  r2Backend = keyPrefix: {
-    experimental_cloud_object_store = {
-      provider = "r2";
-      account_id = cfg.r2.accountId;
-      bucket = cfg.r2.bucket;
-      access_key_id = "\${R2_ACCESS_KEY_ID}";
-      secret_access_key = "\${R2_SECRET_ACCESS_KEY}";
-      key_prefix = keyPrefix;
-      retry = {
-        max_retries = 6;
-        delay = 0.3;
-        jitter = 0.5;
-      };
-    };
-  };
+  # ── Config source: the TYPED Dhall fleet, rendered at eval via IFD ──────────
+  # nativelink/fleet.dhall IS the real program: it computes each host's config as
+  # a typed schema.Config and renders it (render.dhall, JSON.render). We render it
+  # at eval time via import-from-derivation (enabled fleet-wide; see nix.nix) — no
+  # committed out/*.json, no render/check staleness dance, no nixlang config
+  # generation. `render-all.dhall` emits [{host, json}]; we select this host's
+  # entry by name with jq (the .json is already-rendered JSON text) and write it.
+  #
+  # buildPackages keeps the render an x86_64 build, so a cross-arch host (aarch64
+  # shimmer) doesn't demand an aarch64 dhall build at eval; the config text is
+  # host-independent given the host name.
+  buildPkgs = pkgs.buildPackages;
+  fleetDir = flake.self + "/modules/flake/nativelink/data";
 
-  # ── Local-only stores (r2.enable = false) ────────────────────────────────────
-  localCasStores = [
-    {
-      name = "CAS_MAIN_STORE";
-      filesystem = {
-        content_path = "${storeRoot}/content";
-        temp_path = "${storeRoot}/tmp";
-        eviction_policy.max_bytes = cfg.maxStoreBytes;
-      };
-    }
-    {
-      name = "AC_MAIN_STORE";
-      filesystem = {
-        content_path = "${storeRoot}/ac-content";
-        temp_path = "${storeRoot}/ac-tmp";
-        eviction_policy.max_bytes = 67108864; # 64 MiB
-      };
-    }
-    {
-      name = "WORKER_FAST_SLOW_STORE";
-      fast_slow = {
-        fast.filesystem = {
-          content_path = "${storeRoot}/worker-content";
-          temp_path = "${storeRoot}/worker-tmp";
-          eviction_policy.max_bytes = cfg.maxStoreBytes;
-        };
-        fast_direction = "get";
-        slow.ref_store.name = "CAS_MAIN_STORE";
-      };
-    }
-  ];
+  renderedConfig =
+    buildPkgs.runCommand "nativelink-${cfg.dhallHost}.json"
+      {
+        nativeBuildInputs = [
+          buildPkgs.dhall-json
+          buildPkgs.jq
+          buildPkgs.cacert
+        ];
+        LANG = "C.UTF-8";
+        LC_ALL = "C.UTF-8";
+        LOCALE_ARCHIVE = "${buildPkgs.glibcLocales}/lib/locale/locale-archive";
+        SSL_CERT_FILE = "${buildPkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+      }
+      ''
+        export XDG_CACHE_HOME="$TMPDIR/dhall-cache"
+        export HOME="$TMPDIR"
+        mkdir -p "$XDG_CACHE_HOME"
+        host=${lib.escapeShellArg cfg.dhallHost}
+        json=$(dhall-to-json --file ${fleetDir}/render-all.dhall \
+                 | jq -e --arg h "$host" '.[] | select(.host==$h) | .json' -r)
+        if [ -z "$json" ]; then
+          echo "nativelink: host '$host' not found in the Dhall fleet (render-all)" >&2
+          exit 1
+        fi
+        # validate it's well-formed JSON before accepting it
+        printf '%s' "$json" | jq . > "$out"
+      '';
 
-  # ── R2-backed stores (r2.enable = true) ──────────────────────────────────────
-  # CAS = verify → dedup → { index_store, content_store }, each a fast_slow with
-  # a local fast tier (NVMe filesystem for content, memory for the index) in
-  # front of R2. AC = fast_slow (memory fast tier + R2). This mirrors the
-  # upstream r2_backend.json5 example but uses a disk fast tier for content so
-  # the local NVMe cache is durable across restarts.
-  r2CasStores = [
-    {
-      name = "CAS_MAIN_STORE";
-      verify = {
-        verify_size = true;
-        backend.dedup = {
-          index_store.fast_slow = {
-            fast.memory.eviction_policy.max_bytes = cfg.memoryCacheBytes;
-            fast_direction = "get";
-            slow = r2Backend "cas-index/";
-          };
-          content_store.compression = {
-            compression_algorithm.lz4 = { };
-            backend.fast_slow = {
-              fast.filesystem = {
-                content_path = "${storeRoot}/content";
-                temp_path = "${storeRoot}/tmp";
-                eviction_policy.max_bytes = cfg.localCacheBytes;
-              };
-              fast_direction = "get";
-              slow = r2Backend "cas/";
-            };
-          };
-        };
-      };
-    }
-    {
-      name = "AC_MAIN_STORE";
-      fast_slow = {
-        fast.memory.eviction_policy.max_bytes = 67108864; # 64 MiB hot AC
-        fast_direction = "get";
-        slow = r2Backend "ac/";
-      };
-    }
-    # LocalWorker still needs a fast_slow store; front the same local NVMe tier
-    # with a ref to the (R2-backed) CAS as the slow side.
-    {
-      name = "WORKER_FAST_SLOW_STORE";
-      fast_slow = {
-        fast.filesystem = {
-          content_path = "${storeRoot}/worker-content";
-          temp_path = "${storeRoot}/worker-tmp";
-          eviction_policy.max_bytes = cfg.localCacheBytes;
-        };
-        fast_direction = "get";
-        slow.ref_store.name = "CAS_MAIN_STORE";
-      };
-    }
-  ];
-
-  casStores = if cfg.r2.enable then r2CasStores else localCasStores;
-
-  inst = cfg.instanceName;
-
-  # The full canonical RE property set Buck2/Bazel negotiate over, with the
-  # match modes from the upstream buck2_cas.json5. The scheduler must SUPPORT a
-  # superset of what any worker advertises and what any action requests.
-  schedulerFragment = [
-    {
-      name = "MAIN_SCHEDULER";
-      simple.supported_platform_properties = {
-        cpu_count = "minimum";
-        memory_kb = "minimum";
-        network_kbps = "minimum";
-        disk_read_iops = "minimum";
-        disk_read_bps = "minimum";
-        disk_write_iops = "minimum";
-        disk_write_bps = "minimum";
-        shm_size = "minimum";
-        gpu_count = "minimum";
-        gpu_model = "exact";
-        cpu_vendor = "exact";
-        cpu_arch = "exact";
-        cpu_model = "exact";
-        kernel_version = "exact";
-        OSFamily = "priority";
-        "container-image" = "priority";
-        "lre-rs" = "priority";
-        ISA = "exact";
-      };
-    }
-  ];
-
-  # TLS terminates AT the nativelink listener (per the config reference:
-  # servers[].listener.http.tls = { cert_file, key_file }). When set, the public
-  # API speaks grpcs:// and clients connect with tls=true. We point it at a
-  # Tailscale-provisioned cert for the node's MagicDNS name (real Let's Encrypt,
-  # trusted tailnet-wide, no custom CA). The worker_api server stays plaintext
-  # on loopback/tailnet — it's the private backend.
-  publicListenerHttp = {
-    socket_address = cfg.publicListen;
-  }
-  // lib.optionalAttrs cfg.tls.enable {
-    tls = {
-      cert_file = cfg.tls.certFile;
-      key_file = cfg.tls.keyFile;
-    };
-  };
-
-  publicServer = {
-    name = "public";
-    listener.http = publicListenerHttp;
-    services = {
-      cas = [
-        {
-          instance_name = inst;
-          cas_store = "CAS_MAIN_STORE";
-        }
-      ];
-      ac = [
-        {
-          instance_name = inst;
-          ac_store = "AC_MAIN_STORE";
-        }
-      ];
-      execution = [
-        {
-          instance_name = inst;
-          cas_store = "CAS_MAIN_STORE";
-          scheduler = "MAIN_SCHEDULER";
-        }
-      ];
-      bytestream = [
-        {
-          instance_name = inst;
-          cas_store = "CAS_MAIN_STORE";
-        }
-      ];
-      capabilities = [
-        {
-          instance_name = inst;
-          remote_execution.scheduler = "MAIN_SCHEDULER";
-        }
-      ];
-    };
-  };
-
-  workerApiServer = {
-    name = "private_workers_servers";
-    listener.http.socket_address = cfg.workerApiListen;
-    services = {
-      worker_api.scheduler = "MAIN_SCHEDULER";
-      admin = { };
-      health = { };
-    };
-  };
-
-  # Worker-advertised properties: host-derived arch/OS/ISA + container-image and
-  # lre-rs left empty (the "priority" match makes empty = "no preference"), and
-  # whatever the host set in cfg.workerProperties (cpu_count, memory_kb, …).
-  workerPlatformProperties = (lib.mapAttrs (_: values: { inherit values; }) cfg.workerProperties) // {
-    cpu_arch.values = [ cpuArch ];
-    OSFamily.values = [ "" ];
-    "container-image".values = [ "" ];
-    "lre-rs".values = [ "" ];
-    ISA.values = [ (if pkgs.stdenv.hostPlatform.isAarch64 then "aarch64" else "x86-64") ];
-  };
-
-  # Per-action entrypoint wrapper. Remote actions run in a sandbox with NO
-  # inherited PATH, so even the prelude's own scaffolding (`mkdir`, `cd`, the
-  # shell) fails with "command not found". This wrapper prepends a baseline,
-  # nix-pinned toolchain to PATH before exec'ing the action's command, which is
-  # the minimum to make non-LRE genrule/sh actions run remotely. It is NOT full
-  # hermeticity (the action can still reach other store paths it names) — for
-  # real reproducibility the client should pin its whole toolchain — but it
-  # makes the worker behave like a sane *nix box. Content-addressed, so it's
-  # itself a stable input. Override via cfg.workerEntrypoint.
-  defaultEntrypoint = pkgs.writeShellScript "nativelink-entrypoint" ''
-    export PATH="${
-      lib.makeBinPath [
-        pkgs.coreutils
-        pkgs.bash
-        pkgs.findutils
-        pkgs.gnused
-        pkgs.gnugrep
-        pkgs.gawk
-      ]
-    }:$PATH"
-    exec "$@"
-  '';
-
-  entrypoint = if cfg.workerEntrypoint != null then cfg.workerEntrypoint else "${defaultEntrypoint}";
-
-  localWorker = {
-    local = {
-      worker_api_endpoint.uri = cfg.workerApiEndpoint;
-      inherit entrypoint;
-      cas_fast_slow_store = "WORKER_FAST_SLOW_STORE";
-      upload_action_result.ac_store = "AC_MAIN_STORE";
-      work_directory = "${storeRoot}/work";
-      platform_properties = workerPlatformProperties;
-    };
-  };
-
-  # role -> assembled config
-  configFor =
-    role:
-    {
-      stores = casStores;
-      global.max_open_files = 24576;
-    }
-    // lib.optionalAttrs (role == "monolithic" || role == "scheduler") {
-      schedulers = schedulerFragment;
-      servers = [
-        publicServer
-        workerApiServer
-      ];
-    }
-    // lib.optionalAttrs (role == "monolithic" || role == "worker") { workers = [ localWorker ]; };
-
-  # Config source, in priority order:
-  #   1. cfg.configFile         — operator-supplied path (escape hatch).
-  #   2. cfg.dhallHost          — the typed Dhall fleet config for this host
-  #      (data/out/<host>.json, committed; rendered by `nix run
-  #      .#nativelink-render`). This is the vN+1 path: a valid config is a Dhall
-  #      type-check, and the sharded multi-arch topology lives in ./data/.
-  #   3. the legacy in-Nix generator (role-based) — kept until the Dhall path is
-  #      proven fleet-wide, then removed.
-  configFile =
-    if cfg.configFile != null then
-      cfg.configFile
-    else if cfg.dhallHost != null then
-      flake.self + "/modules/flake/nativelink/data/out/${cfg.dhallHost}.json"
-    else
-      jsonFormat.generate "nativelink.json" (configFor cfg.role);
+  # Config source: operator escape hatch, else the rendered typed-Dhall config.
+  configFile = if cfg.configFile != null then cfg.configFile else renderedConfig;
 in
 {
   options.hyper-modern-nixos.nativelink = {
@@ -394,10 +148,9 @@ in
       '';
     };
 
-    # ── vN+1: typed Dhall fleet config ──────────────────────────────────────────
-    # When set to a fleet host name, use that host's config from the typed Dhall
-    # fleet (nativelink/out/<host>.json, committed; `nix run .#nativelink-render`)
-    # instead of the legacy in-Nix role generator. The Dhall fleet encodes the
+    # ── Dhall fleet config (the source of truth) ────────────────────────────────
+    # When set, render this host's NativeLink config from the typed Dhall fleet
+    # (nativelink/fleet.dhall) at eval time via IFD. The Dhall fleet encodes the
     # sharded multi-arch topology (scheduler@watchtower, 4-node weighted CAS ring,
     # per-arch workers). See docs/infrastructure/nativelink-production.md.
     dhallHost = lib.mkOption {

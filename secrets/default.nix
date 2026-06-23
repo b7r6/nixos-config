@@ -43,7 +43,6 @@
         view-secret = ./sh/view-secret.sh;
         edit-secret = ./sh/edit-secret.sh;
         new-secret = ./sh/new-secret.sh;
-        gen-supabase-secrets = ./sh/gen-supabase-secrets.sh;
         rotate-secret = ./sh/rotate-secret.sh;
         rekey-secrets = ./sh/rekey-secrets.sh;
         init-secrets = ./sh/init-secrets.sh;

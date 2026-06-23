@@ -53,14 +53,15 @@ let
   # We use buildPackages so a cross-arch host (aarch64 shimmer) builds the zone
   # with the BUILD-platform binary; the zone text is host-independent.
   registrySrc = flake.self + "/modules/flake/registry/data";
-  # The zone text is host-independent (pure data), so we build the tool + the
-  # runCommand on the BUILD platform via nativeBuildInputs. The coredns-zone
-  # package is IFD-free (pre-generated cabal2nix output), so cross-arch evaluation
-  # (aarch64 shimmer from x86_64) works: nix can build the x86_64 derivation.
-  zoneTool = pkgs.coredns-zone;
+  # Both the tool AND the runCommand come from buildPackages: the zone text is
+  # host-independent, so it's built on the BUILD platform. This keeps a cross-arch
+  # host (aarch64 shimmer, evaluated from x86_64) from forcing an aarch64 zone
+  # build during eval — the zone derivation is x86_64, buildable here.
+  buildPkgs = pkgs.buildPackages;
+  zoneTool = buildPkgs.coredns-zone;
 
   zoneFile =
-    pkgs.runCommand "${zone}.zone"
+    buildPkgs.runCommand "${zone}.zone"
       {
         nativeBuildInputs = [ zoneTool ];
         # The registry .dhall files carry Unicode (typographic box-drawing in
@@ -69,7 +70,7 @@ let
         # locale so the decode is correct.
         LANG = "C.UTF-8";
         LC_ALL = "C.UTF-8";
-        LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
+        LOCALE_ARCHIVE = "${buildPkgs.glibcLocales}/lib/locale/locale-archive";
       }
       ''
         coredns-zone \
