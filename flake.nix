@@ -97,13 +97,6 @@
     attic.url = "github:sensenet-ai/attic/b7r6/nar-prefetch-concurrency";
     attic.inputs.nixpkgs.follows = "nixpkgs";
 
-    # straylight-prelude: the Buck2 prelude generator (sensenet-ai). Source of the
-    # exact toolchain closure the RE workers run (llvm-git 22, ghc-with-packages,
-    # rustc/cargo, lean4, python-env, nvidia-sdk, purescript) + buck2 itself, so
-    # the operator devshell / VSCode see bit-identical tools to the CAS fleet.
-    straylight-prelude.url = "github:sensenet-ai/straylight-prelude/b7r6/dev-0x04";
-    straylight-prelude.inputs.nixpkgs.follows = "nixpkgs";
-
     # Self-hosted Supabase. NOT a flake — we consume its docker/ tree as a SOURCE
     # for the version-coupled config files (volumes/api/kong.yml, the db init
     # SQL, volumes/pooler/pooler.exs) that ship OUTSIDE the container images and
