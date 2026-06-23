@@ -101,7 +101,7 @@
     # exact toolchain closure the RE workers run (llvm-git 22, ghc-with-packages,
     # rustc/cargo, lean4, python-env, nvidia-sdk, purescript) + buck2 itself, so
     # the operator devshell / VSCode see bit-identical tools to the CAS fleet.
-    straylight-prelude.url = "github:sensenet-ai/straylight-prelude/b7r6/dev-0x04";
+    straylight-prelude.url = "github:sensenet-ai/straylight-prelude/main";
     straylight-prelude.inputs.nixpkgs.follows = "nixpkgs";
   };
 }

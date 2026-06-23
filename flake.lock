@@ -1825,16 +1825,16 @@
         "treefmt-nix": "treefmt-nix_4"
       },
       "locked": {
-        "lastModified": 1781878051,
-        "narHash": "sha256-im8Wd2ubzvq8XcwCIu9fvHF2Cc564wpliTtZ5Tmvyak=",
+        "lastModified": 1782177715,
+        "narHash": "sha256-yMzZ6n1PgC+w0+fn7Mns2hQlJyi6tU3mnvsRDPvP8jI=",
         "owner": "sensenet-ai",
         "repo": "straylight-prelude",
-        "rev": "481495551538768ae512aafe1e28517ab40e9275",
+        "rev": "21d3423717c1818daf6c5d0cdfc921dccba7e18f",
         "type": "github"
       },
       "original": {
         "owner": "sensenet-ai",
-        "ref": "b7r6/dev-0x04",
+        "ref": "main",
         "repo": "straylight-prelude",
         "type": "github"
       }

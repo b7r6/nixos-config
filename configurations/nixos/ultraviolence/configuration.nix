@@ -1,6 +1,11 @@
-{ flake, ... }:
+{ flake, pkgs, ... }:
 let
   inherit (flake) inputs;
+  # The toolchain closure RE actions reference by absolute store path; pinned on
+  # the worker so every selected toolchain (incl. lean4) resolves. See
+  # hyper-modern-nixos.nativelink.workerToolchains.
+  fleet-toolchain =
+    inputs.straylight-prelude.packages.${pkgs.stdenv.hostPlatform.system}.fleet-toolchain;
 in
 {
   imports = [
@@ -91,6 +96,9 @@ in
     enable = true;
     dhallHost = "ultraviolence";
     openFirewall = true;
+    # Pin the Buck2 toolchain closure so remote actions referencing absolute
+    # /nix/store toolchain paths (clang/rustc/ghc/lean4/…) resolve on this worker.
+    workerToolchains = [ fleet-toolchain ];
     r2 = {
       enable = true;
       accountId = "6063b6652178f5cf1cfb87e7e41acf1e";

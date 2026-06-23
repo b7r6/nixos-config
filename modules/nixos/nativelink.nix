@@ -515,6 +515,28 @@ in
       '';
     };
 
+    # ── Worker toolchain closures (the "ship the toolchains" knob) ─────────────
+    # A remote action's command names absolute /nix/store/... toolchain paths
+    # (clang, rustc, ghc, lean, …). The worker can only run it if those exact
+    # paths exist in ITS /nix/store. The C/Rust/Haskell paths usually arrive via
+    # other GC roots, but a less-common toolchain (e.g. lean4) is otherwise
+    # absent and the action dies with `…/bin/lean: No such file or directory`.
+    #
+    # Each closure listed here is GC-rooted on the worker (system.extraDependencies),
+    # guaranteeing every selected toolchain path is present. Set this to the
+    # project's straylight-prelude-<name>-toolchain output (proj.toolchainenv) —
+    # the exact .buckconfig.local closure for the enabled languages.
+    workerToolchains = lib.mkOption {
+      type = lib.types.listOf lib.types.package;
+      default = [ ];
+      description = ''
+        Toolchain closures to pin into this worker's /nix/store so that every
+        absolute store path a remote action references resolves. Typically the
+        straylight-prelude-<name>-toolchain (toolchainenv) output(s) of the
+        project(s) whose Buck2 actions this worker executes.
+      '';
+    };
+
     # ── Local fast-cache sizing (fronting R2 when r2.enable) ──────────────────
     localCacheBytes = lib.mkOption {
       type = lib.types.int;
@@ -589,6 +611,12 @@ in
       path = storeRoot;
       class = "reconstructible";
     };
+
+    # Pin the project toolchain closures into this worker's /nix/store so every
+    # absolute store path a remote action references is present (otherwise e.g.
+    # `…/bin/lean: No such file or directory`). extraDependencies GC-roots the
+    # closure without putting it on PATH or in systemPackages.
+    system.extraDependencies = cfg.workerToolchains;
 
     assertions = [
       {
