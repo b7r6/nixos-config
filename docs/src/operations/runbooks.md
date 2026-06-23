@@ -4,7 +4,7 @@ Copy-pasteable procedures for the stateful infra. These are the one-time / recov
 aren't expressed declaratively — everything else is in the modules. See
 [Deploying a host](./deploying.md) for the rebuild commands these reference.
 
-______________________________________________________________________
+---
 
 ## A — Stand up the central attic cache on watchtower
 
@@ -20,7 +20,6 @@ Prereqs: the `atticd-rs256.age` secret exists and is rekeyed to `watchtower` (ca
 just uncommenting that block and rebuilding.
 
 1. **Deploy the infra.** On switch the declarative chain runs automatically:
-
    - postgres comes up; `ensureDatabases`/`ensureUsers` create the `atticd` role
      - db (`ensureDBOwnership`);
    - the `postgresql-role-passwords` oneshot sets the `atticd` role password from the agenix secret
@@ -56,7 +55,7 @@ just uncommenting that block and rebuilding.
 
 4. Other hosts use `profile = "replica"` and pull/push automatically via `watch-store`.
 
-______________________________________________________________________
+---
 
 ## B — restic first backup by hand
 
@@ -98,7 +97,7 @@ host:
 
 > **Losing `restic-password` = unrecoverable backups.** Keep an out-of-band copy.
 
-______________________________________________________________________
+---
 
 ## C — PostgreSQL collation-version mismatch after a glibc bump
 
@@ -116,7 +115,7 @@ sudo -u postgres psql -c 'ALTER DATABASE template1 REFRESH COLLATION VERSION;'
 Refreshing `template1` ensures freshly-created databases inherit the correct version. If you suspect
 text indexes were built under the old collation, `REINDEX DATABASE atticd;` afterwards.
 
-______________________________________________________________________
+---
 
 ## D — Cache signing keypair recovery
 
@@ -140,7 +139,7 @@ attic cache info hypermodern    # public key must equal the fleet's publicKey
 The restore only **updates an existing row** — the row itself is created once at bootstrap by
 `attic cache create` (runbook A).
 
-______________________________________________________________________
+---
 
 ## E — Rekey all secrets after adding/rotating a host key
 

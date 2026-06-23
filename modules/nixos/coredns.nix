@@ -1,17 +1,20 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                              // hyper-modern-nixos // coredns
+#                               // hyper-modern-nixos // coredns
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-# Split-horizon DNS for the fleet, OFF BY DEFAULT. Authoritative for the internal
-# zone (sju1.s4.gl), forwards everything else out. The zone is GENERATED from the
-# topology registry (hyper-modern-nixos.topology) — never hand-written — so it
+# Split-horizon DNS for the fleet, OFF BY DEFAULT. Authoritative
+# for the internal # zone (sju1.s4.gl), forwards everything else
+# out. The zone is GENERATED from the # topology registry
+# (hyper-modern-nixos.topology) — never hand-written — so it
 # can't drift from the source of truth. See
 # docs/src/architecture/networking.md.
 #
 # Addressing modes served (all from the registry):
 #   <host>.<dc>.s4.gl       A → tailnet_ipv4   (the overlay/fleet path)
+# 
 #   <host>.lan.<dc>.s4.gl   A → lan_ipv4       (LAN devices, e.g. a Google TV →
 #                                               Jellyfin; only hosts with a lease)
+#
 #   <service>.<dc>.s4.gl    CNAME → the host running that service tag
 #
 # Built on the stock services.coredns (systemd unit + hardening come from there);
@@ -44,6 +47,7 @@ let
   zone = "${cfg.dc}.${topo.registry.internalDomain}";
 
   # ── Zone file body, generated from the registry ─────────────────────────────
+  
   # A-records: <host> → tailnet_ipv4 for every host; <host>.lan → lan_ipv4 for
   # hosts that have a static lease (Optional → rendered absent when null, so we
   # filter on its presence).

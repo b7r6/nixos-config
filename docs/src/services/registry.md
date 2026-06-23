@@ -10,7 +10,7 @@ stores blobs directly in **Cloudflare R2** via its core S3 driver.
 ## Why zot (and how it's built)
 
 zot isn't in nixpkgs, so it's packaged in-repo (`packages/zot`, exposed as
-`pkgs.zot`). We build the **minimal** flavour: S3/remote storage is *core* in zot
+`pkgs.zot`). We build the **minimal** flavour: S3/remote storage is _core_ in zot
 (not an extension), so an R2-backed registry needs none of the heavy extensions —
 which also avoids the `zui` npm build and the search/trivy dependency surface. The
 binary logs `binary-type: minimal` and skips ui/search/mgmt/trust routes by
@@ -28,10 +28,10 @@ run `dedupe = false` (the dedupe index would otherwise need a remote DB), `gc` o
 ## Exposure
 
 On `watchtower` zot binds **`127.0.0.1`** and is fronted by **nginx/TLS** at
-`registry.sju1.s4.gl` (see [below](#nginx-front--tls)). The module *default* is
+`registry.sju1.s4.gl` (see [below](#nginx-front--tls)). The module _default_ is
 `listenAddress = "0.0.0.0"` (binding the `tailscale0` IP directly races boot),
 with the firewall — **on fleet-wide** — opening the port (`5000`) **only on
-`tailscale0`**; that's the tailnet-only posture for a node *without* the reverse
+`tailscale0`**; that's the tailnet-only posture for a node _without_ the reverse
 proxy. watchtower overrides `listenAddress` to loopback because zot now sits
 behind nginx rather than facing the tailnet directly.
 
@@ -58,17 +58,17 @@ hyper-modern-nixos.reverseProxy = {
 
 ## Options
 
-| Option | Type / default | Description |
-| --- | --- | --- |
-| `registry.enable` | `bool` / `false` | Run the zot registry. |
-| `registry.port` | `port` / `5000` | HTTP port (opened on `tailscale0` only). |
-| `registry.listenAddress` | `str` / `"0.0.0.0"` | Bind address (firewall gates to tailnet). |
-| `registry.openTailnet` | `bool` / `true` | Open `port` on `tailscale0`. |
-| `registry.dataDir` | `str` / `"/var/lib/zot"` | Local cache dir (`reconstructible`). |
-| `registry.secret` | `null or str` / `"zot-r2-env"` | agenix secret with the `AWS_*` R2 creds. |
-| `registry.s3.bucket` | `str` / `"straylight-oci"` | R2 blob bucket. |
-| `registry.s3.endpoint` | `str` / R2 endpoint | R2 S3 endpoint (account-scoped). |
-| `registry.s3.region` | `str` / `"auto"` | S3 region (R2 = auto). |
+| Option                   | Type / default                 | Description                               |
+| ------------------------ | ------------------------------ | ----------------------------------------- |
+| `registry.enable`        | `bool` / `false`               | Run the zot registry.                     |
+| `registry.port`          | `port` / `5000`                | HTTP port (opened on `tailscale0` only).  |
+| `registry.listenAddress` | `str` / `"0.0.0.0"`            | Bind address (firewall gates to tailnet). |
+| `registry.openTailnet`   | `bool` / `true`                | Open `port` on `tailscale0`.              |
+| `registry.dataDir`       | `str` / `"/var/lib/zot"`       | Local cache dir (`reconstructible`).      |
+| `registry.secret`        | `null or str` / `"zot-r2-env"` | agenix secret with the `AWS_*` R2 creds.  |
+| `registry.s3.bucket`     | `str` / `"straylight-oci"`     | R2 blob bucket.                           |
+| `registry.s3.endpoint`   | `str` / R2 endpoint            | R2 S3 endpoint (account-scoped).          |
+| `registry.s3.region`     | `str` / `"auto"`               | S3 region (R2 = auto).                    |
 
 ## Using it
 
@@ -96,8 +96,8 @@ skopeo inspect --tls-verify=false docker://watchtower:5000/test/busybox:latest
 
 > TLS: zot itself serves plain HTTP on loopback (`127.0.0.1:5000`); the
 > public-facing TLS is terminated by **nginx** at `registry.sju1.s4.gl` (see
-> below). The `--dest-tls-verify=false` flag is only for pushing *directly* to
-> the loopback port (e.g. on-box). zot *can* terminate TLS natively
+> below). The `--dest-tls-verify=false` flag is only for pushing _directly_ to
+> the loopback port (e.g. on-box). zot _can_ terminate TLS natively
 > (`http.tls.{cert,key}`), but we let nginx be the single TLS edge instead.
 
 ## nginx front + TLS
@@ -118,7 +118,7 @@ tailnet/LAN IP, so clients hit nginx over the tailnet/LAN and never touch the
 zot port directly.
 
 This homelab layer is a **dress rehearsal for the production edge**, which will be
-one of two shapes — both of which sit on top of the *same* internal substrate
+one of two shapes — both of which sit on top of the _same_ internal substrate
 (services on loopback + nginx + CoreDNS), so this substrate is rework-free
 either way:
 
