@@ -12,6 +12,7 @@
     # ── component flake-modules (future-flake candidates) ──
     ./backup
     ./nativelink
+    ./registry
 
     # secrets administration subsystem (devShells.secrets + flake apps)
     ../../secrets
@@ -51,50 +52,6 @@
     apps.build-usb = {
       type = "app";
       program = "${self}/scripts/build-usb.sh";
-    };
-
-    # `nix run .#topology-render` — render the Dhall topology registry to the
-    # committed registry/registry.json. Dhall is the source of truth; the JSON is
-    # a committed artifact (no import-from-derivation, so `nix flake check` works).
-    # Run after editing registry/*.dhall, then commit the regenerated JSON.
-    apps.topology-render = {
-      type = "app";
-      program = pkgs.lib.getExe (
-        pkgs.writeShellApplication {
-          name = "topology-render";
-          runtimeInputs = [ pkgs.dhall-json ];
-          text = ''
-            root="$(git rev-parse --show-toplevel)"
-            cd "$root/registry"
-            dhall-to-json --file hosts.dhall > registry.json
-            echo "// topology // rendered registry/registry.json (commit it)"
-          '';
-        }
-      );
-    };
-
-    # `nix run .#topology-check` — verify the committed registry.json is in sync
-    # with the Dhall source (CI/pre-commit guard against a stale artifact).
-    apps.topology-check = {
-      type = "app";
-      program = pkgs.lib.getExe (
-        pkgs.writeShellApplication {
-          name = "topology-check";
-          runtimeInputs = [
-            pkgs.dhall-json
-            pkgs.diffutils
-          ];
-          text = ''
-            root="$(git rev-parse --show-toplevel)"
-            cd "$root/registry"
-            if ! dhall-to-json --file hosts.dhall | diff -u registry.json - ; then
-              echo "// topology // registry.json is STALE — run: nix run .#topology-render" >&2
-              exit 1
-            fi
-            echo "// topology // registry.json is in sync with hosts.dhall"
-          '';
-        }
-      );
     };
 
     # `nix run .#deploy-fleet [-- host...]` — deploy the whole fleet (or named
@@ -233,7 +190,6 @@
         berkeley-mono = pkgs.callPackage ../home/themes/fonts/berkeley-mono { };
         default = pkgs.callPackage ../home/themes/fonts/berkeley-mono { };
         ono-sendai-generator = pkgs.callPackage ../../packages/ono-sendai-generator { };
-        coredns-zone = pkgs.callPackage ../../packages/coredns-zone { };
       }
 
       # ── USB Installer Images ─────────────────────────────────────────────────

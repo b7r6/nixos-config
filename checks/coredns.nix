@@ -28,7 +28,7 @@ pkgs.testers.runNixOSTest {
 
   nodes.resolver = { ... }: {
     imports = [
-      ../modules/nixos/topology.nix
+      ../modules/flake/registry/nixos.nix
       ../modules/nixos/coredns.nix
       ../modules/nixos/network.nix
     ];

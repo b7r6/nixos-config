@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                             // hyper-modern-nixos // topology
+#                               // hyper-modern-nixos // flake // registry/nixos
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # The fleet topology registry — the single source of truth for host identity,
@@ -33,14 +33,16 @@ let
     ;
 
   # ── Dhall → JSON bridge (committed artifact, NOT import-from-derivation) ─────
-  # The registry's source of truth is registry/hosts.dhall (typed + validated by
-  # Dhall). It is rendered to a COMMITTED registry/registry.json by the dev
-  # command `nix run .#topology-render` (see modules/flake/toplevel.nix), which
-  # the topology-check also verifies is in sync. We read that committed JSON
-  # rather than rendering at eval time — IFD (runCommand + readFile) breaks under
-  # `nix flake check`'s no-build evaluator, and a committed artifact is the
-  # standard, IFD-free pattern (like a lockfile). Regenerate after editing Dhall.
-  registry = builtins.fromJSON (builtins.readFile (flake.self + "/registry/registry.json"));
+  # The registry's source of truth is data/hosts.dhall (typed + validated by
+  # Dhall). It is rendered to a COMMITTED data/registry.json by the dev command
+  # `nix run .#topology-render`, which topology-check also verifies is in sync.
+  # We read that committed JSON rather than rendering at eval time — IFD
+  # (runCommand + readFile) breaks under `nix flake check`'s no-build evaluator,
+  # and a committed artifact is the standard, IFD-free pattern (like a lockfile).
+  # Regenerate after editing Dhall.
+  registry = builtins.fromJSON (
+    builtins.readFile (flake.self + "/modules/flake/registry/data/registry.json")
+  );
 
   # Host list → attrset keyed by physical name (the NixOS attr name).
   hostsByPhysical = listToAttrs (map (h: nameValuePair h.physical h) registry.hosts);
