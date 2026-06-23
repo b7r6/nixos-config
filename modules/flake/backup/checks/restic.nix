@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                      // hyper-modern-nixos // checks // backup
+#                          // hyper-modern-nixos // flake // backup/checks/restic
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # Proof that the restic→S3(R2) backup mechanism is SOUND, as a self-contained
@@ -59,8 +59,8 @@ pkgs.testers.runNixOSTest {
       inputs.agenix.nixosModules.default
       # state.nix defines hyper-modern-nixos.state, which backup.nix reads
       # (authoritativePaths) to union into the restic paths.
-      ../modules/nixos/state.nix
-      ../modules/nixos/backup.nix
+      ../../../nixos/state.nix
+      ../nixos.nix
     ];
 
     # local S3 (stand-in for R2)

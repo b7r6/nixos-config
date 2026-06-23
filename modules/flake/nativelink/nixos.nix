@@ -89,7 +89,7 @@ let
   # shimmer) doesn't demand an aarch64 dhall build at eval; the config text is
   # host-independent given the host name.
   buildPkgs = pkgs.buildPackages;
-  fleetDir = flake.self + "/nativelink";
+  fleetDir = flake.self + "/modules/flake/nativelink/data";
 
   renderedConfig =
     buildPkgs.runCommand "nativelink-${cfg.dhallHost}.json"

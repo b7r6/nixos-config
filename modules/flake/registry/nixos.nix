@@ -40,7 +40,7 @@ let
   # render/check staleness dance. The registry Dhall is fully local (no remote
   # Prelude), so the build needs only the locale fix (unicode in comments), not
   # CA certs. buildPackages so cross-arch shimmer doesn't demand an aarch64 build.
-  registrySrc = flake.self + "/registry";
+  registrySrc = flake.self + "/modules/flake/registry/data";
   buildPkgs = pkgs.buildPackages;
 
   registry = builtins.fromJSON (

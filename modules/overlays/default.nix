@@ -19,10 +19,16 @@ _final: prev: {
   # zot OCI registry — not in nixpkgs, packaged in-repo (packages/zot).
   zot = prev.callPackage ../../packages/zot { };
 
-  # coredns-zone — the fleet DNS compiler (packages/coredns-zone): a compiled
-  # GHC-9.12 program that renders + semantically validates the topology registry
-  # into a CoreDNS zone. Consumed by modules/nixos/coredns.nix at build time.
-  coredns-zone = prev.callPackage ../../packages/coredns-zone { };
+  # coredns-zone — the fleet DNS compiler (modules/flake/registry/packages/coredns-zone):
+  # a compiled GHC-9.12 program that renders + semantically validates the topology
+  # registry into a CoreDNS zone. Consumed by modules/nixos/coredns.nix at build time.
+  coredns-zone = prev.callPackage ../flake/registry/packages/coredns-zone { };
+
+  # state-audit — validates state classification against data-loss invariants.
+  state-audit = prev.callPackage ../../packages/state-audit { };
+
+  # gen-supabase-secrets — compiled JWT/crypto generator (replaces bash).
+  gen-supabase-secrets = prev.callPackage ../../packages/gen-supabase-secrets { };
 
   # state-audit — validates the state classification against data-loss invariants
   # (authoritative path not persisted, not backed up, glob-excluded, etc.).

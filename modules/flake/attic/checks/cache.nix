@@ -35,9 +35,9 @@ pkgs.testers.runNixOSTest {
   nodes.machine = { ... }: {
     imports = [
       inputs.agenix.nixosModules.default
-      ../modules/nixos/state.nix
-      ../modules/nixos/postgres.nix
-      ../modules/nixos/attic.nix
+      ../../../nixos/state.nix
+      ../../../nixos/postgres.nix
+      ../nixos.nix
     ];
 
     # ── shared state: local postgres with the atticd role+db ──

@@ -1,10 +1,10 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                              // hyper-modern-nixos // backup
+#                                 // hyper-modern-nixos // flake // backup/nixos
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # restic-based backups, OFF BY DEFAULT.
 #
-# Philosophy (per the runbook in BACKUP.md): do the FIRST backup BY HAND so you
+# Philosophy (per the runbook in README.md): do the FIRST backup BY HAND so you
 # can verify the repo, retention, and restore path before any timer touches your
 # data. Once you trust it, flip `enable = true` and the systemd timer takes over
 # the exact same repo with the exact same settings.
@@ -15,7 +15,7 @@
 # here is enabled until you opt a host in, so this module is inert by default and
 # cannot brick a box.
 #
-# Manual first run (see BACKUP.md for the full runbook), e.g. for a local repo:
+# Manual first run (see README.md for the full runbook), e.g. for a local repo:
 #   sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
 #     restic -r /path/to/repo init
 #   sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \

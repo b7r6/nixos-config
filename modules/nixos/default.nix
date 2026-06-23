@@ -22,7 +22,7 @@
     ./myusers.nix
     ./secrets.nix
     ./state.nix
-    ./topology.nix
+    ../flake/registry/nixos.nix
 
     # ── Hardware (gated) ──
     ./bluetooth.nix
@@ -33,7 +33,7 @@
     # ── Networking ──
     ./network.nix
     ./network-manager.nix
-    ./coredns.nix
+    ../flake/coredns/nixos.nix
     ./reverse-proxy.nix
 
     # ── Virtualization & containers (gated) ──
@@ -42,18 +42,18 @@
 
     # ── Services (gated) ──
     ./postgres.nix
-    ./backup.nix
-    ./attic.nix
-    ./attic-node.nix
-    ./nativelink.nix
+    ../flake/backup/nixos.nix
+    ../flake/attic/nixos.nix
+    ../flake/attic/nixos-node.nix
+    ../flake/nativelink/nixos.nix
     ./rclone-mount.nix
     ./searxng.nix
     ./supabase.nix
-    ./torrents.nix
     ./registry.nix
-    ./media.nix
-    ./pinchflat.nix
-    ./dropbox.nix
+    ../flake/media/nixos.nix
+    ../flake/media/nixos-pinchflat.nix
+    ../flake/media/nixos-torrents.nix
+    ../flake/media/nixos-dropbox.nix
 
     # ── Development ──
     ./android.nix

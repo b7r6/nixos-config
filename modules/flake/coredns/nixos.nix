@@ -52,7 +52,7 @@ let
   # its stdout into a store path — no record assembly, no service logic, no IFD.
   # We use buildPackages so a cross-arch host (aarch64 shimmer) builds the zone
   # with the BUILD-platform binary; the zone text is host-independent.
-  registrySrc = flake.self + "/registry";
+  registrySrc = flake.self + "/modules/flake/registry/data";
   # Both the tool AND the runCommand come from buildPackages: the zone text is
   # host-independent, so it's built on the BUILD platform. This keeps a cross-arch
   # host (aarch64 shimmer, evaluated from x86_64) from forcing an aarch64 zone
