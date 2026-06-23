@@ -6,7 +6,7 @@
 
 # `// why`
 
-restic backups, driven by `modules/nixos/backup.nix` (`hyper-modern-nixos.backup`). The module is
+restic backups, driven by `modules/flake/backup/nixos.nix` (`hyper-modern-nixos.backup`). The module is
 **off by default** and refuses to do anything until a host opts in.
 
 The rule: **the first backup is done by hand.** You initialize the repo, run one full backup, and

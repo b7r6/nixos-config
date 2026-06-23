@@ -7,7 +7,7 @@
       systems = import inputs.systems;
 
       imports = [
-        ./modules/flake/toplevel.nix
+        ./modules/flake
         ./configurations
       ];
     };

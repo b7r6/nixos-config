@@ -42,7 +42,7 @@
 
     # ── Services (gated) ──
     ./postgres.nix
-    ./backup.nix
+    ../flake/backup/nixos.nix
     ./attic.nix
     ./attic-node.nix
     ./nativelink.nix

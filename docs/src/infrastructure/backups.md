@@ -1,13 +1,13 @@
 # Backups (restic → R2)
 
-restic backups to **Cloudflare R2**, from `modules/nixos/backup.nix` under
+restic backups to **Cloudflare R2**, from `modules/flake/backup/nixos.nix` under
 `hyper-modern-nixos.backup`. **Off by default**, and refuses to do anything until a host opts in —
 so it cannot brick a box.
 
 > Philosophy: **the first backup is done by hand.** You init the repo, run one full backup, and
 > verify a restore manually *before* any systemd timer touches your data. Once you trust it, flip
 > `enable = true` and the timer takes over the exact same repo with the exact same settings. See
-> also [`BACKUP.md`](../../../BACKUP.md) in the repo root.
+> also the [backup runbook](../../../modules/flake/backup/README.md).
 
 ## Per-host repo layout
 
@@ -110,7 +110,7 @@ sudo RESTIC_PASSWORD_FILE=/run/agenix/restic-password \
 Only if all three look right: set `hyper-modern-nixos.backup.enable = true` and rebuild. The timer
 then operates the **same** repo.
 
-> A local-repo variant of the runbook (no R2) is in [`BACKUP.md`](../../../BACKUP.md).
+> A local-repo variant of the runbook (no R2) is in the [backup runbook](../../../modules/flake/backup/README.md).
 
 ## Operating
 

@@ -9,6 +9,9 @@
     ./docs.nix
     ./themes
 
+    # ── component flake-modules (future-flake candidates) ──
+    ./backup
+
     # secrets administration subsystem (devShells.secrets + flake apps)
     ../../secrets
   ];
@@ -162,36 +165,6 @@
       );
     };
 
-    # `nix run .#restic-init -- <host>` — trigger the one-time, idempotent
-    # restic-backups-init.service on a host over the tailnet (or locally). The
-    # unit uses the host's own agenix-decrypted password/env, so there's nothing
-    # to pass but the hostname.
-    apps.restic-init = {
-      type = "app";
-      program = pkgs.lib.getExe (
-        pkgs.writeShellApplication {
-          name = "restic-init";
-          runtimeInputs = [ pkgs.openssh ];
-          text = ''
-            host="''${1:-}"
-            if [ -z "$host" ]; then
-              echo "usage: nix run .#restic-init -- <host>" >&2
-              echo "  triggers restic-backups-init.service on <host> (idempotent)." >&2
-              exit 1
-            fi
-            if [ "$host" = "$(hostname)" ]; then
-              sudo systemctl start --wait restic-backups-init.service
-              sudo journalctl -u restic-backups-init.service -n 20 --no-pager
-            else
-              # shellcheck disable=SC2029
-              ssh "$host" 'sudo systemctl start --wait restic-backups-init.service \
-                && sudo journalctl -u restic-backups-init.service -n 20 --no-pager'
-            fi
-          '';
-        }
-      );
-    };
-
     # `nix run .#deploy-fleet [-- host...]` — deploy the whole fleet (or named
     # hosts), including self. Encodes the patterns we learned the hard way:
     #   - self (matches the host's networking.hostName): local
@@ -317,9 +290,9 @@
 
     # ── Checks (NixOS VM tests) ─────────────────────────────────────────────────
     # Linux-only (nixosTest needs a Linux builder).
+    # NOTE: backup-restic check is provided by ./backup (component flake-module).
     checks = inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
       attic-cache = import ../../checks/attic-cache.nix { inherit pkgs inputs; };
-      backup-restic = import ../../checks/backup-restic.nix { inherit pkgs inputs; };
       coredns = import ../../checks/coredns.nix { inherit pkgs inputs; };
     };
 
