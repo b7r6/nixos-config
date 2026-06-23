@@ -135,6 +135,16 @@ in
   # so rotate the bundle as a unit. Never enters the nix store.
   "agenix/machines/supabase-env.age".publicKeys = mkGlobalSecret;
 
+  # nix daemon access-tokens — a nix.conf FRAGMENT `!include`d into the daemon
+  # config (modules/nixos/nix.nix), so private flake inputs (github:sensenet-ai/*)
+  # resolve fleet-wide with NO hand-exported NIX_CONFIG. Contents are literally a
+  # nix.conf line:
+  #   access-tokens = github.com=ghp_xxxxxxxxxxxxxxxxxxxx
+  # Use a fine-grained / classic PAT with read scope on the private repos (NOT the
+  # short-lived `gh auth token`, which expires) so it survives reboots. Never
+  # enters the nix store.
+  "agenix/machines/nix-access-tokens.age".publicKeys = mkGlobalSecret;
+
   # SearXNG signing key env file: SEARXNG_SECRET=<openssl rand -hex 32>.
   "agenix/machines/searxng-env.age".publicKeys = mkGlobalSecret;
 

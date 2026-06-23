@@ -3,13 +3,25 @@ let
   inherit (flake) inputs;
 in
 {
+  # ── github access-tokens for the daemon (private flake inputs) ──────────────
+  # Self-wire the agenix secret holding a nix.conf fragment:
+  #   access-tokens = github.com=ghp_…
+  # `!include`d into the daemon config below so private inputs
+  # (github:sensenet-ai/*) resolve fleet-wide with no hand-exported NIX_CONFIG.
+  # Root-owned (the daemon reads it); never the store. A missing file is a soft
+  # warning in nix.conf, so this is safe before the secret is first deployed.
+  age.secrets.nix-access-tokens.file = flake.self + "/secrets/agenix/machines/nix-access-tokens.age";
+
   nix = {
     package = pkgs.nixVersions.stable;
 
     nixPath = [ "nixpkgs=${inputs.nixpkgs}" ];
 
+    # Merge the agenix-decrypted access-tokens fragment into the daemon config
+    # at runtime (keeps the token out of the nix store / the world-readable
+    # /etc/nix/nix.conf). `!include` of an absent path only warns.
     extraOptions = ''
-      experimental-features = nix-command flakes pipe-operators
+      !include /run/agenix/nix-access-tokens
     '';
 
     settings = {
@@ -18,6 +30,28 @@ in
         "root"
         "@wheel"
       ];
+
+      # ── experimental features (incl. pipe operators `|>`) ─────────────────────
+      # Set structurally via settings (feeds the generated nix.conf directly);
+      # no longer duplicated in extraOptions.
+      experimental-features = [
+        "nix-command"
+        "flakes"
+        "pipe-operators"
+      ];
+
+      # ── import-from-derivation, ON by design ───────────────────────────────────
+      # We CONSUME typed Dhall (the topology + nativelink fleet config) directly at
+      # eval time via `builtins.fromJSON (readFile (runCommand … dhall-to-json …))`
+      # — i.e. import-from-derivation. This replaces the old "render Dhall → commit
+      # JSON → guard staleness with a -check app" dance: the Dhall is now the SINGLE
+      # source of truth with no committed artifact and nothing to keep in sync.
+      # IFD is the standard Nix default (and already on here); we pin it true
+      # fleet-wide so this reliance is DELIBERATE and documented, not ambient. The
+      # one cost — `nix flake check` under `--option allow-import-from-derivation
+      # false` (a hypothetical hermetic CI) would break — is accepted; we don't run
+      # that mode, and the eval-time `dhall-to-json` build is cheap + cached.
+      allow-import-from-derivation = true;
 
       # Sandbox OFF, fleet-wide. The build sandbox is a category error in the
       # nix evaluation model — purity is a property of the derivation, not of a
