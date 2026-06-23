@@ -1838,11 +1838,11 @@
         "treefmt-nix": "treefmt-nix_4"
       },
       "locked": {
-        "lastModified": 1782182990,
-        "narHash": "sha256-ccXHsKondkdStICDC/xc98aWAo71t/PfAiqLgZZkqYU=",
+        "lastModified": 1782184491,
+        "narHash": "sha256-7QRzuX4DSRSHXbWSb60RHXRxR/o6A1Y8n8zSqkDfs0c=",
         "owner": "sensenet-ai",
         "repo": "straylight-prelude",
-        "rev": "d7297ff285b64e135541588e1c64b0272f262dd5",
+        "rev": "45ee35d026b5045479211fd3743fd70c023e94ae",
         "type": "github"
       },
       "original": {
