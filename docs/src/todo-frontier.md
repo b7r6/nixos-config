@@ -83,3 +83,55 @@ just not one that hijacks system/service egress.
 **Next step.** Prototype the netns + `wg-quick` approach on `ultraviolence`,
 confirm `ip route get <r2-ip>` still resolves to the WAN gateway (not the tunnel)
 while the browser's traffic exits via WireGuard.
+
+## Media
+
+The [media stack](./media/overview.md) is live on guccimane; these are the
+parked edges.
+
+### Dropbox: graduate to truly-public DNS
+
+**What.** [Dropbox](./media/dropbox.md) is staged **tailnet-only** (nginx at
+`drop.sju1.s4.gl`, autoindex off). The "secret-gist" model wants *public*
+reachability for sharing with people off the tailnet.
+
+**Why parked.** Going public is either (a) R2 public access + the bucket's
+`r2.dev` URL, or (b) an R2 custom domain — both need a Cloudflare API token with
+`Workers R2 Storage:Edit` (the R2 S3 creds we have are data-plane only), and a
+custom domain additionally needs `s4.gl` (on Njalla) delegated to Cloudflare.
+Deferred to do "all at once" with the broader public-DNS / cloudflared-edge
+cutover.
+
+**Next step.** When the public-edge layer lands, enable R2 public access via the
+CF token, read back the public hostname, set `hyper-modern-nixos.dropbox.domain`,
+switch guccimane.
+
+### queuedrop: deploy the real queue endpoint
+
+**What.** The [queuedrop](./media/queuedrop.md) extension builds and is
+smoke-tested against `server/stub.py`. The stub just echoes — the real handler
+should call Pinchflat's `Sources.create_source` or drive the
+[library pipeline](./media/pipeline.md).
+
+**Next step.** Package the queue endpoint as a `hyper-modern-nixos` service
+(tailnet-only, like searxng), point it at Pinchflat, repoint the extension's
+default endpoint, and do a live load-unpacked browser test (couldn't drive a GUI
+browser from the build host).
+
+### Pipeline → first-class (optional)
+
+**What.** `media/pipeline/` is run-by-hand. Could become a flake app
+(`nix run .#media-organize`) or wire into Pinchflat's lifecycle-script hook so
+downloads are auto-tagged on arrival.
+
+**Next step.** Decide if hands-on is fine (it is, for now) or wrap it; if wrapped,
+the enrich/tag stages need `yt-dlp` + `python3Packages.mutagen` in the app's
+`runtimeInputs`.
+
+### Fleet activation tails
+
+- **weyl** picks up the attic prefetch fix (and everything else on main) on its
+  next `nixos-rebuild switch` — it was unreachable during rollout.
+- **shimmer** is on the patched atticd, but its `nvidia-persistenced.service` has
+  been failing since 2026-06-19 (pre-existing driver/kernel mismatch surfaced by
+  the nixpkgs bump) — belongs to the NVIDIA/driver workstream, not media.

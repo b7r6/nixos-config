@@ -169,3 +169,16 @@ pointing at a server over the tailnet.
 
 `atticd` binds `[::]:8080` but the port is opened **only** on `trustedInterfaces` (`tailscale0`), so
 the cache is tailnet-reachable, never internet-exposed.
+
+## Patched server: NAR chunk prefetch
+
+We run a **fork** (`github:sensenet-ai/attic`, the `attic` flake input) that adds a configurable NAR
+chunk-prefetch depth. Upstream serves chunked NARs by fetching chunks from R2 with a hardcoded
+prefetch depth of **2**, which *serializes* high-latency object-store GETs (~150 ms each) — a cold
+multi-GB pull crawled (a 10 MiB NAR took ~22 s). The fork exposes `chunking.nar-prefetch`
+(wired via `hyper-modern-nixos.attic.chunking.narPrefetch`, **default 32**), overlapping the GETs into
+~one round-trip: the same 10 MiB NAR drops to ~1 s (transfer-bound at ~10 MB/s).
+
+The overlay (`inputs.attic.overlays.default`, applied fleet-wide in `modules/nixos/nix.nix`) provides
+the patched `pkgs.attic-server` / `attic-client`. Full diagnosis + measurements:
+[NAR chunk-prefetch fix](../architecture/attic-prefetch.md).

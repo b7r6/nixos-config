@@ -17,6 +17,7 @@
 - [Secrets (agenix)](./infrastructure/secrets.md)
 - [Tailscale](./infrastructure/tailscale.md)
 - [Binary cache (attic)](./infrastructure/attic.md)
+  - [NAR chunk-prefetch fix](./architecture/attic-prefetch.md)
 - [PostgreSQL](./infrastructure/postgres.md)
 - [Backups (restic → R2)](./infrastructure/backups.md)
 - [Remote execution (nativelink)](./infrastructure/nativelink.md)
@@ -28,6 +29,15 @@
 - [SearXNG + torrents](./services/searxng-torrents.md)
 - [OCI registry (zot)](./services/registry.md)
 - [Supabase (self-hosted)](./services/supabase.md)
+
+# Media
+
+- [Overview](./media/overview.md)
+- [Servers (Navidrome + Jellyfin)](./media/servers.md)
+- [Pinchflat (yt-dlp manager)](./media/pinchflat.md)
+- [Dropbox (shareable file URLs)](./media/dropbox.md)
+- [Library pipeline (sort/enrich/tag)](./media/pipeline.md)
+- [queuedrop (browser extension)](./media/queuedrop.md)
 
 # Operations
 

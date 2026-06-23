@@ -1,10 +1,38 @@
 # dropbox — shareable URLs for private files (the "secret gist" model)
 
+From `modules/nixos/dropbox.nix` under `hyper-modern-nixos.dropbox` +
+`packages/drop`. **Off by default.** Live on `guccimane`.
+
 A primitive for "hey, this file is at this URL" without making anything
 crawlable or public-by-listing. Closest mental model: **GitHub secret gists** —
 technically reachable by URL, but unguessable, so it's effectively private.
 
-## Model (decided)
+## Current state (deployed)
+
+- **R2 bucket `straylight-drop`** created; rclone-mounted at `/mnt/r2/drop` via
+  the `hyper-modern-nixos.rcloneMount.mounts.drop` entry (gated by
+  `dropbox.mountEnable`). The mount maps **1:1** to the bucket, so dropping a
+  file = it's at the matching key instantly.
+- **`drop` CLI** (`packages/drop`, installed on guccimane): `drop <file>` copies
+  under a fresh 128-bit base32 token dir and prints the URL; `-t <tok>` adds to
+  an existing drop (mini-gist); `--ls` / `--rm <tok>` list / revoke. No creds in
+  the tool — it rides the mount's agenix R2 creds.
+- **Staged on the tailnet for now.** Rather than flip R2 public access (the
+  "truly public" step, deferred to a coordinated DNS move), the bucket is fronted
+  by **nginx on guccimane at `drop.sju1.s4.gl`** (CoreDNS resolves the `drop`
+  service tag → guccimane; wildcard `*.sju1.s4.gl` cert via Njalla DNS-01).
+  nginx serves the FUSE mount as a static root with **`autoindex off`** — so the
+  bucket root is never listable, preserving the token-is-the-capability property.
+  `hyper-modern-nixos.dropbox.domain = "drop.sju1.s4.gl"` so `drop` emits those
+  URLs.
+
+So today: `drop foo.flac` → `https://drop.sju1.s4.gl/d/<token>/foo.flac`,
+reachable by anyone on the tailnet/LAN. To **graduate to public**: enable R2
+public access (needs a Cloudflare API token with `Workers R2 Storage:Edit`) or
+bind a public custom domain, then repoint `dropbox.domain`. Done "all at once"
+with the rest of the public-DNS cutover.
+
+## Model (design rationale)
 
 - **Public R2 bucket** (`straylight-drop`) exposed via a **custom domain**
   `drop.s4.gl` (Cloudflare-managed; real CDN + TLS, no server in the path).
