@@ -24,6 +24,11 @@ _final: prev: {
   # into a CoreDNS zone. Consumed by modules/nixos/coredns.nix at build time.
   coredns-zone = prev.callPackage ../../packages/coredns-zone { };
 
+  # state-audit — validates the state classification against data-loss invariants
+  # (authoritative path not persisted, not backed up, glob-excluded, etc.).
+  # Consumed by checks/state-audit.nix at build/test time.
+  state-audit = prev.callPackage ../../packages/state-audit { };
+
   # Skip failing inline-snapshot tests (trivial output format diff in upstream).
   # TODO: remove once upstream is fixed.
   python312Packages = prev.python312Packages // {

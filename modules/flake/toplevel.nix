@@ -209,6 +209,7 @@
       backup-restic = import ../../checks/backup-restic.nix { inherit pkgs inputs; };
       coredns = import ../../checks/coredns.nix { inherit pkgs inputs; };
       nativelink = import ../../checks/nativelink.nix { inherit pkgs inputs; };
+      state-audit = import ../../checks/state-audit.nix { inherit pkgs inputs; };
     };
 
     packages = inputs.nixpkgs.lib.mkMerge [
@@ -217,6 +218,7 @@
         default = pkgs.callPackage ../home/themes/fonts/berkeley-mono { };
         ono-sendai-generator = pkgs.callPackage ../../packages/ono-sendai-generator { };
         coredns-zone = pkgs.callPackage ../../packages/coredns-zone { };
+        state-audit = pkgs.callPackage ../../packages/state-audit { };
       }
 
       # ── USB Installer Images ─────────────────────────────────────────────────

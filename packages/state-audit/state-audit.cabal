@@ -1,0 +1,44 @@
+cabal-version:      3.0
+name:               state-audit
+version:            0.1.0
+synopsis:           Validate the fleet state classification against data-loss invariants.
+description:
+  A defensive, strongly-typed auditor for hyper-modern-nixos.state. Silent data
+  loss is the worst failure mode in backup/impermanence: a path that should be
+  backed up but isn't, or should be persisted but isn't, is only discovered after
+  a wipe — at restore time. This program REFUSES to pass when the state
+  classification violates invariants that would cause that outcome.
+
+license:            BSD-3-Clause
+author:             b7r6
+build-type:         Simple
+
+common warnings
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wmissing-export-lists
+    -Wmissing-home-modules
+    -Wpartial-fields
+    -Wredundant-constraints
+    -Werror
+
+executable state-audit
+  import:           warnings
+  main-is:          Main.hs
+  hs-source-dirs:   app
+  default-language: GHC2021
+  default-extensions:
+    DeriveAnyClass
+    DerivingStrategies
+    OverloadedStrings
+  build-depends:
+    , aeson
+    , base                  >=4.19 && <5
+    , bytestring
+    , containers
+    , filepath
+    , text
