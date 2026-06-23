@@ -219,6 +219,7 @@
         ono-sendai-generator = pkgs.callPackage ../../packages/ono-sendai-generator { };
         coredns-zone = pkgs.callPackage ../../packages/coredns-zone { };
         state-audit = pkgs.callPackage ../../packages/state-audit { };
+        gen-supabase-secrets = pkgs.callPackage ../../packages/gen-supabase-secrets { };
       }
 
       # ── USB Installer Images ─────────────────────────────────────────────────
