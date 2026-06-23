@@ -6,8 +6,8 @@ by default**, R2-backed CAS.
 
 There is no upstream NixOS module, so this is a hand-rolled `systemd` service around the
 `nativelink` binary from the flake input (it takes a single JSON5 config path). Live hosts get that
-config from the typed **Dhall fleet** (`nativelink/`, rendered to committed `nativelink/out/<host>.json`);
-the legacy in-Nix `role` generator is retained only as a fallback (see below).
+config from the typed **Dhall fleet** (`nativelink/`, rendered at eval time via IFD — no committed
+JSON artifacts).
 
 ## Current state: 3-host Dhall fleet (scheduler@`watchtower`)
 
@@ -17,8 +17,8 @@ and an x86_64 worker on each. CAS/AC stores are R2-backed (local NVMe fast tier 
 tier). Workers dial the scheduler's `worker_api` over the tailnet at
 `grpc://watchtower.sju1.s4.gl:50061`.
 
-Each live host sets `dhallHost = "<host>"`, which makes the module consume that host's rendered
-config (`nativelink/out/<host>.json`) and **ignore** the legacy `role`/entrypoint/TLS path entirely.
+Each live host sets `dhallHost = "<host>"`, which makes the module render that host's config from
+`nativelink/fleet.dhall` at eval time (IFD) and **ignore** the legacy `role`/entrypoint/TLS path.
 
 ```nix
 # configurations/nixos/watchtower/configuration.nix (guccimane/ultraviolence mirror this)

@@ -69,17 +69,9 @@ The registry lives in `registry/`:
   `watchtower.sju1.s4.gl`). **`s4.gl`** is our real domain (Njalla), so internal
   names can get real DNS-01 ACME certs; **`<dc>`** is the nearest Equinix DC code
   (`sju1` = San Juan), the geo key the fleet grows distributed along.
-- **`registry/registry.json`** — the **committed** Dhall→JSON render that Nix reads.
-
-Dhall is the source of truth (typechecked + total). Nix reads the committed JSON
-rather than rendering at eval time — import-from-derivation breaks under
-`nix flake check`, and a committed artifact is the standard IFD-free pattern (like
-a lockfile). Two dev commands keep it honest:
-
-```sh
-nix run .#topology-render   # Dhall → registry/registry.json (after editing *.dhall)
-nix run .#topology-check    # CI guard: committed JSON in sync with the Dhall?
-```
+Dhall is the single source of truth (typechecked + total). Nix renders it at eval
+time via IFD (import-from-derivation, enabled fleet-wide) — no committed JSON
+artifact, no render/check commands. Edit the Dhall and rebuild; done.
 
 `modules/nixos/topology.nix` exposes it as `hyper-modern-nixos.topology` (always
 on, pure data) with read-only `registry` / `hosts` / `managedHosts` and query

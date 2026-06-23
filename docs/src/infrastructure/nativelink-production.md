@@ -1,8 +1,8 @@
 # NativeLink production architecture
 
 > Status by stage:
-> - **Dhall config layer — DONE.** Typed schema + render in `nativelink/`; a valid
->   config is a type-check (`nix run .#nativelink-render` / `.#nativelink-check`).
+> - **Dhall config layer — DONE.** Typed schema in `nativelink/`; a valid config
+>   is a type-check (rendered at eval time via IFD, no committed artifacts).
 > - **Multi-arch fleet + sharded CAS — LIVE (x86_64).** scheduler@watchtower +
 >   3-node weighted CAS ring (watchtower:4/guccimane:4/ultraviolence:1) + workers,
 >   worker_api on the tailnet. Deployed and connected: workers dial the scheduler,
@@ -195,12 +195,9 @@ flake input, see the status block):
 - `nativelink/fleet.dhall` — the actual topology (scheduler@watchtower, the
   weighted CAS shard ring, the three workers, their platform properties) authored
   against the schema.
-- A render to committed JSON (IFD-free, like the topology registry) consumed by
-  the nixos module: live hosts (`dhallHost`) consume the rendered Dhall
-  (`nativelink/out/<host>.json`) instead of hand-generated JSON5. The legacy
-  in-Nix JSON generator is **retained as a fallback** (see the module comment,
-  `nativelink.nix:361-362`) until the Dhall path is proven fleet-wide, then
-  removed.
+- Rendered at eval time via IFD directly from the Dhall — no committed JSON
+  artifacts. Live hosts (`dhallHost`) consume the IFD output instead of
+  hand-generated JSON5.
 
 ## Build stages
 

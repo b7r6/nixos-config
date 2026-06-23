@@ -29,6 +29,7 @@ import           Data.Time.Clock.POSIX  (getPOSIXTime)
 import           Data.Word              (Word8)
 import           Numeric                (showHex)
 import           Shelly
+import           System.Directory       (doesFileExist)
 import           System.Entropy         (getEntropy)
 import           System.Environment     (getArgs)
 import           System.Exit            (exitFailure)
@@ -78,7 +79,9 @@ main = do
     args <- getArgs
     let dest = case args of (d : _) -> d; _ -> "agenix/machines/supabase-env.age"
 
-    -- TODO: check file doesn't already exist
+    -- Refuse to overwrite — rotate via rotate-secret instead.
+    exists <- doesFileExist dest
+    when exists $ die (T.pack dest <> " already exists — use rotate-secret to replace it")
 
     -- Generate key material
     now <- round <$> getPOSIXTime :: IO Int

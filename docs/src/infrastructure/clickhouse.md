@@ -225,7 +225,7 @@ alongside `zot-r2-env` / `nativelink-r2-env` / `pgbackrest-r2-env`.
 ## Topology / DNS
 
 - Tag watchtower's `services` with `clickhouse`; tag ultraviolence/guccimane/shimmer
-  with `clickhouse-keeper` in `registry/hosts.dhall`, then `nix run .#topology-render`.
+  with `clickhouse-keeper` in `registry/hosts.dhall` (rendered at eval time via IFD).
 - CoreDNS then resolves `clickhouse.sju1.s4.gl` → watchtower automatically (the
   service-CNAME mechanism), and the Keeper nodes are reachable by their existing
   host names.
