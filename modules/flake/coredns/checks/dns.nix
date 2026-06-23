@@ -28,9 +28,9 @@ pkgs.testers.runNixOSTest {
 
   nodes.resolver = { ... }: {
     imports = [
-      ../modules/flake/registry/nixos.nix
-      ../modules/nixos/coredns.nix
-      ../modules/nixos/network.nix
+      ../../registry/nixos.nix
+      ../nixos.nix
+      ../../../nixos/network.nix
     ];
 
     # The coredns/topology modules read `flake.self` (to locate registry/) — the

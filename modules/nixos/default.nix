@@ -33,7 +33,7 @@
     # ── Networking ──
     ./network.nix
     ./network-manager.nix
-    ./coredns.nix
+    ../flake/coredns/nixos.nix
     ./reverse-proxy.nix
 
     # ── Virtualization & containers (gated) ──

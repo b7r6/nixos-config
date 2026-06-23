@@ -12,6 +12,7 @@
     # ── component flake-modules (future-flake candidates) ──
     ./attic
     ./backup
+    ./coredns
     ./nativelink
     ./registry
 
@@ -179,11 +180,8 @@
       };
 
     # ── Checks (NixOS VM tests) ─────────────────────────────────────────────────
-    # Linux-only (nixosTest needs a Linux builder).
-    # NOTE: component checks (attic, backup) provided by their own flake-modules.
-    checks = inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
-      coredns = import ../../checks/coredns.nix { inherit pkgs inputs; };
-    };
+    # All VM tests now live in their component flake-modules (attic, backup,
+    # coredns). No checks remain here.
 
     packages = inputs.nixpkgs.lib.mkMerge [
       {
