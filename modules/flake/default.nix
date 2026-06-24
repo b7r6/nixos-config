@@ -56,9 +56,10 @@
       supabase-postgres-meta = pkgs.callPackage ../../packages/supabase-postgres-meta { };
     };
 
-    # Cross-cutting check: validates the fleet's state classification.
+    # Cross-cutting checks (x86_64-linux VM tests).
     checks = inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
       state-audit = import ../../checks/state-audit.nix { inherit pkgs inputs; };
+      supabase-native = import ../../checks/supabase-native.nix { inherit pkgs inputs; };
     };
   };
 }

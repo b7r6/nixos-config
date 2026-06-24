@@ -218,7 +218,7 @@ in
         '';
       }
       {
-        assertion = !config.hyper-modern-nixos.supabase.enable;
+        assertion = !(config.hyper-modern-nixos ? supabase && config.hyper-modern-nixos.supabase.enable);
         message = ''
           Both supabase (container) and supabase-native are enabled. Disable
           the container module first (hyper-modern-nixos.supabase.enable = false).
