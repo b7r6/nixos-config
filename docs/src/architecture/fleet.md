@@ -8,14 +8,31 @@ The live machines, from `secrets/keys.nix` (the authoritative recipient list) an
 
 | Host | Arch | Kind | Role |
 | --- | --- | --- | --- |
-| `ultraviolence` | x86_64 | NixOS | primary workstation / infra host; attic **replica**; nativelink monolithic |
-| `watchtower` | x86_64 | NixOS | central services: shared postgres + monolithic attic backend + the single GC |
-| `weyl` | x86_64 | NixOS | nvidia workstation |
-| `guccimane` | x86_64 | NixOS | nvidia workstation |
-| `shimmer` | aarch64 | NixOS | DGX Spark (GB10); uses `disko` + the `dgx-spark` module |
-| `shannon` | x86_64 | NixOS | laptop, frequently powered down (still fleet) |
+| `watchtower` | x86_64 | NixOS | central services: postgres, attic (monolithic-shared), supabase, nativelink (scheduler+CAS+worker), registry (zot), reverse-proxy (nginx), CoreDNS |
+| `ultraviolence` | x86_64 | NixOS | primary workstation; attic replica, nativelink (CAS+worker), searxng+torrents, CoreDNS |
+| `guccimane` | x86_64 | NixOS | nvidia workstation; nativelink (CAS+worker), media (pinchflat+navidrome+jellyfin), dropbox, CoreDNS |
+| `shimmer` | aarch64 | NixOS | DGX Spark (GB10); attic client, CoreDNS; `disko` + `dgx-spark` module |
+| `shannon` | x86_64 | NixOS | laptop (frequently off); attic client, backup |
+| `weyl` | x86_64 | NixOS | nvidia workstation; attic client, backup |
 | `gossamer` | aarch64 | DGX OS | **not** a `nixosConfiguration`; global Nix; attic client / build node |
 | `test-vm` | x86_64\* | NixOS | wayland-module test VM; imports only `self.nixosModules.wayland` |
+
+## Service → host matrix
+
+| Service | watchtower | ultraviolence | guccimane | shimmer | shannon | weyl |
+| --- | --- | --- | --- | --- | --- | --- |
+| **attic** (cache) | monolithic-shared (the backend) | replica | client | client | client | client |
+| **nativelink** (RE) | scheduler+CAS+worker | CAS+worker | CAS+worker | — (disabled) | — | — |
+| **CoreDNS** (split-horizon) | ✓ (authoritative) | ✓ | ✓ | ✓ | — | — |
+| **supabase** (full stack) | ✓ | — | — | — | — | — |
+| **postgres** (shared DB) | ✓ (+ PITR to R2) | — | — | — | — | — |
+| **registry** (OCI/zot) | ✓ | — | — | — | — | — |
+| **reverse-proxy** (nginx) | ✓ (studio, registry) | — | ✓ (media) | — | — | — |
+| **searxng + torrents** | — | ✓ | — | — | — | — |
+| **media** (pinchflat etc.) | — | — | ✓ | — | — | — |
+| **dropbox** (file sharing) | — | — | ✓ | — | — | — |
+| **backup** (restic → R2) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **rclone mount** (R2 FUSE) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 \* `test-vm` **builds** as `x86_64-linux`. Its host dir sets
 `nixpkgs.hostPlatform = lib.mkDefault "aarch64-linux"` (for Apple-Silicon dev), but `mkHost` in
@@ -32,53 +49,71 @@ build node.
 
 ## Roles in detail
 
-### ultraviolence (x86_64, primary)
-
-`configurations/nixos/ultraviolence/configuration.nix`. The daily-driver workstation and the place
-new infra is proven first:
-
-- attic **replica** — `hyper-modern-nixos.attic-node.profile = "replica"`, api-server against
-  watchtower's postgres over the tailnet, sharing the R2 chunk store. See
-  [attic](../infrastructure/attic.md).
-- nativelink **monolithic** — CAS + scheduler + local x86_64 worker, R2-backed, TLS terminated with
-  a Tailscale-issued cert. See [nativelink](../infrastructure/nativelink.md).
-- restic → R2 backups, declarative Tailscale enrollment, Hyprland (`hyper-wayland`), nvidia. (The R2
-  `rcloneMount` is now fleet-wide — see [the rclone mount note](#fleet-wide-r2-mounts) — not an
-  ultraviolence distinguishing feature.)
-
 ### watchtower (x86_64, central services)
 
-`configurations/nixos/watchtower/configuration.nix`. The fleet backend, rolled out incrementally by
-**commenting service blocks in or out** (each module sets its own `enable`; there are no boolean
-indirection flags) — see [staged rollout](../operations/deploying.md#staged-rollout-watchtower):
+`configurations/nixos/watchtower/configuration.nix`. The fleet backend:
 
-- `hyper-modern-nixos.attic-node.profile = "monolithic-shared"` — hosts the shared postgres
-  (`atticd` role+db, tailnet-reachable) **and** the monolithic atticd that runs migrations, serves,
-  and the single garbage collector. Exactly one such node. See
-  [postgres](../infrastructure/postgres.md) and [attic](../infrastructure/attic.md).
-- The postgres module's interface-scoped `5432`-on-`tailscale0` rule takes effect because the
-  firewall is on fleet-wide (default `true`) — watchtower inherits the fleet-on default, no special
-  opt-in.
-- restic → R2 (per-host repo `…/<bucket>/watchtower`, the bucket set inside the encrypted env file),
-  enabled via `hyper-modern-nixos.backup.enable` once the first backup is initialized by hand.
+- **attic** (monolithic-shared) — hosts the shared postgres (`atticd` role+db,
+  tailnet-reachable), the monolithic atticd (migrations + serve + single GC), and
+  the cache signing keypair. See [postgres](../infrastructure/postgres.md) and
+  [attic](../infrastructure/attic.md).
+- **supabase** — the full self-hosted stack (9 containers via oci-containers), on
+  its own postgres cluster. See [supabase](../services/supabase.md).
+- **nativelink** — scheduler + CAS shard (weight 4) + x86_64 worker. The fleet's
+  RE coordinator. See [nativelink](../infrastructure/nativelink.md).
+- **registry** (zot) — OCI image registry, R2-backed. See [registry](../services/registry.md).
+- **reverse-proxy** (nginx) — wildcard cert (`*.sju1.s4.gl` via DNS-01), fronts
+  `studio.sju1.s4.gl` (supabase) and `registry.sju1.s4.gl` (zot).
+- **CoreDNS** — authoritative for `sju1.s4.gl`, split-horizon resolver.
+- restic → R2 backups, declarative Tailscale enrollment.
 
-### weyl, guccimane (x86_64 workstations)
+### ultraviolence (x86_64, primary workstation)
 
-Straightforward nvidia desktops. `guccimane` runs `hyper-wayland`; `weyl` enables
-`programs.hyprland` directly and pins a couple of `networking.hosts` entries. Both import
-`hardware-configuration.nix` + the agenix module.
+`configurations/nixos/ultraviolence/configuration.nix`. The daily-driver workstation:
+
+- **attic** replica — api-server against watchtower's postgres, sharing the R2
+  chunk store.
+- **nativelink** — CAS shard (weight 1) + x86_64 worker, dialing watchtower's
+  scheduler.
+- **searxng + torrents** — private search + media acquisition.
+- **CoreDNS** — split-horizon resolver (same zone as watchtower).
+- Hyprland (`hyper-wayland`), nvidia, restic → R2.
+
+### guccimane (x86_64, media + infra)
+
+`configurations/nixos/guccimane/configuration.nix`. nvidia workstation + media server:
+
+- **nativelink** — CAS shard (weight 4) + x86_64 worker.
+- **media** — pinchflat (yt-dlp manager), navidrome, jellyfin. See [media](../media/overview.md).
+- **dropbox** — shareable file URLs (`drop.s4.gl`).
+- **reverse-proxy** (nginx) — fronts media services.
+- **CoreDNS** — split-horizon resolver.
+- Hyprland (`hyper-wayland`), nvidia, restic → R2.
 
 ### shimmer (aarch64, DGX Spark)
 
-`configurations/nixos/shimmer/`. The GB10 DGX Spark. Its `default.nix` imports
-`disko.nixosModules.disko` + a `disko.nix`, the `dgx-spark` subtree (`self.nixosModules.default`
-pulls it in), and forces `nixpkgs.hostPlatform = "aarch64-linux"`.
+`configurations/nixos/shimmer/`. The GB10 DGX Spark:
 
-### shannon (x86_64 laptop)
+- **attic** client + **CoreDNS** (split-horizon resolver).
+- nativelink CAS shard (weight 2) — currently **disabled** (`enabled = False` in
+  the Dhall fleet) pending the aarch64 worker bringup.
+- `disko` + `dgx-spark` module. Forces `nixpkgs.hostPlatform = "aarch64-linux"`.
+- restic → R2.
 
-`configurations/nixos/shannon/`. Laptop, often off — its host-key slot in `secrets/keys.nix` is
-intentionally empty with a TODO to `ssh-keyscan` it on the next boot, so it can't yet decrypt
-host-scoped secrets. Runs nvidia + `hyper-wayland`, with `mkForce`'d crisp-pixel font settings.
+### shannon (x86_64, laptop)
+
+`configurations/nixos/shannon/`. Laptop, often off:
+
+- attic client, restic → R2, nvidia + `hyper-wayland`.
+- No CoreDNS (roaming; uses the fleet resolver via Tailscale split-DNS when
+  configured, else no `sju1.s4.gl` resolution).
+
+### weyl (x86_64, workstation)
+
+`configurations/nixos/weyl/`. nvidia workstation:
+
+- attic client, restic → R2, Hyprland.
+- No CoreDNS (same as shannon — laptop-class, no resolver).
 
 ### gossamer (aarch64, DGX OS — not NixOS)
 
