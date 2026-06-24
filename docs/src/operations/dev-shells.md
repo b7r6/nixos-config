@@ -12,7 +12,7 @@ The flake ships two dev shells:
 nix develop          # or: direnv allow (the repo has an .envrc)
 ```
 
-Wired from `devshell.toml` (via `modules/flake/toplevel.nix`, which imports it into
+Wired from `devshell.toml` (via `modules/flake/default.nix`, which imports it into
 `devshells.default`). Commands:
 
 | Command | Category | Runs |
@@ -52,7 +52,7 @@ they belong to systemd services on the hosts, decrypted by host keys at activati
 nix develop .#secrets
 ```
 
-Provided by `secrets/default.nix` (a flake-parts module imported in `modules/flake/toplevel.nix`).
+Provided by `secrets/default.nix` (a flake-parts module imported in `modules/flake/default.nix`).
 Every admin command is a real shellcheck/shfmt- clean script under `secrets/sh/`, wrapped as a
 `writeShellApplication` with pinned `runtimeInputs`, and exposed **both** as a shell command **and**
 a flake app (`nix run .#<name>`). Each command is git-root-aware: it `cd`s into the repo's

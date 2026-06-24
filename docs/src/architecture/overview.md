@@ -3,7 +3,7 @@
 This repo is a **bog-standard [flake-parts](https://flake.parts) configuration**. It used to be
 built on `nixos-unified` (autoWire); that has been torn out. There is no magic auto-discovery
 framework anymore — the wiring is explicit Nix in `flake.nix`, `configurations/default.nix`, and
-`modules/flake/toplevel.nix`.
+`modules/flake/default.nix` (the barrel).
 
 ## Top-level layout
 
@@ -16,11 +16,15 @@ configurations/
 modules/
   nixos/                   # flat NixOS module files + default.nix aggregator
   home/                    # home-manager modules (default.nix aggregator)
-  flake/                   # flake-parts modules: fmt, devshell, docs, overlays, themes
+  flake/                   # barrel + components + cross-cutting modules
+    default.nix            # barrel: pkgs, overlays, imports all components
+    {attic,backup,coredns,media,nativelink,registry,themes}/
+                           # component subsystems (NixOS module, checks, packages, data)
+    fmt.nix, devshell.nix, docs.nix, overlays.nix, deploy.nix, usb.nix
+                           # cross-cutting modules
   overlays/                # the repo overlay (self.overlays.default)
-packages/                  # callPackage'd derivations (e.g. ono-sendai-generator)
+packages/                  # callPackage'd derivations (e.g. ono-sendai-generator, state-audit)
 secrets/                   # agenix tree + admin devshell/apps + keys.nix
-checks/                    # NixOS VM tests
 docs/                      # this mdBook
 ```
 
@@ -33,7 +37,7 @@ docs/                      # this mdBook
 inputs.flake-parts.lib.mkFlake { inherit inputs; } {
   systems = import inputs.systems;
   imports = [
-    ./modules/flake/toplevel.nix   # perSystem: pkgs/overlays, devshells, packages, apps, checks
+    ./modules/flake                # barrel: pkgs/overlays, components, devshells, packages, apps, checks
     ./configurations               # the fleet: nixosConfigurations + homeConfigurations
   ];
 };
@@ -80,14 +84,15 @@ nothing — a host just sets `hyper-modern-nixos.<x>.enable = true` for what it 
 
 ## perSystem outputs
 
-`modules/flake/toplevel.nix` builds the `perSystem` `pkgs` (with `allowUnfree` and the overlay
-stack) and wires the rest of the flake modules:
+`modules/flake/default.nix` (the barrel) builds the `perSystem` `pkgs` (with `allowUnfree` and the
+overlay stack) and imports cross-cutting modules + every component subsystem:
 
 - `./fmt.nix` — treefmt (nixfmt/deadnix/statix, biome, ruff, shfmt, …)
 - `./devshell.nix` — the default devshell + agenix-shell user-secret autoload
 - `./docs.nix` — `packages.docs` (this book) + `apps.docs-serve`
 - `./overlays.nix` — surfaces `self.overlays.default`
 - `./themes` — fonts/stylix theme plumbing
+- `./attic`, `./backup`, `./coredns`, `./media`, `./nativelink`, `./registry` — component subsystems
 - `../../secrets` — the agenix admin devshell + flake apps
 
 ## Flake outputs (summary)
@@ -101,7 +106,7 @@ stack) and wires the rest of the flake modules:
 | `packages.<sys>` | fonts, `ono-sendai-generator`, USB installer images |
 | `apps.<sys>` | `deploy-fleet`, `build-usb`, `docs-serve`, `restic-init`, secret-admin apps |
 | `devShells.<sys>.{default,secrets}` | `modules/flake/devshell.nix` + `secrets/` |
-| `checks.<sys>` | `checks/attic-cache.nix`, `checks/backup-restic.nix` |
+| `checks.<sys>` | per-component: attic-cache, backup-restic, coredns, nativelink, state-audit |
 
 For the detailed walk-through see [flake structure](./flake-structure.md); for the machines see
 [the fleet](./fleet.md).

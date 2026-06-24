@@ -104,3 +104,21 @@ staged the way you'd stage it in production:
   `authoritative`; blobs live on R2.
 - **nativelink / atticd CAS are never restic'd.** Their content is either already
   in R2 or re-derivable; backing it up would pay R2 twice for re-creatable data.
+
+## Validation: `state-audit`
+
+The state classification is validated at build time by `packages/state-audit` — a
+compiled GHC-9.12 program that **refuses to pass** when the classification would
+silently lose data. It checks:
+
+- every path is absolute (no relative, no `..`)
+- no duplicate paths within a derived list
+- no path subsumption (child alongside its ancestor — ambiguous)
+- every `authoritative` path is also in `persistPaths` (the construction invariant;
+  violation = wiped on reboot AND backed up empty)
+- no `authoritative` path is glob-matched by a restic exclude pattern (violation =
+  classified as irreplaceable but silently not backed up)
+
+This runs against the **real** evaluated host config (`checks.state-audit` in `nix
+flake check`), so a future service that adds a state dir with a typo or wrong class
+fails the build — not the restore.

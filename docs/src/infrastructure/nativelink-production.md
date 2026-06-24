@@ -20,11 +20,10 @@
 >
 > Grounded in: the NativeLink docs (architecture, production, LRE, persistent
 > workers) and the working prior art in `straylight-prelude`
-> (`nix/modules/flake/{nativelink,ociutils}`, `dhall/`). `straylight-prelude` is
-> now also a pinned **flake input** (`flake.nix`,
-> `github:sensenet-ai/straylight-prelude/b7r6/dev-0x04`,
-> `inputs.nixpkgs.follows = "nixpkgs"`) — the source of the Buck2 toolchain
-> closure — while the cited internal files live in that external input.
+> (`nix/modules/flake/{nativelink,ociutils}`, `dhall/`). Workers are pure REAPI
+> (toolchain-agnostic) — the toolchain comes from the action's input tree, not a
+> baked-in closure. Testing happens via the local checkout at
+> `~/src/straylight-prelude/straylight-nativelink`.
 
 ## The four roles, deployed for real
 
@@ -76,7 +75,7 @@ blob digest, with per-shard **`weight`** for unevenly-sized nodes:
   ] } }
 ```
 
-The live rendered ring (`nativelink/out/watchtower.json`) **excludes shimmer** —
+The live rendered ring (rendered from Dhall at eval time via IFD) **excludes shimmer** —
 it's `enabled = False` in `fleet.dhall`, so today the ring is only
 watchtower:4 / guccimane:4 / ultraviolence:1. The `CAS_shimmer` entry above (weight
 `2`) is illustrative of where it rejoins once aarch64 is stood up.
@@ -137,11 +136,11 @@ philosophy "**namespaces, not daemons**"):
 - **Not** a Docker/podman daemon. The worker presents the image's filesystem into
   the build sandbox via **`bwrap` bind-mounts** (FHS presentation), optionally
   **Firecracker** for network-isolated builds. Lighter, daemonless, and already
-  built in straylight-prelude.
+  tested via ~/src/straylight-prelude/straylight-nativelink.
 
 ### The vN+1 refinement (what reading the prior art actually showed)
 
-Studying both prior arts (`straylight-prelude/toolchains.nix`, `re-section.dhall`;
+Studying the prior art (local checkout `~/src/straylight-prelude/straylight-nativelink`;
 aleph) clarified the real mechanism, which is subtler than "run actions in a
 container":
 
@@ -186,8 +185,8 @@ modes (`exact`/`minimum`/`priority`) must agree across scheduler, worker, and
 client. A typed **Dhall schema** turns all of that into an evaluation-time type
 error, the same way `registry/` did for topology.
 
-Plan (mirrors the prior-art `straylight-prelude/dhall/` structure — now a pinned
-flake input, see the status block):
+Plan (mirrors the prior-art `straylight-prelude/dhall/` structure — tested via local
+checkout at `~/src/straylight-prelude/straylight-nativelink`):
 
 - `nativelink/schema.dhall` — typed `Store`/`Scheduler`/`Worker`/`Server`/`Config`
   with the array-of-named-objects shape baked in, `ref_store` names as a checked

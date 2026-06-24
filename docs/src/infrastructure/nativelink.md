@@ -26,7 +26,7 @@ age.secrets.nativelink-r2-env.file = …/nativelink-r2-env.age;
 
 hyper-modern-nixos.nativelink = {
   enable = true;
-  dhallHost = "watchtower";   # consume nativelink/out/watchtower.json; ignore legacy role
+  dhallHost = "watchtower";   # render from fleet.dhall at eval (IFD); the typed Dhall decides the roles
   openFirewall = true;        # firewall opens 50051/50052/50061 only on tailscale0
   r2 = {
     enable = true;

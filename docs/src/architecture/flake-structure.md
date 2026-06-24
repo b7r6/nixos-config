@@ -1,7 +1,7 @@
 # Flake structure
 
 A detailed walk of the three files that wire everything: `flake.nix`, `configurations/default.nix`,
-and `modules/flake/toplevel.nix`.
+and `modules/flake/default.nix` (the barrel).
 
 ## `flake.nix`
 
@@ -12,7 +12,7 @@ The entrypoint is `flake-parts.lib.mkFlake`. Systems come from `nix-systems/defa
 inputs.flake-parts.lib.mkFlake { inherit inputs; } {
   systems = import inputs.systems;
   imports = [
-    ./modules/flake/toplevel.nix
+    ./modules/flake
     ./configurations
   ];
 };
@@ -27,7 +27,6 @@ Inputs of note (most `follows` nixpkgs):
 - `devshell`, `treefmt-nix` — tooling
 - `emacs-overlay` — `pkgs.emacs-pgtk` tracking emacs-31 master
 - `nativelink` — provides the `nativelink` binary (no upstream NixOS module)
-- `straylight-prelude` — the Buck2 prelude/toolchain-closure source for the nativelink RE fleet
 - `stylix`, `nvf`, `nix4nvchad`, `xremap-flake`, `nix-vscode-extensions`, `nix-index-database`,
   `nix-compile`
 
@@ -132,10 +131,10 @@ perSystem = { pkgs, ... }: {
 };
 ```
 
-## `modules/flake/toplevel.nix`
+## `modules/flake/default.nix` (the barrel)
 
-This is where the `perSystem` `pkgs` is constructed and the rest of the flake-parts modules are
-imported.
+This is the root flake-parts module. It constructs the `perSystem` `pkgs`, imports cross-cutting
+modules, and imports every component subsystem.
 
 ### perSystem pkgs + overlays
 
@@ -158,6 +157,8 @@ Applying the overlay here (rather than via `home-manager.nixpkgs.overlays`) avoi
 
 ### Imports
 
+The barrel imports cross-cutting modules and every component:
+
 ```nix
 imports = [
   inputs.devshell.flakeModule
@@ -165,9 +166,41 @@ imports = [
   ./overlays.nix
   ./devshell.nix
   ./docs.nix
+  ./deploy.nix
+  ./usb.nix
   ./themes
+  ./attic
+  ./backup
+  ./coredns
+  ./media
+  ./nativelink
+  ./registry
   ../../secrets        # secrets admin devShell + flake apps
 ];
+```
+
+### Component structure
+
+Each subsystem is its own flake-parts module under `modules/flake/<name>/default.nix`. A component
+owns its NixOS module (`nixos.nix`), checks (`checks/*.nix`), packages, and data. Components expose
+`flake.flakeModules.<name>` as a graduation seam to standalone flakes.
+
+```
+modules/flake/
+  default.nix            # the barrel (this file)
+  fmt.nix                # treefmt
+  overlays.nix           # self.overlays.default
+  devshell.nix           # default devshell + agenix-shell
+  docs.nix               # packages.docs + apps.docs-serve
+  deploy.nix             # deploy-fleet app
+  usb.nix                # USB installer images
+  themes/                # fonts/stylix theme plumbing
+  attic/default.nix      # attic component (NixOS module + check)
+  backup/default.nix     # backup component (NixOS module + check)
+  coredns/default.nix    # coredns component (NixOS module + VM test check)
+  media/default.nix      # media component
+  nativelink/default.nix # nativelink component (NixOS module + VM test check)
+  registry/default.nix   # registry component (packages incl. coredns-zone)
 ```
 
 ### devShells / apps / checks / packages
@@ -175,12 +208,18 @@ imports = [
 - `devshells.default` imports `devshell.toml`; `devShells.secrets` comes from `secrets/` (agenix
   edit/rekey/rotate as `writeShellApplication`s + flake apps).
 - `apps.build-usb` runs `scripts/build-usb.sh`; `apps.docs-serve` from `docs.nix`.
-- `checks` (x86_64-linux only — `nixosTest` needs a Linux builder):
-  - `attic-cache` ← `checks/attic-cache.nix`
-  - `backup-restic` ← `checks/backup-restic.nix`
+- `checks` (x86_64-linux only — `nixosTest` needs a Linux builder) — registered per-component:
+  - `attic-cache` ← `modules/flake/attic/`
+  - `backup-restic` ← `modules/flake/backup/`
+  - `coredns` ← `modules/flake/coredns/default.nix` (VM test)
+  - `nativelink` ← `modules/flake/nativelink/default.nix` (VM test)
+  - `state-audit` ← `modules/flake/default.nix` (cross-cutting build check)
 - `packages`:
   - `berkeley-mono` / `default` ← the Berkeley Mono font derivation
   - `ono-sendai-generator` ← `packages/ono-sendai-generator`
+  - `state-audit` ← `packages/state-audit`
+  - `gen-supabase-secrets` ← `packages/gen-supabase-secrets`
+  - `coredns-zone` ← `modules/flake/registry/packages/coredns-zone/`
   - USB installer images via `nixos-generators`: `usb-{aarch64,x86_64}-{minimal,gnome}` (aarch64
     images pull in `self.nixosModules.dgx-spark`).
 

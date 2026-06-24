@@ -1,15 +1,14 @@
 # Checks (NixOS tests)
 
-Two NixOS VM tests prove the stateful infra paths end-to-end. They live in `checks/` and are
-registered in `modules/flake/toplevel.nix` under `checks` — **x86_64-linux only** (a `nixosTest`
+NixOS VM tests and build checks prove the infra paths end-to-end. They are registered
+**per-component** inside each component's `default.nix` — **x86_64-linux only** (a `nixosTest`
 needs a Linux builder):
 
-```nix
-checks = inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
-  attic-cache   = import ../../checks/attic-cache.nix   { inherit pkgs inputs; };
-  backup-restic = import ../../checks/backup-restic.nix { inherit pkgs; };
-};
-```
+- `modules/flake/attic/default.nix` registers `checks.attic-cache`
+- `modules/flake/backup/default.nix` registers `checks.backup-restic`
+- `modules/flake/coredns/default.nix` registers `checks.coredns` (VM test)
+- `modules/flake/nativelink/default.nix` registers `checks.nativelink` (VM test)
+- `modules/flake/default.nix` registers the cross-cutting `checks.state-audit` (build check)
 
 ## Running them
 
@@ -17,6 +16,9 @@ checks = inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
 # individually
 nix build .#checks.x86_64-linux.attic-cache
 nix build .#checks.x86_64-linux.backup-restic
+nix build .#checks.x86_64-linux.coredns
+nix build .#checks.x86_64-linux.nativelink
+nix build .#checks.x86_64-linux.state-audit
 
 # everything the flake checks (incl. these VM tests, fmt, etc.)
 nix flake check
