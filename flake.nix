@@ -106,5 +106,14 @@
     # content-addressed checkout, never evaluated.
     supabase.url = "github:supabase/supabase";
     supabase.flake = false;
+
+    # Supabase's Postgres: Postgres 17 + 112 extensions (pg_graphql, pgsodium,
+    # pg_net, pg_jsonschema, pgjwt, pgvector, …) as a NATIVE Nix derivation with
+    # a binary substituter (nix-postgres-artifacts.s3.amazonaws.com). This is what
+    # runs INSIDE supabase/postgres Docker images — already Nix-built, just wearing
+    # a container costume. We consume the package directly via
+    # services.postgresql.package, killing the DB container entirely.
+    supabase-postgres.url = "github:supabase/postgres";
+    supabase-postgres.inputs.nixpkgs.follows = "nixpkgs";
   };
 }
