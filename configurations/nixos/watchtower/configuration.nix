@@ -109,6 +109,7 @@ in
       maxBodySize = "0";
     };
     services.studio.port = 8000; # → Kong → Studio/auth/rest/realtime/storage
+    services.attic.port = 8080; # → atticd (the monolithic backend)
   };
 
   hardware.graphics = {
