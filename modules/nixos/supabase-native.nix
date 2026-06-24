@@ -144,6 +144,44 @@ in
         default = "/run/supabase-db";
         description = "Unix socket directory for the supabase cluster.";
       };
+
+      # ── additional databases (beyond supabase's own `postgres`) ───────────
+      # declare databases that should be created in this cluster. Each gets a
+      # role of the same name, owns the database, and has its password set from
+      # an agenix secret. This is the seam for migrating atticd/forgejo/etc.
+      # into the unified PG17 cluster.
+      databases = mkOption {
+        type = types.attrsOf (
+          types.submodule {
+            options = {
+              passwordSecret = mkOption {
+                type = types.str;
+                description = "agenix secret name containing the role password.";
+                example = "atticd-rs256";
+              };
+              passwordVar = mkOption {
+                type = types.str;
+                default = "PGPASSWORD";
+                description = "env var within the secret holding the password.";
+              };
+            };
+          }
+        );
+        default = { };
+        example = {
+          atticd = {
+            passwordSecret = "atticd-rs256";
+            passwordVar = "PGPASSWORD";
+          };
+        };
+        description = ''
+          Additional databases to create in the supabase PG17 cluster. Each key
+          becomes a database AND a role (with ensureDBOwnership). The role password
+          is set from the named agenix secret. Clients connect via:
+            postgresql://<name>@localhost:${"\${db.port}"}/<name>
+          with PGPASSWORD from the same secret.
+        '';
+      };
     };
 
     auth = {
@@ -227,9 +265,19 @@ in
     ];
 
     # ── Secret wiring ─────────────────────────────────────────────────────────
-    age.secrets = mkIf cfg.selfWireSecret {
-      supabase-env.file = flake.self + "/secrets/agenix/machines/supabase-env.age";
-    };
+    age.secrets =
+      (lib.optionalAttrs cfg.selfWireSecret {
+        supabase-env.file = flake.self + "/secrets/agenix/machines/supabase-env.age";
+      })
+      // (lib.optionalAttrs (cfg.db.databases != { }) (
+        lib.mapAttrs' (
+          _dbName: spec:
+          lib.nameValuePair spec.passwordSecret {
+            group = pgUser;
+            mode = "0440";
+          }
+        ) cfg.db.databases
+      ));
 
     # ── State classification ──────────────────────────────────────────────────
     hyper-modern-nixos.state.dirs = {
@@ -515,6 +563,69 @@ in
         touch "$SENTINEL"
         echo "// supabase-db-init-sql // done"
       '';
+    };
+
+    # ── ensure additional databases (idempotent, every boot) ─────────────────
+    # creates databases + roles declared in cfg.db.databases. Runs AFTER init-sql
+    # (so the cluster is ready) and on every boot (not sentinel-guarded). Each
+    # role's password is sourced from its agenix secret at runtime.
+    systemd.services.supabase-db-ensure-dbs = mkIf (cfg.db.databases != { }) {
+      description = "supabase db: ensure additional databases + roles";
+      after = [
+        "supabase-db-init-sql.service"
+        "run-agenix.d.mount"
+      ];
+      requires = [ "supabase-db.service" ];
+      wantedBy = [ "multi-user.target" ];
+
+      serviceConfig = {
+        Type = "oneshot";
+        User = pgUser;
+        RemainAfterExit = true;
+      };
+
+      path = [
+        supabasePg
+        pkgs.coreutils
+      ];
+
+      script =
+        let
+          psql = "psql -h ${pgSocket} -p ${toString pgPort} -U postgres -v ON_ERROR_STOP=1";
+          dbScript = lib.concatStringsSep "\n" (
+            lib.mapAttrsToList (dbName: spec: ''
+              # ensure database: ${dbName}
+              ${psql} -tc "SELECT 1 FROM pg_database WHERE datname = '${dbName}'" \
+                | grep -q 1 || ${psql} -c "CREATE DATABASE \"${dbName}\";"
+
+              # ensure role: ${dbName}
+              ${psql} -tc "SELECT 1 FROM pg_roles WHERE rolname = '${dbName}'" \
+                | grep -q 1 || ${psql} -c "CREATE ROLE \"${dbName}\" WITH LOGIN;"
+
+              # grant ownership
+              ${psql} -c "ALTER DATABASE \"${dbName}\" OWNER TO \"${dbName}\";"
+
+              # set password from agenix secret
+              if [ -r "/run/agenix/${spec.passwordSecret}" ]; then
+                pw=$( set -a; . "/run/agenix/${spec.passwordSecret}"; printf '%s' "''$${spec.passwordVar}" )
+                if [ -n "$pw" ]; then
+                  ${psql} -c "ALTER ROLE \"${dbName}\" WITH PASSWORD '$pw';"
+                  echo "// supabase-db-ensure-dbs // ${dbName}: role password set"
+                else
+                  echo "warning: ${spec.passwordVar} empty in /run/agenix/${spec.passwordSecret}" >&2
+                fi
+              else
+                echo "warning: /run/agenix/${spec.passwordSecret} not readable for ${dbName}" >&2
+              fi
+            '') cfg.db.databases
+          );
+        in
+        ''
+          set -euo pipefail
+          echo "// supabase-db-ensure-dbs // ensuring ${toString (builtins.length (builtins.attrNames cfg.db.databases))} database(s)"
+          ${dbScript}
+          echo "// supabase-db-ensure-dbs // done"
+        '';
     };
 
     # ══════════════════════════════════════════════════════════════════════════════

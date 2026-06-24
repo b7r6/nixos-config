@@ -115,6 +115,20 @@ in
       '';
     };
 
+    useSupabaseDb = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Use the supabase-native PG17 cluster instead of the legacy PG16.
+        When true, monolithic-shared skips enabling the old
+        hyper-modern-nixos.databases.postgres and connects to the supabase
+        cluster (port from hyper-modern-nixos.supabase-native.db.port).
+        The atticd database + role must be declared in
+        hyper-modern-nixos.supabase-native.db.databases.atticd.
+        The old PG16 cluster is left untouched (no data lost).
+      '';
+    };
+
     standalonePostgres = lib.mkOption {
       type = lib.types.bool;
       default = false;
@@ -195,11 +209,14 @@ in
           trustedInterfaces = [ "tailscale0" ];
 
           # database:
-          #   monolithic-shared (watchtower) IS the postgres host -> loopback
-          #   replica            -> the remote shared URL over the tailnet
-          #   standalone         -> local postgres if asked, else sqlite default
+          #   monolithic-shared + useSupabaseDb -> supabase PG17 on its port
+          #   monolithic-shared (legacy)        -> old PG16 on localhost:5432
+          #   replica                           -> remote shared URL over tailnet
+          #   standalone                        -> local postgres if asked, else sqlite
           databaseUrl =
-            if cfg.profile == "monolithic-shared" then
+            if cfg.profile == "monolithic-shared" && cfg.useSupabaseDb then
+              "postgresql://atticd@localhost:${toString config.hyper-modern-nixos.supabase-native.db.port}/atticd"
+            else if cfg.profile == "monolithic-shared" then
               "postgresql://atticd@localhost/atticd"
             else if cfg.profile == "replica" then
               cfg.sharedDatabaseUrl
@@ -231,7 +248,9 @@ in
       #   - monolithic-shared (watchtower): always (it IS the fleet postgres),
       #     tailnet-reachable so replicas can connect.
       #   - standalone + standalonePostgres: a local-only rehearsal postgres.
-      (lib.mkIf (cfg.profile == "monolithic-shared") {
+      # SKIPPED when useSupabaseDb is true — the supabase-native module owns the
+      # cluster and the atticd database is declared there.
+      (lib.mkIf (cfg.profile == "monolithic-shared" && !cfg.useSupabaseDb) {
         hyper-modern-nixos.databases.postgres = {
           enable = true;
           tailnet.enable = true;
@@ -289,6 +308,65 @@ in
               kp=$(cat "${secretPath}")
               # Only update if the cache row already exists (created at bootstrap).
               # Idempotent: sets keypair to the agenix-held value every activation.
+              ${psql} -c "UPDATE cache SET keypair = '$kp' WHERE name = '${cfg.cacheName}';" \
+                || echo "warning: failed to restore cache keypair (cache '${cfg.cacheName}' may not exist yet)" >&2
+            '';
+        };
+      })
+
+      # ── monolithic-shared + useSupabaseDb: order atticd after the supabase DB ──
+      # The old PG16 is untouched; atticd connects to the supabase cluster instead.
+      # The keypair restore targets the supabase cluster's psql.
+      (lib.mkIf (cfg.profile == "monolithic-shared" && cfg.useSupabaseDb) {
+        assertions = [
+          {
+            assertion = config.hyper-modern-nixos.supabase-native.enable;
+            message = ''
+              attic-node.useSupabaseDb requires hyper-modern-nixos.supabase-native.enable.
+              The supabase-native module provides the PG17 cluster.
+            '';
+          }
+        ];
+
+        # order atticd after the supabase DB ensures the database + role exist
+        systemd.services.atticd = {
+          after = [ "supabase-db-ensure-dbs.service" ];
+          wants = [ "supabase-db-ensure-dbs.service" ];
+        };
+
+        # keypair restore against the supabase cluster
+        age.secrets = lib.mkIf (cfg.keypairSecret != null) {
+          ${cfg.keypairSecret} = {
+            file = machineSecrets + "/${cfg.keypairSecret}.age";
+            group = config.users.users."supabase-postgres".group;
+            mode = "0440";
+          };
+        };
+
+        systemd.services.attic-cache-keypair-restore = lib.mkIf (cfg.keypairSecret != null) {
+          description = "restore the attic cache signing keypair into supabase postgres";
+          after = [ "supabase-db-ensure-dbs.service" ];
+          requires = [ "supabase-db.service" ];
+          wantedBy = [ "multi-user.target" ];
+          before = [ "atticd.service" ];
+          serviceConfig = {
+            Type = "oneshot";
+            User = "supabase-postgres";
+            RemainAfterExit = true;
+          };
+          script =
+            let
+              supabasePgPort = toString config.hyper-modern-nixos.supabase-native.db.port;
+              supabasePgSocket = config.hyper-modern-nixos.supabase-native.db.socketDir;
+              psql = "psql -h ${supabasePgSocket} -p ${supabasePgPort} -U postgres -d atticd -v ON_ERROR_STOP=1";
+              secretPath = "/run/agenix/${cfg.keypairSecret}";
+            in
+            ''
+              if [ ! -r "${secretPath}" ]; then
+                echo "warning: keypair secret ${secretPath} not readable; skipping" >&2
+                exit 0
+              fi
+              kp=$(cat "${secretPath}")
               ${psql} -c "UPDATE cache SET keypair = '$kp' WHERE name = '${cfg.cacheName}';" \
                 || echo "warning: failed to restore cache keypair (cache '${cfg.cacheName}' may not exist yet)" >&2
             '';

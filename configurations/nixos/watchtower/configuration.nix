@@ -92,6 +92,10 @@ in
   hyper-modern-nixos.supabase-native = {
     enable = true;
     publicUrl = "https://studio.sju1.s4.gl";
+    db.databases.atticd = {
+      passwordSecret = "atticd-rs256";
+      passwordVar = "PGPASSWORD";
+    };
   };
 
   # ── Reverse proxy + internal ACME (nginx → loopback services) ───────────────
@@ -152,6 +156,7 @@ in
   hyper-modern-nixos.attic-node = {
     enable = true;
     profile = "monolithic-shared";
+    useSupabaseDb = true;
   };
 
   # ── restic → Cloudflare R2 backups ──────────────────────────────────────────
