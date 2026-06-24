@@ -141,6 +141,11 @@ let
       dontConfigure = true;
       dontBuild = true;
 
+      # pnpm/npm hoisted symlinks can dangle when extracting a subtree from a
+      # container rootfs (the targets lived outside appDir). These are dead
+      # workspace artifacts that Node.js never resolves at runtime.
+      dontCheckForBrokenSymlinks = true;
+
       installPhase = ''
         runHook preInstall
         mkdir -p $out/app $out/bin
