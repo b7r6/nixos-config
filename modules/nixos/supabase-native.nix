@@ -55,8 +55,45 @@ let
   pgDataDir = cfg.db.dataDir;
   pgUser = "supabase-postgres"; # system user for this cluster
 
-  # helper: build a postgres:// URL for a given role (password comes from env)
-  # at runtime — this is a template used by the env-split script
+  # ── OCI extraction (crane export → autopatchelf / node wrapper) ───────────
+  oci = import ../../lib/oci.nix { inherit pkgs; };
+
+  supabaseRealtime = oci.extractBin {
+    name = "supabase-realtime";
+    version = "2.102.3";
+    image = "docker.io/supabase/realtime:v2.102.3";
+    hash = "sha256-f3fRNDmg3C9PPHblt/viuXtLB3nud6WInYB0MxPjSi8=";
+    appDir = "/app";
+    entrypoint = "bin/realtime";
+    runtimeInputs = with pkgs; [
+      openssl
+      ncurses
+      zlib
+      libgcc.lib
+    ];
+  };
+
+  supabaseStorage = oci.extractBin {
+    name = "supabase-storage";
+    version = "1.60.4";
+    image = "docker.io/supabase/storage-api:v1.60.4";
+    hash = "sha256-JCpZ5fpGZ3PrFfYQCTMbb6RW1rZeFCei5KCkZYFsoAc=";
+    appDir = "/app";
+    entrypoint = "dist/start/server.js";
+    isNode = true;
+    nodePackage = pkgs.nodejs_22; # image uses 24 but 22 runs this fine
+  };
+
+  supabaseStudio = oci.extractBin {
+    name = "supabase-studio";
+    version = "2026.06.03";
+    image = "docker.io/supabase/studio:2026.06.03-sha-0bca601";
+    hash = "sha256-WClIhnjnZw741U5m1Bu9Md3xtwlsviqTBFBbQJ5JPXs=";
+    appDir = "/app";
+    entrypoint = "apps/studio/server.js";
+    isNode = true;
+    nodePackage = pkgs.nodejs_22;
+  };
 in
 {
   options.hyper-modern-nixos.supabase-native = {
@@ -738,117 +775,168 @@ in
     };
 
     # ══════════════════════════════════════════════════════════════════════════════
-    #  HYBRID CONTAINERS: realtime, storage, studio
+    #  Realtime — BEAM release extracted from OCI via crane
     # ══════════════════════════════════════════════════════════════════════════════
-    #
-    # These services are complex to package natively (Elixir git deps, Node 24
-    # with native addons, Next.js monorepo). They run as containers but connect
-    # to the NATIVE postgres on the host (127.0.0.1:${toString pgPort}) via
-    # --network=host. This kills the DB container (biggest win) and the Docker
-    # network layer — each service talks directly to localhost. They will be
-    # extracted to native units incrementally.
 
-    virtualisation.oci-containers.backend = "docker";
-
-    virtualisation.oci-containers.containers = {
-      # ── realtime (Elixir/BEAM) ────────────────────────────────────────────────
-      supabase-realtime = {
-        image = "supabase/realtime:v2.102.3";
-        extraOptions = [ "--network=host" ];
-        environmentFiles = [ (svcEnv "realtime") ];
-        environment = {
-          PORT = toString cfg.realtime.port;
-          DB_HOST = pgHost;
-          DB_PORT = toString pgPort;
-          DB_USER = "supabase_admin";
-          DB_NAME = pgDb;
-          DB_AFTER_CONNECT_QUERY = "SET search_path TO _realtime";
-          DB_ENC_KEY = "supabaserealtime";
-          ERL_AFLAGS = "-proto_dist inet_tcp";
-          DNS_NODES = "''";
-          RLIMIT_NOFILE = "10000";
-          APP_NAME = "realtime";
-          SEED_SELF_HOST = "true";
-          RUN_JANITOR = "true";
-          # DB_PASSWORD / API_JWT_SECRET / SECRET_KEY_BASE / METRICS_JWT_SECRET
-          # from env file
-        };
-      };
-
-      # ── storage (Node.js) ─────────────────────────────────────────────────────
-      supabase-storage = {
-        image = "supabase/storage-api:v1.60.4";
-        extraOptions = [ "--network=host" ];
-        environmentFiles = [ (svcEnv "storage") ];
-        environment = {
-          SERVER_PORT = toString cfg.storage.port;
-          POSTGREST_URL = "http://127.0.0.1:${toString cfg.rest.port}";
-          STORAGE_PUBLIC_URL = cfg.publicUrl;
-          REQUEST_ALLOW_X_FORWARDED_PATH = "true";
-          FILE_SIZE_LIMIT = "52428800";
-          STORAGE_BACKEND = "file";
-          FILE_STORAGE_BACKEND_PATH = "/var/lib/storage";
-          ENABLE_IMAGE_TRANSFORMATION = "true";
-          IMGPROXY_URL = "http://127.0.0.1:${toString cfg.imgproxy.port}";
-          TENANT_ID = "stub";
-          REGION = "stub";
-          GLOBAL_S3_BUCKET = "stub";
-          # ANON_KEY / SERVICE_KEY / AUTH_JWT_SECRET / DATABASE_URL from env file
-        };
-        volumes = [ "${cfg.dataDir}/storage:/var/lib/storage" ];
-      };
-
-      # ── studio (Next.js dashboard) ───────────────────────────────────────────
-      supabase-studio = {
-        image = "supabase/studio:2026.06.03-sha-0bca601";
-        extraOptions = [ "--network=host" ];
-        environmentFiles = [ (svcEnv "studio") ];
-        environment = {
-          HOSTNAME = "127.0.0.1";
-          PORT = toString cfg.studio.port;
-          STUDIO_PG_META_URL = "http://127.0.0.1:${toString cfg.meta.port}";
-          POSTGRES_HOST = pgHost;
-          POSTGRES_PORT = toString pgPort;
-          POSTGRES_DB = pgDb;
-          POSTGRES_USER_READ_WRITE = "postgres";
-          DEFAULT_ORGANIZATION_NAME = "Default Organization";
-          DEFAULT_PROJECT_NAME = "Default Project";
-          SUPABASE_URL = "http://127.0.0.1:8000";
-          SUPABASE_PUBLIC_URL = cfg.publicUrl;
-          PGRST_DB_SCHEMAS = "public,storage,graphql_public";
-          # POSTGRES_PASSWORD / PG_META_CRYPTO_KEY / SUPABASE_ANON_KEY /
-          # SUPABASE_SERVICE_KEY / AUTH_JWT_SECRET from env file
-        };
-      };
-    };
-
-    # order the hybrid containers after the env split + DB init
-    systemd.services.docker-supabase-realtime = {
+    systemd.services.supabase-realtime = {
+      description = "supabase realtime (BEAM, crane-extracted)";
       after = [
         "supabase-db-init-sql.service"
         "supabase-env-split.service"
       ];
-      requires = [ "supabase-env-split.service" ];
-      startLimitIntervalSec = 0;
-      serviceConfig.RestartSec = "5s";
+      requires = [
+        "supabase-db.service"
+        "supabase-env-split.service"
+      ];
+      wantedBy = [ "multi-user.target" ];
+
+      environment = {
+        PORT = toString cfg.realtime.port;
+        DB_HOST = pgHost;
+        DB_PORT = toString pgPort;
+        DB_USER = "supabase_admin";
+        DB_NAME = pgDb;
+        DB_AFTER_CONNECT_QUERY = "SET search_path TO _realtime";
+        DB_ENC_KEY = "supabaserealtime";
+        ERL_AFLAGS = "-proto_dist inet_tcp";
+        DNS_NODES = "''";
+        APP_NAME = "realtime";
+        SEED_SELF_HOST = "true";
+        RUN_JANITOR = "true";
+        PHX_SERVER = "true";
+        # the BEAM release needs to know where ERTS lives
+        RELEASE_ROOT = "${supabaseRealtime}/app";
+        RELEASE_TMP = "/tmp/supabase-realtime";
+        ERL_CRASH_DUMP = "/tmp/supabase-realtime/erl_crash.dump";
+      };
+
+      serviceConfig = {
+        Type = "simple";
+        EnvironmentFile = svcEnv "realtime";
+        DynamicUser = true;
+        RuntimeDirectory = "supabase-realtime";
+        StateDirectory = "supabase-realtime";
+
+        ExecStartPre =
+          let
+            migrateScript = pkgs.writeShellScript "supabase-realtime-migrate" ''
+              set -euo pipefail
+              mkdir -p /tmp/supabase-realtime
+              ${supabaseRealtime}/bin/supabase-realtime eval 'Realtime.Release.migrate()'
+              ${supabaseRealtime}/bin/supabase-realtime eval 'Realtime.Release.seeds(Realtime.Repo)'
+            '';
+          in
+          "+${migrateScript}";
+
+        ExecStart = "${supabaseRealtime}/bin/supabase-realtime start";
+        Restart = "on-failure";
+        RestartSec = "5s";
+
+        # hardening
+        ProtectHome = true;
+        ProtectSystem = "strict";
+        ReadWritePaths = [ "/tmp/supabase-realtime" ];
+        PrivateTmp = true;
+        NoNewPrivileges = true;
+      };
     };
-    systemd.services.docker-supabase-storage = {
+
+    # ══════════════════════════════════════════════════════════════════════════════
+    #  Storage — Node.js app extracted from OCI via crane
+    # ══════════════════════════════════════════════════════════════════════════════
+
+    systemd.services.supabase-storage = {
+      description = "supabase storage (Node.js, crane-extracted)";
       after = [
         "supabase-db-init-sql.service"
         "supabase-env-split.service"
+        "supabase-rest.service"
+        "supabase-imgproxy.service"
       ];
-      requires = [ "supabase-env-split.service" ];
-      startLimitIntervalSec = 0;
-      serviceConfig.RestartSec = "5s";
-    };
-    systemd.services.docker-supabase-studio = {
-      after = [
-        "supabase-db-init-sql.service"
+      requires = [
+        "supabase-db.service"
         "supabase-env-split.service"
       ];
-      requires = [ "supabase-env-split.service" ];
-      startLimitIntervalSec = 0;
-      serviceConfig.RestartSec = "5s";
+      wantedBy = [ "multi-user.target" ];
+
+      environment = {
+        SERVER_PORT = toString cfg.storage.port;
+        POSTGREST_URL = "http://127.0.0.1:${toString cfg.rest.port}";
+        STORAGE_PUBLIC_URL = cfg.publicUrl;
+        REQUEST_ALLOW_X_FORWARDED_PATH = "true";
+        FILE_SIZE_LIMIT = "52428800";
+        STORAGE_BACKEND = "file";
+        FILE_STORAGE_BACKEND_PATH = "${cfg.dataDir}/storage";
+        ENABLE_IMAGE_TRANSFORMATION = "true";
+        IMGPROXY_URL = "http://127.0.0.1:${toString cfg.imgproxy.port}";
+        TENANT_ID = "stub";
+        REGION = "stub";
+        GLOBAL_S3_BUCKET = "stub";
+        NODE_ENV = "production";
+      };
+
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${supabaseStorage}/bin/supabase-storage";
+        EnvironmentFile = svcEnv "storage";
+        DynamicUser = true;
+        Restart = "on-failure";
+        RestartSec = "5s";
+
+        ProtectHome = true;
+        ProtectSystem = "strict";
+        ReadWritePaths = [ "${cfg.dataDir}/storage" ];
+        PrivateTmp = true;
+        NoNewPrivileges = true;
+      };
+    };
+
+    # ══════════════════════════════════════════════════════════════════════════════
+    #  Studio — Next.js app extracted from OCI via crane
+    # ══════════════════════════════════════════════════════════════════════════════
+
+    systemd.services.supabase-studio = {
+      description = "supabase studio (Next.js, crane-extracted)";
+      after = [
+        "supabase-meta.service"
+        "supabase-env-split.service"
+      ];
+      requires = [
+        "supabase-meta.service"
+        "supabase-env-split.service"
+      ];
+      wantedBy = [ "multi-user.target" ];
+
+      environment = {
+        HOSTNAME = "127.0.0.1";
+        PORT = toString cfg.studio.port;
+        STUDIO_PG_META_URL = "http://127.0.0.1:${toString cfg.meta.port}";
+        POSTGRES_HOST = pgHost;
+        POSTGRES_PORT = toString pgPort;
+        POSTGRES_DB = pgDb;
+        POSTGRES_USER_READ_WRITE = "postgres";
+        DEFAULT_ORGANIZATION_NAME = "Default Organization";
+        DEFAULT_PROJECT_NAME = "Default Project";
+        SUPABASE_URL = "http://127.0.0.1:8000";
+        SUPABASE_PUBLIC_URL = cfg.publicUrl;
+        PGRST_DB_SCHEMAS = "public,storage,graphql_public";
+        NODE_ENV = "production";
+        NEXT_TELEMETRY_DISABLED = "1";
+      };
+
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${supabaseStudio}/bin/supabase-studio";
+        EnvironmentFile = svcEnv "studio";
+        DynamicUser = true;
+        Restart = "on-failure";
+        RestartSec = "5s";
+
+        ProtectHome = true;
+        ProtectSystem = "strict";
+        PrivateTmp = true;
+        NoNewPrivileges = true;
+      };
     };
   };
 }
