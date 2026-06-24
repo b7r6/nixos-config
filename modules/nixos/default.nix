@@ -49,6 +49,7 @@
     ./rclone-mount.nix
     ./searxng.nix
     ./supabase.nix
+    ./supabase-native.nix
     ./registry.nix
     ../flake/media/nixos.nix
     ../flake/media/nixos-pinchflat.nix

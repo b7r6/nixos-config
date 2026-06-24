@@ -82,16 +82,14 @@ in
     };
   };
 
-  # ── Supabase (full self-hosted stack) ───────────────────────────────────────
-  # Phase one: a SELF-CONTAINED Supabase on its OWN postgres cluster
-  # (/var/lib/supabase/db) — it connects to NOTHING in the existing fleet, so
-  # atticd's cluster, signing keypair, and pgBackRest `main` stanza are untouched.
-  # Kong (the one ingress) binds loopback; nginx fronts it on studio.sju1.s4.gl
-  # with the wildcard cert. The module self-wires the supabase-env agenix bundle
-  # (generate it with `nix run .#gen-supabase-secrets`). See
-  # docs/src/services/supabase.md. Browsing atticd/Forgejo in Studio + CDC to
-  # ClickHouse are deferred to post-rewrite.
-  hyper-modern-nixos.supabase = {
+  # ── Supabase (native, daemon-free) ───────────────────────────────────────────
+  # No Docker. PG17 from the supabase/postgres flake runs as a native systemd
+  # unit on port 5433 (attic's PG16 keeps 5432). GoTrue, PostgREST, imgproxy from
+  # nixpkgs. Kong replaced by nginx location blocks. The remaining services
+  # (meta, realtime, storage, studio) run as containers pointed at the native DB
+  # until their Nix derivations are built. Self-wires the supabase-env agenix
+  # bundle (same secret as before). See docs/src/services/supabase.md.
+  hyper-modern-nixos.supabase-native = {
     enable = true;
     publicUrl = "https://studio.sju1.s4.gl";
   };

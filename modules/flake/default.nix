@@ -53,6 +53,7 @@
       ono-sendai-generator = pkgs.callPackage ./themes/packages/ono-sendai-generator { };
       state-audit = pkgs.callPackage ../../packages/state-audit { };
       gen-supabase-secrets = pkgs.callPackage ../../packages/gen-supabase-secrets { };
+      supabase-postgres-meta = pkgs.callPackage ../../packages/supabase-postgres-meta { };
     };
 
     # Cross-cutting check: validates the fleet's state classification.
