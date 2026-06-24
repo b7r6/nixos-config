@@ -248,12 +248,14 @@ in
       #   - monolithic-shared (watchtower): always (it IS the fleet postgres),
       #     tailnet-reachable so replicas can connect.
       #   - standalone + standalonePostgres: a local-only rehearsal postgres.
-      # SKIPPED when useSupabaseDb is true — the supabase-native module owns the
-      # cluster and the atticd database is declared there.
-      (lib.mkIf (cfg.profile == "monolithic-shared" && !cfg.useSupabaseDb) {
+      # When useSupabaseDb is true, this still runs (so the migration oneshot can
+      # dump from it) but atticd no longer connects to it. After the migration
+      # sentinel is created, disable migrate.enable and then set this to false on
+      # the next rebuild to fully decommission PG16.
+      (lib.mkIf (cfg.profile == "monolithic-shared") {
         hyper-modern-nixos.databases.postgres = {
           enable = true;
-          tailnet.enable = true;
+          tailnet.enable = !cfg.useSupabaseDb; # no tailnet exposure needed if just for migration
           ensureDatabases = [ "atticd" ];
           ensureUsers = [
             {
@@ -261,13 +263,13 @@ in
               ensureDBOwnership = true;
             }
           ];
-          # Set the atticd role's password declaratively from the SAME agenix
-          # secret atticd reads PGPASSWORD from, so md5 login and the client
-          # password can't drift. The postgres module grants postgres group-read
-          # on this secret. No password in the store.
-          rolePasswords.atticd = {
-            secret = "atticd-rs256";
-            var = "PGPASSWORD";
+          # only set role password on the OLD cluster when atticd actually connects
+          # to it. When useSupabaseDb, the supabase-native module handles the password.
+          rolePasswords = lib.mkIf (!cfg.useSupabaseDb) {
+            atticd = {
+              secret = "atticd-rs256";
+              var = "PGPASSWORD";
+            };
           };
         };
 
@@ -276,7 +278,8 @@ in
         # survives a postgres wipe. Runs after the role-password service (so auth
         # works) and only UPDATEs an EXISTING cache row (the row is created at
         # bootstrap by `attic cache create`; this keeps its key stable thereafter).
-        age.secrets = lib.mkIf (cfg.keypairSecret != null) {
+        # SKIPPED when useSupabaseDb — the supabase block below handles it.
+        age.secrets = lib.mkIf (cfg.keypairSecret != null && !cfg.useSupabaseDb) {
           ${cfg.keypairSecret} = {
             file = machineSecrets + "/${cfg.keypairSecret}.age";
             group = "postgres";
@@ -284,34 +287,36 @@ in
           };
         };
 
-        systemd.services.attic-cache-keypair-restore = lib.mkIf (cfg.keypairSecret != null) {
-          description = "restore the attic cache signing keypair into postgres";
-          after = [ "postgresql-role-passwords.service" ];
-          requires = [ "postgresql.service" ];
-          wantedBy = [ "multi-user.target" ];
-          before = [ "atticd.service" ];
-          serviceConfig = {
-            Type = "oneshot";
-            User = "postgres";
-            RemainAfterExit = true;
-          };
-          script =
-            let
-              psql = "${config.services.postgresql.package}/bin/psql -d atticd -v ON_ERROR_STOP=1";
-              secretPath = "/run/agenix/${cfg.keypairSecret}";
-            in
-            ''
-              if [ ! -r "${secretPath}" ]; then
-                echo "warning: keypair secret ${secretPath} not readable; skipping" >&2
-                exit 0
-              fi
-              kp=$(cat "${secretPath}")
-              # Only update if the cache row already exists (created at bootstrap).
-              # Idempotent: sets keypair to the agenix-held value every activation.
-              ${psql} -c "UPDATE cache SET keypair = '$kp' WHERE name = '${cfg.cacheName}';" \
-                || echo "warning: failed to restore cache keypair (cache '${cfg.cacheName}' may not exist yet)" >&2
-            '';
-        };
+        systemd.services.attic-cache-keypair-restore =
+          lib.mkIf (cfg.keypairSecret != null && !cfg.useSupabaseDb)
+            {
+              description = "restore the attic cache signing keypair into postgres";
+              after = [ "postgresql-role-passwords.service" ];
+              requires = [ "postgresql.service" ];
+              wantedBy = [ "multi-user.target" ];
+              before = [ "atticd.service" ];
+              serviceConfig = {
+                Type = "oneshot";
+                User = "postgres";
+                RemainAfterExit = true;
+              };
+              script =
+                let
+                  psql = "${config.services.postgresql.package}/bin/psql -d atticd -v ON_ERROR_STOP=1";
+                  secretPath = "/run/agenix/${cfg.keypairSecret}";
+                in
+                ''
+                  if [ ! -r "${secretPath}" ]; then
+                    echo "warning: keypair secret ${secretPath} not readable; skipping" >&2
+                    exit 0
+                  fi
+                  kp=$(cat "${secretPath}")
+                  # Only update if the cache row already exists (created at bootstrap).
+                  # Idempotent: sets keypair to the agenix-held value every activation.
+                  ${psql} -c "UPDATE cache SET keypair = '$kp' WHERE name = '${cfg.cacheName}';" \
+                    || echo "warning: failed to restore cache keypair (cache '${cfg.cacheName}' may not exist yet)" >&2
+                '';
+            };
       })
 
       # ── monolithic-shared + useSupabaseDb: order atticd after the supabase DB ──

@@ -95,6 +95,12 @@ in
     db.databases.atticd = {
       passwordSecret = "atticd-rs256";
       passwordVar = "PGPASSWORD";
+      migrate = {
+        enable = true;
+        # dump from the old PG16 on default port/socket
+        sourcePort = 5432;
+        sourceSocketDir = "/run/postgresql";
+      };
     };
   };
 

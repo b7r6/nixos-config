@@ -164,6 +164,37 @@ in
                 default = "PGPASSWORD";
                 description = "env var within the secret holding the password.";
               };
+              migrate = mkOption {
+                type = types.submodule {
+                  options = {
+                    enable = mkOption {
+                      type = types.bool;
+                      default = false;
+                      description = ''
+                        One-time migration: pg_dump from an old cluster and pg_restore
+                        into the supabase PG17 cluster. Sentinel-guarded (runs once).
+                      '';
+                    };
+                    sourcePort = mkOption {
+                      type = types.port;
+                      default = 5432;
+                      description = "Port of the old cluster to dump from.";
+                    };
+                    sourceUser = mkOption {
+                      type = types.str;
+                      default = "postgres";
+                      description = "User to connect as on the old cluster (needs peer auth).";
+                    };
+                    sourceSocketDir = mkOption {
+                      type = types.str;
+                      default = "/run/postgresql";
+                      description = "Unix socket dir of the old cluster.";
+                    };
+                  };
+                };
+                default = { };
+                description = "One-time migration settings from an old PG cluster.";
+              };
             };
           }
         );
@@ -172,6 +203,7 @@ in
           atticd = {
             passwordSecret = "atticd-rs256";
             passwordVar = "PGPASSWORD";
+            migrate.enable = true;
           };
         };
         description = ''
@@ -627,6 +659,72 @@ in
           echo "// supabase-db-ensure-dbs // done"
         '';
     };
+
+    # ── one-time data migration from old clusters (sentinel-guarded) ─────────
+    # For each database with migrate.enable = true: pg_dump from the old cluster,
+    # pg_restore into the supabase PG17 cluster. Runs once per database.
+    # ConditionPathExists ensures it only runs once (sentinel file in pgDataDir).
+    systemd.services."supabase-db-migrate-atticd" =
+      mkIf (cfg.db.databases ? atticd && cfg.db.databases.atticd.migrate.enable)
+        {
+          description = "one-time migration: atticd from old cluster to PG17";
+          after = [ "supabase-db-ensure-dbs.service" ];
+          requires = [ "supabase-db.service" ];
+          wantedBy = [ "multi-user.target" ];
+          unitConfig.ConditionPathExists = "!${pgDataDir}/.migrated-atticd";
+
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+          };
+
+          path = [
+            supabasePg
+            pkgs.postgresql_16
+            pkgs.coreutils
+            pkgs.sudo
+          ];
+
+          script =
+            let
+              m = cfg.db.databases.atticd.migrate;
+            in
+            ''
+              set -euo pipefail
+              echo "// supabase-db-migrate-atticd // dumping from port ${toString m.sourcePort}"
+
+              # check if the old cluster is reachable
+              if ! pg_isready -h ${m.sourceSocketDir} -p ${toString m.sourcePort} -q; then
+                echo "// supabase-db-migrate-atticd // old cluster not running, skipping"
+                echo "// start the old PG16 once for migration, or set migrate.enable = false"
+                exit 1
+              fi
+
+              # dump from old cluster (peer auth)
+              sudo -u ${m.sourceUser} pg_dump \
+                -h ${m.sourceSocketDir} \
+                -p ${toString m.sourcePort} \
+                -d atticd \
+                -Fc --no-owner --no-acl \
+                -f /tmp/migrate-atticd.dump
+
+              echo "// supabase-db-migrate-atticd // restoring into port ${toString pgPort}"
+
+              # restore into supabase cluster
+              sudo -u ${pgUser} pg_restore \
+                -h ${pgSocket} \
+                -p ${toString pgPort} \
+                -U postgres \
+                -d atticd \
+                --no-owner --no-acl \
+                --if-exists --clean \
+                /tmp/migrate-atticd.dump || true
+
+              rm -f /tmp/migrate-atticd.dump
+              touch "${pgDataDir}/.migrated-atticd"
+              echo "// supabase-db-migrate-atticd // done"
+            '';
+        };
 
     # ══════════════════════════════════════════════════════════════════════════════
     #  GoTrue (auth) — from nixpkgs
