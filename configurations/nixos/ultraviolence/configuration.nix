@@ -60,15 +60,20 @@ in
 
   hyper-modern-nixos.searxng = {
     enable = true;
-    # Bind broad so it's reachable on the tailnet (binding the tailscale0 IP
-    # directly races boot — the iface may not exist yet). The firewall (ON
-    # fleet-wide) is the enforcement layer: searxng's port is opened ONLY on
-    # tailscale0, so this is NOT exposed publicly despite the 0.0.0.0 bind.
-    listenAddress = "0.0.0.0";
-    port = 8889; # 8888 is taken by the hatchet docker container on this host
+    # Bind loopback; nginx fronts it on searxng.sju1.s4.gl with TLS.
+    listenAddress = "127.0.0.1";
+    port = 8889;
   };
 
   hyper-modern-nixos.torrents.enable = true;
+
+  # ── Reverse proxy + internal ACME (nginx → loopback services) ───────────────
+  # Same pattern as watchtower: wildcard cert (*.sju1.s4.gl via DNS-01/Njalla),
+  # nginx terminates TLS on the logical names. CoreDNS resolves them here.
+  hyper-modern-nixos.reverseProxy = {
+    enable = true;
+    services.searxng.port = 8889;
+  };
 
   # ── NativeLink remote execution (single-box monolithic bringup) ─────────────
   # CAS + scheduler + a local x86_64 worker, all on this host. Split the aarch64

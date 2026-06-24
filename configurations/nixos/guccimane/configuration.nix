@@ -126,6 +126,9 @@ in
       root = "/mnt/r2/drop";
       maxBodySize = "0"; # large file fetches, no cap
     };
+    services.navidrome.port = 4533;
+    services.jellyfin.port = 8096;
+    services.pinchflat.port = 8945;
   };
 
   # ── restic → Cloudflare R2 backups ─────────────────────────────────────────

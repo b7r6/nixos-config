@@ -85,7 +85,7 @@ in  schema.Registry::{
         , lan_ipv4 = Some "192.168.40.81"
         , zone = "sju1"
         , role = "server"
-        , services = [ "drop" ]
+        , services = [ "drop", "navidrome", "jellyfin", "pinchflat" ]
         }
       , Host::{
         , physical = "shannon"
