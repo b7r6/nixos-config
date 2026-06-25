@@ -65,24 +65,38 @@ let
   dbPickerSnippet = ''
     <script>
     (function(){
-      var c=document.cookie.match(/pg_meta_db=([^;]+)/);
-      var current=c?decodeURIComponent(c[1]):"postgres";
-      fetch("/pg/databases").then(r=>r.json()).then(function(dbs){
-        var sel=document.createElement("select");
-        sel.id="db-picker";
-        sel.style.cssText="position:fixed;top:8px;right:200px;z-index:99999;padding:4px 8px;border-radius:4px;border:1px solid #444;background:#1e1e1e;color:#e0e0e0;font-size:13px;font-family:monospace;cursor:pointer;";
-        dbs.forEach(function(db){
-          var opt=document.createElement("option");
-          opt.value=db.name;opt.textContent=db.name;
-          if(db.name===current)opt.selected=true;
-          sel.appendChild(opt);
+      function init(){
+        if(document.getElementById("db-picker-wrap"))return;
+        var c=document.cookie.match(/pg_meta_db=([^;]+)/);
+        var current=c?decodeURIComponent(c[1]):"postgres";
+        fetch("/pg/databases").then(function(r){return r.json()}).then(function(dbs){
+          var wrap=document.createElement("div");
+          wrap.id="db-picker-wrap";
+          wrap.style.cssText="position:fixed;top:12px;left:180px;z-index:2147483647;display:flex;align-items:center;gap:6px;";
+          var label=document.createElement("span");
+          label.textContent="db:";
+          label.style.cssText="color:#888;font-size:12px;font-family:monospace;";
+          var sel=document.createElement("select");
+          sel.id="db-picker";
+          sel.style.cssText="padding:3px 8px;border-radius:4px;border:1px solid #555;background:#2a2a2a;color:#0f0;font-size:12px;font-family:monospace;cursor:pointer;outline:none;";
+          dbs.forEach(function(db){
+            var opt=document.createElement("option");
+            opt.value=db.name;opt.textContent=db.name;
+            if(db.name===current)opt.selected=true;
+            sel.appendChild(opt);
+          });
+          sel.onchange=function(){
+            document.cookie="pg_meta_db="+encodeURIComponent(sel.value)+";path=/;max-age=31536000";
+            location.reload();
+          };
+          wrap.appendChild(label);
+          wrap.appendChild(sel);
+          document.body.appendChild(wrap);
         });
-        sel.onchange=function(){
-          document.cookie="pg_meta_db="+encodeURIComponent(sel.value)+";path=/;max-age=31536000";
-          location.reload();
-        };
-        document.body.appendChild(sel);
-      });
+      }
+      if(document.readyState==="complete")init();
+      else window.addEventListener("load",init);
+      setTimeout(init,2000);
     })();
     </script>
   '';
