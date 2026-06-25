@@ -127,7 +127,9 @@ let
     appDir = "/app";
     entrypoint = "dist/start/server.js";
     isNode = true;
-    nodePackage = pkgs.nodejs_24; # native addon (fs-xattr) requires matching ABI
+    nodePackage = pkgs.nodejs_24;
+    # fs-xattr native addon was built against musl (Alpine container)
+    runtimeInputs = [ pkgs.musl ];
   };
 
   supabaseStudio = oci.extractBin {
@@ -1126,9 +1128,9 @@ in
         Restart = "on-failure";
         RestartSec = "5s";
 
-        # hardening
+        # hardening (relaxed — BEAM's os_mon/disksup needs /proc + fs access)
         ProtectHome = true;
-        ProtectSystem = "strict";
+        ProtectSystem = "full";
         ReadWritePaths = [ "/var/lib/supabase-realtime" ];
         NoNewPrivileges = true;
       };
