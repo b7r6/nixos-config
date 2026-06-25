@@ -2,8 +2,9 @@
 #                                        // packages // supabase-postgres-meta
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-# RESTful API for managing Postgres (Studio's backend). Simple Node.js app with
-# no native deps that matter for our use case (we disable Sentry profiling).
+# RESTful API for managing Postgres (Studio's backend). Our fork adds:
+#   - X-PG-Meta-Db header: per-request database switching (multi-db self-hosted)
+#   - GET /databases: cluster-wide database list for the project picker
 {
   lib,
   buildNpmPackage,
@@ -14,13 +15,13 @@
 
 buildNpmPackage rec {
   pname = "supabase-postgres-meta";
-  version = "0.96.6";
+  version = "0.96.6-multi-db";
 
   src = fetchFromGitHub {
-    owner = "supabase";
+    owner = "sensenet-ai";
     repo = "postgres-meta";
-    rev = "v${version}";
-    hash = "sha256-scDgUyu4/AaBCkfOXn8lyetEq6dIaXGaQCbNy53y/j0=";
+    rev = "b7r6/multi-db";
+    hash = "sha256-u9B9+kr8lNoHVh97g/QoivcSRnF2Jz6cwzseTz/THCQ=";
   };
 
   nodejs = nodejs_22;
