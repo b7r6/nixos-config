@@ -160,6 +160,38 @@ in
         };
       };
 
+      # ── PITR (pgbackrest → R2) ───────────────────────────────────────────────
+      pitr = {
+        enable = mkEnableOption "continuous WAL archiving via pgbackrest → R2 for the PG17 cluster";
+        stanza = mkOption {
+          type = types.str;
+          default = "supabase";
+          description = "pgbackrest stanza name for this cluster.";
+        };
+        environmentFile = mkOption {
+          type = types.nullOr types.str;
+          default = "/run/agenix/pgbackrest-r2-env";
+          description = "Env file with PGBACKREST_REPO1_S3_KEY[_SECRET].";
+        };
+        s3 = {
+          bucket = mkOption {
+            type = types.str;
+            default = "straylight-pg-pitr";
+            description = "R2 bucket for WAL + base backups.";
+          };
+          endpoint = mkOption {
+            type = types.str;
+            default = "https://6063b6652178f5cf1cfb87e7e41acf1e.r2.cloudflarestorage.com";
+            description = "S3 endpoint.";
+          };
+          region = mkOption {
+            type = types.str;
+            default = "us-east-1";
+            description = "S3 region (R2 ignores but pgbackrest requires).";
+          };
+        };
+      };
+
       # ── additional databases (beyond supabase's own `postgres`) ───────────
       # declare databases that should be created in this cluster. Each gets a
       # role of the same name, owns the database, and has its password set from
@@ -359,6 +391,10 @@ in
       "d ${pgSocket} 0755 ${pgUser} ${pgUser} - -"
       "d ${cfg.dataDir}/storage 0750 root root - -"
       "d ${runtimeEnvDir} 0700 root root - -"
+    ]
+    ++ lib.optionals cfg.db.pitr.enable [
+      "d /var/log/pgbackrest 0750 ${pgUser} ${pgUser} - -"
+      "d /var/lib/pgbackrest 0750 ${pgUser} ${pgUser} - -"
     ];
 
     # ── supabase-env-split: same pattern as the container module ──────────────
@@ -472,7 +508,7 @@ in
         User = pgUser;
         Group = pgUser;
         RuntimeDirectory = "supabase-db";
-        EnvironmentFile = svcEnv "db";
+        EnvironmentFile = [ (svcEnv "db") ] ++ lib.optional cfg.db.pitr.enable cfg.db.pitr.environmentFile;
 
         ExecStartPre =
           let
@@ -555,6 +591,18 @@ in
               # managed by supabase-native (tailnet exposure)
               listen_addresses = '${if cfg.db.tailnet.enable then "*" else "127.0.0.1"}'
               CONF
+
+                            # PITR: WAL archiving config
+                            ${lib.optionalString cfg.db.pitr.enable ''
+                                                          cat > "${pgDataDir}/conf.d/pitr.conf" <<'PITR'
+                              # managed by supabase-native (pgbackrest PITR)
+                              archive_mode = on
+                              archive_command = '${pkgs.pgbackrest}/bin/pgbackrest --config=/etc/pgbackrest/pgbackrest-supabase.conf --stanza=${cfg.db.pitr.stanza} archive-push %p'
+                              wal_level = replica
+                              max_wal_senders = 3
+                              archive_timeout = 60
+                              PITR
+                            ''}
 
                             # rewrite pg_hba with current tailnet cidrs
                             {
@@ -1273,6 +1321,107 @@ in
     # ── tailnet firewall: expose PG17 port on tailscale0 for fleet replicas ──
     networking.firewall.interfaces.${cfg.db.tailnet.interface} = lib.mkIf cfg.db.tailnet.enable {
       allowedTCPPorts = [ pgPort ];
+    };
+
+    # ══════════════════════════════════════════════════════════════════════════════
+    #  PITR — pgbackrest continuous WAL archiving to R2
+    # ══════════════════════════════════════════════════════════════════════════════
+
+    environment.etc."pgbackrest/pgbackrest-supabase.conf" = lib.mkIf cfg.db.pitr.enable {
+      text = ''
+        [global]
+        repo1-type=s3
+        repo1-s3-bucket=${cfg.db.pitr.s3.bucket}
+        repo1-s3-endpoint=${cfg.db.pitr.s3.endpoint}
+        repo1-s3-region=${cfg.db.pitr.s3.region}
+        repo1-s3-uri-style=path
+        repo1-retention-full=4
+        repo1-bundle=y
+        compress-type=zst
+        compress-level=6
+        process-max=4
+        start-fast=y
+
+        [${cfg.db.pitr.stanza}]
+        pg1-path=${pgDataDir}
+        pg1-port=${toString pgPort}
+        pg1-socket-path=${pgSocket}
+        pg1-user=postgres
+      '';
+    };
+
+    # one-time stanza-create (idempotent)
+    systemd.services.supabase-pgbackrest-stanza-create = lib.mkIf cfg.db.pitr.enable {
+      description = "pgbackrest stanza-create for supabase PG17";
+      after = [ "supabase-db.service" ];
+      requires = [ "supabase-db.service" ];
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        User = pgUser;
+        RemainAfterExit = true;
+        EnvironmentFile = cfg.db.pitr.environmentFile;
+      };
+      path = [
+        pkgs.pgbackrest
+        supabasePg
+      ];
+      script = ''
+        pgbackrest --config=/etc/pgbackrest/pgbackrest-supabase.conf \
+          --stanza=${cfg.db.pitr.stanza} stanza-create || \
+        pgbackrest --config=/etc/pgbackrest/pgbackrest-supabase.conf \
+          --stanza=${cfg.db.pitr.stanza} stanza-upgrade || true
+        pgbackrest --config=/etc/pgbackrest/pgbackrest-supabase.conf \
+          --stanza=${cfg.db.pitr.stanza} check
+      '';
+    };
+
+    # daily differential base backup
+    systemd.services.supabase-pgbackrest-backup-diff = lib.mkIf cfg.db.pitr.enable {
+      description = "pgbackrest differential backup (supabase PG17)";
+      after = [ "supabase-db.service" ];
+      requires = [ "supabase-db.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        User = pgUser;
+        EnvironmentFile = cfg.db.pitr.environmentFile;
+        ExecStart = "${pkgs.pgbackrest}/bin/pgbackrest --config=/etc/pgbackrest/pgbackrest-supabase.conf --stanza=${cfg.db.pitr.stanza} --type=diff backup";
+      };
+      path = [ supabasePg ];
+    };
+
+    # weekly full base backup
+    systemd.services.supabase-pgbackrest-backup-full = lib.mkIf cfg.db.pitr.enable {
+      description = "pgbackrest full backup (supabase PG17)";
+      after = [ "supabase-db.service" ];
+      requires = [ "supabase-db.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        User = pgUser;
+        EnvironmentFile = cfg.db.pitr.environmentFile;
+        ExecStart = "${pkgs.pgbackrest}/bin/pgbackrest --config=/etc/pgbackrest/pgbackrest-supabase.conf --stanza=${cfg.db.pitr.stanza} --type=full backup";
+      };
+      path = [ supabasePg ];
+    };
+
+    systemd.timers.supabase-pgbackrest-backup-diff = lib.mkIf cfg.db.pitr.enable {
+      description = "schedule pgbackrest differential backups (supabase PG17)";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "daily";
+        Persistent = true;
+        RandomizedDelaySec = "10m";
+      };
+    };
+
+    systemd.timers.supabase-pgbackrest-backup-full = lib.mkIf cfg.db.pitr.enable {
+      description = "schedule pgbackrest full backups (supabase PG17)";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "Sun *-*-* 02:00:00";
+        Persistent = true;
+        RandomizedDelaySec = "10m";
+      };
     };
   };
 }

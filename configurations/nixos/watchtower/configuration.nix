@@ -93,6 +93,7 @@ in
     enable = true;
     publicUrl = "https://studio.sju1.s4.gl";
     db.tailnet.enable = true;
+    db.pitr.enable = true;
     db.databases = {
       atticd = {
         passwordSecret = "atticd-rs256";
