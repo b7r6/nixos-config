@@ -164,10 +164,14 @@ in
         server = "https://acme-staging-v02.api.letsencrypt.org/directory";
       };
 
-      # One wildcard cert covers every internal vhost.
+      # One wildcard cert covers every internal vhost (both long and short forms).
       certs.${wildcardCert} = {
         domain = "*.${zone}";
-        extraDomainNames = [ zone ];
+        extraDomainNames = [
+          zone
+          "*.${topo.registry.internalDomain}"
+          topo.registry.internalDomain
+        ];
         group = config.services.nginx.group;
       };
     };
@@ -190,6 +194,7 @@ in
       virtualHosts = mapAttrs' (
         sub: svc:
         nameValuePair "${sub}.${zone}" {
+          serverAliases = [ "${sub}.${topo.registry.internalDomain}" ];
           forceSSL = true;
           useACMEHost = wildcardCert; # share the one wildcard cert
           # Per-vhost body cap; registries need this lifted for layer pushes.
