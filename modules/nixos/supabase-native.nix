@@ -127,7 +127,7 @@ let
     appDir = "/app";
     entrypoint = "dist/start/server.js";
     isNode = true;
-    nodePackage = pkgs.nodejs_22; # image uses 24 but 22 runs this fine
+    nodePackage = pkgs.nodejs_24; # native addon (fs-xattr) requires matching ABI
   };
 
   supabaseStudio = oci.extractBin {
@@ -1098,8 +1098,8 @@ in
         PHX_SERVER = "true";
         # the BEAM release needs to know where ERTS lives
         RELEASE_ROOT = "${supabaseRealtime}/app";
-        RELEASE_TMP = "/tmp/supabase-realtime";
-        ERL_CRASH_DUMP = "/tmp/supabase-realtime/erl_crash.dump";
+        RELEASE_TMP = "/var/lib/supabase-realtime/tmp";
+        ERL_CRASH_DUMP = "/var/lib/supabase-realtime/tmp/erl_crash.dump";
       };
 
       serviceConfig = {
@@ -1113,7 +1113,7 @@ in
           let
             migrateScript = pkgs.writeShellScript "supabase-realtime-migrate" ''
               set -euo pipefail
-              mkdir -p /tmp/supabase-realtime
+              mkdir -p /var/lib/supabase-realtime/tmp
               ${supabaseRealtime}/bin/supabase-realtime eval 'Realtime.Release.migrate()'
               ${supabaseRealtime}/bin/supabase-realtime eval 'Realtime.Release.seeds(Realtime.Repo)'
             '';
@@ -1127,8 +1127,7 @@ in
         # hardening
         ProtectHome = true;
         ProtectSystem = "strict";
-        ReadWritePaths = [ "/tmp/supabase-realtime" ];
-        PrivateTmp = true;
+        ReadWritePaths = [ "/var/lib/supabase-realtime" ];
         NoNewPrivileges = true;
       };
     };
