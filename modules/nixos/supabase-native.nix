@@ -58,16 +58,6 @@ let
   pgDataDir = cfg.db.dataDir;
   pgUser = "supabase-postgres"; # system user for this cluster
 
-  # ── database picker: injected into Studio via nginx sub_filter ────────────
-  # a self-contained <script> that renders a floating dropdown in the top bar,
-  # populated from GET /pg/databases. Selection is stored in a cookie that nginx
-  # passes as X-PG-Meta-Db to postgres-meta.
-  # the injected snippet. No single quotes allowed (nginx sub_filter is single-quoted).
-  # The onchange uses the script below instead of inline handler.
-  dbPickerSnippet = ''
-    <div id="db-picker-wrap" style="position:fixed !important;top:10px !important;left:190px !important;z-index:2147483647 !important;display:flex !important;align-items:center !important;gap:6px !important;pointer-events:auto !important;visibility:visible !important;opacity:1 !important;"><span style="color:#888;font-size:12px;font-family:monospace;">db:</span><select id="db-picker" style="padding:3px 8px;border-radius:4px;border:1px solid #555;background:#1e1e1e;color:#0f0;font-size:12px;font-family:monospace;cursor:pointer;"><option>loading...</option></select></div><script>!function(){var s=document.getElementById("db-picker");s.onchange=function(){document.cookie="pg_meta_db="+encodeURIComponent(s.value)+";path=/;max-age=31536000";location.reload()};fetch("/pg/databases").then(function(r){return r.json()}).then(function(dbs){var c=document.cookie.match(/pg_meta_db=([^;]+)/);var cur=c?decodeURIComponent(c[1]):"postgres";s.innerHTML="";dbs.forEach(function(db){var o=document.createElement("option");o.value=db.name;o.textContent=db.name;if(db.name===cur)o.selected=true;s.appendChild(o)})}).catch(function(e){console.error("db-picker",e)})}()</script>
-  '';
-
   # ── OCI extraction (crane export → autopatchelf / node wrapper) ───────────
   oci = import ../../lib/oci.nix { inherit pkgs; };
 
@@ -99,16 +89,7 @@ let
     runtimeInputs = [ pkgs.musl ];
   };
 
-  supabaseStudio = oci.extractBin {
-    name = "supabase-studio";
-    version = "2026.06.03";
-    image = "docker.io/supabase/studio:2026.06.03-sha-0bca601";
-    hash = "sha256-WClIhnjnZw741U5m1Bu9Md3xtwlsviqTBFBbQJ5JPXs=";
-    appDir = "/app";
-    entrypoint = "apps/studio/server.js";
-    isNode = true;
-    nodePackage = pkgs.nodejs_22;
-  };
+  supabaseStudio = pkgs.callPackage ../../packages/supabase-studio { };
 in
 {
   options.hyper-modern-nixos.supabase-native = {
@@ -159,6 +140,25 @@ in
         default = "/run/supabase-db";
         description = "Unix socket directory for the supabase cluster.";
       };
+      tailnet = {
+        enable = mkEnableOption ''
+          expose the supabase PG17 cluster on the tailscale interface so
+          fleet replicas (attic api-servers, etc.) can connect via md5 auth.
+        '';
+        interface = mkOption {
+          type = types.str;
+          default = "tailscale0";
+          description = "Network interface to open the port on.";
+        };
+        cidrs = mkOption {
+          type = types.listOf types.str;
+          default = [
+            "100.64.0.0/10"
+            "fd7a:115c:a1e0::/48"
+          ];
+          description = "Tailnet CIDRs allowed md5-auth access.";
+        };
+      };
 
       # ── additional databases (beyond supabase's own `postgres`) ───────────
       # declare databases that should be created in this cluster. Each gets a
@@ -178,6 +178,11 @@ in
                 type = types.str;
                 default = "PGPASSWORD";
                 description = "env var within the secret holding the password.";
+              };
+              rawPassword = mkOption {
+                type = types.bool;
+                default = false;
+                description = "if true, the secret file contains the raw password (not KEY=VAL).";
               };
               migrate = mkOption {
                 type = types.submodule {
@@ -496,18 +501,24 @@ in
                   echo "# ── supabase-native managed ──"
                   echo "port = ${toString pgPort}"
                   echo "unix_socket_directories = '${pgSocket}'"
-                  echo "listen_addresses = '127.0.0.1'"
+                  echo "listen_addresses = '${if cfg.db.tailnet.enable then "*" else "127.0.0.1"}'"
                   echo "shared_preload_libraries = 'pg_net, pgsodium, pg_stat_statements, pgaudit, pg_cron, supautils'"
                   echo "log_min_messages = fatal"
                   echo "pgsodium.getkey_script = '${pgDataDir}/pgsodium_getkey.sh'"
+                  echo "include_dir = 'conf.d'"
                 } >> "${pgDataDir}/postgresql.conf"
 
-                # pg_hba: local peer (with ident map) + md5 from localhost
+                mkdir -p "${pgDataDir}/conf.d"
+
+                # pg_hba: local peer (with ident map) + md5 from localhost + tailnet
                 {
                   echo "local   all   postgres           peer map=supabase"
                   echo "local   all   all                peer"
                   echo "host    all   all   127.0.0.1/32  md5"
                   echo "host    all   all   ::1/128       md5"
+                  ${lib.concatMapStringsSep "\n" (cidr: ''
+                    echo "host    all   all   ${cidr}  md5"
+                  '') (lib.optionals cfg.db.tailnet.enable cfg.db.tailnet.cidrs)}
                 } > "${pgDataDir}/pg_hba.conf"
 
                 # pg_ident: map system user → PG role postgres
@@ -530,8 +541,37 @@ in
                 echo "// supabase-db // cluster initialized, starting for init SQL"
               fi
             '';
+            tailnetConfScript = pkgs.writeShellScript "supabase-db-tailnet-conf" ''
+                            set -euo pipefail
+                            mkdir -p "${pgDataDir}/conf.d"
+
+                            # ensure include_dir is set (existing clusters may lack it)
+                            if ! grep -q "^include_dir" "${pgDataDir}/postgresql.conf"; then
+                              echo "include_dir = 'conf.d'" >> "${pgDataDir}/postgresql.conf"
+                            fi
+
+                            # override listen_addresses via conf.d (last value wins)
+                            cat > "${pgDataDir}/conf.d/tailnet.conf" <<'CONF'
+              # managed by supabase-native (tailnet exposure)
+              listen_addresses = '${if cfg.db.tailnet.enable then "*" else "127.0.0.1"}'
+              CONF
+
+                            # rewrite pg_hba with current tailnet cidrs
+                            {
+                              echo "local   all   postgres           peer map=supabase"
+                              echo "local   all   all                peer"
+                              echo "host    all   all   127.0.0.1/32  md5"
+                              echo "host    all   all   ::1/128       md5"
+                              ${lib.concatMapStringsSep "\n" (cidr: ''
+                                echo "host    all   all   ${cidr}  md5"
+                              '') (lib.optionals cfg.db.tailnet.enable cfg.db.tailnet.cidrs)}
+                            } > "${pgDataDir}/pg_hba.conf"
+            '';
           in
-          "!${initScript}";
+          [
+            "!${initScript}"
+            "!${tailnetConfScript}"
+          ];
 
         ExecStart = "${supabasePg}/bin/postgres -D ${pgDataDir}";
 
@@ -685,12 +725,21 @@ in
 
               # set password from agenix secret
               if [ -r "/run/agenix/${spec.passwordSecret}" ]; then
-                pw=$( set -a; . "/run/agenix/${spec.passwordSecret}"; printf '%s' "''$${spec.passwordVar}" )
+                ${
+                  if spec.rawPassword then
+                    ''
+                      pw=$(cat "/run/agenix/${spec.passwordSecret}" | tr -d '\n')
+                    ''
+                  else
+                    ''
+                      pw=$( set -a; . "/run/agenix/${spec.passwordSecret}"; printf '%s' "''$${spec.passwordVar}" )
+                    ''
+                }
                 if [ -n "$pw" ]; then
                   ${psqlNoStop} -c "ALTER ROLE \"${dbName}\" WITH LOGIN PASSWORD '$pw';"
                   echo "// supabase-db-ensure-dbs // ${dbName}: role password set"
                 else
-                  echo "warning: ${spec.passwordVar} empty in /run/agenix/${spec.passwordSecret}" >&2
+                  echo "warning: password empty in /run/agenix/${spec.passwordSecret}" >&2
                 fi
               else
                 echo "warning: /run/agenix/${spec.passwordSecret} not readable for ${dbName}" >&2
@@ -700,6 +749,13 @@ in
         in
         ''
           set -euo pipefail
+
+          # wait for PG to be ready (Type=simple means systemd doesn't gate on readiness)
+          for i in $(seq 1 30); do
+            pg_isready -h ${pgSocket} -p ${toString pgPort} -q && break
+            sleep 1
+          done
+
           echo "// supabase-db-ensure-dbs // ensuring ${toString (builtins.length (builtins.attrNames cfg.db.databases))} database(s)"
           ${dbScript}
           echo "// supabase-db-ensure-dbs // done"
@@ -979,16 +1035,12 @@ in
           '';
         };
 
-        # studio (dashboard) — catch-all, inject database picker widget
+        # studio (dashboard) — catch-all (native DatabaseDropdown in fork handles db picker)
         "/" = {
           proxyPass = "http://127.0.0.1:${toString cfg.studio.port}/";
           extraConfig = ''
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header Host $host;
-            sub_filter '</body>' '${dbPickerSnippet}</body>';
-            sub_filter_once on;
-            sub_filter_types text/html;
-            proxy_set_header Accept-Encoding "";
           '';
         };
       };
@@ -1171,11 +1223,11 @@ in
     };
 
     # ══════════════════════════════════════════════════════════════════════════════
-    #  Studio — Next.js app extracted from OCI via crane
+    #  Studio — Next.js app built from sensenet-ai/supabase fork
     # ══════════════════════════════════════════════════════════════════════════════
 
     systemd.services.supabase-studio = {
-      description = "supabase studio (Next.js, crane-extracted)";
+      description = "supabase studio (sensenet-ai fork, native build)";
       after = [
         "supabase-meta.service"
         "supabase-env-split.service"
@@ -1216,6 +1268,11 @@ in
         PrivateTmp = true;
         NoNewPrivileges = true;
       };
+    };
+
+    # ── tailnet firewall: expose PG17 port on tailscale0 for fleet replicas ──
+    networking.firewall.interfaces.${cfg.db.tailnet.interface} = lib.mkIf cfg.db.tailnet.enable {
+      allowedTCPPorts = [ pgPort ];
     };
   };
 }

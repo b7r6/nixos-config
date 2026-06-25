@@ -54,6 +54,7 @@
       state-audit = pkgs.callPackage ../../packages/state-audit { };
       gen-supabase-secrets = pkgs.callPackage ../../packages/gen-supabase-secrets { };
       supabase-postgres-meta = pkgs.callPackage ../../packages/supabase-postgres-meta { };
+      supabase-studio = pkgs.callPackage ../../packages/supabase-studio { };
     };
 
     # Cross-cutting checks (x86_64-linux VM tests).
