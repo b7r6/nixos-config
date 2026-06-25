@@ -1,4 +1,4 @@
-{ flake, ... }:
+{ flake, pkgs, ... }:
 let
   inherit (flake) inputs;
 in
@@ -117,6 +117,8 @@ in
   age.secrets.forgejo-db.file = ../../../secrets/agenix/machines/forgejo-db.age;
   services.forgejo = {
     enable = true;
+    user = "git";
+    group = "git";
     stateDir = "/var/lib/forgejo";
     database = {
       type = "postgres";
@@ -130,11 +132,11 @@ in
     settings = {
       DEFAULT.APP_NAME = "straylight";
       server = {
-        DOMAIN = "git.sju1.s4.gl";
-        ROOT_URL = "https://git.sju1.s4.gl/";
+        DOMAIN = "git.s4.gl";
+        ROOT_URL = "https://git.s4.gl/";
         HTTP_ADDR = "127.0.0.1";
         HTTP_PORT = 3200;
-        SSH_DOMAIN = "git.sju1.s4.gl";
+        SSH_DOMAIN = "git.s4.gl";
       };
       service = {
         DISABLE_REGISTRATION = true;
@@ -144,9 +146,179 @@ in
       log.LEVEL = "Warn";
     };
   };
+  # the `git` user/group for forgejo (module only auto-creates `forgejo`)
+  users.users.git = {
+    isSystemUser = true;
+    group = "git";
+    home = "/var/lib/forgejo";
+    shell = "/bin/sh";
+  };
+  users.groups.git = { };
+
   # forgejo must wait for supabase-db-ensure-dbs to create its database + role
   systemd.services.forgejo.after = [ "supabase-db-ensure-dbs.service" ];
   systemd.services.forgejo.requires = [ "supabase-db-ensure-dbs.service" ];
+
+  # deploy straylight branding to forgejo custom assets
+  systemd.tmpfiles.rules =
+    let
+      logo = ../../../design/straylight-logo-small.png;
+    in
+    [
+      "d /var/lib/forgejo/custom/public/assets/img 0755 git git - -"
+      "C /var/lib/forgejo/custom/public/assets/img/logo.png - git git - ${logo}"
+      "C /var/lib/forgejo/custom/public/assets/img/favicon.png - git git - ${logo}"
+    ];
+
+  # ── Kanidm (identity provider) ─────────────────────────────────────────────
+  # Sovereign IdP — WebAuthn/passkey-first, OIDC provider for the fleet.
+  # SQLite-backed (Litestream → R2 for backup). Fronted by nginx at auth.s4.gl.
+  # Self-signed TLS for the loopback (nginx terminates real TLS at the edge).
+  services.kanidm = {
+    package = pkgs.kanidm_1_9.withSecretProvisioning;
+
+    server.enable = true;
+    server.settings = {
+      origin = "https://auth.s4.gl";
+      domain = "s4.gl";
+      bindaddress = "127.0.0.1:8443";
+      ldapbindaddress = null;
+      log_level = "info";
+      role = "WriteReplica";
+      # self-signed cert for loopback (nginx handles real TLS)
+      tls_chain = "/var/lib/kanidm/tls/chain.pem";
+      tls_key = "/var/lib/kanidm/tls/key.pem";
+      online_backup = {
+        path = "/var/lib/kanidm/backups/";
+        schedule = "0 2 * * *"; # daily at 2am
+        versions = 7;
+      };
+    };
+
+    # declarative provisioning: users, groups, oauth2 clients
+    provision = {
+      enable = true;
+      adminPasswordFile = "/run/agenix/kanidm-admin-password";
+      idmAdminPasswordFile = "/run/agenix/kanidm-admin-password";
+
+      groups = {
+        fleet_admins.members = [ "b7r6" ];
+        forgejo_users.members = [ "b7r6" ];
+      };
+
+      persons.b7r6 = {
+        displayName = "b7r6";
+        mailAddresses = [ "b7r6@straylight.software" ];
+        groups = [
+          "fleet_admins"
+          "forgejo_users"
+        ];
+      };
+
+      systems.oauth2.forgejo = {
+        displayName = "Forgejo";
+        originUrl = "https://git.s4.gl/user/oauth2/kanidm/callback";
+        originLanding = "https://git.s4.gl/";
+        basicSecretFile = "/run/agenix/kanidm-forgejo-secret";
+        preferShortUsername = true;
+        allowInsecureClientDisablePkce = true;
+        scopeMaps.forgejo_users = [
+          "openid"
+          "email"
+          "profile"
+        ];
+      };
+    };
+  };
+
+  # generate self-signed TLS cert for kanidm's loopback listener (one-time)
+  systemd.services.kanidm-tls-init = {
+    description = "generate self-signed TLS cert for kanidm";
+    before = [ "kanidm.service" ];
+    requiredBy = [ "kanidm.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      User = "kanidm";
+      Group = "kanidm";
+      StateDirectory = "kanidm/tls";
+      RemainAfterExit = true;
+    };
+    path = [ pkgs.openssl ];
+    script = ''
+      if [ ! -f /var/lib/kanidm/tls/key.pem ]; then
+        openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
+          -keyout /var/lib/kanidm/tls/key.pem \
+          -out /var/lib/kanidm/tls/chain.pem \
+          -days 3650 -nodes \
+          -subj "/CN=localhost"
+        chmod 0640 /var/lib/kanidm/tls/key.pem
+        chmod 0644 /var/lib/kanidm/tls/chain.pem
+      fi
+    '';
+  };
+
+  # kanidm secrets (admin password + forgejo oauth2 secret)
+  age.secrets.kanidm-admin-password = {
+    file = ../../../secrets/agenix/machines/kanidm-admin-password.age;
+    owner = "kanidm";
+    group = "kanidm";
+    mode = "0400";
+  };
+  age.secrets.kanidm-forgejo-secret = {
+    file = ../../../secrets/agenix/machines/kanidm-forgejo-secret.age;
+    owner = "kanidm";
+    group = "kanidm";
+    mode = "0400";
+  };
+
+  # ── Litestream (continuous SQLite replication → R2) ──────────────────────────
+  # Replicates kanidm's SQLite to R2 for near-zero RPO disaster recovery.
+  # Runs as the kanidm user so it can read the WAL. Starts before kanidm and
+  # stays alive as a sidecar, streaming WAL changes continuously.
+  systemd.services.litestream = {
+    description = "litestream SQLite replication (kanidm → R2)";
+    after = [
+      "network.target"
+      "kanidm-tls-init.service"
+    ];
+    before = [ "kanidm.service" ];
+    wantedBy = [ "multi-user.target" ];
+
+    serviceConfig = {
+      Type = "simple";
+      User = "kanidm";
+      Group = "kanidm";
+      ExecStart = "${pkgs.litestream}/bin/litestream replicate -config /run/litestream/config.yml";
+      EnvironmentFile = "/run/agenix/litestream-r2-env";
+      Restart = "on-failure";
+      RestartSec = "10s";
+
+      # litestream needs to write its runtime config
+      RuntimeDirectory = "litestream";
+      RuntimeDirectoryMode = "0750";
+    };
+
+    # generate config from env at start (keeps secrets out of the nix store)
+    preStart = ''
+      cat > /run/litestream/config.yml <<EOF
+      dbs:
+        - path: /var/lib/kanidm/kanidm.db
+          replicas:
+            - type: s3
+              bucket: straylight-litestream
+              path: kanidm
+              endpoint: https://6063b6652178f5cf1cfb87e7e41acf1e.r2.cloudflarestorage.com
+              force-path-style: true
+      EOF
+    '';
+  };
+
+  age.secrets.litestream-r2-env = {
+    file = ../../../secrets/agenix/machines/litestream-r2-env.age;
+    owner = "kanidm";
+    group = "kanidm";
+    mode = "0400";
+  };
 
   # ── Reverse proxy + internal ACME (nginx → loopback services) ───────────────
   # nginx terminates TLS on the logical names with a real wildcard cert
@@ -163,6 +335,11 @@ in
     services.studio.port = 8000; # → Kong → Studio/auth/rest/realtime/storage
     services.attic.port = 8080; # → atticd (the monolithic backend)
     services.git.port = 3200; # → forgejo
+    services.auth = {
+      # → kanidm (HTTPS loopback)
+      port = 8443;
+      scheme = "https";
+    };
   };
 
   hardware.graphics = {

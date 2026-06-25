@@ -113,6 +113,19 @@ in
   # Generate:  openssl rand -base64 32
   "agenix/machines/forgejo-db.age".publicKeys = mkGlobalSecret;
 
+  # kanidm admin password (used for provisioning — raw password, no KEY=VAL)
+  # Generate:  openssl rand -base64 24
+  "agenix/machines/kanidm-admin-password.age".publicKeys = mkGlobalSecret;
+
+  # kanidm oauth2 basic secret for the forgejo client (raw secret, no KEY=VAL)
+  # Generate:  openssl rand -base64 32
+  "agenix/machines/kanidm-forgejo-secret.age".publicKeys = mkGlobalSecret;
+
+  # litestream R2 credentials for kanidm SQLite replication:
+  #   AWS_ACCESS_KEY_ID=<r2 access key>
+  #   AWS_SECRET_ACCESS_KEY=<r2 secret key>
+  "agenix/machines/litestream-r2-env.age".publicKeys = mkGlobalSecret;
+
   # attic PUSH token (raw JWT, push+pull on the `hypermodern` cache). Used by
   # each host's watch-store to self-populate the shared cache:
   #   atticd-atticadm make-token --sub <host>-push --validity 10y \
@@ -163,6 +176,7 @@ in
   "agenix/users/b7r6/hf-token.age".publicKeys = mkGlobalSecret;
   "agenix/users/b7r6/njalla-api-key.age".publicKeys = mkGlobalSecret;
   "agenix/users/b7r6/cloudflare-r2-env.age".publicKeys = mkGlobalSecret;
+  "agenix/users/b7r6/forgejo-token.age".publicKeys = mkGlobalSecret;
 
   # Full rclone.conf (R2 remote `straylight-r2` + creds). Decrypted by the
   # home-manager agenix module to ~/.config/rclone/rclone.conf (0600), and also

@@ -52,7 +52,7 @@ in  schema.Registry::{
         , lan_ipv4 = Some "192.168.40.98"
         , zone = "sju1"
         , role = "server"
-        , services = [ "postgres", "attic", "registry", "monitoring", "studio", "git" ]
+        , services = [ "postgres", "attic", "registry", "monitoring", "studio", "git", "auth" ]
         }
       , Host::{
         , physical = "ultraviolence"

@@ -100,6 +100,11 @@ in
                 defaultText = "127.0.0.1:\${port}";
                 description = "host:port nginx proxies to.";
               };
+              scheme = mkOption {
+                type = types.str;
+                default = "http";
+                description = "Upstream scheme (http or https for TLS backends like kanidm).";
+              };
               websockets = mkOption {
                 type = types.bool;
                 default = true;
@@ -165,12 +170,12 @@ in
       };
 
       # One wildcard cert covers every internal vhost (both long and short forms).
+      # Note: bare domains (sju1.s4.gl, s4.gl) are omitted — Let's Encrypt rejects
+      # them as redundant with wildcards in the same request.
       certs.${wildcardCert} = {
         domain = "*.${zone}";
         extraDomainNames = [
-          zone
           "*.${topo.registry.internalDomain}"
-          topo.registry.internalDomain
         ];
         group = config.services.nginx.group;
       };
@@ -210,7 +215,7 @@ in
               }
             else
               {
-                proxyPass = "http://${svc.upstream}";
+                proxyPass = "${svc.scheme}://${svc.upstream}";
                 proxyWebsockets = svc.websockets;
               };
         }
