@@ -92,17 +92,61 @@ in
   hyper-modern-nixos.supabase-native = {
     enable = true;
     publicUrl = "https://studio.sju1.s4.gl";
-    db.databases.atticd = {
-      passwordSecret = "atticd-rs256";
-      passwordVar = "PGPASSWORD";
-      migrate = {
-        enable = true;
-        # dump from the old PG16 on default port/socket
-        sourcePort = 5432;
-        sourceSocketDir = "/run/postgresql";
+    db.tailnet.enable = true;
+    db.databases = {
+      atticd = {
+        passwordSecret = "atticd-rs256";
+        passwordVar = "PGPASSWORD";
+        migrate = {
+          enable = true;
+          # dump from the old PG16 on default port/socket
+          sourcePort = 5432;
+          sourceSocketDir = "/run/postgresql";
+        };
+      };
+      forgejo = {
+        passwordSecret = "forgejo-db";
+        rawPassword = true;
       };
     };
   };
+
+  # ── Forgejo (git forge, native) ───────────────────────────────────────────────
+  # Self-hosted git forge on the unified PG17 cluster. Repos on local disk,
+  # database in supabase-native. Fronted by nginx on git.sju1.s4.gl.
+  age.secrets.forgejo-db.file = ../../../secrets/agenix/machines/forgejo-db.age;
+  services.forgejo = {
+    enable = true;
+    stateDir = "/var/lib/forgejo";
+    database = {
+      type = "postgres";
+      host = "127.0.0.1";
+      port = 5433;
+      name = "forgejo";
+      user = "forgejo";
+      passwordFile = "/run/agenix/forgejo-db";
+      createDatabase = false; # supabase-db-ensure-dbs handles this
+    };
+    settings = {
+      DEFAULT.APP_NAME = "straylight";
+      server = {
+        DOMAIN = "git.sju1.s4.gl";
+        ROOT_URL = "https://git.sju1.s4.gl/";
+        HTTP_ADDR = "127.0.0.1";
+        HTTP_PORT = 3200;
+        SSH_DOMAIN = "git.sju1.s4.gl";
+      };
+      service = {
+        DISABLE_REGISTRATION = true;
+      };
+      session.PROVIDER = "db";
+      cache.ADAPTER = "memory";
+      log.LEVEL = "Warn";
+    };
+  };
+  # forgejo must wait for supabase-db-ensure-dbs to create its database + role
+  systemd.services.forgejo.after = [ "supabase-db-ensure-dbs.service" ];
+  systemd.services.forgejo.requires = [ "supabase-db-ensure-dbs.service" ];
 
   # ── Reverse proxy + internal ACME (nginx → loopback services) ───────────────
   # nginx terminates TLS on the logical names with a real wildcard cert
@@ -118,6 +162,7 @@ in
     };
     services.studio.port = 8000; # → Kong → Studio/auth/rest/realtime/storage
     services.attic.port = 8080; # → atticd (the monolithic backend)
+    services.git.port = 3200; # → forgejo
   };
 
   hardware.graphics = {

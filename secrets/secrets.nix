@@ -108,6 +108,11 @@ in
   # Generate:  openssl genrsa -traditional 4096 | base64 -w0
   "agenix/machines/atticd-rs256.age".publicKeys = mkGlobalSecret;
 
+  # forgejo database password for the PG17 supabase cluster:
+  #   PGPASSWORD=<random base64 string>
+  # Generate:  openssl rand -base64 32
+  "agenix/machines/forgejo-db.age".publicKeys = mkGlobalSecret;
+
   # attic PUSH token (raw JWT, push+pull on the `hypermodern` cache). Used by
   # each host's watch-store to self-populate the shared cache:
   #   atticd-atticadm make-token --sub <host>-push --validity 10y \
