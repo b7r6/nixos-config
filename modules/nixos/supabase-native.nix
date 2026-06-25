@@ -1120,6 +1120,9 @@ in
           pkgs.coreutils
           pkgs.util-linux
           pkgs.bash
+          pkgs.gnused
+          pkgs.gnugrep
+          pkgs.gawk
         ]
       );
 
