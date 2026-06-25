@@ -1128,10 +1128,8 @@ in
         Restart = "on-failure";
         RestartSec = "5s";
 
-        # hardening (relaxed — BEAM's os_mon/disksup needs /proc + fs access)
+        # relaxed hardening — BEAM's os_mon/disksup needs broad fs access
         ProtectHome = true;
-        ProtectSystem = "full";
-        ReadWritePaths = [ "/var/lib/supabase-realtime" ];
         NoNewPrivileges = true;
       };
     };
@@ -1173,15 +1171,14 @@ in
       serviceConfig = {
         Type = "simple";
         ExecStart = "${supabaseStorage}/bin/supabase-storage";
+        WorkingDirectory = "${supabaseStorage}/app";
         EnvironmentFile = svcEnv "storage";
         DynamicUser = true;
         Restart = "on-failure";
         RestartSec = "5s";
 
         ProtectHome = true;
-        ProtectSystem = "strict";
         ReadWritePaths = [ "${cfg.dataDir}/storage" ];
-        PrivateTmp = true;
         NoNewPrivileges = true;
       };
     };
