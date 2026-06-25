@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                           // hyper-modern-nixos // flake/docs
+#                                                  // hypermodern // nix // docs
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # mdBook documentation:
@@ -8,7 +8,10 @@
 #
 # The source lives in docs/ (book.toml + src/). Keep this a pure derivation so
 # the site is reproducible and CI-buildable.
-_: {
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+{
   perSystem = { pkgs, ... }: {
     packages.docs = pkgs.stdenvNoCC.mkDerivation {
       name = "hypermodern-docs";

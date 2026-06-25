@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                      // hyper-modern-nixos // flake // deploy
+#                                                // hypermodern // nix // deploy
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # `nix run .#deploy-fleet [-- host...]` — deploy the whole fleet (or named
@@ -17,6 +17,9 @@
 #     build + switch ON THE HOST over ssh (it pulls cached paths from attic);
 #     no cross-build/emulation here.
 # test-vm is excluded (it's a VM, not a real host).
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
 { self, ... }: {
   perSystem = { pkgs, ... }: {
     apps.deploy-fleet =

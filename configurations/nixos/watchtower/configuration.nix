@@ -159,6 +159,34 @@ in
   systemd.services.forgejo.after = [ "supabase-db-ensure-dbs.service" ];
   systemd.services.forgejo.requires = [ "supabase-db-ensure-dbs.service" ];
 
+  # ── PG17 daily logical dump (restic picks it up) ──────────────────────────────
+  # Full PITR (pgbackrest) for the supabase cluster is TODO; this daily pg_dumpall
+  # gives ~24h RPO as a safety net until that's wired.
+  systemd.services.supabase-db-dump = {
+    description = "daily pg_dumpall of the supabase PG17 cluster";
+    after = [ "supabase-db.service" ];
+    requires = [ "supabase-db.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      User = "supabase-postgres";
+    };
+    path = [ pkgs.gzip ];
+    script = ''
+      ${pkgs.postgresql_17}/bin/pg_dumpall \
+        -h /run/supabase-db -p 5433 -U postgres \
+        | gzip > /var/lib/supabase/db-dump.sql.gz.tmp
+      mv /var/lib/supabase/db-dump.sql.gz.tmp /var/lib/supabase/db-dump.sql.gz
+    '';
+  };
+  systemd.timers.supabase-db-dump = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "daily";
+      RandomizedDelaySec = "1h";
+      Persistent = true;
+    };
+  };
+
   # deploy straylight branding to forgejo custom assets
   systemd.tmpfiles.rules =
     let
@@ -399,7 +427,12 @@ in
     enable = true;
     passwordSecret = "restic-password";
     environmentSecret = "restic-r2-env.watchtower";
-    paths = [ "/home" ];
+    paths = [
+      "/home"
+      "/var/lib/forgejo" # git repos + custom assets
+      "/var/lib/kanidm" # IdP state (also covered by litestream)
+      "/var/lib/supabase/db-dump.sql.gz" # PG17 daily logical dump
+    ];
   };
 
   system.stateVersion = "25.05";

@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                       // hyper-modern-nixos // flake/devshell
+#                                              // hypermodern // nix // devshell
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # Auto-load the operator's user secrets into the DEFAULT dev shell via
@@ -19,6 +19,9 @@
 #
 # The agenix admin commands (edit/rekey/rotate) live in the separate `secrets`
 # devshell (secrets/devshell.toml); this module only handles env auto-loading.
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
 { inputs, ... }: {
   perSystem =
     { system, ... }:

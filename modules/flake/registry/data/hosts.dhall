@@ -1,5 +1,5 @@
 --  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
---                                        // hypermodern // topology // hosts
+--                                             // hypermodern // topology // hosts
 --  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 --
 --  The fleet, as data. The SINGLE source of truth for host topology. Adding a
@@ -22,6 +22,9 @@
 --  the router reshuffles a lease, it's a one-line edit here. Laptops (shannon,
 --  weyl) stay None (roam / no stable lease); gossamer stays None for now (DGX-OS
 --  spark; future PXE-install test case).
+--
+--  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--
 let schema = ./schema.dhall
 
 let Host = schema.Host
@@ -52,7 +55,15 @@ in  schema.Registry::{
         , lan_ipv4 = Some "192.168.40.98"
         , zone = "sju1"
         , role = "server"
-        , services = [ "postgres", "attic", "registry", "monitoring", "studio", "git", "auth" ]
+        , services =
+          [ "postgres"
+          , "attic"
+          , "registry"
+          , "monitoring"
+          , "studio"
+          , "git"
+          , "auth"
+          ]
         }
       , Host::{
         , physical = "ultraviolence"

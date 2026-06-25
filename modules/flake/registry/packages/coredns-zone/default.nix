@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                         // hyper-modern-nixos // coredns-zone
+#                                          // hyper-modern-nixos // coredns-zone
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # The fleet DNS compiler: a real, compiled Haskell (GHC 9.12) program that
@@ -11,6 +11,9 @@
 # Consumed by modules/nixos/coredns.nix (which runs `coredns-zone` to produce the
 # zone file). At runtime it shells the Dhall library to decode hosts.dhall — the
 # registry path is passed with --registry.
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
 { haskell }:
 let
   # GHC 9.12 set (boot libs text/containers come with the compiler).

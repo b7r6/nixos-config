@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                             // hyper-modern-nixos // topology
+#                                              // hyper-modern-nixos // topology
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # The fleet topology registry — the single source of truth for host identity,
@@ -12,6 +12,9 @@
 # Pure data + read-only outputs; this module starts no service. It is always
 # imported (cheap), and its `registry`/`hosts`/helper outputs are consumed by
 # the networking modules as they land.
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
 {
   config,
   lib,
@@ -34,12 +37,14 @@ let
     ;
 
   # ── Dhall → Nix values, directly at eval via IFD ─────────────────────────────
+    
   # The registry's source of truth is registry/hosts.dhall (typed + validated by
   # Dhall). We render it to JSON and read it back AT EVAL TIME — import-from-
   # derivation, enabled fleet-wide (see nix.nix). No committed registry.json, no
   # render/check staleness dance. The registry Dhall is fully local (no remote
   # Prelude), so the build needs only the locale fix (unicode in comments), not
   # CA certs. buildPackages so cross-arch shimmer doesn't demand an aarch64 build.
+    
   registrySrc = flake.self + "/modules/flake/registry/data";
   buildPkgs = pkgs.buildPackages;
 

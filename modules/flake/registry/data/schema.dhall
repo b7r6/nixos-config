@@ -1,5 +1,5 @@
 --  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
---                                       // hypermodern // topology // schema
+--                                            // hypermodern // topology // schema
 --  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 --
 --  Typed schema for the fleet topology registry. Dhall validates this at
@@ -11,6 +11,9 @@
 --  across keys.nix / lib/monitors.nix / configurations/default.nix. The build
 --  order downstream (CoreDNS zones, nginx vhosts, cloudflared ingress) all
 --  derives from here.
+--
+--  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--
 let Provider = < tailscale | latitude | nube | gce | other >
 
 let Host =
