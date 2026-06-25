@@ -655,21 +655,21 @@ in
       script =
         let
           psql = "psql -h ${pgSocket} -p ${toString pgPort} -U postgres -v ON_ERROR_STOP=1";
+          psqlNoStop = "psql -h ${pgSocket} -p ${toString pgPort} -U postgres";
           dbScript = lib.concatStringsSep "\n" (
             lib.mapAttrsToList (dbName: spec: ''
-              # ensure role first (so CREATE DATABASE OWNER works)
-              ${psql} -tc "SELECT 1 FROM pg_roles WHERE rolname = '${dbName}'" \
-                | grep -q 1 || ${psql} -c "CREATE ROLE \"${dbName}\" WITH LOGIN;"
+              # ensure role (idempotent)
+              ${psqlNoStop} -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='${dbName}') THEN CREATE ROLE \"${dbName}\" WITH LOGIN; END IF; END \$\$;"
 
-              # ensure database with correct owner
-              ${psql} -tc "SELECT 1 FROM pg_database WHERE datname = '${dbName}'" \
-                | grep -q 1 || ${psql} -c "CREATE DATABASE \"${dbName}\" OWNER \"${dbName}\";"
+              # ensure database (idempotent)
+              ${psqlNoStop} -tc "SELECT 1 FROM pg_database WHERE datname = '${dbName}'" | grep -q 1 \
+                || ${psqlNoStop} -c "CREATE DATABASE \"${dbName}\" OWNER \"${dbName}\";"
 
               # set password from agenix secret
               if [ -r "/run/agenix/${spec.passwordSecret}" ]; then
                 pw=$( set -a; . "/run/agenix/${spec.passwordSecret}"; printf '%s' "''$${spec.passwordVar}" )
                 if [ -n "$pw" ]; then
-                  ${psql} -c "ALTER ROLE \"${dbName}\" WITH PASSWORD '$pw';"
+                  ${psqlNoStop} -c "ALTER ROLE \"${dbName}\" WITH LOGIN PASSWORD '$pw';"
                   echo "// supabase-db-ensure-dbs // ${dbName}: role password set"
                 else
                   echo "warning: ${spec.passwordVar} empty in /run/agenix/${spec.passwordSecret}" >&2
