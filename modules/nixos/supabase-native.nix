@@ -1100,6 +1100,8 @@ in
         RELEASE_ROOT = "${supabaseRealtime}/app";
         RELEASE_TMP = "/var/lib/supabase-realtime/tmp";
         ERL_CRASH_DUMP = "/var/lib/supabase-realtime/tmp/erl_crash.dump";
+        # Mix requires HOME at runtime (extra_applications: [:mix])
+        HOME = "/var/lib/supabase-realtime";
       };
 
       serviceConfig = {
