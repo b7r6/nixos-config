@@ -37,7 +37,6 @@
       # conventional (UPPER_SNAKE) so downstream tools pick them up directly.
       secrets = {
         HF_TOKEN.file = userSecrets + "/hf-token.age";
-        ATUIN_KEY.file = userSecrets + "/atuin-key.age";
         NETRC.file = userSecrets + "/netrc.age";
         RCLONE_CONF.file = userSecrets + "/rclone-conf.age";
       };

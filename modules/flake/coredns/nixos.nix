@@ -71,6 +71,7 @@ let
         LANG = "C.UTF-8";
         LC_ALL = "C.UTF-8";
         LOCALE_ARCHIVE = "${buildPkgs.glibcLocales}/lib/locale/locale-archive";
+        HOME = "/tmp";
       }
       ''
         coredns-zone \
