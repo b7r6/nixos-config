@@ -312,8 +312,8 @@ in
     storage = {
       port = mkOption {
         type = types.port;
-        default = 5000;
-        description = "Storage API port (shifted from 5000 if zot conflicts).";
+        default = 5010;
+        description = "Storage API port (5010 to avoid zot on 5000).";
       };
     };
 
@@ -1104,7 +1104,14 @@ in
         ERL_CRASH_DUMP = "/var/lib/supabase-realtime/tmp/erl_crash.dump";
         # Mix requires HOME at runtime (extra_applications: [:mix])
         HOME = "/var/lib/supabase-realtime";
+
       };
+
+      # BEAM's disksup shells out to `df` — needs coreutils + util-linux on PATH
+      path = [
+        pkgs.coreutils
+        pkgs.util-linux
+      ];
 
       serviceConfig = {
         Type = "simple";
@@ -1124,11 +1131,6 @@ in
           in
           "+${migrateScript}";
 
-        # BEAM's disksup calls `df` — needs it on PATH
-        ExecSearchPath = [
-          "${pkgs.coreutils}/bin"
-          "${pkgs.util-linux}/bin"
-        ];
         ExecStart = "${supabaseRealtime}/bin/supabase-realtime start";
         Restart = "on-failure";
         RestartSec = "5s";
