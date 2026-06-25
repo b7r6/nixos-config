@@ -478,43 +478,41 @@ in
                   --auth-local=peer \
                   --auth-host=md5
 
-                # configure: listen on port ${toString pgPort}, accept localhost md5
-                cat >> "${pgDataDir}/postgresql.conf" <<CONF
+                # configure the cluster
+                {
+                  echo ""
+                  echo "# ── supabase-native managed ──"
+                  echo "port = ${toString pgPort}"
+                  echo "unix_socket_directories = '${pgSocket}'"
+                  echo "listen_addresses = '127.0.0.1'"
+                  echo "shared_preload_libraries = 'pg_net, pgsodium, pg_stat_statements, pgaudit, pg_cron, supautils'"
+                  echo "log_min_messages = fatal"
+                  echo "pgsodium.getkey_script = '${pgDataDir}/pgsodium_getkey.sh'"
+                } >> "${pgDataDir}/postgresql.conf"
 
-              # ── supabase-native managed ──
-              port = ${toString pgPort}
-              unix_socket_directories = '${pgSocket}'
-              listen_addresses = '127.0.0.1'
-              shared_preload_libraries = 'pg_net, pgsodium, pg_stat_statements, pgaudit, pg_cron, supautils'
-              log_min_messages = fatal
-              # pgsodium needs its key in a file
-              pgsodium.getkey_script = '${pgDataDir}/pgsodium_getkey.sh'
-              CONF
+                # pg_hba: local peer (with ident map) + md5 from localhost
+                {
+                  echo "local   all   postgres           peer map=supabase"
+                  echo "local   all   all                peer"
+                  echo "host    all   all   127.0.0.1/32  md5"
+                  echo "host    all   all   ::1/128       md5"
+                } > "${pgDataDir}/pg_hba.conf"
 
-                # pg_hba: local peer (with ident map for our system user) + md5 from localhost
-                cat > "${pgDataDir}/pg_hba.conf" <<HBA
-              local   all   postgres           peer map=supabase
-              local   all   all                peer
-              host    all   all   127.0.0.1/32  md5
-              host    all   all   ::1/128       md5
-              HBA
+                # pg_ident: map system user → PG role postgres
+                {
+                  echo "supabase   ${pgUser}   postgres"
+                } > "${pgDataDir}/pg_ident.conf"
 
-                # pg_ident: map system user supabase-postgres → PG role postgres
-                cat > "${pgDataDir}/pg_ident.conf" <<IDENT
-              # MAPNAME  SYSTEM-USERNAME    PG-USERNAME
-              supabase   ${pgUser}          postgres
-              IDENT
-
-                # pgsodium getkey script (generates a key on first call, persists it)
-                cat > "${pgDataDir}/pgsodium_getkey.sh" <<'GETKEY'
-              #!/bin/sh
-              KEY_FILE="''${PGDATA}/pgsodium_root.key"
-              if [ ! -f "$KEY_FILE" ]; then
-                head -c 32 /dev/urandom | od -A n -t x1 | tr -d ' \n' > "$KEY_FILE"
-                chmod 0600 "$KEY_FILE"
-              fi
-              cat "$KEY_FILE"
-              GETKEY
+                # pgsodium getkey script
+                {
+                  echo '#!/bin/sh'
+                  echo 'KEY_FILE="''${PGDATA}/pgsodium_root.key"'
+                  echo 'if [ ! -f "$KEY_FILE" ]; then'
+                  echo '  head -c 32 /dev/urandom | od -A n -t x1 | tr -d '"'"' \n'"'"' > "$KEY_FILE"'
+                  echo '  chmod 0600 "$KEY_FILE"'
+                  echo 'fi'
+                  echo 'cat "$KEY_FILE"'
+                } > "${pgDataDir}/pgsodium_getkey.sh"
                 chmod 0750 "${pgDataDir}/pgsodium_getkey.sh"
 
                 echo "// supabase-db // cluster initialized, starting for init SQL"
@@ -524,6 +522,23 @@ in
           "!${initScript}";
 
         ExecStart = "${supabasePg}/bin/postgres -D ${pgDataDir}";
+
+        # readiness: dependent services wait for this via After=, so we need
+        # postgres to be accepting connections before systemd considers us started.
+        # Type=simple means ExecStart returns immediately; the ExecStartPost
+        # pg_isready loop ensures the socket is up before dependents proceed.
+        ExecStartPost =
+          let
+            waitScript = pkgs.writeShellScript "supabase-db-wait" ''
+              for i in $(seq 1 30); do
+                ${supabasePg}/bin/pg_isready -h ${pgSocket} -p ${toString pgPort} -q && exit 0
+                sleep 1
+              done
+              echo "supabase-db: timed out waiting for readiness" >&2
+              exit 1
+            '';
+          in
+          "${waitScript}";
 
         # hardening
         ProtectHome = true;
@@ -898,12 +913,13 @@ in
       # no TLS here — this is the internal gateway (the reverse-proxy does TLS)
 
       locations = {
-        # auth
+        # auth — GoTrue serves at root, strip /auth/v1 prefix
         "/auth/v1/" = {
           proxyPass = "http://127.0.0.1:${toString cfg.auth.port}/";
           extraConfig = ''
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Path /auth/v1;
             proxy_set_header Host $host;
           '';
         };

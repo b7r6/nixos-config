@@ -9,6 +9,7 @@
   buildNpmPackage,
   fetchFromGitHub,
   nodejs_22,
+  runtimeShell,
 }:
 
 buildNpmPackage rec {
@@ -47,11 +48,10 @@ buildNpmPackage rec {
     cp package.json $out/lib/postgres-meta/
 
     mkdir -p $out/bin
-    cat > $out/bin/postgres-meta <<'EOF'
-    #!/usr/bin/env bash
-    exec ${nodejs_22}/bin/node "$out/lib/postgres-meta/dist/server/server.js" "$@"
+    cat > $out/bin/postgres-meta <<EOF
+    #!${runtimeShell}
+    exec ${nodejs_22}/bin/node "$out/lib/postgres-meta/dist/server/server.js" "\$@"
     EOF
-    substituteInPlace $out/bin/postgres-meta --replace '$out' "$out"
     chmod +x $out/bin/postgres-meta
 
     runHook postInstall
