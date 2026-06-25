@@ -661,6 +661,9 @@ in
               # ensure role (idempotent)
               ${psqlNoStop} -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='${dbName}') THEN CREATE ROLE \"${dbName}\" WITH LOGIN; END IF; END \$\$;"
 
+              # PG17 requires SET ROLE capability to assign ownership — grant it
+              ${psqlNoStop} -c "GRANT \"${dbName}\" TO postgres;"
+
               # ensure database (idempotent)
               ${psqlNoStop} -tc "SELECT 1 FROM pg_database WHERE datname = '${dbName}'" | grep -q 1 \
                 || ${psqlNoStop} -c "CREATE DATABASE \"${dbName}\" OWNER \"${dbName}\";"
