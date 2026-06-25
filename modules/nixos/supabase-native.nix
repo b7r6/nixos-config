@@ -62,43 +62,10 @@ let
   # a self-contained <script> that renders a floating dropdown in the top bar,
   # populated from GET /pg/databases. Selection is stored in a cookie that nginx
   # passes as X-PG-Meta-Db to postgres-meta.
+  # the injected snippet is just a visible <div> with an inline <select> —
+  # no fetch, no async, just works. The JS only fires onchange to set cookie.
   dbPickerSnippet = ''
-    <script>
-    (function(){
-      function init(){
-        if(document.getElementById("db-picker-wrap"))return;
-        var c=document.cookie.match(/pg_meta_db=([^;]+)/);
-        var current=c?decodeURIComponent(c[1]):"postgres";
-        fetch("/pg/databases").then(function(r){return r.json()}).then(function(dbs){
-          var wrap=document.createElement("div");
-          wrap.id="db-picker-wrap";
-          wrap.style.cssText="position:fixed;top:12px;left:180px;z-index:2147483647;display:flex;align-items:center;gap:6px;";
-          var label=document.createElement("span");
-          label.textContent="db:";
-          label.style.cssText="color:#888;font-size:12px;font-family:monospace;";
-          var sel=document.createElement("select");
-          sel.id="db-picker";
-          sel.style.cssText="padding:3px 8px;border-radius:4px;border:1px solid #555;background:#2a2a2a;color:#0f0;font-size:12px;font-family:monospace;cursor:pointer;outline:none;";
-          dbs.forEach(function(db){
-            var opt=document.createElement("option");
-            opt.value=db.name;opt.textContent=db.name;
-            if(db.name===current)opt.selected=true;
-            sel.appendChild(opt);
-          });
-          sel.onchange=function(){
-            document.cookie="pg_meta_db="+encodeURIComponent(sel.value)+";path=/;max-age=31536000";
-            location.reload();
-          };
-          wrap.appendChild(label);
-          wrap.appendChild(sel);
-          document.body.appendChild(wrap);
-        });
-      }
-      if(document.readyState==="complete")init();
-      else window.addEventListener("load",init);
-      setTimeout(init,2000);
-    })();
-    </script>
+    <div id="db-picker-wrap" style="position:fixed !important;top:10px !important;left:190px !important;z-index:2147483647 !important;display:flex !important;align-items:center !important;gap:6px !important;pointer-events:auto !important;visibility:visible !important;opacity:1 !important;"><span style="color:#888;font-size:12px;font-family:monospace;">db:</span><select id="db-picker" style="padding:3px 8px;border-radius:4px;border:1px solid #555;background:#1e1e1e;color:#0f0;font-size:12px;font-family:monospace;cursor:pointer;" onchange="document.cookie=&apos;pg_meta_db=&apos;+encodeURIComponent(this.value)+&apos;;path=/;max-age=31536000&apos;;location.reload()"><option>loading...</option></select></div><script>(function(){fetch(&apos;/pg/databases&apos;).then(function(r){return r.json()}).then(function(dbs){var s=document.getElementById(&apos;db-picker&apos;);if(!s)return;var c=document.cookie.match(/pg_meta_db=([^;]+)/);var cur=c?decodeURIComponent(c[1]):&apos;postgres&apos;;s.innerHTML=&apos;&apos;;dbs.forEach(function(db){var o=document.createElement(&apos;option&apos;);o.value=db.name;o.textContent=db.name;if(db.name===cur)o.selected=true;s.appendChild(o)})}).catch(function(e){console.error(&apos;db-picker fetch failed&apos;,e)})})()</script>
   '';
 
   # ── OCI extraction (crane export → autopatchelf / node wrapper) ───────────
@@ -1018,7 +985,7 @@ in
           extraConfig = ''
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header Host $host;
-            sub_filter '</head>' '${dbPickerSnippet}</head>';
+            sub_filter '</body>' '${dbPickerSnippet}</body>';
             sub_filter_once on;
             sub_filter_types text/html;
             proxy_set_header Accept-Encoding "";
