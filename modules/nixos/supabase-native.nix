@@ -40,8 +40,11 @@ let
   src = if flake != null then flake.inputs.supabase else null;
   vol = "${src}/docker/volumes";
 
-  # supabase-postgres flake: PG17 + 112 extensions
-  supabasePg = flake.inputs.supabase-postgres.packages.${pkgs.system}."psql_17/bin";
+  # supabase-postgres flake: use the slim bundle (fewer extensions, avoids the
+  # wrappers installCheck hang). Falls back to the full bundle when the cache is
+  # warm. The slim bundle has all the core supabase extensions (pgsodium, pg_net,
+  # pgjwt, pg_graphql, pgvector, etc.) minus the heavy FDW wrappers.
+  supabasePg = flake.inputs.supabase-postgres.packages.${pkgs.system}."psql_17_slim/bin";
 
   # runtime env dir (same split pattern as the container module)
   runtimeEnvDir = "/run/supabase/env";
@@ -334,8 +337,8 @@ in
 
     # ── Directories ───────────────────────────────────────────────────────────
     systemd.tmpfiles.rules = [
-      "d ${cfg.dataDir} 0750 root root - -"
-      "d ${pgDataDir} 0750 ${pgUser} ${pgUser} - -"
+      "d ${cfg.dataDir} 0755 root root - -"
+      "d ${pgDataDir} 0700 ${pgUser} ${pgUser} - -"
       "d ${pgSocket} 0755 ${pgUser} ${pgUser} - -"
       "d ${cfg.dataDir}/storage 0750 root root - -"
       "d ${runtimeEnvDir} 0700 root root - -"
@@ -448,7 +451,7 @@ in
       };
 
       serviceConfig = {
-        Type = "notify";
+        Type = "simple";
         User = pgUser;
         Group = pgUser;
         RuntimeDirectory = "supabase-db";
@@ -482,18 +485,25 @@ in
               port = ${toString pgPort}
               unix_socket_directories = '${pgSocket}'
               listen_addresses = '127.0.0.1'
-              shared_preload_libraries = 'pg_net, pgsodium, pg_stat_statements, pgaudit, pg_cron, pgjwt, supautils'
+              shared_preload_libraries = 'pg_net, pgsodium, pg_stat_statements, pgaudit, pg_cron, supautils'
               log_min_messages = fatal
               # pgsodium needs its key in a file
               pgsodium.getkey_script = '${pgDataDir}/pgsodium_getkey.sh'
               CONF
 
-                # pg_hba: local peer + md5 from localhost
+                # pg_hba: local peer (with ident map for our system user) + md5 from localhost
                 cat > "${pgDataDir}/pg_hba.conf" <<HBA
+              local   all   postgres           peer map=supabase
               local   all   all                peer
               host    all   all   127.0.0.1/32  md5
               host    all   all   ::1/128       md5
               HBA
+
+                # pg_ident: map system user supabase-postgres → PG role postgres
+                cat > "${pgDataDir}/pg_ident.conf" <<IDENT
+              # MAPNAME  SYSTEM-USERNAME    PG-USERNAME
+              supabase   ${pgUser}          postgres
+              IDENT
 
                 # pgsodium getkey script (generates a key on first call, persists it)
                 cat > "${pgDataDir}/pgsodium_getkey.sh" <<'GETKEY'
@@ -555,6 +565,12 @@ in
           echo "// supabase-db-init-sql // already initialized, skipping"
           exit 0
         fi
+
+        # wait for postgres to be ready (Type=simple, no sd_notify)
+        for i in $(seq 1 30); do
+          pg_isready -h ${pgSocket} -p ${toString pgPort} -q && break
+          sleep 1
+        done
 
         echo "// supabase-db-init-sql // applying init SQL to port ${toString pgPort}"
         PSQL="psql -h ${pgSocket} -p ${toString pgPort} -U postgres -d ${pgDb} -v ON_ERROR_STOP=1"

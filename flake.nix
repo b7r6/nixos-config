@@ -113,9 +113,9 @@
     # runs INSIDE supabase/postgres Docker images — already Nix-built, just wearing
     # a container costume. We consume the package directly via
     # services.postgresql.package, killing the DB container entirely.
-    # NOTE: intentionally NOT following our nixpkgs — their binary cache is built
-    # against their pin. Following ours forces a full source rebuild of all 112
-    # extensions (wrappers hangs in installcheck on our fork's glibc).
+    # supabase-postgres: NOT following our nixpkgs. Their S3 binary cache only
+    # has artifacts for their pin. Build with --accept-flake-config or add their
+    # substituter to nix.conf to get cache hits.
     supabase-postgres.url = "github:supabase/postgres";
   };
 }
