@@ -668,6 +668,10 @@ in
               ${psqlNoStop} -tc "SELECT 1 FROM pg_database WHERE datname = '${dbName}'" | grep -q 1 \
                 || ${psqlNoStop} -c "CREATE DATABASE \"${dbName}\" OWNER \"${dbName}\";"
 
+              # PG17 revoked public schema CREATE by default — grant it to the owner
+              ${psqlNoStop} -d ${dbName} -c "GRANT ALL ON SCHEMA public TO \"${dbName}\";"
+              ${psqlNoStop} -d ${dbName} -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO \"${dbName}\";"
+
               # set password from agenix secret
               if [ -r "/run/agenix/${spec.passwordSecret}" ]; then
                 pw=$( set -a; . "/run/agenix/${spec.passwordSecret}"; printf '%s' "''$${spec.passwordVar}" )
