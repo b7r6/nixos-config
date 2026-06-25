@@ -106,8 +106,8 @@ in
     # ── database ────────────────────────────────────────────────────────────
     sharedDatabaseUrl = lib.mkOption {
       type = lib.types.str;
-      default = "postgresql://atticd@watchtower.${tailnetDomain}/atticd";
-      defaultText = "postgresql://atticd@watchtower.\${network.tailnet.domain}/atticd";
+      default = "postgresql://atticd@watchtower.${tailnetDomain}:5433/atticd";
+      defaultText = "postgresql://atticd@watchtower.\${network.tailnet.domain}:5433/atticd";
       description = ''
         Passwordless shared-postgres connection string for replica /
         monolithic-shared (PGPASSWORD via env file). Ignored by standalone. The
