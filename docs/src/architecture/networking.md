@@ -84,18 +84,28 @@ top of Dhall's type checking. CoreDNS/nginx/cloudflared (next) read from here.
 `modules/nixos/coredns.nix` (`hyper-modern-nixos.coredns`, off by default), built
 on stock `services.coredns`. Authoritative for the internal zone `sju1.s4.gl`,
 **generated from the topology registry** (never hand-written Nix zone strings —
-the ps-v4 mistake we avoided). The Corefile is three separate server blocks: the
-authoritative internal zone, a **dedicated block for the tailnet suffix**
-(`osiris-walleye.ts.net`) that forwards to MagicDNS `100.100.100.100` (so
-`*.ts.net` still resolves), and a `.` **catch-all** forwarding the rest to public
-upstreams (`1.1.1.1`, `8.8.8.8`). Three record kinds, all derived from the
-registry:
+the ps-v4 mistake we avoided). The Corefile has four server blocks: the
+authoritative internal zone (`sju1.s4.gl`), a **short-alias zone** (`s4.gl`)
+that rewrites `<x>.s4.gl → <x>.sju1.s4.gl` via template CNAME, a **dedicated
+block for the tailnet suffix** (`osiris-walleye.ts.net`) that forwards to
+MagicDNS `100.100.100.100` (so `*.ts.net` still resolves), and a `.`
+**catch-all** forwarding the rest to public upstreams (`1.1.1.1`, `8.8.8.8`).
+Four record kinds, all derived from the registry:
 
 | Record | Source | Example |
 | --- | --- | --- |
 | `<host>.sju1.s4.gl` A | `tailnet_ipv4` (every host) | `ultraviolence.sju1.s4.gl → 100.71.82.73` |
 | `<host>.lan.sju1.s4.gl` A | `lan_ipv4` (hosts with a wired lease) | `watchtower.lan.sju1.s4.gl → 192.168.40.98` |
 | `<service>.sju1.s4.gl` CNAME | host running that `services` tag | `registry.sju1.s4.gl → watchtower…` |
+| `<service>.s4.gl` CNAME | template rewrite (short alias) | `git.s4.gl → git.sju1.s4.gl` |
+
+A **short-alias zone** (`s4.gl`) uses a CoreDNS `template` plugin to CNAME any
+`<name>.s4.gl` → `<name>.sju1.s4.gl` automatically. This gives every service a
+convenient short form (`git.s4.gl`, `studio.s4.gl`, `jellyfin.s4.gl`) that
+resolves through the existing service CNAME chain — zero maintenance, zero
+per-service config. Since the fleet is single-site (`sju1`) today, all short
+aliases route to the same DC; when a second DC appears, `<service>.s4.gl` can be
+made location-aware (anycast/geo) without changing client URLs.
 
 The NS glue is auto-derived from the resolver's own registry entry. It binds
 `0.0.0.0` so **both** LAN devices (the Google TV, via the `lan.` records) and
@@ -105,6 +115,7 @@ Cloudflare edge.
 
 > **Proven live on watchtower** (the fleet resolver): `ultraviolence.sju1.s4.gl`
 > → tailnet IP; `registry.sju1.s4.gl` → `watchtower` (CNAME chain);
+> `git.s4.gl` → `git.sju1.s4.gl` → `watchtower` (short alias);
 > `one.one.one.one` forwards out; `*.osiris-walleye.ts.net` still resolves via
 > MagicDNS. `:53` was free (resolved inactive).
 
@@ -170,7 +181,7 @@ it is the reason internal/bulk traffic does **not** use this path.
    ───────────┼────────────────────────────────────────────────
    origin box │  nginx (vhosts on logical names)               │
               │   ├── internal ACME TLS (DNS-01)  ◄── LAN/tailnet clients
-              │   └── loopback upstream ─► service (zot/forgejo/searxng/…)
+               │   └── loopback upstream ─► service (zot/forgejo/studio/…)
               │  CoreDNS (logical → tailnet_ipv4, split-horizon)
               └── tailscale (the encrypted fabric underneath)
 ```
