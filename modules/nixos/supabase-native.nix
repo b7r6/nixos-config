@@ -1107,11 +1107,21 @@ in
 
       };
 
-      # BEAM's disksup shells out to `df` — needs coreutils + util-linux on PATH
+      # BEAM's disksup shells out to `df` — needs coreutils + util-linux on PATH.
+      # Also set in the environment because the release's env.sh may reset PATH.
       path = [
         pkgs.coreutils
         pkgs.util-linux
+        pkgs.bash
       ];
+
+      environment.PATH = lib.mkForce (
+        lib.makeBinPath [
+          pkgs.coreutils
+          pkgs.util-linux
+          pkgs.bash
+        ]
+      );
 
       serviceConfig = {
         Type = "simple";
