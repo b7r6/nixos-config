@@ -531,7 +531,7 @@ in
           let
             waitScript = pkgs.writeShellScript "supabase-db-wait" ''
               for i in $(seq 1 30); do
-                ${supabasePg}/bin/pg_isready -h ${pgSocket} -p ${toString pgPort} -q && exit 0
+                ${supabasePg}/bin/pg_isready -h 127.0.0.1 -p ${toString pgPort} -q && exit 0
                 sleep 1
               done
               echo "supabase-db: timed out waiting for readiness" >&2
@@ -657,16 +657,13 @@ in
           psql = "psql -h ${pgSocket} -p ${toString pgPort} -U postgres -v ON_ERROR_STOP=1";
           dbScript = lib.concatStringsSep "\n" (
             lib.mapAttrsToList (dbName: spec: ''
-              # ensure database: ${dbName}
-              ${psql} -tc "SELECT 1 FROM pg_database WHERE datname = '${dbName}'" \
-                | grep -q 1 || ${psql} -c "CREATE DATABASE \"${dbName}\";"
-
-              # ensure role: ${dbName}
+              # ensure role first (so CREATE DATABASE OWNER works)
               ${psql} -tc "SELECT 1 FROM pg_roles WHERE rolname = '${dbName}'" \
                 | grep -q 1 || ${psql} -c "CREATE ROLE \"${dbName}\" WITH LOGIN;"
 
-              # grant ownership
-              ${psql} -c "ALTER DATABASE \"${dbName}\" OWNER TO \"${dbName}\";"
+              # ensure database with correct owner
+              ${psql} -tc "SELECT 1 FROM pg_database WHERE datname = '${dbName}'" \
+                | grep -q 1 || ${psql} -c "CREATE DATABASE \"${dbName}\" OWNER \"${dbName}\";"
 
               # set password from agenix secret
               if [ -r "/run/agenix/${spec.passwordSecret}" ]; then
