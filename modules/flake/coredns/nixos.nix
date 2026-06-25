@@ -96,6 +96,20 @@ let
         ${optionalString cfg.debug "log"}
     }
 
+    ${topo.registry.internalDomain}:${toString cfg.port} {
+        bind ${cfg.bindAddress}
+        template IN ANY ${topo.registry.internalDomain} {
+            match ^(?P<name>[^.]+)\.${
+              builtins.replaceStrings [ "." ] [ "\\." ] topo.registry.internalDomain
+            }\.$
+            answer "{{.Name}} ${toString cfg.ttl} IN CNAME {{.Group.name}}.${zone}."
+            fallthrough
+        }
+        ${optionalString cfg.prometheus "prometheus ${cfg.bindAddress}:9153"}
+        errors
+        ${optionalString cfg.debug "log"}
+    }
+
     ${topo.registry.tailnetSuffix}:${toString cfg.port} {
         bind ${cfg.bindAddress}
         forward . ${cfg.magicDnsServer}
