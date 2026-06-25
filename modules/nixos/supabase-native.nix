@@ -1124,11 +1124,15 @@ in
           in
           "+${migrateScript}";
 
+        # BEAM's disksup calls `df` — needs it on PATH
+        ExecSearchPath = [
+          "${pkgs.coreutils}/bin"
+          "${pkgs.util-linux}/bin"
+        ];
         ExecStart = "${supabaseRealtime}/bin/supabase-realtime start";
         Restart = "on-failure";
         RestartSec = "5s";
 
-        # relaxed hardening — BEAM's os_mon/disksup needs broad fs access
         ProtectHome = true;
         NoNewPrivileges = true;
       };
@@ -1159,7 +1163,7 @@ in
         REQUEST_ALLOW_X_FORWARDED_PATH = "true";
         FILE_SIZE_LIMIT = "52428800";
         STORAGE_BACKEND = "file";
-        FILE_STORAGE_BACKEND_PATH = "${cfg.dataDir}/storage";
+        FILE_STORAGE_BACKEND_PATH = "/var/lib/supabase-storage";
         ENABLE_IMAGE_TRANSFORMATION = "true";
         IMGPROXY_URL = "http://127.0.0.1:${toString cfg.imgproxy.port}";
         TENANT_ID = "stub";
@@ -1174,6 +1178,7 @@ in
         WorkingDirectory = "${supabaseStorage}/app";
         EnvironmentFile = svcEnv "storage";
         DynamicUser = true;
+        StateDirectory = "supabase-storage";
         Restart = "on-failure";
         RestartSec = "5s";
 
