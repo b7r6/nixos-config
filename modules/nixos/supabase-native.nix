@@ -58,6 +58,35 @@ let
   pgDataDir = cfg.db.dataDir;
   pgUser = "supabase-postgres"; # system user for this cluster
 
+  # ── database picker: injected into Studio via nginx sub_filter ────────────
+  # a self-contained <script> that renders a floating dropdown in the top bar,
+  # populated from GET /pg/databases. Selection is stored in a cookie that nginx
+  # passes as X-PG-Meta-Db to postgres-meta.
+  dbPickerSnippet = ''
+    <script>
+    (function(){
+      var c=document.cookie.match(/pg_meta_db=([^;]+)/);
+      var current=c?decodeURIComponent(c[1]):"postgres";
+      fetch("/pg/databases").then(r=>r.json()).then(function(dbs){
+        var sel=document.createElement("select");
+        sel.id="db-picker";
+        sel.style.cssText="position:fixed;top:8px;right:200px;z-index:99999;padding:4px 8px;border-radius:4px;border:1px solid #444;background:#1e1e1e;color:#e0e0e0;font-size:13px;font-family:monospace;cursor:pointer;";
+        dbs.forEach(function(db){
+          var opt=document.createElement("option");
+          opt.value=db.name;opt.textContent=db.name;
+          if(db.name===current)opt.selected=true;
+          sel.appendChild(opt);
+        });
+        sel.onchange=function(){
+          document.cookie="pg_meta_db="+encodeURIComponent(sel.value)+";path=/;max-age=31536000";
+          location.reload();
+        };
+        document.body.appendChild(sel);
+      });
+    })();
+    </script>
+  '';
+
   # ── OCI extraction (crane export → autopatchelf / node wrapper) ───────────
   oci = import ../../lib/oci.nix { inherit pkgs; };
 
@@ -654,7 +683,6 @@ in
 
       script =
         let
-          psql = "psql -h ${pgSocket} -p ${toString pgPort} -U postgres -v ON_ERROR_STOP=1";
           psqlNoStop = "psql -h ${pgSocket} -p ${toString pgPort} -U postgres";
           dbScript = lib.concatStringsSep "\n" (
             lib.mapAttrsToList (dbName: spec: ''
@@ -958,21 +986,26 @@ in
           '';
         };
 
-        # postgres-meta (studio backend)
+        # postgres-meta (studio backend) — passes X-PG-Meta-Db from cookie
         "/pg/" = {
           proxyPass = "http://127.0.0.1:${toString cfg.meta.port}/";
           extraConfig = ''
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header Host $host;
+            proxy_set_header X-PG-Meta-Db $cookie_pg_meta_db;
           '';
         };
 
-        # studio (dashboard) — catch-all
+        # studio (dashboard) — catch-all, inject database picker widget
         "/" = {
           proxyPass = "http://127.0.0.1:${toString cfg.studio.port}/";
           extraConfig = ''
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header Host $host;
+            sub_filter '</head>' '${dbPickerSnippet}</head>';
+            sub_filter_once on;
+            sub_filter_types text/html;
+            proxy_set_header Accept-Encoding "";
           '';
         };
       };
