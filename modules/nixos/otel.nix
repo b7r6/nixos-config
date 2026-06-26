@@ -119,16 +119,19 @@ let
   exporterName = if isGateway then "clickhouse" else "otlp";
 
   # ── processors: batch always; stamp host.name on agent-only nodes ──
-  # when a node is BOTH agent+gateway, skip the resource stamp — remote agents
-  # already have their own host.name and we'd overwrite it with the gateway's name.
+  # resourcedetection (reads OS hostname) is safe everywhere.
+  # the `resource` processor (hardcodes a hostname via upsert) is ONLY for
+  # agent-only nodes — on the gateway it would overwrite remote agents' names.
   processors = {
     batch = { };
   }
-  // lib.optionalAttrs (isAgent && !isGateway) {
+  // lib.optionalAttrs isAgent {
     resourcedetection = {
       detectors = [ "system" ];
       system.hostname_sources = [ "os" ];
     };
+  }
+  // lib.optionalAttrs (isAgent && !isGateway) {
     "resource".attributes = [
       {
         key = "host.name";
@@ -139,10 +142,8 @@ let
   };
 
   procChain =
-    lib.optionals (isAgent && !isGateway) [
-      "resourcedetection"
-      "resource"
-    ]
+    lib.optionals isAgent [ "resourcedetection" ]
+    ++ lib.optionals (isAgent && !isGateway) [ "resource" ]
     ++ [ "batch" ];
 
   # receiver lists per signal
