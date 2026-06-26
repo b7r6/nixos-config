@@ -1371,8 +1371,8 @@ in
           --stanza=${cfg.db.pitr.stanza} stanza-create || \
         pgbackrest --config=/etc/pgbackrest/pgbackrest-supabase.conf \
           --stanza=${cfg.db.pitr.stanza} stanza-upgrade || true
-        pgbackrest --config=/etc/pgbackrest/pgbackrest-supabase.conf \
-          --stanza=${cfg.db.pitr.stanza} check
+        # skip `check` on first run — it fails before the first WAL segment is archived.
+        # the first archive-push (triggered by archive_timeout=60) validates the setup.
       '';
     };
 

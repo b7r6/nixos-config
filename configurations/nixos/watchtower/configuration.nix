@@ -175,8 +175,8 @@ in
     script = ''
       ${pkgs.postgresql_17}/bin/pg_dumpall \
         -h /run/supabase-db -p 5433 -U postgres \
-        | gzip > /var/lib/supabase/db-dump.sql.gz.tmp
-      mv /var/lib/supabase/db-dump.sql.gz.tmp /var/lib/supabase/db-dump.sql.gz
+        | gzip > /var/lib/supabase/db/dump.sql.gz.tmp
+      mv /var/lib/supabase/db/dump.sql.gz.tmp /var/lib/supabase/db/dump.sql.gz
     '';
   };
   systemd.timers.supabase-db-dump = {
@@ -432,7 +432,7 @@ in
       "/home"
       "/var/lib/forgejo" # git repos + custom assets
       "/var/lib/kanidm" # IdP state (also covered by litestream)
-      "/var/lib/supabase/db-dump.sql.gz" # PG17 daily logical dump
+      "/var/lib/supabase/db/dump.sql.gz" # PG17 daily logical dump
     ];
   };
 
