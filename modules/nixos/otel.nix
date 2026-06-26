@@ -139,7 +139,7 @@ let
   };
 
   procChain =
-    lib.optionals isAgent [
+    lib.optionals (isAgent && !isGateway) [
       "resourcedetection"
       "resource"
     ]
