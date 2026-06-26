@@ -118,11 +118,13 @@ let
 
   exporterName = if isGateway then "clickhouse" else "otlp";
 
-  # ── processors: batch always; stamp host.name on the agent side ──
+  # ── processors: batch always; stamp host.name on agent-only nodes ──
+  # when a node is BOTH agent+gateway, skip the resource stamp — remote agents
+  # already have their own host.name and we'd overwrite it with the gateway's name.
   processors = {
     batch = { };
   }
-  // lib.optionalAttrs isAgent {
+  // lib.optionalAttrs (isAgent && !isGateway) {
     resourcedetection = {
       detectors = [ "system" ];
       system.hostname_sources = [ "os" ];
