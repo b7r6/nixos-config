@@ -14,7 +14,7 @@ in
   networking.hostName = "weyl";
   networking.networkmanager.enable = true;
   hyper-modern-nixos.coredns.enable = true;
-  
+
   networking.hosts = {
     "192.168.50.12" = [ "files01.rhosts.net" ];
     "10.215.1.12" = [ "cc1-agiti.cloud.parabolicsurf.net" ];
@@ -74,7 +74,12 @@ in
   };
 
   # ── OTel agent (host metrics + journald → watchtower gateway) ──────────────
-  hyper-modern-nixos.observability.otel.agent.enable = true;
+  hyper-modern-nixos.observability.otel.agent = {
+    enable = true;
+    scrapeTargets = [
+      "127.0.0.1:9153" # coredns
+    ];
+  };
 
   # ── Tailscale safety net ────────────────────────────────────────────────────
   age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;

@@ -89,7 +89,13 @@ in
   hyper-modern-nixos.databases.clickhouse.keeper.enable = true;
 
   # ── OTel agent (host metrics + journald → watchtower gateway) ──────────────
-  hyper-modern-nixos.observability.otel.agent.enable = true;
+  hyper-modern-nixos.observability.otel.agent = {
+    enable = true;
+    scrapeTargets = [
+      "127.0.0.1:9153" # coredns
+      "127.0.0.1:9364" # clickhouse-keeper
+    ];
+  };
 
   # ── media servers: Navidrome (music) + Jellyfin (video, NVENC) ─────────────
   # Library lives at /var/lib/media (declared authoritative by the module, so

@@ -86,6 +86,14 @@ let
       <listen_host>::</listen_host>
       <max_connections>4096</max_connections>
 
+      <prometheus>
+        <endpoint>/metrics</endpoint>
+        <port>${toString keeper.ports.prometheus}</port>
+        <metrics>true</metrics>
+        <events>true</events>
+        <asynchronous_metrics>true</asynchronous_metrics>
+      </prometheus>
+
       <keeper_server>
         <tcp_port>${toString keeper.ports.client}</tcp_port>
         <server_id>${toString serverId}</server_id>
@@ -323,6 +331,11 @@ in
           type = lib.types.port;
           default = 9444;
           description = "Keeper inter-node Raft port.";
+        };
+        prometheus = lib.mkOption {
+          type = lib.types.port;
+          default = 9364;
+          description = "Keeper prometheus metrics port (scraped by local OTel agent).";
         };
       };
     };

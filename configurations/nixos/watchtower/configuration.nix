@@ -144,7 +144,9 @@ in
       };
       session.PROVIDER = "db";
       cache.ADAPTER = "memory";
-      log.LEVEL = "Warn";
+      log.LEVEL = "Info";
+      metrics.ENABLED = true;
+      metrics.ENABLED_ISSUE_BY_REPOSITORY = true;
     };
   };
   # the `git` user/group for forgejo (module only auto-creates `forgejo`)
@@ -258,11 +260,16 @@ in
   services.grafana.declarativePlugins = [ pkgs.grafanaPlugins.grafana-clickhouse-datasource ];
 
   # render dashboards to /etc/grafana/dashboards (Grafana file provisioner)
-  environment.etc = let dashboards = import ../../../modules/flake/grafana/provisioning/dashboards.nix; in
-    builtins.listToAttrs (map (name: {
-      name = "grafana/dashboards/${name}.json";
-      value.text = builtins.toJSON dashboards.${name};
-    }) (builtins.attrNames dashboards));
+  environment.etc =
+    let
+      dashboards = import ../../../modules/flake/grafana/provisioning/dashboards.nix;
+    in
+    builtins.listToAttrs (
+      map (name: {
+        name = "grafana/dashboards/${name}.json";
+        value.text = builtins.toJSON dashboards.${name};
+      }) (builtins.attrNames dashboards)
+    );
 
   age.secrets.grafana-admin-password = {
     file = ../../../secrets/agenix/machines/grafana-admin-password.age;
@@ -289,6 +296,7 @@ in
         "127.0.0.1:9153" # coredns
         "127.0.0.1:3001" # postgrest (admin)
         "127.0.0.1:9363" # clickhouse
+        "127.0.0.1:3200" # forgejo
       ];
     };
   };
