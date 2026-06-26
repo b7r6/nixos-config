@@ -395,6 +395,8 @@ in
     ++ lib.optionals cfg.db.pitr.enable [
       "d /var/log/pgbackrest 0750 ${pgUser} ${pgUser} - -"
       "d /var/lib/pgbackrest 0750 ${pgUser} ${pgUser} - -"
+      "d /var/lib/pgbackrest/spool 0750 ${pgUser} ${pgUser} - -"
+      "d /run/pgbackrest-supabase 0750 ${pgUser} ${pgUser} - -"
     ];
 
     # ── supabase-env-split: same pattern as the container module ──────────────
@@ -1341,6 +1343,8 @@ in
         compress-level=6
         process-max=4
         start-fast=y
+        lock-path=/run/pgbackrest-supabase
+        spool-path=/var/lib/pgbackrest/spool
 
         [${cfg.db.pitr.stanza}]
         pg1-path=${pgDataDir}
