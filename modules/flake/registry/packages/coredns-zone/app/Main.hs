@@ -139,16 +139,13 @@ validate (Zone z) (Ipv4 self) hs =
         *> check
             (null danglingCnames)
             ("service CNAME target has no A record in zone: " <> commas danglingCnames)
-        *> check
-            (null dupTags)
-            ("service tag claimed by multiple hosts: " <> commas dupTags)
+        -- multi-host service tags are valid: they emit round-robin A records instead of CNAMEs
   where
     aNames = map physical hs
     dupNames = dups aNames
     aNameSet = Map.fromList [(physical h, ()) | h <- hs]
     cnameTargets = [physical h | h <- hs, not (null (services h))]
     danglingCnames = [t | t <- cnameTargets, not (Map.member t aNameSet)]
-    dupTags = dups [tag | h <- hs, tag <- services h]
     commas = T.intercalate ", " . sort . map qualify
     qualify x = x <> "." <> z
 
@@ -187,12 +184,20 @@ renderZone z@(Zone zn) self ttl serial hs =
             "LAN: <host>.lan → lan_ipv4 (static-leased wired boxes only)"
             [physical h <> ".lan IN A " <> ip | h <- hs, Just ip <- [lan_ipv4 h]]
         , section
-            ("service aliases: <service>." <> zn <> " → host running it")
-            -- sorted for determinism
-            [ tag <> " IN CNAME " <> host <> "." <> zn <> "."
-            | (tag, host) <- sortOn fst [(tag, physical h) | h <- hs, tag <- services h]
-            ]
+            ("service aliases: <service>." <> zn <> " (CNAME for unique, round-robin A for shared)")
+            -- unique tags → CNAME; multi-host tags → A records (round-robin)
+            (  [ tag <> " IN CNAME " <> host <> "." <> zn <> "."
+               | (tag, host) <- sortOn fst [(tag, physical h) | h <- hs, tag <- services h]
+               , Map.findWithDefault 0 tag tagCounts == 1
+               ]
+            ++ [ tag <> " IN A " <> tailnet_ipv4 h
+               | (tag, h) <- sortOn fst [(tag, h) | h <- hs, tag <- services h]
+               , Map.findWithDefault 0 tag tagCounts > 1
+               ]
+            )
         ]
+  where
+    tagCounts = Map.fromListWith (+) [(tag, 1 :: Int) | h <- hs, tag <- services h]
 
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 --                                                                       // cli

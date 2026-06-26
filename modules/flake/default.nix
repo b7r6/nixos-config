@@ -11,7 +11,7 @@
   debug = true;
 
   # ── `flakeModules` output (the extraction seam) ─────────────────────────────
-  
+
   # When a component graduates to its own flake, it exposes
   # `flakeModules.default` and consumers swap the path import for an input.
 
@@ -26,7 +26,7 @@
   };
 
   imports = [
-    
+
     # ── infrastructure (cross-cutting) ────────────────────────────────────────
 
     inputs.devshell.flakeModule
@@ -71,6 +71,8 @@
     checks = inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
       state-audit = import ../../checks/state-audit.nix { inherit pkgs inputs; };
       supabase-native = import ../../checks/supabase-native.nix { inherit pkgs inputs; };
+      clickhouse-keeper = import ../../checks/clickhouse-keeper.nix { inherit pkgs; };
+      clickhouse-server = import ../../checks/clickhouse-server.nix { inherit pkgs; };
     };
   };
 }

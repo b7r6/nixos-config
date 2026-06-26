@@ -85,6 +85,12 @@ in
     profile = "replica";
   };
 
+  # ── ClickHouse Keeper (coordination plane) ──────────────────────────────────
+  hyper-modern-nixos.databases.clickhouse.keeper.enable = true;
+
+  # ── OTel agent (host metrics + journald → watchtower gateway) ──────────────
+  hyper-modern-nixos.observability.otel.agent.enable = true;
+
   # ── media servers: Navidrome (music) + Jellyfin (video, NVENC) ─────────────
   # Library lives at /var/lib/media (declared authoritative by the module, so
   # it's restic-backed + impermanence-persisted via the state registry). Ports

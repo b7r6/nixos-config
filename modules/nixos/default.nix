@@ -42,6 +42,8 @@
 
     # ── Services (gated) ──
     ./postgres.nix
+    ./clickhouse.nix
+    ./otel.nix
     ../flake/backup/nixos.nix
     ../flake/attic/nixos.nix
     ../flake/attic/nixos-node.nix

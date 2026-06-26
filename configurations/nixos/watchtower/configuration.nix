@@ -199,6 +199,332 @@ in
       "C /var/lib/forgejo/custom/public/assets/img/favicon.png - git git - ${logo}"
     ];
 
+  # ── Grafana (observability dashboards) ─────────────────────────────────────────
+  # Fronted by nginx at grafana.s4.gl. ClickHouse datasource provisioned
+  # declaratively. Dashboards compiled from Dhall → JSON → file provisioning.
+  services.grafana = {
+    enable = true;
+    settings = {
+      server = {
+        http_addr = "127.0.0.1";
+        http_port = 3300;
+        root_url = "https://grafana.s4.gl/";
+        domain = "grafana.s4.gl";
+      };
+      security = {
+        admin_user = "admin";
+        admin_password = "$__file{/run/agenix/grafana-admin-password}";
+        secret_key = "$__file{/run/agenix/grafana-admin-password}";
+      };
+      "auth.anonymous" = {
+        enabled = true;
+        org_role = "Viewer";
+      };
+    };
+
+    # declarative datasource provisioning
+    provision = {
+      enable = true;
+      datasources.settings.datasources = [
+        {
+          name = "ClickHouse";
+          type = "grafana-clickhouse-datasource";
+          uid = "clickhouse";
+          access = "proxy";
+          isDefault = true;
+          jsonData = {
+            host = "127.0.0.1";
+            port = 9000;
+            protocol = "native";
+            defaultDatabase = "otel";
+            username = "default";
+          };
+        }
+      ];
+
+      # dashboards from Dhall (rendered at build time)
+      dashboards.settings.providers = [
+        {
+          name = "fleet";
+          type = "file";
+          options.path = "/etc/grafana/dashboards";
+          options.foldersFromFilesStructure = true;
+        }
+      ];
+    };
+  };
+
+  # install the clickhouse grafana plugin
+  services.grafana.declarativePlugins = [ pkgs.grafanaPlugins.grafana-clickhouse-datasource ];
+
+  # render dashboards to /etc/grafana/dashboards (Grafana file provisioner)
+  environment.etc."grafana/dashboards/fleet-overview.json".text = builtins.toJSON {
+    title = "Fleet Overview";
+    uid = "fleet-overview";
+    schemaVersion = 39;
+    refresh = "30s";
+    time = {
+      from = "now-1h";
+      to = "now";
+    };
+    timezone = "browser";
+    editable = true;
+    tags = [
+      "fleet"
+      "overview"
+    ];
+    templating.list = [
+      {
+        name = "host";
+        label = "Host";
+        type = "query";
+        datasource = {
+          type = "grafana-clickhouse-datasource";
+          uid = "clickhouse";
+        };
+        query = "SELECT DISTINCT ResourceAttributes['host.name'] FROM otel.otel_metrics_gauge WHERE TimeUnix > now() - INTERVAL 1 HOUR";
+        multi = false;
+        includeAll = true;
+      }
+    ];
+    panels = [
+      {
+        id = 1;
+        type = "timeseries";
+        title = "Load average (1m)";
+        gridPos = {
+          x = 0;
+          y = 0;
+          w = 8;
+          h = 8;
+        };
+        datasource = {
+          type = "grafana-clickhouse-datasource";
+          uid = "clickhouse";
+        };
+        fieldConfig.defaults.unit = "short";
+        targets = [
+          {
+            rawSql = "SELECT TimeUnix as time, ResourceAttributes['host.name'] as host, avg(Value) as value FROM otel.otel_metrics_gauge WHERE MetricName = 'system.cpu.load_average.1m' AND $__timeFilter(TimeUnix) GROUP BY time, host ORDER BY time";
+            format = 1;
+            queryType = "sql"; refId = "A";
+          }
+        ];
+      }
+      {
+        id = 2;
+        type = "timeseries";
+        title = "Memory usage";
+        gridPos = {
+          x = 8;
+          y = 0;
+          w = 8;
+          h = 8;
+        };
+        datasource = {
+          type = "grafana-clickhouse-datasource";
+          uid = "clickhouse";
+        };
+        fieldConfig.defaults.unit = "bytes";
+        targets = [
+          {
+            rawSql = "SELECT TimeUnix as time, ResourceAttributes['host.name'] as host, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'system.memory.usage' AND Attributes['state'] = 'used' AND $__timeFilter(TimeUnix) GROUP BY time, host ORDER BY time";
+            format = 1;
+            queryType = "sql"; refId = "A";
+          }
+        ];
+      }
+      {
+        id = 3;
+        type = "timeseries";
+        title = "Disk I/O";
+        gridPos = {
+          x = 16;
+          y = 0;
+          w = 8;
+          h = 8;
+        };
+        datasource = {
+          type = "grafana-clickhouse-datasource";
+          uid = "clickhouse";
+        };
+        fieldConfig.defaults.unit = "Bps";
+        targets = [
+          {
+            rawSql = "SELECT TimeUnix as time, ResourceAttributes['host.name'] as host, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'system.disk.io' AND $__timeFilter(TimeUnix) GROUP BY time, host ORDER BY time";
+            format = 1;
+            queryType = "sql"; refId = "A";
+          }
+        ];
+      }
+      {
+        id = 4;
+        type = "timeseries";
+        title = "Network traffic";
+        gridPos = {
+          x = 0;
+          y = 8;
+          w = 12;
+          h = 8;
+        };
+        datasource = {
+          type = "grafana-clickhouse-datasource";
+          uid = "clickhouse";
+        };
+        fieldConfig.defaults.unit = "Bps";
+        targets = [
+          {
+            rawSql = "SELECT TimeUnix as time, ResourceAttributes['host.name'] as host, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'system.network.io' AND $__timeFilter(TimeUnix) GROUP BY time, host ORDER BY time";
+            format = 1;
+            queryType = "sql"; refId = "A";
+          }
+        ];
+      }
+      {
+        id = 5;
+        type = "timeseries";
+        title = "Load average (1m)";
+        gridPos = {
+          x = 12;
+          y = 8;
+          w = 12;
+          h = 8;
+        };
+        datasource = {
+          type = "grafana-clickhouse-datasource";
+          uid = "clickhouse";
+        };
+        fieldConfig.defaults.unit = "short";
+        targets = [
+          {
+            rawSql = "SELECT TimeUnix as time, ResourceAttributes['host.name'] as host, avg(Value) as value FROM otel.otel_metrics_gauge WHERE MetricName = 'system.cpu.load_average.1m' AND $__timeFilter(TimeUnix) GROUP BY time, host ORDER BY time";
+            format = 1;
+            queryType = "sql"; refId = "A";
+          }
+        ];
+      }
+      {
+        id = 6;
+        type = "timeseries";
+        title = "ClickHouse queries/sec";
+        gridPos = {
+          x = 0;
+          y = 16;
+          w = 12;
+          h = 8;
+        };
+        datasource = {
+          type = "grafana-clickhouse-datasource";
+          uid = "clickhouse";
+        };
+        fieldConfig.defaults.unit = "ops";
+        targets = [
+          {
+            rawSql = "SELECT TimeUnix as time, avg(Value) as value FROM otel.otel_metrics_gauge WHERE MetricName LIKE 'ClickHouseAsyncMetrics_Query%' AND $__timeFilter(TimeUnix) GROUP BY time ORDER BY time";
+            format = 1;
+            queryType = "sql"; refId = "A";
+          }
+        ];
+      }
+      {
+        id = 7;
+        type = "timeseries";
+        title = "CoreDNS queries/sec";
+        gridPos = {
+          x = 12;
+          y = 16;
+          w = 12;
+          h = 8;
+        };
+        datasource = {
+          type = "grafana-clickhouse-datasource";
+          uid = "clickhouse";
+        };
+        fieldConfig.defaults.unit = "ops";
+        targets = [
+          {
+            rawSql = "SELECT TimeUnix as time, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'coredns_dns_requests_total' AND $__timeFilter(TimeUnix) GROUP BY time ORDER BY time";
+            format = 1;
+            queryType = "sql"; refId = "A";
+          }
+        ];
+      }
+      {
+        id = 8;
+        type = "table";
+        title = "Recent errors";
+        gridPos = {
+          x = 0;
+          y = 24;
+          w = 24;
+          h = 10;
+        };
+        datasource = {
+          type = "grafana-clickhouse-datasource";
+          uid = "clickhouse";
+        };
+        targets = [
+          {
+            rawSql = "SELECT Timestamp, ResourceAttributes['host.name'] as host, SeverityText as level, Body as message FROM otel.otel_logs WHERE SeverityNumber >= 17 AND $__timeFilter(Timestamp) ORDER BY Timestamp DESC LIMIT 100";
+            format = 2;
+            queryType = "sql"; refId = "A";
+          }
+        ];
+      }
+      {
+        id = 9;
+        type = "logs";
+        title = "Log stream";
+        gridPos = {
+          x = 0;
+          y = 34;
+          w = 24;
+          h = 12;
+        };
+        datasource = {
+          type = "grafana-clickhouse-datasource";
+          uid = "clickhouse";
+        };
+        targets = [
+          {
+            rawSql = "SELECT Timestamp as time, Body as content, SeverityText as level, ResourceAttributes['host.name'] as host FROM otel.otel_logs WHERE $__timeFilter(Timestamp) ORDER BY Timestamp DESC LIMIT 500";
+            format = 2;
+            queryType = "sql"; refId = "A";
+          }
+        ];
+      }
+    ];
+  };
+
+  age.secrets.grafana-admin-password = {
+    file = ../../../secrets/agenix/machines/grafana-admin-password.age;
+    owner = "grafana";
+    group = "grafana";
+    mode = "0400";
+  };
+
+  # ── ClickHouse (OLAP server + S3→R2 storage) ──────────────────────────────────
+  # single server on watchtower; keepers on ultraviolence/guccimane/shimmer.
+  # S3 disk to R2 = durable truth; local disk is reconstructible cache.
+  hyper-modern-nixos.databases.clickhouse.server = {
+    enable = true;
+    s3.enable = true;
+  };
+
+  # ── OTel (observability spine) ───────────────────────────────────────────────
+  # gateway (receives from fleet agents → writes to ClickHouse) + local agent
+  hyper-modern-nixos.observability.otel = {
+    gateway.enable = true;
+    agent = {
+      enable = true;
+      scrapeTargets = [
+        "127.0.0.1:9153" # coredns
+        "127.0.0.1:3001" # postgrest (admin)
+        "127.0.0.1:9363" # clickhouse
+      ];
+    };
+  };
+
   # ── Kanidm (identity provider) ─────────────────────────────────────────────
   # Sovereign IdP — WebAuthn/passkey-first, OIDC provider for the fleet.
   # SQLite-backed (Litestream → R2 for backup). Fronted by nginx at auth.s4.gl.
@@ -369,6 +695,8 @@ in
       port = 8443;
       scheme = "https";
     };
+    services.ch.port = 8123; # → clickhouse play UI / HTTP API
+    services.grafana.port = 3300; # → grafana
   };
 
   hardware.graphics = {

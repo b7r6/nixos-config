@@ -606,9 +606,16 @@ in
                               PITR
                             ''}
 
+                            # ensure pg_ident maps supabase-postgres → both postgres and supabase_admin
+                            {
+                              echo "supabase   ${pgUser}   postgres"
+                              echo "supabase   ${pgUser}   supabase_admin"
+                            } > "${pgDataDir}/pg_ident.conf"
+
                             # rewrite pg_hba with current tailnet cidrs
                             {
                               echo "local   all   postgres           peer map=supabase"
+                              echo "local   all   supabase_admin     peer map=supabase"
                               echo "local   all   all                peer"
                               echo "host    all   all   127.0.0.1/32  md5"
                               echo "host    all   all   ::1/128       md5"
@@ -1350,7 +1357,7 @@ in
         pg1-path=${pgDataDir}
         pg1-port=${toString pgPort}
         pg1-socket-path=${pgSocket}
-        pg1-user=postgres
+        pg1-user=supabase_admin
       '';
     };
 

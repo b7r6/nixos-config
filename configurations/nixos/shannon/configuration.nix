@@ -24,6 +24,9 @@ in
     profile = "replica";
   };
 
+  # ── OTel agent (host metrics + journald → watchtower gateway) ──────────────
+  hyper-modern-nixos.observability.otel.agent.enable = true;
+
   # ── Tailscale safety net ────────────────────────────────────────────────────
   age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;
   hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";

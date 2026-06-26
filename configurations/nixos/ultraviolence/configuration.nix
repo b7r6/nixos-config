@@ -50,6 +50,12 @@ in
     profile = "replica";
   };
 
+  # ── ClickHouse Keeper (coordination plane) ──────────────────────────────────
+  hyper-modern-nixos.databases.clickhouse.keeper.enable = true;
+
+  # ── OTel agent (host metrics + journald → watchtower gateway) ──────────────
+  hyper-modern-nixos.observability.otel.agent.enable = true;
+
   # ── Incubating services (tailnet-only) ──────────────────────────────────────
   # SearXNG metasearch + transmission/flood torrent stack, both reachable on the
   # tailnet. When ultraviolence routes through the Mullvad Miami exit node

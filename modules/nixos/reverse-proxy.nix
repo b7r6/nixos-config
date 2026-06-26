@@ -196,6 +196,9 @@ in
         }
       '';
 
+      # stub_status for prometheus scraping (loopback only)
+      statusPage = true;
+
       virtualHosts = mapAttrs' (
         sub: svc:
         nameValuePair "${sub}.${zone}" {

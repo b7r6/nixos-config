@@ -126,6 +126,15 @@ in
   #   AWS_SECRET_ACCESS_KEY=<r2 secret key>
   "agenix/machines/litestream-r2-env.age".publicKeys = mkGlobalSecret;
 
+  # clickhouse S3 disk R2 credentials:
+  #   AWS_ACCESS_KEY_ID=<r2 access key>
+  #   AWS_SECRET_ACCESS_KEY=<r2 secret key>
+  "agenix/machines/clickhouse-r2-env.age".publicKeys = mkGlobalSecret;
+
+  # grafana admin password (raw password, no KEY=VAL)
+  # Generate:  openssl rand -base64 24
+  "agenix/machines/grafana-admin-password.age".publicKeys = mkGlobalSecret;
+
   # attic PUSH token (raw JWT, push+pull on the `hypermodern` cache). Used by
   # each host's watch-store to self-populate the shared cache:
   #   atticd-atticadm make-token --sub <host>-push --validity 10y \
