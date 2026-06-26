@@ -13,7 +13,8 @@ in
 
   networking.hostName = "weyl";
   networking.networkmanager.enable = true;
-
+  hyper-modern-nixos.coredns.enable = true;
+  
   networking.hosts = {
     "192.168.50.12" = [ "files01.rhosts.net" ];
     "10.215.1.12" = [ "cc1-agiti.cloud.parabolicsurf.net" ];
@@ -24,23 +25,7 @@ in
 
   hyper-modern-nixos.nvidia.enable = true;
 
-  programs.hyprland = {
-    enable = true;
-    package = pkgs.hyprland;
-    portalPackage = pkgs.xdg-desktop-portal-hyprland;
-    xwayland.enable = false;
-  };
-
-  fonts.fontconfig = {
-    enable = true;
-
-    hinting = {
-      enable = false;
-      style = "slight"; # Options: none, slight, medium, full
-    };
-
-    antialias = false; # Smoothens the appearance of fonts
-  };
+  hyper-modern-nixos.hyper-wayland.enable = true;
 
   environment.variables = {
     __GLX_VENDOR_LIBRARY_NAME = "nvidia";
@@ -67,7 +52,20 @@ in
     pulse.enable = true;
   };
 
-  environment.sessionVariables.NIXOS_OZONE_WL = "1";
+  # ── Per-host display config ────────────────────────────────────────────────
+
+  home-manager.users.b7r6 = {
+    hyper-modern-nixos = {
+      hyprland.monitors = (import ../../../lib/monitors.nix).ultraviolence;
+
+      themes.display = {
+        profile = "lg-ultragear-oled";
+        highDPI = true;
+        width = 3840;
+        height = 2160;
+      };
+    };
+  };
 
   # ── attic api-server replica (module self-wires its secrets) ────────────────
   hyper-modern-nixos.attic-node = {
