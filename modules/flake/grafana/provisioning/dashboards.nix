@@ -20,6 +20,16 @@ let
   tfLog = "$__timeFilter(Timestamp)";
   host = "ResourceAttributes['host.name']";
 
+  # ── journald log helpers ──────────────────────────────────────────────────────
+  # journald logs arrive as JSON in Body (MESSAGE, PRIORITY, _SYSTEMD_UNIT, etc.)
+  # LogAttributes is empty; SeverityText/SeverityNumber are not populated.
+  # syslog PRIORITY: 0=emerg, 1=alert, 2=crit, 3=err, 4=warn, 5=notice, 6=info, 7=debug
+  unit = "JSONExtractString(Body, '_SYSTEMD_UNIT')";
+  msg = "JSONExtractString(Body, 'MESSAGE')";
+  pri = "JSONExtractInt(Body, 'PRIORITY')";
+  isErr = "JSONExtractInt(Body, 'PRIORITY') <= 3"; # err + crit + alert + emerg
+  isWarn = "JSONExtractInt(Body, 'PRIORITY') <= 4"; # includes warning
+
   # ── panel constructors ────────────────────────────────────────────────────────
 
   # base panel (time series)
@@ -358,6 +368,10 @@ let
   hostFilter = "(\${host:raw} = '' OR ${host} = '\${host:raw}')";
   hostFilterSingle = "${host} = '\$host'";
 
+  # ── unit filter for log queries ───────────────────────────────────────────────
+  unitIs = svc: "${unit} = '${svc}'";
+  unitLike = pat: "${unit} LIKE '${pat}'";
+
   # ── standard template variables ───────────────────────────────────────────────
   hostVarAll = {
     name = "host";
@@ -456,7 +470,7 @@ in
         h = 4;
         thresholds = thresholdErrors;
         colorMode = "background";
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE SeverityNumber >= 17 AND Timestamp > now() - INTERVAL 5 MINUTE";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE ${isErr} AND Timestamp > now() - INTERVAL 5 MINUTE";
       })
       (stat {
         id = 5;
@@ -628,7 +642,7 @@ in
         y = 38;
         w = 24;
         h = 10;
-        sql = "SELECT Timestamp, ${host} as host, SeverityText as level, LogAttributes['_SYSTEMD_UNIT'] as unit, substring(Body, 1, 300) as message FROM otel.otel_logs WHERE SeverityNumber >= 17 AND ${tfLog} AND ${hostFilter} ORDER BY Timestamp DESC LIMIT 200";
+        sql = "SELECT Timestamp, ${host} as host, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', 'info') as level, JSONExtractString(Body, '_SYSTEMD_UNIT') as unit, substring(${msg}, 1, 300) as message FROM otel.otel_logs WHERE ${isErr} AND ${tfLog} AND ${hostFilter} ORDER BY Timestamp DESC LIMIT 200";
       })
     ];
   };
@@ -818,7 +832,7 @@ in
         w = 24;
         h = 5;
         unit = "short";
-        sql = "SELECT toStartOfMinute(Timestamp) as time, SeverityText as severity, count() as value FROM otel.otel_logs WHERE ${host} = '\$host' AND ${tfLog} GROUP BY time, severity ORDER BY time";
+        sql = "SELECT toStartOfMinute(Timestamp) as time, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', ${pri} = 5, 'notice', ${pri} = 6, 'info', 'debug') as severity, count() as value FROM otel.otel_logs WHERE ${host} = '\$host' AND ${tfLog} GROUP BY time, severity ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -834,7 +848,7 @@ in
         y = 42;
         w = 24;
         h = 12;
-        sql = "SELECT Timestamp, SeverityText as level, LogAttributes['_SYSTEMD_UNIT'] as unit, substring(Body, 1, 300) as message FROM otel.otel_logs WHERE ${host} = '\$host' AND ${tfLog} ORDER BY Timestamp DESC LIMIT 500";
+        sql = "SELECT Timestamp, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', 'info') as level, JSONExtractString(Body, '_SYSTEMD_UNIT') as unit, substring(${msg}, 1, 300) as message FROM otel.otel_logs WHERE ${host} = '\$host' AND ${tfLog} ORDER BY Timestamp DESC LIMIT 500";
       })
     ];
   };
@@ -1085,7 +1099,7 @@ in
         w = 8;
         h = 8;
         unit = "bytes";
-        sql = "SELECT TimeUnix as time, MetricName as metric, avg(Value) as value FROM otel.otel_metrics_gauge WHERE MetricName IN ('ClickHouseAsyncMetrics_jemalloc.resident', 'ClickHouseAsyncMetrics_jemalloc.allocated') AND ${tf} GROUP BY time, metric ORDER BY time";
+        sql = "SELECT TimeUnix as time, MetricName as metric, avg(Value) as value FROM otel.otel_metrics_gauge WHERE MetricName IN ('ClickHouseAsyncMetrics_jemalloc_resident', 'ClickHouseAsyncMetrics_jemalloc_allocated') AND ${tf} GROUP BY time, metric ORDER BY time";
         description = "gap between resident and allocated = fragmentation";
       })
       (panel {
@@ -1133,7 +1147,7 @@ in
         w = 8;
         h = 8;
         unit = "ms";
-        sql = "SELECT TimeUnix as time, runningDifference(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'ClickHouseProfileEvents_MergesTimeMilliseconds' AND ${tf} AND runningDifference(Value) >= 0 ORDER BY time";
+        sql = "SELECT TimeUnix as time, runningDifference(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'ClickHouseProfileEvents_MergeTotalMilliseconds' AND ${tf} AND runningDifference(Value) >= 0 ORDER BY time";
       })
 
       (panel {
@@ -1224,7 +1238,7 @@ in
         w = 6;
         h = 8;
         unit = "Bps";
-        sql = "SELECT TimeUnix as time, runningDifference(Value) / 30 as value FROM otel.otel_metrics_sum WHERE MetricName = 'ClickHouseProfileEvents_S3ReadBytes' AND ${tf} AND runningDifference(Value) >= 0 ORDER BY time";
+        sql = "SELECT TimeUnix as time, runningDifference(Value) / 30 as value FROM otel.otel_metrics_sum WHERE MetricName = 'ClickHouseProfileEvents_ReadBufferFromS3Bytes' AND ${tf} AND runningDifference(Value) >= 0 ORDER BY time";
       })
       (panel {
         id = 51;
@@ -1234,7 +1248,7 @@ in
         w = 6;
         h = 8;
         unit = "Bps";
-        sql = "SELECT TimeUnix as time, runningDifference(Value) / 30 as value FROM otel.otel_metrics_sum WHERE MetricName = 'ClickHouseProfileEvents_S3WriteBytes' AND ${tf} AND runningDifference(Value) >= 0 ORDER BY time";
+        sql = "SELECT TimeUnix as time, runningDifference(Value) / 30 as value FROM otel.otel_metrics_sum WHERE MetricName = 'ClickHouseProfileEvents_WriteBufferFromS3Bytes' AND ${tf} AND runningDifference(Value) >= 0 ORDER BY time";
       })
       (panel {
         id = 52;
@@ -1513,13 +1527,14 @@ in
       })
       (panel {
         id = 97;
-        title = "Compressed write bytes/sec";
+        title = "S3 write latency (ms/interval)";
         x = 8;
         y = 122;
         w = 8;
         h = 8;
-        unit = "Bps";
-        sql = "SELECT TimeUnix as time, runningDifference(Value) / 30 as value FROM otel.otel_metrics_sum WHERE MetricName = 'ClickHouseProfileEvents_CompressedWriteBufferBytes' AND ${tf} AND runningDifference(Value) >= 0 ORDER BY time";
+        unit = "ms";
+        sql = "SELECT TimeUnix as time, runningDifference(Value) / 1000 as value FROM otel.otel_metrics_sum WHERE MetricName = 'ClickHouseProfileEvents_DiskS3WriteMicroseconds' AND ${tf} AND runningDifference(Value) >= 0 ORDER BY time";
+        description = "time spent on S3/R2 write operations. spikes = storage latency.";
       })
       (panel {
         id = 98;
@@ -1559,7 +1574,7 @@ in
         label = "Unit";
         type = "query";
         datasource = ds;
-        query = "SELECT DISTINCT LogAttributes['_SYSTEMD_UNIT'] FROM otel.otel_logs WHERE Timestamp > now() - INTERVAL 1 HOUR AND LogAttributes['_SYSTEMD_UNIT'] != '' ORDER BY 1";
+        query = "SELECT DISTINCT JSONExtractString(Body, '_SYSTEMD_UNIT') FROM otel.otel_logs WHERE Timestamp > now() - INTERVAL 1 HOUR AND JSONExtractString(Body, '_SYSTEMD_UNIT') != '' ORDER BY 1";
         multi = false;
         includeAll = true;
         current = {
@@ -1599,7 +1614,7 @@ in
         w = 24;
         h = 6;
         unit = "short";
-        sql = "SELECT toStartOfMinute(Timestamp) as time, SeverityText as severity, count() as value FROM otel.otel_logs WHERE ${tfLog} AND ${hostFilter} AND (\${unit:raw} = '' OR LogAttributes['_SYSTEMD_UNIT'] = '\${unit:raw}') GROUP BY time, severity ORDER BY time";
+        sql = "SELECT toStartOfMinute(Timestamp) as time, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', ${pri} = 5, 'notice', ${pri} = 6, 'info', 'debug') as severity, count() as value FROM otel.otel_logs WHERE ${tfLog} AND ${hostFilter} AND (\${unit:raw} = '' OR JSONExtractString(Body, '_SYSTEMD_UNIT') = '\${unit:raw}') GROUP BY time, severity ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -1619,7 +1634,7 @@ in
         h = 7;
         type = "bargauge";
         unit = "short";
-        sql = "SELECT ${host} as host, count() as errors FROM otel.otel_logs WHERE SeverityNumber >= 17 AND ${tfLog} GROUP BY host ORDER BY errors DESC";
+        sql = "SELECT ${host} as host, count() as errors FROM otel.otel_logs WHERE ${isErr} AND ${tfLog} GROUP BY host ORDER BY errors DESC";
         format = 2;
       })
       (panel {
@@ -1631,7 +1646,7 @@ in
         h = 7;
         type = "bargauge";
         unit = "short";
-        sql = "SELECT LogAttributes['_SYSTEMD_UNIT'] as unit, count() as errors FROM otel.otel_logs WHERE SeverityNumber >= 17 AND LogAttributes['_SYSTEMD_UNIT'] != '' AND ${tfLog} GROUP BY unit ORDER BY errors DESC LIMIT 15";
+        sql = "SELECT JSONExtractString(Body, '_SYSTEMD_UNIT') as unit, count() as errors FROM otel.otel_logs WHERE ${isErr} AND JSONExtractString(Body, '_SYSTEMD_UNIT') != '' AND ${tfLog} GROUP BY unit ORDER BY errors DESC LIMIT 15";
         format = 2;
       })
       (table {
@@ -1641,7 +1656,7 @@ in
         y = 6;
         w = 8;
         h = 7;
-        sql = "SELECT substring(Body, 1, 120) as message, count() as n FROM otel.otel_logs WHERE SeverityNumber >= 17 AND ${tfLog} GROUP BY message ORDER BY n DESC LIMIT 20";
+        sql = "SELECT substring(${msg}, 1, 120) as message, count() as n FROM otel.otel_logs WHERE ${isErr} AND ${tfLog} GROUP BY message ORDER BY n DESC LIMIT 20";
       })
 
       # ── full stream ──────────────────────────────────────────────────────────
@@ -1652,7 +1667,7 @@ in
         y = 13;
         w = 24;
         h = 14;
-        sql = "SELECT Timestamp, ${host} as host, SeverityText as level, LogAttributes['_SYSTEMD_UNIT'] as unit, substring(Body, 1, 400) as message FROM otel.otel_logs WHERE ${tfLog} AND ${hostFilter} AND (\${unit:raw} = '' OR LogAttributes['_SYSTEMD_UNIT'] = '\${unit:raw}') AND (\${search} = '' OR Body LIKE '%\${search}%') ORDER BY Timestamp DESC LIMIT 500";
+        sql = "SELECT Timestamp, ${host} as host, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', 'info') as level, JSONExtractString(Body, '_SYSTEMD_UNIT') as unit, substring(${msg}, 1, 400) as message FROM otel.otel_logs WHERE ${tfLog} AND ${hostFilter} AND (\${unit:raw} = '' OR JSONExtractString(Body, '_SYSTEMD_UNIT') = '\${unit:raw}') AND (\${search} = '' OR Body LIKE '%\${search}%') ORDER BY Timestamp DESC LIMIT 500";
       })
     ];
   };
@@ -1703,7 +1718,7 @@ in
         w = 6;
         h = 5;
         thresholds = thresholdErrors;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE SeverityNumber >= 17 AND Timestamp > now() - INTERVAL 5 MINUTE";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE ${isErr} AND Timestamp > now() - INTERVAL 5 MINUTE";
       })
       (stat {
         id = 3;
@@ -1753,7 +1768,7 @@ in
         y = 15;
         w = 24;
         h = 9;
-        sql = "SELECT ${host} as host, LogAttributes['_SYSTEMD_UNIT'] as unit, count() as errors, max(Timestamp) as last_error FROM otel.otel_logs WHERE SeverityNumber >= 17 AND Timestamp > now() - INTERVAL 1 HOUR AND LogAttributes['_SYSTEMD_UNIT'] != '' GROUP BY host, unit ORDER BY errors DESC LIMIT 30";
+        sql = "SELECT ${host} as host, JSONExtractString(Body, '_SYSTEMD_UNIT') as unit, count() as errors, max(Timestamp) as last_error FROM otel.otel_logs WHERE ${isErr} AND Timestamp > now() - INTERVAL 1 HOUR AND JSONExtractString(Body, '_SYSTEMD_UNIT') != '' GROUP BY host, unit ORDER BY errors DESC LIMIT 30";
       })
 
       (row {
@@ -2110,20 +2125,21 @@ in
         y = 24;
         w = 12;
         h = 8;
-        unit = "s";
-        description = "histogram quantile approximation from bucket counts. Sub-ms for cache hits, higher for forwards.";
-        sql = "SELECT TimeUnix as time, Attributes['le'] as bucket, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'coredns_dns_request_duration_seconds_bucket' AND ${tf} GROUP BY time, bucket ORDER BY time";
+        unit = "short";
+        description = "total requests/sec split by responding plugin (file, template, forward, cache)";
+        sql = "SELECT TimeUnix as time, Attributes['plugin'] as plugin, sum(runningDifference(Value)) / 30 as value FROM otel.otel_metrics_sum WHERE MetricName = 'coredns_dns_responses_total' AND ${tf} AND runningDifference(Value) >= 0 GROUP BY time, plugin ORDER BY time";
       })
       (panel {
         id = 31;
-        title = "Forward latency by upstream";
+        title = "Proxy healthcheck failures by upstream";
         x = 12;
         y = 24;
         w = 12;
         h = 8;
-        unit = "s";
-        sql = "SELECT TimeUnix as time, Attributes['to'] as upstream, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'coredns_proxy_request_duration_seconds_sum' AND ${tf} GROUP BY time, upstream ORDER BY time";
-        description = "per-upstream forward latency. 100.100.100.100 = MagicDNS, 1.1.1.1/8.8.8.8 = public.";
+        unit = "short";
+        thresholds = thresholdErrors;
+        sql = "SELECT TimeUnix as time, Attributes['to'] as upstream, runningDifference(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'coredns_proxy_healthcheck_failures_total' AND ${tf} AND runningDifference(Value) >= 0 ORDER BY time";
+        description = "per-upstream health failures. non-zero = upstream returning errors.";
       })
 
       # ── row: cache ───────────────────────────────────────────────────────────
@@ -2176,14 +2192,14 @@ in
       })
       (panel {
         id = 44;
-        title = "Cache evictions/sec";
+        title = "Cache requests/sec (total lookups)";
         x = 12;
         y = 41;
         w = 12;
         h = 8;
         unit = "reqps";
-        sql = "SELECT TimeUnix as time, ${host} as node, Attributes['type'] as cache_type, runningDifference(Value) / 30 as value FROM otel.otel_metrics_sum WHERE MetricName = 'coredns_cache_evictions_total' AND ${tf} AND runningDifference(Value) >= 0 ORDER BY node, time";
-        description = "evictions mean cache is at capacity. consider increasing cache size.";
+        sql = "SELECT TimeUnix as time, ${host} as node, runningDifference(Value) / 30 as value FROM otel.otel_metrics_sum WHERE MetricName = 'coredns_cache_requests_total' AND ${tf} AND ${hostFilter} AND runningDifference(Value) >= 0 ORDER BY node, time";
+        description = "total cache lookups per node (hits + misses)";
       })
 
       # ── row: forwarding ──────────────────────────────────────────────────────
@@ -2195,23 +2211,25 @@ in
 
       (panel {
         id = 50;
-        title = "Forward requests/sec by upstream";
+        title = "Proxy conn cache hits/sec by upstream";
         x = 0;
         y = 50;
         w = 12;
         h = 8;
         unit = "reqps";
-        sql = "SELECT TimeUnix as time, Attributes['to'] as upstream, sum(runningDifference(Value)) / 30 as value FROM otel.otel_metrics_sum WHERE MetricName = 'coredns_forward_requests_total' AND ${tf} AND runningDifference(Value) >= 0 GROUP BY time, upstream ORDER BY time";
+        sql = "SELECT TimeUnix as time, Attributes['to'] as upstream, sum(runningDifference(Value)) / 30 as value FROM otel.otel_metrics_sum WHERE MetricName = 'coredns_proxy_conn_cache_hits_total' AND ${tf} AND runningDifference(Value) >= 0 GROUP BY time, upstream ORDER BY time";
+        description = "connection reuse to upstreams (1.1.1.1, 8.8.8.8, 100.100.100.100 MagicDNS)";
       })
       (panel {
         id = 51;
-        title = "Forward responses by RCODE";
+        title = "Proxy conn cache misses/sec by upstream";
         x = 12;
         y = 50;
         w = 12;
         h = 8;
         unit = "reqps";
-        sql = "SELECT TimeUnix as time, Attributes['rcode'] as rcode, Attributes['to'] as upstream, sum(runningDifference(Value)) / 30 as value FROM otel.otel_metrics_sum WHERE MetricName = 'coredns_forward_responses_total' AND ${tf} AND runningDifference(Value) >= 0 GROUP BY time, rcode, upstream ORDER BY time";
+        sql = "SELECT TimeUnix as time, Attributes['to'] as upstream, sum(runningDifference(Value)) / 30 as value FROM otel.otel_metrics_sum WHERE MetricName = 'coredns_proxy_conn_cache_misses_total' AND ${tf} AND runningDifference(Value) >= 0 GROUP BY time, upstream ORDER BY time";
+        description = "new connections opened to upstreams (high = churn)";
       })
 
       (panel {
@@ -2282,23 +2300,24 @@ in
 
       (panel {
         id = 70;
-        title = "Request size (bytes) distribution";
+        title = "Cache requests vs hits/sec";
         x = 0;
         y = 76;
         w = 12;
         h = 8;
-        unit = "bytes";
-        sql = "SELECT TimeUnix as time, Attributes['le'] as bucket, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'coredns_dns_request_size_bytes_bucket' AND ${tf} GROUP BY time, bucket ORDER BY time";
+        unit = "reqps";
+        sql = "SELECT TimeUnix as time, MetricName as metric, sum(runningDifference(Value)) / 30 as value FROM otel.otel_metrics_sum WHERE MetricName IN ('coredns_cache_requests_total', 'coredns_cache_hits_total') AND ${tf} AND runningDifference(Value) >= 0 GROUP BY time, metric ORDER BY time";
       })
       (panel {
         id = 71;
-        title = "Response size (bytes) distribution";
+        title = "Template match rate (CNAME rewrites/sec)";
         x = 12;
         y = 76;
         w = 12;
         h = 8;
-        unit = "bytes";
-        sql = "SELECT TimeUnix as time, Attributes['le'] as bucket, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'coredns_dns_response_size_bytes_bucket' AND ${tf} GROUP BY time, bucket ORDER BY time";
+        unit = "reqps";
+        sql = "SELECT TimeUnix as time, ${host} as node, sum(runningDifference(Value)) / 30 as value FROM otel.otel_metrics_sum WHERE MetricName = 'coredns_template_matches_total' AND ${tf} AND runningDifference(Value) >= 0 GROUP BY time, node ORDER BY time";
+        description = "short-alias zone CNAME rewrites (*.s4.gl → *.sju1.s4.gl)";
       })
 
       # ── row: protocol ────────────────────────────────────────────────────────
@@ -2413,7 +2432,7 @@ in
         w = 4;
         h = 4;
         thresholds = thresholdErrors;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'supabase-db.service' AND SeverityNumber >= 17 AND Timestamp > now() - INTERVAL 5 MINUTE";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'supabase-db.service' AND ${isErr} AND Timestamp > now() - INTERVAL 5 MINUTE";
       })
       (stat {
         id = 6;
@@ -2423,7 +2442,7 @@ in
         w = 4;
         h = 4;
         thresholds = thresholdErrors;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'supabase-auth.service' AND SeverityNumber >= 17 AND Timestamp > now() - INTERVAL 5 MINUTE";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'supabase-auth.service' AND ${isErr} AND Timestamp > now() - INTERVAL 5 MINUTE";
       })
 
       # ── row: PostgREST connection pool ───────────────────────────────────────
@@ -2518,7 +2537,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfMinute(Timestamp) as time, SeverityText as severity, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'supabase-auth.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
+        sql = "SELECT toStartOfMinute(Timestamp) as time, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', ${pri} = 5, 'notice', ${pri} = 6, 'info', 'debug') as severity, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'supabase-auth.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -2535,7 +2554,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfMinute(Timestamp) as time, multiIf(Body LIKE '%login%' OR Body LIKE '%signin%', 'login', Body LIKE '%signup%' OR Body LIKE '%register%', 'signup', Body LIKE '%token%' OR Body LIKE '%refresh%', 'token', Body LIKE '%oauth%' OR Body LIKE '%oidc%', 'oauth', 'other') as event, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'supabase-auth.service' AND ${tfLog} AND (Body LIKE '%login%' OR Body LIKE '%signup%' OR Body LIKE '%token%' OR Body LIKE '%oauth%' OR Body LIKE '%signin%' OR Body LIKE '%register%' OR Body LIKE '%refresh%' OR Body LIKE '%oidc%') GROUP BY time, event ORDER BY time";
+        sql = "SELECT toStartOfMinute(Timestamp) as time, multiIf(Body LIKE '%login%' OR Body LIKE '%signin%', 'login', Body LIKE '%signup%' OR Body LIKE '%register%', 'signup', Body LIKE '%token%' OR Body LIKE '%refresh%', 'token', Body LIKE '%oauth%' OR Body LIKE '%oidc%', 'oauth', 'other') as event, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'supabase-auth.service' AND ${tfLog} AND (Body LIKE '%login%' OR Body LIKE '%signup%' OR Body LIKE '%token%' OR Body LIKE '%oauth%' OR Body LIKE '%signin%' OR Body LIKE '%register%' OR Body LIKE '%refresh%' OR Body LIKE '%oidc%') GROUP BY time, event ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -2560,7 +2579,7 @@ in
         w = 8;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfMinute(Timestamp) as time, SeverityText as severity, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'supabase-storage.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
+        sql = "SELECT toStartOfMinute(Timestamp) as time, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', ${pri} = 5, 'notice', ${pri} = 6, 'info', 'debug') as severity, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'supabase-storage.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -2577,7 +2596,7 @@ in
         w = 8;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfMinute(Timestamp) as time, SeverityText as severity, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'supabase-realtime.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
+        sql = "SELECT toStartOfMinute(Timestamp) as time, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', ${pri} = 5, 'notice', ${pri} = 6, 'info', 'debug') as severity, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'supabase-realtime.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -2594,7 +2613,7 @@ in
         w = 8;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfMinute(Timestamp) as time, LogAttributes['_SYSTEMD_UNIT'] as svc, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] IN ('supabase-meta.service', 'supabase-studio.service') AND ${tfLog} GROUP BY time, svc ORDER BY time";
+        sql = "SELECT toStartOfMinute(Timestamp) as time, JSONExtractString(Body, '_SYSTEMD_UNIT') as svc, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') IN ('supabase-meta.service', 'supabase-studio.service') AND ${tfLog} GROUP BY time, svc ORDER BY time";
       })
 
       # ── row: PostgreSQL logs ─────────────────────────────────────────────────
@@ -2612,7 +2631,7 @@ in
         w = 24;
         h = 6;
         unit = "short";
-        sql = "SELECT toStartOfMinute(Timestamp) as time, SeverityText as severity, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'supabase-db.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
+        sql = "SELECT toStartOfMinute(Timestamp) as time, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', ${pri} = 5, 'notice', ${pri} = 6, 'info', 'debug') as severity, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'supabase-db.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -2636,7 +2655,7 @@ in
         y = 49;
         w = 24;
         h = 10;
-        sql = "SELECT Timestamp, LogAttributes['_SYSTEMD_UNIT'] as unit, SeverityText as level, substring(Body, 1, 400) as message FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] IN ('supabase-db.service', 'supabase-auth.service', 'supabase-rest.service', 'supabase-storage.service', 'supabase-meta.service', 'supabase-realtime.service', 'supabase-studio.service', 'supabase-imgproxy.service') AND SeverityNumber >= 17 AND ${tfLog} ORDER BY Timestamp DESC LIMIT 200";
+        sql = "SELECT Timestamp, JSONExtractString(Body, '_SYSTEMD_UNIT') as unit, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', 'info') as level, substring(${msg}, 1, 400) as message FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') IN ('supabase-db.service', 'supabase-auth.service', 'supabase-rest.service', 'supabase-storage.service', 'supabase-meta.service', 'supabase-realtime.service', 'supabase-studio.service', 'supabase-imgproxy.service') AND ${isErr} AND ${tfLog} ORDER BY Timestamp DESC LIMIT 200";
       })
     ];
   };
@@ -2678,7 +2697,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'kanidm.service' AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'kanidm.service' AND ${tfLog}";
       })
       (stat {
         id = 2;
@@ -2688,7 +2707,7 @@ in
         w = 4;
         h = 4;
         thresholds = thresholdErrors;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'kanidm.service' AND SeverityNumber >= 17 AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'kanidm.service' AND ${isErr} AND ${tfLog}";
       })
       (stat {
         id = 3;
@@ -2697,7 +2716,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'kanidm.service' AND (Body LIKE '%auth%' OR Body LIKE '%credential%' OR Body LIKE '%passkey%') AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'kanidm.service' AND (Body LIKE '%auth%' OR Body LIKE '%credential%' OR Body LIKE '%passkey%') AND ${tfLog}";
       })
       (stat {
         id = 4;
@@ -2706,7 +2725,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'kanidm.service' AND (Body LIKE '%oauth2%' OR Body LIKE '%openid%' OR Body LIKE '%authorization_code%') AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'kanidm.service' AND (Body LIKE '%oauth2%' OR Body LIKE '%openid%' OR Body LIKE '%authorization_code%') AND ${tfLog}";
       })
       (stat {
         id = 5;
@@ -2716,7 +2735,7 @@ in
         w = 4;
         h = 4;
         thresholds = thresholdErrors;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'litestream.service' AND SeverityNumber >= 17 AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'litestream.service' AND ${isErr} AND ${tfLog}";
       })
       (stat {
         id = 6;
@@ -2725,7 +2744,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'litestream.service' AND (Body LIKE '%wal%' OR Body LIKE '%snapshot%' OR Body LIKE '%sync%') AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'litestream.service' AND (Body LIKE '%wal%' OR Body LIKE '%snapshot%' OR Body LIKE '%sync%') AND ${tfLog}";
         description = "replication events (WAL segment uploads, snapshots)";
       })
 
@@ -2744,7 +2763,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, SeverityText as severity, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'kanidm.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', ${pri} = 5, 'notice', ${pri} = 6, 'info', 'debug') as severity, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'kanidm.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -2761,7 +2780,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%passkey%' OR Body LIKE '%webauthn%', 'passkey', Body LIKE '%password%' OR Body LIKE '%credential%', 'password', Body LIKE '%oauth2%' OR Body LIKE '%openid%', 'oauth2', Body LIKE '%token%', 'token', 'other_auth') as method, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'kanidm.service' AND (Body LIKE '%auth%' OR Body LIKE '%credential%' OR Body LIKE '%passkey%' OR Body LIKE '%token%' OR Body LIKE '%oauth2%' OR Body LIKE '%openid%' OR Body LIKE '%webauthn%' OR Body LIKE '%password%') AND ${tfLog} GROUP BY time, method ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%passkey%' OR Body LIKE '%webauthn%', 'passkey', Body LIKE '%password%' OR Body LIKE '%credential%', 'password', Body LIKE '%oauth2%' OR Body LIKE '%openid%', 'oauth2', Body LIKE '%token%', 'token', 'other_auth') as method, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'kanidm.service' AND (Body LIKE '%auth%' OR Body LIKE '%credential%' OR Body LIKE '%passkey%' OR Body LIKE '%token%' OR Body LIKE '%oauth2%' OR Body LIKE '%openid%' OR Body LIKE '%webauthn%' OR Body LIKE '%password%') AND ${tfLog} GROUP BY time, method ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -2787,7 +2806,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'kanidm.service' AND (Body LIKE '%authorization_code%' OR Body LIKE '%oauth2%consent%' OR Body LIKE '%token_exchange%') AND ${tfLog} GROUP BY time ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'kanidm.service' AND (Body LIKE '%authorization_code%' OR Body LIKE '%oauth2%consent%' OR Body LIKE '%token_exchange%') AND ${tfLog} GROUP BY time ORDER BY time";
         description = "OIDC consent/authorize/token flows (Forgejo SSO, future Grafana SSO)";
       })
       (panel {
@@ -2799,7 +2818,7 @@ in
         h = 8;
         unit = "short";
         thresholds = thresholdErrors;
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'kanidm.service' AND (Body LIKE '%invalid%' OR Body LIKE '%denied%' OR Body LIKE '%failed%' OR Body LIKE '%reject%') AND SeverityNumber >= 13 AND ${tfLog} GROUP BY time ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'kanidm.service' AND (Body LIKE '%invalid%' OR Body LIKE '%denied%' OR Body LIKE '%failed%' OR Body LIKE '%reject%') AND ${isWarn} AND ${tfLog} GROUP BY time ORDER BY time";
         description = "failed logins, denied access, rejected credentials. watch for brute-force.";
       })
 
@@ -2818,7 +2837,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, SeverityText as severity, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'litestream.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', ${pri} = 5, 'notice', ${pri} = 6, 'info', 'debug') as severity, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'litestream.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -2835,7 +2854,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%snapshot%', 'snapshot', Body LIKE '%wal%', 'wal_sync', 'other') as event, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'litestream.service' AND (Body LIKE '%wal%' OR Body LIKE '%snapshot%' OR Body LIKE '%sync%') AND ${tfLog} GROUP BY time, event ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%snapshot%', 'snapshot', Body LIKE '%wal%', 'wal_sync', 'other') as event, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'litestream.service' AND (Body LIKE '%wal%' OR Body LIKE '%snapshot%' OR Body LIKE '%sync%') AND ${tfLog} GROUP BY time, event ORDER BY time";
         description = "WAL segments shipped to R2. gaps = replication lag.";
       })
 
@@ -2853,7 +2872,7 @@ in
         y = 33;
         w = 24;
         h = 8;
-        sql = "SELECT Timestamp, SeverityText as level, substring(Body, 1, 400) as message FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'kanidm.service' AND SeverityNumber >= 13 AND ${tfLog} ORDER BY Timestamp DESC LIMIT 100";
+        sql = "SELECT Timestamp, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', 'info') as level, substring(${msg}, 1, 400) as message FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'kanidm.service' AND ${isWarn} AND ${tfLog} ORDER BY Timestamp DESC LIMIT 100";
       })
       (table {
         id = 31;
@@ -2862,7 +2881,7 @@ in
         y = 41;
         w = 24;
         h = 8;
-        sql = "SELECT Timestamp, SeverityText as level, substring(Body, 1, 400) as message FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'litestream.service' AND SeverityNumber >= 17 AND ${tfLog} ORDER BY Timestamp DESC LIMIT 50";
+        sql = "SELECT Timestamp, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', 'info') as level, substring(${msg}, 1, 400) as message FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'litestream.service' AND ${isErr} AND ${tfLog} ORDER BY Timestamp DESC LIMIT 50";
       })
     ];
   };
@@ -2924,7 +2943,7 @@ in
         w = 4;
         h = 4;
         thresholds = thresholdErrors;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'forgejo.service' AND SeverityNumber >= 17 AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'forgejo.service' AND ${isErr} AND ${tfLog}";
       })
       (stat {
         id = 4;
@@ -2984,13 +3003,14 @@ in
       })
       (panel {
         id = 12;
-        title = "GC pause time/interval";
+        title = "Process CPU seconds/interval";
         x = 16;
         y = 6;
         w = 8;
         h = 8;
         unit = "s";
-        sql = "SELECT TimeUnix as time, runningDifference(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'go_gc_duration_seconds_sum' AND ${host} = 'watchtower' AND ${tf} AND runningDifference(Value) >= 0 ORDER BY time";
+        sql = "SELECT TimeUnix as time, runningDifference(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'process_cpu_seconds_total' AND ${host} = 'watchtower' AND ${tf} AND runningDifference(Value) >= 0 ORDER BY time";
+        description = "process CPU seconds consumed per interval";
       })
 
       # ── row: git operations ──────────────────────────────────────────────────
@@ -3025,7 +3045,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%SSH%' OR Body LIKE '%ssh%', 'ssh', Body LIKE '%HTTP%' OR Body LIKE '%http%', 'http', 'unknown') as proto, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'forgejo.service' AND (Body LIKE '%git-%pack%' OR Body LIKE '%refs/%') AND ${tfLog} GROUP BY time, proto ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%SSH%' OR Body LIKE '%ssh%', 'ssh', Body LIKE '%HTTP%' OR Body LIKE '%http%', 'http', 'unknown') as proto, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'forgejo.service' AND (Body LIKE '%git-%pack%' OR Body LIKE '%refs/%') AND ${tfLog} GROUP BY time, proto ORDER BY time";
       })
 
       # ── row: log analysis ────────────────────────────────────────────────────
@@ -3043,7 +3063,7 @@ in
         w = 24;
         h = 6;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, SeverityText as severity, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'forgejo.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', ${pri} = 5, 'notice', ${pri} = 6, 'info', 'debug') as severity, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'forgejo.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -3067,7 +3087,7 @@ in
         y = 31;
         w = 24;
         h = 8;
-        sql = "SELECT Timestamp, substring(Body, 1, 400) as message FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'forgejo.service' AND SeverityNumber >= 17 AND ${tfLog} ORDER BY Timestamp DESC LIMIT 50";
+        sql = "SELECT Timestamp, substring(${msg}, 1, 400) as message FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'forgejo.service' AND ${isErr} AND ${tfLog} ORDER BY Timestamp DESC LIMIT 50";
       })
       (table {
         id = 41;
@@ -3076,7 +3096,7 @@ in
         y = 39;
         w = 24;
         h = 8;
-        sql = "SELECT Timestamp, substring(Body, 1, 400) as activity FROM otel.otel_logs WHERE (Body LIKE '%git-receive-pack%' OR Body LIKE '%git-upload-pack%' OR Body LIKE '%refs/heads%') AND ${tfLog} ORDER BY Timestamp DESC LIMIT 50";
+        sql = "SELECT Timestamp, substring(${msg}, 1, 400) as activity FROM otel.otel_logs WHERE (Body LIKE '%git-receive-pack%' OR Body LIKE '%git-upload-pack%' OR Body LIKE '%refs/heads%') AND ${tfLog} ORDER BY Timestamp DESC LIMIT 50";
       })
     ];
   };
@@ -3119,7 +3139,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'nativelink-scheduler%' AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'nativelink-scheduler%' AND ${tfLog}";
       })
       (stat {
         id = 2;
@@ -3128,7 +3148,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'nativelink-worker%' AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'nativelink-worker%' AND ${tfLog}";
       })
       (stat {
         id = 3;
@@ -3137,7 +3157,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'nativelink-cas%' AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'nativelink-cas%' AND ${tfLog}";
       })
       (stat {
         id = 4;
@@ -3147,7 +3167,7 @@ in
         w = 4;
         h = 4;
         thresholds = thresholdErrors;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'nativelink%' AND SeverityNumber >= 17 AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'nativelink%' AND ${isErr} AND ${tfLog}";
       })
       (stat {
         id = 5;
@@ -3156,7 +3176,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT uniq(${host}) as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'nativelink%' AND Timestamp > now() - INTERVAL 1 HOUR";
+        sql = "SELECT uniq(${host}) as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'nativelink%' AND Timestamp > now() - INTERVAL 1 HOUR";
       })
       (stat {
         id = 6;
@@ -3165,7 +3185,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'nativelink-worker%' AND (Body LIKE '%execute%' OR Body LIKE '%action%' OR Body LIKE '%running%') AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'nativelink-worker%' AND (Body LIKE '%execute%' OR Body LIKE '%action%' OR Body LIKE '%running%') AND ${tfLog}";
         description = "estimated build action count from worker logs";
       })
 
@@ -3184,7 +3204,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, SeverityText as severity, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'nativelink-scheduler%' AND ${tfLog} GROUP BY time, severity ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', ${pri} = 5, 'notice', ${pri} = 6, 'info', 'debug') as severity, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'nativelink-scheduler%' AND ${tfLog} GROUP BY time, severity ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -3201,7 +3221,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%connect%', 'connect', Body LIKE '%disconnect%' OR Body LIKE '%drop%', 'disconnect', Body LIKE '%queue%' OR Body LIKE '%schedule%', 'schedule', 'other') as event, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'nativelink-scheduler%' AND (Body LIKE '%connect%' OR Body LIKE '%disconnect%' OR Body LIKE '%queue%' OR Body LIKE '%schedule%' OR Body LIKE '%drop%') AND ${tfLog} GROUP BY time, event ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%connect%', 'connect', Body LIKE '%disconnect%' OR Body LIKE '%drop%', 'disconnect', Body LIKE '%queue%' OR Body LIKE '%schedule%', 'schedule', 'other') as event, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'nativelink-scheduler%' AND (Body LIKE '%connect%' OR Body LIKE '%disconnect%' OR Body LIKE '%queue%' OR Body LIKE '%schedule%' OR Body LIKE '%drop%') AND ${tfLog} GROUP BY time, event ORDER BY time";
       })
 
       # ── row: workers ─────────────────────────────────────────────────────────
@@ -3219,7 +3239,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, ${host} as node, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'nativelink-worker%' AND ${tfLog} AND ${hostFilter} GROUP BY time, node ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, ${host} as node, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'nativelink-worker%' AND ${tfLog} AND ${hostFilter} GROUP BY time, node ORDER BY time";
       })
       (panel {
         id = 21;
@@ -3229,7 +3249,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%execute%' OR Body LIKE '%running%', 'executing', Body LIKE '%complete%' OR Body LIKE '%finish%', 'completed', Body LIKE '%error%' OR Body LIKE '%fail%', 'failed', 'other') as status, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'nativelink-worker%' AND (Body LIKE '%execute%' OR Body LIKE '%running%' OR Body LIKE '%complete%' OR Body LIKE '%finish%' OR Body LIKE '%error%' OR Body LIKE '%fail%') AND ${tfLog} GROUP BY time, status ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%execute%' OR Body LIKE '%running%', 'executing', Body LIKE '%complete%' OR Body LIKE '%finish%', 'completed', Body LIKE '%error%' OR Body LIKE '%fail%', 'failed', 'other') as status, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'nativelink-worker%' AND (Body LIKE '%execute%' OR Body LIKE '%running%' OR Body LIKE '%complete%' OR Body LIKE '%finish%' OR Body LIKE '%error%' OR Body LIKE '%fail%') AND ${tfLog} GROUP BY time, status ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -3254,7 +3274,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, ${host} as node, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'nativelink-cas%' AND ${tfLog} AND ${hostFilter} GROUP BY time, node ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, ${host} as node, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'nativelink-cas%' AND ${tfLog} AND ${hostFilter} GROUP BY time, node ORDER BY time";
       })
       (panel {
         id = 31;
@@ -3264,7 +3284,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%get%' OR Body LIKE '%read%' OR Body LIKE '%fetch%', 'get', Body LIKE '%put%' OR Body LIKE '%write%' OR Body LIKE '%store%', 'put', Body LIKE '%contain%' OR Body LIKE '%exist%', 'contains', 'other') as op, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'nativelink-cas%' AND (Body LIKE '%get%' OR Body LIKE '%put%' OR Body LIKE '%read%' OR Body LIKE '%write%' OR Body LIKE '%contain%' OR Body LIKE '%exist%' OR Body LIKE '%fetch%' OR Body LIKE '%store%') AND ${tfLog} GROUP BY time, op ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%get%' OR Body LIKE '%read%' OR Body LIKE '%fetch%', 'get', Body LIKE '%put%' OR Body LIKE '%write%' OR Body LIKE '%store%', 'put', Body LIKE '%contain%' OR Body LIKE '%exist%', 'contains', 'other') as op, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'nativelink-cas%' AND (Body LIKE '%get%' OR Body LIKE '%put%' OR Body LIKE '%read%' OR Body LIKE '%write%' OR Body LIKE '%contain%' OR Body LIKE '%exist%' OR Body LIKE '%fetch%' OR Body LIKE '%store%') AND ${tfLog} GROUP BY time, op ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -3288,7 +3308,7 @@ in
         y = 33;
         w = 24;
         h = 10;
-        sql = "SELECT Timestamp, ${host} as host, LogAttributes['_SYSTEMD_UNIT'] as unit, substring(Body, 1, 400) as message FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'nativelink%' AND SeverityNumber >= 17 AND ${tfLog} ORDER BY Timestamp DESC LIMIT 100";
+        sql = "SELECT Timestamp, ${host} as host, JSONExtractString(Body, '_SYSTEMD_UNIT') as unit, substring(${msg}, 1, 400) as message FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'nativelink%' AND ${isErr} AND ${tfLog} ORDER BY Timestamp DESC LIMIT 100";
       })
     ];
   };
@@ -3331,7 +3351,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'atticd.service' AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'atticd.service' AND ${tfLog}";
       })
       (stat {
         id = 2;
@@ -3341,7 +3361,7 @@ in
         w = 4;
         h = 4;
         thresholds = thresholdErrors;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'atticd.service' AND SeverityNumber >= 17 AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'atticd.service' AND ${isErr} AND ${tfLog}";
       })
       (stat {
         id = 3;
@@ -3350,7 +3370,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'atticd.service' AND (Body LIKE '%upload%' OR Body LIKE '%PUT%' OR Body LIKE '%push%') AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'atticd.service' AND (Body LIKE '%upload%' OR Body LIKE '%PUT%' OR Body LIKE '%push%') AND ${tfLog}";
       })
       (stat {
         id = 4;
@@ -3359,7 +3379,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'atticd.service' AND (Body LIKE '%GET%' OR Body LIKE '%serve%' OR Body LIKE '%download%') AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'atticd.service' AND (Body LIKE '%GET%' OR Body LIKE '%serve%' OR Body LIKE '%download%') AND ${tfLog}";
       })
       (stat {
         id = 5;
@@ -3368,7 +3388,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT uniq(${host}) as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'atticd.service' AND Timestamp > now() - INTERVAL 1 HOUR";
+        sql = "SELECT uniq(${host}) as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'atticd.service' AND Timestamp > now() - INTERVAL 1 HOUR";
       })
       (stat {
         id = 6;
@@ -3377,7 +3397,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'atticd.service' AND (Body LIKE '%404%' OR Body LIKE '%not found%') AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'atticd.service' AND (Body LIKE '%404%' OR Body LIKE '%not found%') AND ${tfLog}";
       })
 
       # ── row: traffic ─────────────────────────────────────────────────────────
@@ -3395,7 +3415,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, ${host} as node, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'atticd.service' AND ${tfLog} AND ${hostFilter} GROUP BY time, node ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, ${host} as node, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'atticd.service' AND ${tfLog} AND ${hostFilter} GROUP BY time, node ORDER BY time";
       })
       (panel {
         id = 11;
@@ -3405,7 +3425,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%upload%' OR Body LIKE '%PUT%' OR Body LIKE '%push%', 'upload', Body LIKE '%GET%nar%' OR Body LIKE '%serve%' OR Body LIKE '%download%', 'download', Body LIKE '%narinfo%' OR Body LIKE '%HEAD%', 'narinfo_check', 'other') as op, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'atticd.service' AND (Body LIKE '%upload%' OR Body LIKE '%PUT%' OR Body LIKE '%GET%' OR Body LIKE '%HEAD%' OR Body LIKE '%serve%' OR Body LIKE '%push%' OR Body LIKE '%download%' OR Body LIKE '%narinfo%') AND ${tfLog} GROUP BY time, op ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%upload%' OR Body LIKE '%PUT%' OR Body LIKE '%push%', 'upload', Body LIKE '%GET%nar%' OR Body LIKE '%serve%' OR Body LIKE '%download%', 'download', Body LIKE '%narinfo%' OR Body LIKE '%HEAD%', 'narinfo_check', 'other') as op, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'atticd.service' AND (Body LIKE '%upload%' OR Body LIKE '%PUT%' OR Body LIKE '%GET%' OR Body LIKE '%HEAD%' OR Body LIKE '%serve%' OR Body LIKE '%push%' OR Body LIKE '%download%' OR Body LIKE '%narinfo%') AND ${tfLog} GROUP BY time, op ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -3430,7 +3450,7 @@ in
         w = 24;
         h = 6;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, SeverityText as severity, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'atticd.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', ${pri} = 5, 'notice', ${pri} = 6, 'info', 'debug') as severity, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'atticd.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -3454,7 +3474,7 @@ in
         y = 22;
         w = 24;
         h = 10;
-        sql = "SELECT Timestamp, ${host} as host, substring(Body, 1, 400) as message FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'atticd.service' AND SeverityNumber >= 17 AND ${tfLog} ORDER BY Timestamp DESC LIMIT 100";
+        sql = "SELECT Timestamp, ${host} as host, substring(${msg}, 1, 400) as message FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'atticd.service' AND ${isErr} AND ${tfLog} ORDER BY Timestamp DESC LIMIT 100";
       })
     ];
   };
@@ -3496,7 +3516,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'zot.service' AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND ${tfLog}";
       })
       (stat {
         id = 2;
@@ -3506,7 +3526,7 @@ in
         w = 4;
         h = 4;
         thresholds = thresholdErrors;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'zot.service' AND SeverityNumber >= 17 AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND ${isErr} AND ${tfLog}";
       })
       (stat {
         id = 3;
@@ -3515,7 +3535,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'zot.service' AND Body LIKE '%PUT%' AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND Body LIKE '%PUT%' AND ${tfLog}";
       })
       (stat {
         id = 4;
@@ -3524,7 +3544,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'zot.service' AND Body LIKE '%GET%' AND Body LIKE '%blobs%' AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND Body LIKE '%GET%' AND Body LIKE '%blobs%' AND ${tfLog}";
       })
       (stat {
         id = 5;
@@ -3533,7 +3553,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'zot.service' AND Body LIKE '%manifests%' AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND Body LIKE '%manifests%' AND ${tfLog}";
       })
       (stat {
         id = 6;
@@ -3543,7 +3563,7 @@ in
         w = 4;
         h = 4;
         thresholds = thresholdErrors;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'zot.service' AND (Body LIKE '%\" 4%' OR Body LIKE '%\" 5%') AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND (Body LIKE '%\" 4%' OR Body LIKE '%\" 5%') AND ${tfLog}";
       })
 
       # ── row: traffic ─────────────────────────────────────────────────────────
@@ -3561,7 +3581,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'zot.service' AND ${tfLog} GROUP BY time ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND ${tfLog} GROUP BY time ORDER BY time";
       })
       (panel {
         id = 11;
@@ -3571,7 +3591,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%PUT%' AND Body LIKE '%blobs%', 'blob_push', Body LIKE '%PUT%' AND Body LIKE '%manifests%', 'manifest_push', Body LIKE '%GET%' AND Body LIKE '%blobs%', 'blob_pull', Body LIKE '%GET%' AND Body LIKE '%manifests%', 'manifest_pull', Body LIKE '%GET%' AND Body LIKE '%tags%', 'tag_list', 'other') as op, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'zot.service' AND (Body LIKE '%PUT%' OR Body LIKE '%GET%') AND ${tfLog} GROUP BY time, op ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%PUT%' AND Body LIKE '%blobs%', 'blob_push', Body LIKE '%PUT%' AND Body LIKE '%manifests%', 'manifest_push', Body LIKE '%GET%' AND Body LIKE '%blobs%', 'blob_pull', Body LIKE '%GET%' AND Body LIKE '%manifests%', 'manifest_pull', Body LIKE '%GET%' AND Body LIKE '%tags%', 'tag_list', 'other') as op, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND (Body LIKE '%PUT%' OR Body LIKE '%GET%') AND ${tfLog} GROUP BY time, op ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -3596,7 +3616,7 @@ in
         w = 24;
         h = 6;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, SeverityText as severity, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'zot.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', ${pri} = 5, 'notice', ${pri} = 6, 'info', 'debug') as severity, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -3620,7 +3640,7 @@ in
         y = 22;
         w = 24;
         h = 10;
-        sql = "SELECT Timestamp, substring(Body, 1, 400) as message FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'zot.service' AND (SeverityNumber >= 17 OR Body LIKE '%\" 4%' OR Body LIKE '%\" 5%') AND ${tfLog} ORDER BY Timestamp DESC LIMIT 100";
+        sql = "SELECT Timestamp, substring(${msg}, 1, 400) as message FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND (${isErr} OR Body LIKE '%\" 4%' OR Body LIKE '%\" 5%') AND ${tfLog} ORDER BY Timestamp DESC LIMIT 100";
       })
     ];
   };
@@ -3664,7 +3684,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'supabase-pgbackrest%' AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'supabase-pgbackrest%' AND ${tfLog}";
       })
       (stat {
         id = 2;
@@ -3674,7 +3694,7 @@ in
         w = 4;
         h = 4;
         thresholds = thresholdErrors;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'supabase-pgbackrest%' AND SeverityNumber >= 17 AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'supabase-pgbackrest%' AND ${isErr} AND ${tfLog}";
       })
       (stat {
         id = 3;
@@ -3683,7 +3703,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'restic%' AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'restic%' AND ${tfLog}";
       })
       (stat {
         id = 4;
@@ -3693,7 +3713,7 @@ in
         w = 4;
         h = 4;
         thresholds = thresholdErrors;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'restic%' AND SeverityNumber >= 17 AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'restic%' AND ${isErr} AND ${tfLog}";
       })
       (stat {
         id = 5;
@@ -3702,7 +3722,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'litestream.service' AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'litestream.service' AND ${tfLog}";
       })
       (stat {
         id = 6;
@@ -3711,7 +3731,7 @@ in
         y = 1;
         w = 4;
         h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'supabase-db-dump.service' AND ${tfLog}";
+        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'supabase-db-dump.service' AND ${tfLog}";
       })
 
       # ── row: pgbackrest ──────────────────────────────────────────────────────
@@ -3729,7 +3749,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, SeverityText as severity, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'supabase-pgbackrest%' AND ${tfLog} GROUP BY time, severity ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', ${pri} = 5, 'notice', ${pri} = 6, 'info', 'debug') as severity, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'supabase-pgbackrest%' AND ${tfLog} GROUP BY time, severity ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -3746,7 +3766,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'supabase-db.service' AND (Body LIKE '%archive%' OR Body LIKE '%wal%') AND ${tfLog} GROUP BY time ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'supabase-db.service' AND (Body LIKE '%archive%' OR Body LIKE '%wal%') AND ${tfLog} GROUP BY time ORDER BY time";
         description = "WAL segment archive commands logged by PG17. steady rate = healthy archiving.";
       })
 
@@ -3765,7 +3785,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, ${host} as node, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'restic%' AND ${tfLog} AND ${hostFilter} GROUP BY time, node ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, ${host} as node, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'restic%' AND ${tfLog} AND ${hostFilter} GROUP BY time, node ORDER BY time";
       })
       (panel {
         id = 21;
@@ -3775,7 +3795,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%backup%' OR Body LIKE '%snapshot%', 'backup', Body LIKE '%check%' OR Body LIKE '%verify%', 'check', Body LIKE '%prune%' OR Body LIKE '%forget%', 'prune', 'other') as op, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] LIKE 'restic%' AND (Body LIKE '%backup%' OR Body LIKE '%snapshot%' OR Body LIKE '%check%' OR Body LIKE '%prune%' OR Body LIKE '%forget%' OR Body LIKE '%verify%') AND ${tfLog} GROUP BY time, op ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%backup%' OR Body LIKE '%snapshot%', 'backup', Body LIKE '%check%' OR Body LIKE '%verify%', 'check', Body LIKE '%prune%' OR Body LIKE '%forget%', 'prune', 'other') as op, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'restic%' AND (Body LIKE '%backup%' OR Body LIKE '%snapshot%' OR Body LIKE '%check%' OR Body LIKE '%prune%' OR Body LIKE '%forget%' OR Body LIKE '%verify%') AND ${tfLog} GROUP BY time, op ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -3800,7 +3820,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, SeverityText as severity, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'litestream.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', ${pri} = 5, 'notice', ${pri} = 6, 'info', 'debug') as severity, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'litestream.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -3817,7 +3837,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, SeverityText as severity, count() as value FROM otel.otel_logs WHERE LogAttributes['_SYSTEMD_UNIT'] = 'supabase-db-dump.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', ${pri} = 5, 'notice', ${pri} = 6, 'info', 'debug') as severity, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'supabase-db-dump.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -3842,7 +3862,7 @@ in
         y = 33;
         w = 24;
         h = 10;
-        sql = "SELECT Timestamp, ${host} as host, LogAttributes['_SYSTEMD_UNIT'] as unit, substring(Body, 1, 400) as message FROM otel.otel_logs WHERE (LogAttributes['_SYSTEMD_UNIT'] LIKE 'supabase-pgbackrest%' OR LogAttributes['_SYSTEMD_UNIT'] LIKE 'restic%' OR LogAttributes['_SYSTEMD_UNIT'] = 'litestream.service' OR LogAttributes['_SYSTEMD_UNIT'] = 'supabase-db-dump.service') AND SeverityNumber >= 17 AND ${tfLog} ORDER BY Timestamp DESC LIMIT 100";
+        sql = "SELECT Timestamp, ${host} as host, JSONExtractString(Body, '_SYSTEMD_UNIT') as unit, substring(${msg}, 1, 400) as message FROM otel.otel_logs WHERE (JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'supabase-pgbackrest%' OR JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'restic%' OR JSONExtractString(Body, '_SYSTEMD_UNIT') = 'litestream.service' OR JSONExtractString(Body, '_SYSTEMD_UNIT') = 'supabase-db-dump.service') AND ${isErr} AND ${tfLog} ORDER BY Timestamp DESC LIMIT 100";
       })
     ];
   };

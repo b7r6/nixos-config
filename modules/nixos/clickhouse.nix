@@ -217,6 +217,16 @@ let
         <events>true</events>
         <asynchronous_metrics>true</asynchronous_metrics>
       </prometheus>
+
+      <!-- allow runningDifference() for grafana dashboard rate queries.
+           the function is deprecated but works fine for monotonic counters
+           partitioned by time (our exact use case). the window function
+           alternative is verbose and the grafana plugin doesn't add SET. -->
+      <profiles>
+        <default>
+          <allow_deprecated_error_prone_window_functions>1</allow_deprecated_error_prone_window_functions>
+        </default>
+      </profiles>
     </clickhouse>
   '';
 
