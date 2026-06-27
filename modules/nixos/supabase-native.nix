@@ -1355,6 +1355,9 @@ in
         log-path=/var/log/pgbackrest
         log-level-file=info
 
+        [global:archive-push]
+        log-level-file=info
+
         [${cfg.db.pitr.stanza}]
         pg1-path=${pgDataDir}
         pg1-port=${toString pgPort}
