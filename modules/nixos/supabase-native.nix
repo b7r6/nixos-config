@@ -1352,6 +1352,8 @@ in
         start-fast=y
         lock-path=/run/pgbackrest-supabase
         spool-path=/var/lib/pgbackrest/spool
+        log-path=/var/log/pgbackrest
+        log-level-file=info
 
         [${cfg.db.pitr.stanza}]
         pg1-path=${pgDataDir}

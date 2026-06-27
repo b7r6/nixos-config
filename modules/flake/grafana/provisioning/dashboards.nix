@@ -3761,14 +3761,14 @@ in
       })
       (panel {
         id = 11;
-        title = "pgBackRest backup events";
+        title = "pgBackRest activity (file logs + journal)";
         x = 12;
         y = 6;
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE '%full%', 'full', JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE '%diff%', 'diff', 'other') as backup_type, count() as value FROM otel.otel_logs WHERE (JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'pgbackrest%' OR JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'supabase-pgbackrest%') AND ${tfLog} GROUP BY time, backup_type ORDER BY time";
-        description = "pgbackrest backup runs (full + diff). WAL archive-push is invoked by PG directly (no journal output at current log level).";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%archive-push%', 'archive-push', Body LIKE '%backup%' AND Body LIKE '%full%', 'full', Body LIKE '%backup%', 'diff', Body LIKE '%expire%', 'expire', 'other') as op, count() as value FROM otel.otel_logs WHERE (Body LIKE '%pgbackrest%' OR JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'pgbackrest%' OR JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'supabase-pgbackrest%') AND ${tfLog} GROUP BY time, op ORDER BY time";
+        description = "pgbackrest operations: archive-push (WAL), diff/full backups, expire. combines filelog + journal sources.";
       })
 
       # ── row: restic ──────────────────────────────────────────────────────────

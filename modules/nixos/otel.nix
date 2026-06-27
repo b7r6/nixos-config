@@ -89,6 +89,25 @@ let
           ];
         }
       ];
+    }
+    // lib.optionalAttrs (isAgent && agent.logPaths != [ ]) {
+      filelog = {
+        include = agent.logPaths;
+        start_at = "end";
+        operators = [
+          {
+            type = "regex_parser";
+            regex = "^(?P<timestamp>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})\\S*\\s+P\\d+\\s+(?P<level>\\w+):\\s+(?P<message>.*)$";
+            timestamp = {
+              parse_from = "attributes.timestamp";
+              layout = "%Y-%m-%d %H:%M:%S";
+            };
+            severity = {
+              parse_from = "attributes.level";
+            };
+          }
+        ];
+      };
     };
 
   # ── exporters: clickhouse on the gateway node, else otlp to the remote gateway ──
@@ -154,7 +173,8 @@ let
   localMetricReceivers =
     lib.optional isAgent "hostmetrics"
     ++ lib.optional (isAgent && agent.scrapeTargets != [ ]) "prometheus";
-  localLogReceivers = lib.optional isAgent "journald";
+  localLogReceivers =
+    lib.optional isAgent "journald" ++ lib.optional (isAgent && agent.logPaths != [ ]) "filelog";
 
   # on a fused gateway+agent node, split pipelines:
   #   - metrics/local: hostmetrics + prometheus → resourcedetection → batch → exporter
@@ -274,6 +294,17 @@ in
           Set per-host to match which services run there.
         '';
       };
+
+      logPaths = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        example = [ "/var/log/pgbackrest/*.log" ];
+        description = ''
+          File paths (glob patterns) to tail via the filelog receiver. Each matched
+          file is tailed continuously. Use for services that write log files instead
+          of (or in addition to) journald.
+        '';
+      };
     };
 
     gateway = {
@@ -351,9 +382,14 @@ in
       settings = otelSettings;
     };
 
-    # journald receiver needs the collector in the systemd-journal group.
+    # journald receiver needs systemd-journal group; filelog needs access to
+    # service log dirs (e.g. pgbackrest owned by supabase-postgres).
     systemd.services.opentelemetry-collector.serviceConfig = lib.mkIf isAgent {
-      SupplementaryGroups = [ "systemd-journal" ];
+      SupplementaryGroups = [
+        "systemd-journal"
+      ]
+      ++ lib.optional (agent.logPaths != [ ]) "supabase-postgres";
+      ReadOnlyPaths = agent.logPaths;
     };
 
     # Gateway OTLP listener exposed on the tailnet only.

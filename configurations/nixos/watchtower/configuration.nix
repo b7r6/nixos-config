@@ -298,6 +298,9 @@ in
         "127.0.0.1:9363" # clickhouse
         "127.0.0.1:3200" # forgejo
       ];
+      logPaths = [
+        "/var/log/pgbackrest/*.log"
+      ];
     };
   };
 
