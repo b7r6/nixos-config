@@ -3761,14 +3761,14 @@ in
       })
       (panel {
         id = 11;
-        title = "WAL archive events (from PG17 logs)";
+        title = "pgBackRest backup events";
         x = 12;
         y = 6;
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'supabase-db.service' AND (Body LIKE '%archive%' OR Body LIKE '%wal%') AND ${tfLog} GROUP BY time ORDER BY time";
-        description = "WAL segment archive commands logged by PG17. steady rate = healthy archiving.";
+        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE '%full%', 'full', JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE '%diff%', 'diff', 'other') as backup_type, count() as value FROM otel.otel_logs WHERE (JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'pgbackrest%' OR JSONExtractString(Body, '_SYSTEMD_UNIT') LIKE 'supabase-pgbackrest%') AND ${tfLog} GROUP BY time, backup_type ORDER BY time";
+        description = "pgbackrest backup runs (full + diff). WAL archive-push is invoked by PG directly (no journal output at current log level).";
       })
 
       # ── row: restic ──────────────────────────────────────────────────────────
