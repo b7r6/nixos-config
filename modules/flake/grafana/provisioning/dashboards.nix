@@ -1668,7 +1668,7 @@ in
         y = 13;
         w = 24;
         h = 14;
-        sql = "SELECT Timestamp, ${host} as host, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', 'info') as level, JSONExtractString(Body, '_SYSTEMD_UNIT') as unit, substring(${msg}, 1, 400) as message FROM otel.otel_logs WHERE ${tfLog} AND ${hostFilter} AND (JSONExtractString(Body, '_SYSTEMD_UNIT') IN (\$unit) OR JSONExtractString(Body, '_SYSTEMD_UNIT') = '') AND (\${search} = '' OR Body LIKE '%\${search}%') ORDER BY Timestamp DESC LIMIT 500";
+        sql = "SELECT Timestamp, ${host} as host, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', 'info') as level, JSONExtractString(Body, '_SYSTEMD_UNIT') as unit, substring(${msg}, 1, 400) as message FROM otel.otel_logs WHERE ${tfLog} AND ${hostFilter} AND (JSONExtractString(Body, '_SYSTEMD_UNIT') IN (\$unit) OR JSONExtractString(Body, '_SYSTEMD_UNIT') = '') AND ('\$search' = '' OR Body LIKE '%\$search%') ORDER BY Timestamp DESC LIMIT 500";
       })
     ];
   };
