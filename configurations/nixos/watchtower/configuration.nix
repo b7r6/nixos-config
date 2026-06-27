@@ -259,16 +259,38 @@ in
   # install the clickhouse grafana plugin
   services.grafana.declarativePlugins = [ pkgs.grafanaPlugins.grafana-clickhouse-datasource ];
 
-  # render dashboards to /etc/grafana/dashboards (Grafana file provisioner)
+  # render dashboards from Dhall → JSON (type-safe, auto-layout)
   environment.etc =
     let
-      dashboards = import ../../../modules/flake/grafana/provisioning/dashboards.nix;
+      grafanaDir = ../../../modules/flake/grafana;
+      dashboardDir = "${grafanaDir}/dashboards";
+      dhallFiles = builtins.filter (n: builtins.match ".*\\.dhall" n != null) (
+        builtins.attrNames (builtins.readDir dashboardDir)
+      );
+      renderDashboard =
+        file:
+        let
+          name = builtins.replaceStrings [ ".dhall" ] [ "" ] file;
+        in
+        pkgs.runCommand "grafana-dashboard-${name}.json"
+          {
+            nativeBuildInputs = [ pkgs.dhall-json ];
+          }
+          ''
+            dhall-to-json --file ${grafanaDir}/dashboards/${file} > $out
+          '';
     in
     builtins.listToAttrs (
-      map (name: {
-        name = "grafana/dashboards/${name}.json";
-        value.text = builtins.toJSON dashboards.${name};
-      }) (builtins.attrNames dashboards)
+      map (
+        file:
+        let
+          name = builtins.replaceStrings [ ".dhall" ] [ "" ] file;
+        in
+        {
+          name = "grafana/dashboards/${name}.json";
+          value.source = renderDashboard file;
+        }
+      ) dhallFiles
     );
 
   age.secrets.grafana-admin-password = {
