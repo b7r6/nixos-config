@@ -299,7 +299,7 @@ in
         "127.0.0.1:3200" # forgejo
       ];
       logPaths = [
-        "/var/log/pgbackrest/*.log"
+        "/var/log/pgbackrest/supabase-*.log"
       ];
     };
   };
