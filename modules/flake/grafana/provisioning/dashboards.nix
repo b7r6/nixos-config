@@ -528,7 +528,7 @@ in
         w = 8;
         h = 7;
         unit = "ops";
-        sql = "SELECT TimeUnix as time, ${host} as host, Attributes['direction'] as dir, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'system.paging.operations' AND ${tf} AND ${hostFilter} GROUP BY time, host, dir ORDER BY time";
+        sql = "SELECT time, host, dir, sum(rate) as value FROM (SELECT time, host, dir, runningDifference(val) / 30 as rate FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, ${host} as host, Attributes['direction'] as dir, max(Value) as val FROM otel.otel_metrics_sum WHERE MetricName = 'system.paging.operations' AND ${tf} AND ${hostFilter} GROUP BY time, host, dir ORDER BY host, dir, time)) WHERE rate >= 0 GROUP BY time, host, dir ORDER BY time";
         description = "page in/out operations. high values = memory pressure, swapping.";
       })
 
@@ -541,13 +541,13 @@ in
 
       (panel {
         id = 20;
-        title = "Disk I/O (read+write) by host";
+        title = "Disk I/O rate by host";
         x = 0;
         y = 14;
         w = 12;
         h = 7;
         unit = "Bps";
-        sql = "SELECT TimeUnix as time, ${host} as host, Attributes['direction'] as dir, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'system.disk.io' AND ${tf} AND ${hostFilter} GROUP BY time, host, dir ORDER BY time";
+        sql = "SELECT time, host, dir, sum(rate) as value FROM (SELECT time, host, dir, runningDifference(val) / 30 as rate FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, ${host} as host, Attributes['direction'] as dir, Attributes['device'] as dev, max(Value) as val FROM otel.otel_metrics_sum WHERE MetricName = 'system.disk.io' AND ${tf} AND ${hostFilter} GROUP BY time, host, dir, dev ORDER BY host, dev, dir, time)) WHERE rate >= 0 GROUP BY time, host, dir ORDER BY time";
       })
       (panel {
         id = 21;
@@ -577,7 +577,7 @@ in
         w = 12;
         h = 7;
         unit = "Bps";
-        sql = "SELECT TimeUnix as time, ${host} as host, Attributes['direction'] as dir, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'system.network.io' AND Attributes['device'] != 'lo' AND ${tf} AND ${hostFilter} GROUP BY time, host, dir ORDER BY time";
+        sql = "SELECT time, host, dir, sum(rate) as value FROM (SELECT time, host, dir, runningDifference(val) / 30 as rate FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, ${host} as host, Attributes['direction'] as dir, Attributes['device'] as dev, max(Value) as val FROM otel.otel_metrics_sum WHERE MetricName = 'system.network.io' AND Attributes['device'] != 'lo' AND ${tf} AND ${hostFilter} GROUP BY time, host, dir, dev ORDER BY host, dev, dir, time)) WHERE rate >= 0 GROUP BY time, host, dir ORDER BY time";
       })
       (panel {
         id = 31;
@@ -588,7 +588,7 @@ in
         h = 7;
         unit = "short";
         thresholds = thresholdErrors;
-        sql = "SELECT TimeUnix as time, ${host} as host, MetricName, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName IN ('system.network.errors', 'system.network.dropped') AND ${tf} AND ${hostFilter} GROUP BY time, host, MetricName ORDER BY time";
+        sql = "SELECT time, host, MetricName, sum(rate) as value FROM (SELECT time, host, MetricName, runningDifference(val) / 30 as rate FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, ${host} as host, MetricName, Attributes['device'] as dev, max(Value) as val FROM otel.otel_metrics_sum WHERE MetricName IN ('system.network.errors', 'system.network.dropped') AND ${tf} AND ${hostFilter} GROUP BY time, host, MetricName, dev ORDER BY host, dev, MetricName, time)) WHERE rate >= 0 GROUP BY time, host, MetricName ORDER BY time";
       })
 
       # ── row: services ────────────────────────────────────────────────────────
@@ -686,7 +686,7 @@ in
         w = 12;
         h = 8;
         unit = "s";
-        sql = "SELECT TimeUnix as time, Attributes['state'] as state, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'system.cpu.time' AND ${hostFilterSingle} AND ${tf} GROUP BY time, state ORDER BY time";
+        sql = "SELECT time, state, sum(rate) as value FROM (SELECT time, state, runningDifference(val) / 30 as rate FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, Attributes['state'] as state, Attributes['cpu'] as cpu, max(Value) as val FROM otel.otel_metrics_sum WHERE MetricName = 'system.cpu.time' AND ${hostFilterSingle} AND ${tf} GROUP BY time, state, cpu ORDER BY cpu, state, time)) WHERE rate >= 0 GROUP BY time, state ORDER BY time";
         options = {
           tooltip.mode = "multi";
           tooltip.sort = "desc";
@@ -752,7 +752,7 @@ in
         w = 12;
         h = 8;
         unit = "bytes";
-        sql = "SELECT TimeUnix as time, Attributes['direction'] as dir, Attributes['type'] as type, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'system.paging.operations' AND ${hostFilterSingle} AND ${tf} GROUP BY time, dir, type ORDER BY time";
+        sql = "SELECT time, dir, type, runningDifference(val) / 30 as value FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, Attributes['direction'] as dir, Attributes['type'] as type, max(Value) as val FROM otel.otel_metrics_sum WHERE MetricName = 'system.paging.operations' AND ${hostFilterSingle} AND ${tf} GROUP BY time, dir, type ORDER BY dir, type, time) WHERE runningDifference(val) >= 0";
       })
 
       # ── row: disk ────────────────────────────────────────────────────────────
@@ -770,7 +770,7 @@ in
         w = 12;
         h = 8;
         unit = "Bps";
-        sql = "SELECT TimeUnix as time, Attributes['device'] as device, Attributes['direction'] as dir, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'system.disk.io' AND ${hostFilterSingle} AND ${tf} GROUP BY time, device, dir ORDER BY time";
+        sql = "SELECT time, device, dir, runningDifference(val) / 30 as value FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, Attributes['device'] as device, Attributes['direction'] as dir, max(Value) as val FROM otel.otel_metrics_sum WHERE MetricName = 'system.disk.io' AND ${hostFilterSingle} AND ${tf} GROUP BY time, device, dir ORDER BY device, dir, time) WHERE runningDifference(val) >= 0";
       })
       (panel {
         id = 6;
@@ -805,7 +805,7 @@ in
         w = 12;
         h = 8;
         unit = "Bps";
-        sql = "SELECT TimeUnix as time, Attributes['device'] as iface, Attributes['direction'] as dir, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'system.network.io' AND ${hostFilterSingle} AND Attributes['device'] != 'lo' AND ${tf} GROUP BY time, iface, dir ORDER BY time";
+        sql = "SELECT time, iface, dir, runningDifference(val) / 30 as value FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, Attributes['device'] as iface, Attributes['direction'] as dir, max(Value) as val FROM otel.otel_metrics_sum WHERE MetricName = 'system.network.io' AND ${hostFilterSingle} AND Attributes['device'] != 'lo' AND ${tf} GROUP BY time, iface, dir ORDER BY iface, dir, time) WHERE runningDifference(val) >= 0";
       })
       (panel {
         id = 8;
@@ -815,7 +815,7 @@ in
         w = 12;
         h = 8;
         unit = "short";
-        sql = "SELECT TimeUnix as time, MetricName as metric, Attributes['device'] as iface, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName IN ('system.network.errors', 'system.network.dropped') AND ${hostFilterSingle} AND ${tf} GROUP BY time, metric, iface ORDER BY time";
+        sql = "SELECT time, metric, iface, runningDifference(val) / 30 as value FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, MetricName as metric, Attributes['device'] as iface, max(Value) as val FROM otel.otel_metrics_sum WHERE MetricName IN ('system.network.errors', 'system.network.dropped') AND ${hostFilterSingle} AND ${tf} GROUP BY time, metric, iface ORDER BY iface, metric, time) WHERE runningDifference(val) >= 0";
       })
 
       # ── row: logs ────────────────────────────────────────────────────────────
@@ -1838,7 +1838,7 @@ in
         w = 12;
         h = 8;
         unit = "Bps";
-        sql = "SELECT TimeUnix as time, ${host} as host, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'system.network.io' AND Attributes['direction'] = 'transmit' AND Attributes['device'] != 'lo' AND ${tf} AND ${hostFilter} GROUP BY time, host ORDER BY time";
+        sql = "SELECT time, host, sum(rate) as value FROM (SELECT time, host, runningDifference(val) / 30 as rate FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, ${host} as host, Attributes['device'] as dev, max(Value) as val FROM otel.otel_metrics_sum WHERE MetricName = 'system.network.io' AND Attributes['direction'] = 'transmit' AND Attributes['device'] != 'lo' AND ${tf} AND ${hostFilter} GROUP BY time, host, dev ORDER BY host, dev, time)) WHERE rate >= 0 GROUP BY time, host ORDER BY time";
       })
       (panel {
         id = 2;
@@ -1848,7 +1848,7 @@ in
         w = 12;
         h = 8;
         unit = "Bps";
-        sql = "SELECT TimeUnix as time, ${host} as host, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'system.network.io' AND Attributes['direction'] = 'receive' AND Attributes['device'] != 'lo' AND ${tf} AND ${hostFilter} GROUP BY time, host ORDER BY time";
+        sql = "SELECT time, host, sum(rate) as value FROM (SELECT time, host, runningDifference(val) / 30 as rate FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, ${host} as host, Attributes['device'] as dev, max(Value) as val FROM otel.otel_metrics_sum WHERE MetricName = 'system.network.io' AND Attributes['direction'] = 'receive' AND Attributes['device'] != 'lo' AND ${tf} AND ${hostFilter} GROUP BY time, host, dev ORDER BY host, dev, time)) WHERE rate >= 0 GROUP BY time, host ORDER BY time";
       })
 
       (row {
@@ -1866,7 +1866,7 @@ in
         h = 8;
         unit = "short";
         thresholds = thresholdErrors;
-        sql = "SELECT TimeUnix as time, ${host} as host, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'system.network.errors' AND ${tf} AND ${hostFilter} GROUP BY time, host ORDER BY time";
+        sql = "SELECT time, host, sum(rate) as value FROM (SELECT time, host, runningDifference(val) / 30 as rate FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, ${host} as host, Attributes['device'] as dev, max(Value) as val FROM otel.otel_metrics_sum WHERE MetricName = 'system.network.errors' AND ${tf} AND ${hostFilter} GROUP BY time, host, dev ORDER BY host, dev, time)) WHERE rate >= 0 GROUP BY time, host ORDER BY time";
       })
       (panel {
         id = 4;
@@ -1877,7 +1877,7 @@ in
         h = 8;
         unit = "short";
         thresholds = thresholdErrors;
-        sql = "SELECT TimeUnix as time, ${host} as host, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'system.network.dropped' AND ${tf} AND ${hostFilter} GROUP BY time, host ORDER BY time";
+        sql = "SELECT time, host, sum(rate) as value FROM (SELECT time, host, runningDifference(val) / 30 as rate FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, ${host} as host, Attributes['device'] as dev, max(Value) as val FROM otel.otel_metrics_sum WHERE MetricName = 'system.network.dropped' AND ${tf} AND ${hostFilter} GROUP BY time, host, dev ORDER BY host, dev, time)) WHERE rate >= 0 GROUP BY time, host ORDER BY time";
       })
 
       (row {
@@ -1894,7 +1894,7 @@ in
         w = 24;
         h = 8;
         unit = "short";
-        sql = "SELECT TimeUnix as time, ${host} as host, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'system.network.connections' AND Attributes['protocol'] = 'tcp' AND ${tf} AND ${hostFilter} GROUP BY time, host ORDER BY time";
+        sql = "SELECT TimeUnix as time, ${host} as host, sum(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'system.network.connections' AND Attributes['protocol'] = 'tcp' AND ${tf} AND ${hostFilter} GROUP BY time, host ORDER BY time";
       })
 
       (row {
@@ -1911,7 +1911,7 @@ in
         w = 12;
         h = 8;
         unit = "Bps";
-        sql = "SELECT TimeUnix as time, ${host} as host, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'system.network.io' AND Attributes['device'] = 'tailscale0' AND Attributes['direction'] = 'transmit' AND ${tf} AND ${hostFilter} GROUP BY time, host ORDER BY time";
+        sql = "SELECT time, host, runningDifference(val) / 30 as value FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, ${host} as host, max(Value) as val FROM otel.otel_metrics_sum WHERE MetricName = 'system.network.io' AND Attributes['device'] = 'tailscale0' AND Attributes['direction'] = 'transmit' AND ${tf} AND ${hostFilter} GROUP BY time, host ORDER BY host, time) WHERE runningDifference(val) >= 0";
       })
       (panel {
         id = 7;
@@ -1921,7 +1921,7 @@ in
         w = 12;
         h = 8;
         unit = "Bps";
-        sql = "SELECT TimeUnix as time, ${host} as host, avg(Value) as value FROM otel.otel_metrics_sum WHERE MetricName = 'system.network.io' AND Attributes['device'] = 'tailscale0' AND Attributes['direction'] = 'receive' AND ${tf} AND ${hostFilter} GROUP BY time, host ORDER BY time";
+        sql = "SELECT time, host, runningDifference(val) / 30 as value FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, ${host} as host, max(Value) as val FROM otel.otel_metrics_sum WHERE MetricName = 'system.network.io' AND Attributes['device'] = 'tailscale0' AND Attributes['direction'] = 'receive' AND ${tf} AND ${hostFilter} GROUP BY time, host ORDER BY host, time) WHERE runningDifference(val) >= 0";
       })
     ];
   };
