@@ -656,6 +656,10 @@ in
           pgDataDir
           pgSocket
           "/run/supabase-db"
+        ]
+        ++ lib.optionals cfg.db.pitr.enable [
+          "/var/log/pgbackrest"
+          "/run/pgbackrest-supabase"
         ];
         PrivateTmp = true;
         NoNewPrivileges = true;
