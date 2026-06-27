@@ -44,7 +44,7 @@ let
       h ? 8,
       unit ? "short",
       sql,
-      format ? 1,
+      format ? 0,
       # optional overrides
       description ? "",
       thresholds ? null,
