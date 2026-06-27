@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                           // packages // supabase-studio
+#                                                 // packages // supabase-studio
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # Supabase Studio (Next.js dashboard) built from our fork. Produces a standalone
@@ -15,6 +15,9 @@
 # Corepack/self-management bypass: nixpkgs pnpm (10.34) is on PATH; we patch
 # .npmrc and package.json so pnpm never tries to download a different version
 # or enforce engine constraints.
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
 {
   lib,
   stdenvNoCC,

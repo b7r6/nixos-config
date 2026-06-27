@@ -14,14 +14,16 @@ in
   # node). This proves the auth-key secret + module path before we rely on it to
   # bring up remote hosts.
   age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;
+  
   hyper-modern-nixos.network.tailscale = {
     authKeyFile = "/run/agenix/tailscale-auth-key";
+
     # Route all egress through the Mullvad Miami exit node (add-on activated in
     # the Tailscale console). Applied via the tailscale-exit-node oneshot, with
     # --exit-node-allow-lan-access so the LAN/tailnet stays reachable. One of 6
     # us-mia-* nodes; if Mullvad retires -001, switch to another at runtime
     # (`tailscale set --exit-node=<node>`) or update here.
-    exitNode = "us-mia-wg-001.mullvad.ts.net";
+    # exitNode = "us-mia-wg-001.mullvad.ts.net";
   };
 
   # NOTE: the system rclone mount (/mnt/r2/common + /mnt/r2/ultraviolence) and
@@ -29,6 +31,7 @@ in
   # and modules/nixos/rclone-mount.nix. Nothing host-specific to declare here.
 
   # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
+  
   # The module self-wires its secrets from the names below (per-host R2 env:
   # restic-r2-env.ultraviolence). RESTIC_REPOSITORY + creds live in that env
   # file (R2 account id out of the store). FIRST init/backup BY HAND (see docs)
@@ -51,9 +54,11 @@ in
   };
 
   # ── ClickHouse Keeper (coordination plane) ──────────────────────────────────
+  
   hyper-modern-nixos.databases.clickhouse.keeper.enable = true;
 
   # ── OTel agent (host metrics + journald → watchtower gateway) ──────────────
+  
   hyper-modern-nixos.observability.otel.agent = {
     enable = true;
     scrapeTargets = [
@@ -63,6 +68,7 @@ in
   };
 
   # ── Incubating services (tailnet-only) ──────────────────────────────────────
+  
   # SearXNG metasearch + transmission/flood torrent stack, both reachable on the
   # tailnet. When ultraviolence routes through the Mullvad Miami exit node
   # (`tailscale set --exit-node=<mullvad-mia>`), all egress — including
@@ -80,6 +86,7 @@ in
   hyper-modern-nixos.torrents.enable = true;
 
   # ── Reverse proxy + internal ACME (nginx → loopback services) ───────────────
+  
   # Same pattern as watchtower: wildcard cert (*.sju1.s4.gl via DNS-01/Njalla),
   # nginx terminates TLS on the logical names. CoreDNS resolves them here.
   hyper-modern-nixos.reverseProxy = {
@@ -106,8 +113,10 @@ in
   # TLS in the fleet config). See docs/infrastructure/nativelink-production.md.
   hyper-modern-nixos.nativelink = {
     enable = true;
+    
     dhallHost = "ultraviolence";
     openFirewall = true;
+    
     r2 = {
       enable = true;
       accountId = "6063b6652178f5cf1cfb87e7e41acf1e";
@@ -177,7 +186,7 @@ in
 
   services.thermald.enable = true;
 
-  time.timeZone = "America/New_York";
+  time.timeZone = "America/Puerto_Rico";
 
   i18n.extraLocaleSettings = {
     LC_ADDRESS = "en_US.UTF-8";

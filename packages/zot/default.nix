@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                                  // hyper-modern-nixos // zot
+#                                                   // hyper-modern-nixos // zot
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # zot — a production-ready, vendor-neutral OCI image registry. Not in nixpkgs,
@@ -9,7 +9,11 @@
 # (not an extension), so the R2-backed registry needs none of the heavy
 # extensions — and skipping them avoids the `zui` npm build and the
 # search/sync/trivy dependency surface entirely. Flip `extensions` on later if
-# the web UI / CVE search is wanted (that path additionally needs the zui build).
+# the web UI / CVE search is wanted (that path additionally needs the zui
+# build).
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
 {
   lib,
   buildGoModule,
@@ -39,12 +43,14 @@ buildGoModule (_finalAttrs: {
 
   # Match the upstream `binary-minimal` target: no extension build tags, static.
   tags = [ ];
+  
   ldflags = [
     "-s"
     "-w"
     "-X zotregistry.dev/zot/v2/pkg/buildinfo.ReleaseTag=v${version}"
     "-X zotregistry.dev/zot/v2/pkg/buildinfo.BinaryType=minimal"
   ];
+  
   buildmode = "pie";
 
   # The binary is cmd/zot → `zot`.

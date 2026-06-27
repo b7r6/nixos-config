@@ -9,6 +9,7 @@ in
   ];
 
   # ── Incremental rollout ─────────────────────────────────────────────────────
+  
   # Modules self-wire their own agenix secrets, so staging is just enabling
   # service modules one at a time (each is its own `enable`), rebuilding +
   # verifying between. The safe baseline is tailscale + ssh with NO service
@@ -30,9 +31,13 @@ in
   networking.networkmanager.enable = true;
 
   # ── Tailscale safety net (ALWAYS on) ────────────────────────────────────────
+  
   # Declarative enrollment so this remote box can't fall off the tailnet during
   # the incremental rollout — if a rebuild restarts tailscaled, it re-auths from
-  # the key rather than stranding the node. Tested live on ultraviolence first.
+  # the key rather than stranding the node. Tested live on `ultraviolence`
+  # first.
+
+  # TODO[b7r6]: we should use the proper `agenix` path discovery...
   hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
 
   # watchtower hosts the shared postgres (and atticd). The firewall is now ON
@@ -42,20 +47,24 @@ in
   hyper-modern-nixos.network.firewall.enable = true;
 
   # ── Split-horizon DNS (CoreDNS, generated from the topology registry) ───────
+  
   # watchtower is the fleet resolver: authoritative for sju1.s4.gl (host +
   # lan.<host> + service-alias records derived from registry/), forwards the rest
   # (MagicDNS first). LAN clients (the Google TV) point DNS here for lan.* names.
   hyper-modern-nixos.coredns.enable = true;
 
   # ── PostgreSQL PITR (pgBackRest → R2) ───────────────────────────────────────
-  # watchtower is the system-of-record DB host. Continuous WAL archiving + base
-  # backups to the dedicated straylight-pg-pitr R2 bucket give ~seconds RPO on
-  # this single node — a wipe loses almost nothing. The module self-wires the
-  # pgbackrest-r2-env agenix secret; logical dumps stay on as the independent,
-  # cross-PG-major fallback. See docs/infrastructure/backups.md#postgresql-backups.
+  
+  # `watchtower` is the system-of-record DB host. Continuous WAL archiving +
+  # base backups to the dedicated straylight-pg-pitr R2 bucket give ~seconds
+  # RPO on this single node — a wipe loses almost nothing. The module self-wires
+  # the pgbackrest-r2-env agenix secret; logical dumps stay on as the
+  # independent, cross-PG-major fallback.
+  # See docs/infrastructure/backups.md#postgresql-backups.
   hyper-modern-nixos.databases.postgres.backup.pitr.enable = true;
 
   # ── OCI registry (zot → R2) ─────────────────────────────────────────────────
+  
   # Blobs in the straylight-oci R2 bucket (reconstructible — not restic'd).
   # Non-daemon systemd service; self-wires the zot-r2-env agenix creds. Now bound
   # to LOOPBACK and fronted by nginx (below) on registry.sju1.s4.gl with a real
@@ -66,14 +75,17 @@ in
   };
 
   # ── NativeLink: the fleet SCHEDULER (+ CAS shard + worker) ───────────────────
+  
   # Topology from the typed Dhall fleet (out/watchtower.json): scheduler +
   # worker_api (workers fleet-wide dial grpc://watchtower.sju1.s4.gl:50061) + this
   # node's CAS shard (weight 4) + an x86_64 worker. R2 is the shared slow tier.
   age.secrets.nativelink-r2-env.file = ../../../secrets/agenix/machines/nativelink-r2-env.age;
+  
   hyper-modern-nixos.nativelink = {
     enable = true;
     dhallHost = "watchtower";
     openFirewall = true;
+    
     r2 = {
       enable = true;
       accountId = "6063b6652178f5cf1cfb87e7e41acf1e";
@@ -83,6 +95,7 @@ in
   };
 
   # ── Supabase (native, daemon-free) ───────────────────────────────────────────
+  
   # No Docker. PG17 from the supabase/postgres flake runs as a native systemd
   # unit on port 5433 (attic's PG16 keeps 5432). GoTrue, PostgREST, imgproxy from
   # nixpkgs. Kong replaced by nginx location blocks. The remaining services
@@ -92,8 +105,10 @@ in
   hyper-modern-nixos.supabase-native = {
     enable = true;
     publicUrl = "https://studio.sju1.s4.gl";
+    
     db.tailnet.enable = true;
     db.pitr.enable = true;
+    
     db.databases = {
       atticd = {
         passwordSecret = "atticd-rs256";
@@ -105,6 +120,7 @@ in
           sourceSocketDir = "/run/postgresql";
         };
       };
+      
       forgejo = {
         passwordSecret = "forgejo-db";
         rawPassword = true;
@@ -113,14 +129,17 @@ in
   };
 
   # ── Forgejo (git forge, native) ───────────────────────────────────────────────
+  
   # Self-hosted git forge on the unified PG17 cluster. Repos on local disk,
   # database in supabase-native. Fronted by nginx on git.sju1.s4.gl.
   age.secrets.forgejo-db.file = ../../../secrets/agenix/machines/forgejo-db.age;
+  
   services.forgejo = {
     enable = true;
     user = "git";
     group = "git";
     stateDir = "/var/lib/forgejo";
+    
     database = {
       type = "postgres";
       host = "127.0.0.1";
@@ -130,6 +149,7 @@ in
       passwordFile = "/run/agenix/forgejo-db";
       createDatabase = false; # supabase-db-ensure-dbs handles this
     };
+    
     settings = {
       DEFAULT.APP_NAME = "straylight";
       server = {
@@ -149,6 +169,7 @@ in
       metrics.ENABLED_ISSUE_BY_REPOSITORY = true;
     };
   };
+  
   # the `git` user/group for forgejo (module only auto-creates `forgejo`)
   users.users.git = {
     isSystemUser = true;
@@ -156,6 +177,7 @@ in
     home = "/var/lib/forgejo";
     shell = "/bin/sh";
   };
+  
   users.groups.git = { };
 
   # forgejo must wait for supabase-db-ensure-dbs to create its database + role
@@ -163,17 +185,22 @@ in
   systemd.services.forgejo.requires = [ "supabase-db-ensure-dbs.service" ];
 
   # ── PG17 daily logical dump (restic picks it up) ──────────────────────────────
+  
   # Full PITR (pgbackrest) for the supabase cluster is TODO; this daily pg_dumpall
   # gives ~24h RPO as a safety net until that's wired.
   systemd.services.supabase-db-dump = {
     description = "daily pg_dumpall of the supabase PG17 cluster";
+    
     after = [ "supabase-db.service" ];
     requires = [ "supabase-db.service" ];
+    
     serviceConfig = {
       Type = "oneshot";
       User = "supabase-postgres";
     };
+    
     path = [ pkgs.gzip ];
+    
     script = ''
       ${pkgs.postgresql_17}/bin/pg_dumpall \
         -h /run/supabase-db -p 5433 -U postgres \
@@ -181,8 +208,10 @@ in
       mv /var/lib/supabase/db/dump.sql.gz.tmp /var/lib/supabase/db/dump.sql.gz
     '';
   };
+  
   systemd.timers.supabase-db-dump = {
     wantedBy = [ "timers.target" ];
+    
     timerConfig = {
       OnCalendar = "daily";
       RandomizedDelaySec = "1h";
@@ -206,6 +235,7 @@ in
   # declaratively. Dashboards compiled from Dhall → JSON → file provisioning.
   services.grafana = {
     enable = true;
+    
     settings = {
       server = {
         http_addr = "127.0.0.1";
@@ -213,11 +243,13 @@ in
         root_url = "https://grafana.s4.gl/";
         domain = "grafana.s4.gl";
       };
+      
       security = {
         admin_user = "admin";
         admin_password = "$__file{/run/agenix/grafana-admin-password}";
         secret_key = "$__file{/run/agenix/grafana-admin-password}";
       };
+      
       "auth.anonymous" = {
         enabled = true;
         org_role = "Viewer";
@@ -227,6 +259,7 @@ in
     # declarative datasource provisioning
     provision = {
       enable = true;
+      
       datasources.settings.datasources = [
         {
           name = "ClickHouse";
@@ -257,7 +290,9 @@ in
   };
 
   # install the clickhouse grafana plugin
-  services.grafana.declarativePlugins = [ pkgs.grafanaPlugins.grafana-clickhouse-datasource ];
+  services.grafana.declarativePlugins = [
+    pkgs.grafanaPlugins.grafana-clickhouse-datasource
+  ];
 
   # render dashboards from Dhall → JSON (type-safe, auto-layout)
   environment.etc =
@@ -301,6 +336,7 @@ in
   };
 
   # ── ClickHouse (OLAP server + S3→R2 storage) ──────────────────────────────────
+  
   # single server on watchtower; keepers on ultraviolence/guccimane/shimmer.
   # S3 disk to R2 = durable truth; local disk is reconstructible cache.
   hyper-modern-nixos.databases.clickhouse.server = {
@@ -309,9 +345,11 @@ in
   };
 
   # ── OTel (observability spine) ───────────────────────────────────────────────
+  
   # gateway (receives from fleet agents → writes to ClickHouse) + local agent
   hyper-modern-nixos.observability.otel = {
     gateway.enable = true;
+    
     agent = {
       enable = true;
       scrapeTargets = [
@@ -320,6 +358,7 @@ in
         "127.0.0.1:9363" # clickhouse
         "127.0.0.1:3200" # forgejo
       ];
+      
       logPaths = [
         "/var/log/pgbackrest/supabase-*.log"
       ];
@@ -334,6 +373,7 @@ in
     package = pkgs.kanidm_1_9.withSecretProvisioning;
 
     server.enable = true;
+    
     server.settings = {
       origin = "https://auth.s4.gl";
       domain = "s4.gl";
@@ -341,9 +381,11 @@ in
       ldapbindaddress = null;
       log_level = "info";
       role = "WriteReplica";
+      
       # self-signed cert for loopback (nginx handles real TLS)
       tls_chain = "/var/lib/kanidm/tls/chain.pem";
       tls_key = "/var/lib/kanidm/tls/key.pem";
+      
       online_backup = {
         path = "/var/lib/kanidm/backups/";
         schedule = "0 2 * * *"; # daily at 2am
@@ -372,12 +414,16 @@ in
       };
 
       systems.oauth2.forgejo = {
-        displayName = "Forgejo";
+        displayName = "// straylight // git //";
+
         originUrl = "https://git.s4.gl/user/oauth2/kanidm/callback";
         originLanding = "https://git.s4.gl/";
+        
         basicSecretFile = "/run/agenix/kanidm-forgejo-secret";
+        
         preferShortUsername = true;
         allowInsecureClientDisablePkce = true;
+        
         scopeMaps.forgejo_users = [
           "openid"
           "email"
@@ -392,6 +438,7 @@ in
     description = "generate self-signed TLS cert for kanidm";
     before = [ "kanidm.service" ];
     requiredBy = [ "kanidm.service" ];
+    
     serviceConfig = {
       Type = "oneshot";
       User = "kanidm";
@@ -399,7 +446,9 @@ in
       StateDirectory = "kanidm/tls";
       RemainAfterExit = true;
     };
+    
     path = [ pkgs.openssl ];
+    
     script = ''
       if [ ! -f /var/lib/kanidm/tls/key.pem ]; then
         openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
@@ -420,6 +469,7 @@ in
     group = "kanidm";
     mode = "0400";
   };
+  
   age.secrets.kanidm-forgejo-secret = {
     file = ../../../secrets/agenix/machines/kanidm-forgejo-secret.age;
     owner = "kanidm";
@@ -428,15 +478,18 @@ in
   };
 
   # ── Litestream (continuous SQLite replication → R2) ──────────────────────────
+  
   # Replicates kanidm's SQLite to R2 for near-zero RPO disaster recovery.
   # Runs as the kanidm user so it can read the WAL. Starts before kanidm and
   # stays alive as a sidecar, streaming WAL changes continuously.
   systemd.services.litestream = {
     description = "litestream SQLite replication (kanidm → R2)";
+    
     after = [
       "network.target"
       "kanidm-tls-init.service"
     ];
+    
     before = [ "kanidm.service" ];
     wantedBy = [ "multi-user.target" ];
 
@@ -483,19 +536,23 @@ in
   # already resolves those names to this host.
   hyper-modern-nixos.reverseProxy = {
     enable = true;
+    
     services.registry = {
       port = 5000;
       # OCI image layers are multi-MB/GB; the default 1m cap → HTTP 413 on push.
       maxBodySize = "0";
     };
+    
     services.studio.port = 8000; # → Kong → Studio/auth/rest/realtime/storage
-    services.attic.port = 8080; # → atticd (the monolithic backend)
-    services.git.port = 3200; # → forgejo
+    services.attic.port = 8080;  # → atticd (the monolithic backend)
+    services.git.port = 3200;    # → forgejo
+    
     services.auth = {
       # → kanidm (HTTPS loopback)
       port = 8443;
       scheme = "https";
     };
+    
     services.ch.port = 8123; # → clickhouse play UI / HTTP API
     services.grafana.port = 3300; # → grafana
   };
@@ -503,10 +560,10 @@ in
   hardware.graphics = {
     enable = true;
     enable32Bit = true;
-    # RADV is now the default Vulkan driver
   };
 
-  time.timeZone = "America/New_York";
+  time.timeZone = "America/Puerto_Rico";
+  
   i18n.extraLocaleSettings = {
     LC_ADDRESS = "en_US.UTF-8";
     LC_IDENTIFICATION = "en_US.UTF-8";
@@ -534,6 +591,7 @@ in
   age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;
 
   # ── Central cache node: monolithic-shared (the fleet backend) ───────────────
+  
   # watchtower hosts the single shared postgres + the monolithic atticd that runs
   # migrations + serves + the ONLY garbage collector (gc can't be replicated).
   # The profile bundles it all (tailnet postgres with the atticd role+db, atticd
@@ -546,6 +604,7 @@ in
   };
 
   # ── restic → Cloudflare R2 backups ──────────────────────────────────────────
+  
   # Per-host repo: s3:…/backups-restic/watchtower (isolated locks + retention).
   # The module self-wires its secrets from the names below. FIRST run is BY HAND
   # (see the runbook / docs) before this timer is trusted:
@@ -555,8 +614,10 @@ in
   # Starting with /home only; widen to /etc + /var/lib once trusted.
   hyper-modern-nixos.backup = {
     enable = true;
+    
     passwordSecret = "restic-password";
     environmentSecret = "restic-r2-env.watchtower";
+    
     paths = [
       "/home"
       "/var/lib/forgejo" # git repos + custom assets

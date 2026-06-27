@@ -5,14 +5,16 @@
 # RESTful API for managing Postgres (Studio's backend). Our fork adds:
 #   - X-PG-Meta-Db header: per-request database switching (multi-db self-hosted)
 #   - GET /databases: cluster-wide database list for the project picker
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
 {
-  lib,
   buildNpmPackage,
   fetchFromGitHub,
+  lib,
   nodejs_22,
   runtimeShell,
 }:
-
 buildNpmPackage rec {
   pname = "supabase-postgres-meta";
   version = "0.96.6-multi-db";

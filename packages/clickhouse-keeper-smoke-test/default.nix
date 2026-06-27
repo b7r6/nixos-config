@@ -14,13 +14,18 @@
 #     only because it co-located a server.)
 #   - it adds a four-letter-word health probe (ruok/mntr) so the resilience
 #     drills can read quorum/leader state, not just CRUD success.
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
 { writers, python3Packages, ... }:
+
 # writePython3Bin's built-in flake8 wants PEP8 4-space indentation, but the
 # repo's house style (ruff.toml) is 2-space. We follow the repo: ignore the
 # indentation-width checks (E111/E114/E117/E121) and long-line (E501); the code
 # is still ruff-clean.
+
 writers.writePython3Bin "clickhouse-keeper-smoke-test" {
   libraries = with python3Packages; [ kazoo ];
+  
   flakeIgnore = [
     "E111"
     "E114"
@@ -28,4 +33,5 @@ writers.writePython3Bin "clickhouse-keeper-smoke-test" {
     "E121"
     "E501"
   ];
+  
 } (builtins.readFile ./clickhouse-keeper-smoke-test.py)
