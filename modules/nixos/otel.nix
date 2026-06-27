@@ -97,7 +97,9 @@ let
         operators = [
           {
             type = "regex_parser";
+            id = "pgbackrest_parser";
             regex = "^(?P<timestamp>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})\\S*\\s+P\\d+\\s+(?P<level>\\w+):\\s+(?P<message>.*)$";
+            on_error = "send";
             timestamp = {
               parse_from = "attributes.timestamp";
               layout = "%Y-%m-%d %H:%M:%S";
