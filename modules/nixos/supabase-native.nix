@@ -1351,13 +1351,11 @@ in
         process-max=4
         start-fast=y
         lock-path=/run/pgbackrest-supabase
-        spool-path=/var/lib/pgbackrest/spool
         log-path=/var/log/pgbackrest
         log-level-file=info
 
         [global:archive-push]
         log-level-file=info
-        archive-async=n
 
         [${cfg.db.pitr.stanza}]
         pg1-path=${pgDataDir}
