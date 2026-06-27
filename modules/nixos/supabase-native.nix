@@ -599,7 +599,7 @@ in
                                                           cat > "${pgDataDir}/conf.d/pitr.conf" <<'PITR'
                               # managed by supabase-native (pgbackrest PITR)
                               archive_mode = on
-                              archive_command = '${pkgs.pgbackrest}/bin/pgbackrest --config=/etc/pgbackrest/pgbackrest-supabase.conf --stanza=${cfg.db.pitr.stanza} --log-level-file=info archive-push %p'
+                              archive_command = '${pkgs.pgbackrest}/bin/pgbackrest --config=/etc/pgbackrest/pgbackrest-supabase.conf --stanza=${cfg.db.pitr.stanza} --log-level-file=info --log-path=/var/log/pgbackrest --lock-path=/run/pgbackrest-supabase archive-push %p'
                               wal_level = replica
                               max_wal_senders = 3
                               archive_timeout = 60
