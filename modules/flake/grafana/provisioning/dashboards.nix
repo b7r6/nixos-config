@@ -365,7 +365,7 @@ let
   rate = metric: "runningDifference(Value)";
 
   # ── host filter clause ────────────────────────────────────────────────────────
-  hostFilter = "('\$host' = '\$__all' OR ${host} = '\$host')";
+  hostFilter = "${host} IN (\$host)";
   hostFilterSingle = "${host} = '\$host'";
 
   # ── unit filter for log queries ───────────────────────────────────────────────
@@ -1615,7 +1615,7 @@ in
         w = 24;
         h = 6;
         unit = "short";
-        sql = "SELECT toStartOfMinute(Timestamp) as time, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', ${pri} = 5, 'notice', ${pri} = 6, 'info', 'debug') as severity, count() as value FROM otel.otel_logs WHERE ${tfLog} AND ${hostFilter} AND ('\$unit' = '\$__all' OR JSONExtractString(Body, '_SYSTEMD_UNIT') = '\$unit') GROUP BY time, severity ORDER BY time";
+        sql = "SELECT toStartOfMinute(Timestamp) as time, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', ${pri} = 5, 'notice', ${pri} = 6, 'info', 'debug') as severity, count() as value FROM otel.otel_logs WHERE ${tfLog} AND ${hostFilter} AND (JSONExtractString(Body, '_SYSTEMD_UNIT') IN (\$unit) OR JSONExtractString(Body, '_SYSTEMD_UNIT') = '') GROUP BY time, severity ORDER BY time";
         fieldConfig = {
           defaults.custom.stacking = {
             mode = "normal";
@@ -1668,7 +1668,7 @@ in
         y = 13;
         w = 24;
         h = 14;
-        sql = "SELECT Timestamp, ${host} as host, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', 'info') as level, JSONExtractString(Body, '_SYSTEMD_UNIT') as unit, substring(${msg}, 1, 400) as message FROM otel.otel_logs WHERE ${tfLog} AND ${hostFilter} AND ('\$unit' = '\$__all' OR JSONExtractString(Body, '_SYSTEMD_UNIT') = '\$unit') AND (\${search} = '' OR Body LIKE '%\${search}%') ORDER BY Timestamp DESC LIMIT 500";
+        sql = "SELECT Timestamp, ${host} as host, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', 'info') as level, JSONExtractString(Body, '_SYSTEMD_UNIT') as unit, substring(${msg}, 1, 400) as message FROM otel.otel_logs WHERE ${tfLog} AND ${hostFilter} AND (JSONExtractString(Body, '_SYSTEMD_UNIT') IN (\$unit) OR JSONExtractString(Body, '_SYSTEMD_UNIT') = '') AND (\${search} = '' OR Body LIKE '%\${search}%') ORDER BY Timestamp DESC LIMIT 500";
       })
     ];
   };
