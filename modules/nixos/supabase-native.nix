@@ -1357,6 +1357,7 @@ in
 
         [global:archive-push]
         log-level-file=info
+        archive-async=n
 
         [${cfg.db.pitr.stanza}]
         pg1-path=${pgDataDir}
