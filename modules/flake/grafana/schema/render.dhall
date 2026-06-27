@@ -2,331 +2,311 @@
 --                                   // hypermodern // grafana // render
 --  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 --
---  transforms typed Dashboard → Grafana JSON model.
---  handles grid layout, panel IDs, format codes, thresholds, stacking.
-let T = ./types.dhall
+--  transforms typed Dashboard → plain Dhall records that dhall-to-json serializes
+--  directly to Grafana's JSON model. no Church-encoded JSON, no Prelude.JSON.
+--
+--  the output record types mirror Grafana's schema:
+--    Dashboard → { title, uid, panels : List PanelJSON, ... }
+--    PanelJSON → { id, title, type, gridPos, targets, fieldConfig, ... }
 
+let T = ./types.dhall
 let Prelude = ./Prelude/package.dhall
 
-let JSON = Prelude.JSON
+-- ── output record types (what dhall-to-json sees) ──────────────────────────────
 
 let GridPos = { x : Natural, y : Natural, w : Natural, h : Natural }
 
-let renderPanel =
+let TargetJSON =
+      { rawSql : Text
+      , format : Natural
+      , queryType : Text
+      , refId : Text
+      }
+
+let ThresholdStepJSON = { color : Text, value : Optional Natural }
+
+let ThresholdsJSON = { mode : Text, steps : List ThresholdStepJSON }
+
+let StackingJSON = { mode : Text, group : Text }
+
+let CustomJSON =
+      { lineWidth : Natural
+      , fillOpacity : Natural
+      , spanNulls : Bool
+      , showPoints : Text
+      , stacking : StackingJSON
+      }
+
+let ColorJSON = { mode : Text }
+
+let DefaultsJSON =
+      { unit : Text
+      , color : ColorJSON
+      , custom : CustomJSON
+      , thresholds : Optional ThresholdsJSON
+      }
+
+let FieldConfigJSON = { defaults : DefaultsJSON }
+
+let TooltipJSON = { mode : Text, sort : Text }
+let LegendJSON = { displayMode : Text, placement : Text, calcs : List Text }
+let OptionsJSON = { tooltip : TooltipJSON, legend : LegendJSON }
+
+let DatasourceJSON = { type : Text, uid : Text }
+
+let PanelJSON =
+      { id : Natural
+      , title : Text
+      , type : Text
+      , description : Text
+      , gridPos : GridPos
+      , datasource : DatasourceJSON
+      , targets : List TargetJSON
+      , fieldConfig : FieldConfigJSON
+      , options : OptionsJSON
+      }
+
+let RowJSON =
+      { id : Natural
+      , title : Text
+      , type : Text
+      , gridPos : GridPos
+      , collapsed : Bool
+      }
+
+let VariableJSON =
+      { name : Text
+      , label : Text
+      , type : Text
+      , query : Text
+      , datasource : DatasourceJSON
+      , multi : Bool
+      , includeAll : Bool
+      }
+
+-- a panel in the output is either a real panel or a row header
+-- since they share the same list, we use a union rendered as untagged
+-- Actually — Grafana's panel list is heterogeneous (rows + panels mixed).
+-- dhall-to-json can't do untagged unions. Instead, we'll give rows ALL the
+-- same fields as panels but with empty/default targets+fieldConfig.
+
+let FullPanelJSON =
+      { id : Natural
+      , title : Text
+      , type : Text
+      , description : Text
+      , gridPos : GridPos
+      , datasource : DatasourceJSON
+      , targets : List TargetJSON
+      , fieldConfig : FieldConfigJSON
+      , options : OptionsJSON
+      , collapsed : Bool
+      }
+
+let TimeJSON = { from : Text, to : Text }
+let TemplatingJSON = { list : List VariableJSON }
+
+let DashboardJSON =
+      { title : Text
+      , uid : Text
+      , schemaVersion : Natural
+      , refresh : Text
+      , time : TimeJSON
+      , timezone : Text
+      , editable : Bool
+      , tags : List Text
+      , templating : TemplatingJSON
+      , panels : List FullPanelJSON
+      }
+
+-- ── constructors ───────────────────────────────────────────────────────────────
+
+let defaultDs : DatasourceJSON =
+      { type = T.Datasource.default.type, uid = T.Datasource.default.uid }
+
+let emptyFieldConfig : FieldConfigJSON =
+      { defaults =
+          { unit = "short"
+          , color = { mode = "palette-classic" }
+          , custom =
+              { lineWidth = 1
+              , fillOpacity = 10
+              , spanNulls = True
+              , showPoints = "never"
+              , stacking = { mode = "none", group = "A" }
+              }
+          , thresholds = None ThresholdsJSON
+          }
+      }
+
+let defaultOptions : OptionsJSON =
+      { tooltip = { mode = "multi", sort = "desc" }
+      , legend = { displayMode = "table", placement = "bottom", calcs = [ "mean", "max", "last" ] }
+      }
+
+let makePanel =
       \(id : Natural) ->
       \(pos : GridPos) ->
       \(p : T.Panel.Type) ->
-        let thresholdJson =
+        let stackJson : StackingJSON =
               merge
-                { Some =
-                    \(t : T.Thresholds.Type) ->
-                      JSON.object
-                        ( toMap
-                            { mode = JSON.string t.mode
-                            , steps =
-                                JSON.array
-                                  ( Prelude.List.map
-                                      T.ThresholdStep
-                                      JSON.Type
-                                      ( \(s : T.ThresholdStep) ->
-                                          JSON.object
-                                            ( toMap
-                                                { color = JSON.string s.color
-                                                , value =
-                                                    merge
-                                                      { Some =
-                                                          \(v : Natural) ->
-                                                            JSON.natural v
-                                                      , None = JSON.null
-                                                      }
-                                                      s.value
-                                                }
-                                            )
-                                      )
-                                      t.steps
-                                  )
-                            }
-                        )
-                , None = JSON.null
-                }
-                p.thresholds
-
-        let stackingJson =
-              merge
-                { None =
-                    JSON.object
-                      ( toMap
-                          { mode = JSON.string "none", group = JSON.string "A" }
-                      )
-                , Normal =
-                    JSON.object
-                      ( toMap
-                          { mode = JSON.string "normal"
-                          , group = JSON.string "A"
-                          }
-                      )
-                , Percent =
-                    JSON.object
-                      ( toMap
-                          { mode = JSON.string "percent"
-                          , group = JSON.string "A"
-                          }
-                      )
+                { None = { mode = "none", group = "A" }
+                , Normal = { mode = "normal", group = "A" }
+                , Percent = { mode = "percent", group = "A" }
                 }
                 p.stacking
 
-        in  JSON.object
-              ( toMap
-                  { id = JSON.natural id
-                  , title = JSON.string p.title
-                  , type = JSON.string (T.panelTypeToGrafana p.type)
-                  , description = JSON.string p.description
-                  , gridPos =
-                      JSON.object
-                        ( toMap
-                            { x = JSON.natural pos.x
-                            , y = JSON.natural pos.y
-                            , w = JSON.natural pos.w
-                            , h = JSON.natural pos.h
-                            }
-                        )
-                  , datasource =
-                      JSON.object
-                        ( toMap
-                            { type = JSON.string T.Datasource.default.type
-                            , uid = JSON.string T.Datasource.default.uid
-                            }
-                        )
-                  , targets =
-                      JSON.array
-                        [ JSON.object
-                            ( toMap
-                                { rawSql = JSON.string p.sql
-                                , format = JSON.natural (T.formatToNat p.format)
-                                , queryType = JSON.string "sql"
-                                , refId = JSON.string "A"
-                                }
-                            )
-                        ]
-                  , fieldConfig =
-                      JSON.object
-                        ( toMap
-                            { defaults =
-                                JSON.object
-                                  ( toMap
-                                      { unit =
-                                          JSON.string (T.unitToGrafana p.unit)
-                                      , color =
-                                          JSON.object
-                                            ( toMap
-                                                { mode = JSON.string p.colorMode
-                                                }
-                                            )
-                                      , custom =
-                                          JSON.object
-                                            ( toMap
-                                                { lineWidth = JSON.natural 1
-                                                , fillOpacity =
-                                                    JSON.natural p.fillOpacity
-                                                , spanNulls = JSON.bool True
-                                                , showPoints =
-                                                    JSON.string "never"
-                                                , stacking = stackingJson
-                                                }
-                                            )
-                                      , thresholds = thresholdJson
-                                      }
-                                  )
-                            }
-                        )
-                  , options =
-                      JSON.object
-                        ( toMap
-                            { tooltip =
-                                JSON.object
-                                  ( toMap
-                                      { mode = JSON.string "multi"
-                                      , sort = JSON.string "desc"
-                                      }
-                                  )
-                            , legend =
-                                JSON.object
-                                  ( toMap
-                                      { displayMode = JSON.string "table"
-                                      , placement = JSON.string "bottom"
-                                      , calcs =
-                                          JSON.array
-                                            [ JSON.string "mean"
-                                            , JSON.string "max"
-                                            , JSON.string "last"
-                                            ]
-                                      }
-                                  )
-                            }
-                        )
-                  }
-              )
+        let threshJson : Optional ThresholdsJSON =
+              merge
+                { Some =
+                    \(t : T.Thresholds.Type) ->
+                      Some
+                        { mode = t.mode
+                        , steps =
+                            Prelude.List.map
+                              T.ThresholdStep
+                              ThresholdStepJSON
+                              (\(s : T.ThresholdStep) -> { color = s.color, value = s.value })
+                              t.steps
+                        }
+                , None = None ThresholdsJSON
+                }
+                p.thresholds
 
-let renderRow =
+        in  { id = id
+            , title = p.title
+            , type = T.panelTypeToGrafana p.type
+            , description = p.description
+            , gridPos = pos
+            , datasource = defaultDs
+            , targets =
+                [ { rawSql = p.sql
+                  , format = T.formatToNat p.format
+                  , queryType = "sql"
+                  , refId = "A"
+                  }
+                ]
+            , fieldConfig =
+                { defaults =
+                    { unit = T.unitToGrafana p.unit
+                    , color = { mode = p.colorMode }
+                    , custom =
+                        { lineWidth = 1
+                        , fillOpacity = p.fillOpacity
+                        , spanNulls = True
+                        , showPoints = "never"
+                        , stacking = stackJson
+                        }
+                    , thresholds = threshJson
+                    }
+                }
+            , options = defaultOptions
+            , collapsed = False
+            } : FullPanelJSON
+
+let makeRow =
       \(id : Natural) ->
       \(y : Natural) ->
       \(title : Text) ->
-        JSON.object
-          ( toMap
-              { id = JSON.natural id
-              , title = JSON.string title
-              , type = JSON.string "row"
-              , gridPos =
-                  JSON.object
-                    ( toMap
-                        { x = JSON.natural 0
-                        , y = JSON.natural y
-                        , w = JSON.natural 24
-                        , h = JSON.natural 1
-                        }
-                    )
-              , collapsed = JSON.bool False
-              , panels = JSON.array ([] : List JSON.Type)
-              }
-          )
+        { id = id
+        , title = title
+        , type = "row"
+        , description = ""
+        , gridPos = { x = 0, y = y, w = 24, h = 1 }
+        , datasource = defaultDs
+        , targets = [] : List TargetJSON
+        , fieldConfig = emptyFieldConfig
+        , options = defaultOptions
+        , collapsed = False
+        } : FullPanelJSON
 
-let renderVariable =
+let makeVariable =
       \(v : T.Variable.Type) ->
-        let typeStr =
-              merge
-                { Query = "query", Textbox = "textbox", Custom = "custom" }
-                v.type
+        { name = v.name
+        , label = v.label
+        , type =
+            merge
+              { Query = "query", Textbox = "textbox", Custom = "custom" }
+              v.type
+        , query = v.query
+        , datasource = defaultDs
+        , multi = v.multi
+        , includeAll = v.includeAll
+        } : VariableJSON
 
-        in  JSON.object
-              ( toMap
-                  { name = JSON.string v.name
-                  , label = JSON.string v.label
-                  , type = JSON.string typeStr
-                  , query = JSON.string v.query
-                  , datasource =
-                      JSON.object
-                        ( toMap
-                            { type = JSON.string T.Datasource.default.type
-                            , uid = JSON.string T.Datasource.default.uid
-                            }
-                        )
-                  , multi = JSON.bool v.multi
-                  , includeAll = JSON.bool v.includeAll
-                  }
-              )
+-- ── grid layout + render ───────────────────────────────────────────────────────
 
 let renderDashboard =
       \(d : T.Dashboard.Type) ->
-        let State = { panels : List JSON.Type, nextId : Natural, y : Natural }
-
-        let initState = { panels = [] : List JSON.Type, nextId = 1, y = 0 }
+        let State = { panels : List FullPanelJSON, nextId : Natural, y : Natural }
+        let initState = { panels = [] : List FullPanelJSON, nextId = 1, y = 0 }
 
         let processRow =
               \(state : State) ->
               \(r : T.Row.Type) ->
-                let rowPanel = renderRow state.nextId state.y r.title
-
+                let rowPanel = makeRow state.nextId state.y r.title
                 let afterRow =
                       { panels = state.panels # [ rowPanel ]
                       , nextId = state.nextId + 1
                       , y = state.y + 1
                       }
 
-                let PanelState =
-                      { panels : List JSON.Type
-                      , nextId : Natural
-                      , x : Natural
-                      , y : Natural
-                      , maxRowH : Natural
-                      }
-
-                let initPanelState =
+                let PState = { panels : List FullPanelJSON, nextId : Natural, x : Natural, y : Natural, maxH : Natural }
+                let initPS =
                       { panels = afterRow.panels
                       , nextId = afterRow.nextId
                       , x = 0
                       , y = afterRow.y
-                      , maxRowH = 0
+                      , maxH = 0
                       }
 
                 let processPanel =
-                      \(ps : PanelState) ->
+                      \(ps : PState) ->
                       \(p : T.Panel.Type) ->
-                        let needsWrap =
-                              Prelude.Natural.greaterThan (ps.x + p.width) 24
-
-                        let x = if needsWrap then 0 else ps.x
-
-                        let y = if needsWrap then ps.y + ps.maxRowH else ps.y
-
-                        let maxH =
-                              if    needsWrap
-                              then  p.height
-                              else  if Prelude.Natural.greaterThan
-                                         p.height
-                                         ps.maxRowH
-                              then  p.height
-                              else  ps.maxRowH
-
-                        let pos = { x, y, w = p.width, h = p.height }
-
-                        let panelJson = renderPanel ps.nextId pos p
-
+                        let wrap = Prelude.Natural.greaterThan (ps.x + p.width) 24
+                        let x = if wrap then 0 else ps.x
+                        let y = if wrap then ps.y + ps.maxH else ps.y
+                        let maxH = if wrap then p.height
+                                   else (if Prelude.Natural.greaterThan p.height ps.maxH then p.height else ps.maxH)
+                        let panelJson = makePanel ps.nextId { x = x, y = y, w = p.width, h = p.height } p
                         in  { panels = ps.panels # [ panelJson ]
                             , nextId = ps.nextId + 1
                             , x = x + p.width
-                            , y
-                            , maxRowH = maxH
+                            , y = y
+                            , maxH = maxH
                             }
 
-                let finalPanelState =
+                let finalPS =
                       Prelude.List.foldLeft
                         T.Panel.Type
-                        PanelState
+                        PState
                         r.panels
-                        initPanelState
+                        initPS
                         processPanel
 
-                in  { panels = finalPanelState.panels
-                    , nextId = finalPanelState.nextId
-                    , y = finalPanelState.y + finalPanelState.maxRowH
+                in  { panels = finalPS.panels
+                    , nextId = finalPS.nextId
+                    , y = finalPS.y + finalPS.maxH
                     }
 
         let finalState =
-              Prelude.List.foldLeft T.Row.Type State d.rows initState processRow
+              Prelude.List.foldLeft
+                T.Row.Type
+                State
+                d.rows
+                initState
+                processRow
 
-        in  JSON.object
-              ( toMap
-                  { title = JSON.string d.title
-                  , uid = JSON.string d.uid
-                  , schemaVersion = JSON.natural 39
-                  , refresh = JSON.string d.refresh
-                  , time =
-                      JSON.object
-                        ( toMap
-                            { from = JSON.string d.timeFrom
-                            , to = JSON.string "now"
-                            }
-                        )
-                  , timezone = JSON.string "browser"
-                  , editable = JSON.bool True
-                  , tags =
-                      JSON.array
-                        (Prelude.List.map Text JSON.Type JSON.string d.tags)
-                  , templating =
-                      JSON.object
-                        ( toMap
-                            { list =
-                                JSON.array
-                                  ( Prelude.List.map
-                                      T.Variable.Type
-                                      JSON.Type
-                                      renderVariable
-                                      d.variables
-                                  )
-                            }
-                        )
-                  , panels = JSON.array finalState.panels
-                  }
-              )
+        in  { title = d.title
+            , uid = d.uid
+            , schemaVersion = 39
+            , refresh = d.refresh
+            , time = { from = d.timeFrom, to = "now" }
+            , timezone = "browser"
+            , editable = True
+            , tags = d.tags
+            , templating = { list = Prelude.List.map T.Variable.Type VariableJSON makeVariable d.variables }
+            , panels = finalState.panels
+            } : DashboardJSON
 
-in  { renderPanel, renderRow, renderVariable, renderDashboard }
+in  { renderDashboard }

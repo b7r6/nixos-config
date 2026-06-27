@@ -110,9 +110,10 @@ let ListUtils =
 
 let NaturalUtils =
       { greaterThan =
+          -- a > b iff (a - b) != 0, where Natural/subtract x y = max(0, y - x)
           \(a : Natural) ->
           \(b : Natural) ->
-            Natural/isZero (Natural/subtract a b) == False
+            Natural/isZero (Natural/subtract b a) == False
       }
 
 in  { JSON, List = ListUtils, Natural = NaturalUtils }
