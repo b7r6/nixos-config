@@ -141,33 +141,98 @@ let
     ];
   };
 
-  procChain =
+  # processor chains: local collection stamps host.name; gateway pass-through does NOT.
+  localProcChain =
     lib.optionals isAgent [ "resourcedetection" ]
     ++ lib.optionals (isAgent && !isGateway) [ "resource" ]
     ++ [ "batch" ];
 
+  # gateway pass-through: only batch (preserve remote agents' host.name)
+  gatewayProcChain = [ "batch" ];
+
   # receiver lists per signal
-  baseReceivers = lib.optional (receivers ? otlp) "otlp";
-  metricReceivers =
-    baseReceivers
-    ++ lib.optional isAgent "hostmetrics"
+  localMetricReceivers =
+    lib.optional isAgent "hostmetrics"
     ++ lib.optional (isAgent && agent.scrapeTargets != [ ]) "prometheus";
-  logReceivers = baseReceivers ++ lib.optional isAgent "journald";
-  traceReceivers = baseReceivers;
+  localLogReceivers = lib.optional isAgent "journald";
 
-  mkPipeline = recv: {
-    receivers = recv;
-    processors = procChain;
-    exporters = [ exporterName ];
-  };
-
+  # on a fused gateway+agent node, split pipelines:
+  #   - metrics/local: hostmetrics + prometheus → resourcedetection → batch → exporter
+  #   - metrics/gateway: otlp → batch → exporter (no resourcedetection)
+  #   - logs/local: journald → resourcedetection → batch → exporter
+  #   - logs/gateway: otlp → batch → exporter
+  # on a pure agent: single pipeline with otlp + local receivers → full procChain → exporter
+  # on a pure gateway (no agent): single pipeline with otlp → batch → exporter
   otelSettings = {
     inherit receivers processors exporters;
-    service.pipelines = {
-      metrics = mkPipeline metricReceivers;
-      logs = mkPipeline logReceivers;
-      traces = mkPipeline traceReceivers;
-    };
+    service.pipelines =
+      if isGateway && isAgent then
+        {
+          # fused node: separate local vs gateway pipelines
+          "metrics/local" = {
+            receivers = localMetricReceivers;
+            processors = localProcChain;
+            exporters = [ exporterName ];
+          };
+          "metrics/gateway" = {
+            receivers = [ "otlp" ];
+            processors = gatewayProcChain;
+            exporters = [ exporterName ];
+          };
+          "logs/local" = {
+            receivers = localLogReceivers;
+            processors = localProcChain;
+            exporters = [ exporterName ];
+          };
+          "logs/gateway" = {
+            receivers = [ "otlp" ];
+            processors = gatewayProcChain;
+            exporters = [ exporterName ];
+          };
+          traces = {
+            receivers = [ "otlp" ];
+            processors = gatewayProcChain;
+            exporters = [ exporterName ];
+          };
+        }
+      else if isGateway then
+        {
+          # pure gateway
+          metrics = {
+            receivers = [ "otlp" ];
+            processors = gatewayProcChain;
+            exporters = [ exporterName ];
+          };
+          logs = {
+            receivers = [ "otlp" ];
+            processors = gatewayProcChain;
+            exporters = [ exporterName ];
+          };
+          traces = {
+            receivers = [ "otlp" ];
+            processors = gatewayProcChain;
+            exporters = [ exporterName ];
+          };
+        }
+      else
+        {
+          # pure agent: all receivers in one pipeline, full procChain
+          metrics = {
+            receivers = [ "otlp" ] ++ localMetricReceivers;
+            processors = localProcChain;
+            exporters = [ exporterName ];
+          };
+          logs = {
+            receivers = [ "otlp" ] ++ localLogReceivers;
+            processors = localProcChain;
+            exporters = [ exporterName ];
+          };
+          traces = {
+            receivers = [ "otlp" ];
+            processors = localProcChain;
+            exporters = [ exporterName ];
+          };
+        };
   };
 in
 {
