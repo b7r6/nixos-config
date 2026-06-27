@@ -20,8 +20,8 @@ let dashboard =
           [ T.Row::{
             , title = "Ensemble Health"
             , panels =
-                [ (P.stat "Leader" "SELECT ${S.host} as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseAsyncMetrics_KeeperIsLeader' AND Value = 1 AND TimeUnix > now() - INTERVAL 2 MINUTE LIMIT 1") // { width = 4 }
-                , (P.stat "Synced followers" "SELECT avg(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseAsyncMetrics_KeeperSyncedFollowers' AND ${keeperFilter} AND TimeUnix > now() - INTERVAL 2 MINUTE") // { width = 4 }
+                [ (P.stat "Nodes reporting" "SELECT uniq(${S.host}) as value FROM ${S.gauge} WHERE MetricName LIKE 'ClickHouseAsyncMetrics_Keeper%' AND TimeUnix > now() - INTERVAL 2 MINUTE") // { width = 4 }
+                , (P.statWithThreshold "Synced followers" "SELECT max(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseAsyncMetrics_KeeperSyncedFollowers' AND ${keeperFilter} AND TimeUnix > now() - INTERVAL 2 MINUTE" { mode = "absolute", steps = [ { color = "red", value = None Natural }, { color = "yellow", value = Some 1 }, { color = "green", value = Some 2 } ] }) // { width = 4 }
                 , (P.stat "Znode count" "SELECT avg(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseAsyncMetrics_KeeperZnodeCount' AND ${keeperFilter} AND TimeUnix > now() - INTERVAL 2 MINUTE") // { width = 4 }
                 , (P.stat "Watches" "SELECT sum(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseAsyncMetrics_KeeperWatchCount' AND ${keeperFilter} AND TimeUnix > now() - INTERVAL 2 MINUTE") // { width = 4 }
                 , (P.stat "Ephemerals" "SELECT sum(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseAsyncMetrics_KeeperEphemeralsCount' AND ${keeperFilter} AND TimeUnix > now() - INTERVAL 2 MINUTE") // { width = 4 }
