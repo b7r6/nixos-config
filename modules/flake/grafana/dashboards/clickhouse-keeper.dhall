@@ -3,9 +3,8 @@ let S = ../schema/sql.dhall
 let P = ../schema/panels.dhall
 let R = ../schema/render.dhall
 
--- keeper nodes are ultraviolence, guccimane, shimmer
-let keeperHosts = "'ultraviolence', 'guccimane', 'shimmer'"
-let keeperFilter = "${S.host} IN (${keeperHosts})"
+-- filter to nodes that report keeper metrics (derived from the fleet, not hardcoded)
+let keeperFilter = "${S.host} IN (SELECT DISTINCT ${S.host} FROM ${S.gauge} WHERE MetricName LIKE 'ClickHouseAsyncMetrics_Keeper%' AND TimeUnix > now() - INTERVAL 5 MINUTE)"
 let kGauge = \(metric : Text) -> "SELECT TimeUnix as time, ${S.host} as keeper, avg(Value) as value FROM ${S.gauge} WHERE MetricName = '${metric}' AND ${keeperFilter} AND ${S.tf} GROUP BY time, keeper ORDER BY time"
 let kStat = \(metric : Text) -> "SELECT ${S.host} as keeper, avg(Value) as value FROM ${S.gauge} WHERE MetricName = '${metric}' AND ${keeperFilter} AND TimeUnix > now() - INTERVAL 2 MINUTE GROUP BY keeper"
 

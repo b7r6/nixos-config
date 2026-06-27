@@ -132,13 +132,13 @@ let dashboard =
             , title = "Keeper Ensemble (3 nodes)"
             , panels =
                 [ (P.timeseries "Keeper sessions by node" T.Unit.Short
-                    "SELECT TimeUnix as time, ${S.host} as keeper, avg(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseMetrics_ZooKeeperSession' AND ${S.host} IN ('ultraviolence', 'guccimane', 'shimmer') AND ${S.tf} GROUP BY time, keeper ORDER BY time"
+                    "SELECT TimeUnix as time, ${S.host} as keeper, avg(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseMetrics_ZooKeeperSession' AND ${S.host} IN (SELECT DISTINCT ${S.host} FROM ${S.gauge} WHERE MetricName LIKE 'ClickHouseAsyncMetrics_Keeper%' AND TimeUnix > now() - INTERVAL 5 MINUTE) AND ${S.tf} GROUP BY time, keeper ORDER BY time"
                   ) // { width = 8 }
                 , (P.timeseries "Keeper requests by node" T.Unit.Short
-                    "SELECT TimeUnix as time, ${S.host} as keeper, avg(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseMetrics_ZooKeeperRequest' AND ${S.host} IN ('ultraviolence', 'guccimane', 'shimmer') AND ${S.tf} GROUP BY time, keeper ORDER BY time"
+                    "SELECT TimeUnix as time, ${S.host} as keeper, avg(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseMetrics_ZooKeeperRequest' AND ${S.host} IN (SELECT DISTINCT ${S.host} FROM ${S.gauge} WHERE MetricName LIKE 'ClickHouseAsyncMetrics_Keeper%' AND TimeUnix > now() - INTERVAL 5 MINUTE) AND ${S.tf} GROUP BY time, keeper ORDER BY time"
                   ) // { width = 8 }
                 , (P.timeseries "Keeper watches by node" T.Unit.Short
-                    "SELECT TimeUnix as time, ${S.host} as keeper, avg(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseMetrics_ZooKeeperWatch' AND ${S.host} IN ('ultraviolence', 'guccimane', 'shimmer') AND ${S.tf} GROUP BY time, keeper ORDER BY time"
+                    "SELECT TimeUnix as time, ${S.host} as keeper, avg(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseMetrics_ZooKeeperWatch' AND ${S.host} IN (SELECT DISTINCT ${S.host} FROM ${S.gauge} WHERE MetricName LIKE 'ClickHouseAsyncMetrics_Keeper%' AND TimeUnix > now() - INTERVAL 5 MINUTE) AND ${S.tf} GROUP BY time, keeper ORDER BY time"
                   ) // { width = 8 }
                 ]
             }
