@@ -31,7 +31,7 @@ let dashboard =
             , title = "PostgREST Pool"
             , panels =
                 [ (P.timeseries "Available / max" T.Unit.Short (Q.gaugeMulti "'pgrst_db_pool_available', 'pgrst_db_pool_max'")) // { width = 8 }
-                , (P.timeseries "Waiting" T.Unit.Short (Q.gaugeForHost "pgrst_db_pool_waiting")) // { width = 8, thresholds = Some T.thresholdErrors }
+                , (P.timeseries "Waiting" T.Unit.Short (Q.gaugeSingle "pgrst_db_pool_waiting")) // { width = 8, thresholds = Some T.thresholdErrors }
                 , (P.timeseries "Timeouts" T.Unit.Short (Q.rate "pgrst_db_pool_timeouts_total")) // { width = 8, thresholds = Some T.thresholdErrors }
                 ]
             }

@@ -9,7 +9,7 @@ let P = ../schema/panels.dhall
 let R = ../schema/render.dhall
 
 -- go runtime metrics are scraped from forgejo's :3200/metrics on watchtower
-let goGauge = \(metric : Text) -> Q.gaugeForHost metric
+let goGauge = \(metric : Text) -> Q.gaugeSingle metric
 
 let dashboard =
       T.Dashboard::{

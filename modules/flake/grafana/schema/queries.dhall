@@ -32,10 +32,15 @@ let gaugeMulti =
       \(metrics : Text) ->
         "SELECT TimeUnix as time, MetricName as metric, avg(Value) as value FROM ${S.gauge} WHERE MetricName IN (${metrics}) AND ${S.tf} GROUP BY time, metric ORDER BY time"
 
--- | single-host gauge (for drilldown dashboards)
+-- | single-host gauge (for drilldown dashboards with $host variable)
 let gaugeForHost =
       \(metric : Text) ->
         "SELECT TimeUnix as time, avg(Value) as value FROM ${S.gauge} WHERE MetricName = '${metric}' AND ${S.hostFilterSingle} AND ${S.tf} GROUP BY time ORDER BY time"
+
+-- | gauge time series, no host filter (for single-server dashboards like ClickHouse)
+let gaugeSingle =
+      \(metric : Text) ->
+        "SELECT TimeUnix as time, avg(Value) as value FROM ${S.gauge} WHERE MetricName = '${metric}' AND ${S.tf} GROUP BY time ORDER BY time"
 
 -- | stat: most recent value of a gauge
 let statGauge =
@@ -162,6 +167,7 @@ in  { -- gauges
     , gaugeByLabel
     , gaugeMulti
     , gaugeForHost
+    , gaugeSingle
     , statGauge
       -- rates (counters)
     , rate

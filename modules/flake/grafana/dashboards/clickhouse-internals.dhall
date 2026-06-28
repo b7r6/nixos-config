@@ -82,7 +82,7 @@ let dashboard =
             T.Row::{
             , title = "Query Throughput"
             , panels =
-                [ (P.timeseries "Queries running" T.Unit.Short (Q.gaugeForHost "${m}Query")) // { width = 8 }
+                [ (P.timeseries "Queries running" T.Unit.Short (Q.gaugeSingle "${m}Query")) // { width = 8 }
                 , (P.timeseries "SELECT/sec" T.Unit.QueriesPerSec (Q.rate "${e}SelectQuery")) // { width = 8 }
                 , (P.timeseries "INSERT/sec" T.Unit.QueriesPerSec (Q.rate "${e}InsertQuery")) // { width = 8 }
                 ]
@@ -104,11 +104,11 @@ let dashboard =
             T.Row::{
             , title = "Memory"
             , panels =
-                [ (P.timeseries "Memory tracked" T.Unit.Bytes (Q.gaugeForHost "${m}MemoryTracking")) // { width = 8 }
+                [ (P.timeseries "Memory tracked" T.Unit.Bytes (Q.gaugeSingle "${m}MemoryTracking")) // { width = 8 }
                 , (P.timeseries "jemalloc resident vs allocated" T.Unit.Bytes
                     (Q.gaugeMulti "'${a}jemalloc_resident', '${a}jemalloc_allocated'")
                   ) // { width = 8, description = "gap = fragmentation" }
-                , (P.timeseries "OS free (no cache)" T.Unit.Bytes (Q.gaugeForHost "${a}OSMemoryFreeWithoutCached")) // { width = 8 }
+                , (P.timeseries "OS free (no cache)" T.Unit.Bytes (Q.gaugeSingle "${a}OSMemoryFreeWithoutCached")) // { width = 8 }
                 ]
             }
 
@@ -116,12 +116,12 @@ let dashboard =
             T.Row::{
             , title = "Merges & Mutations"
             , panels =
-                [ (P.timeseries "Background merges" T.Unit.Short (Q.gaugeForHost "${m}Merge")) // { width = 8 }
+                [ (P.timeseries "Background merges" T.Unit.Short (Q.gaugeSingle "${m}Merge")) // { width = 8 }
                 , (P.timeseries "Merged rows/sec" T.Unit.RowsPerSec (Q.rate "${e}MergedRows")) // { width = 8 }
                 , (P.timeseries "Merge time" T.Unit.Milliseconds (Q.rate "${e}MergeTotalMilliseconds")) // { width = 8 }
                 , P.timeseries "Parts: active vs outdated" T.Unit.Short
                     (Q.gaugeMulti "'${m}PartsActive', '${m}PartsOutdated'")
-                , (P.timeseries "Max parts/partition" T.Unit.Short (Q.gaugeForHost "${a}MaxPartCountForPartition"))
+                , (P.timeseries "Max parts/partition" T.Unit.Short (Q.gaugeSingle "${a}MaxPartCountForPartition"))
                     // { thresholds = Some thresholdMaxParts, description = ">300 triggers InsertDelay" }
                 ]
             }
@@ -130,8 +130,8 @@ let dashboard =
             T.Row::{
             , title = "Storage"
             , panels =
-                [ (P.timeseries "Total size" T.Unit.Bytes (Q.gaugeForHost "${a}TotalBytesOfMergeTreeTables")) // { width = 8 }
-                , (P.timeseries "Total rows" T.Unit.Short (Q.gaugeForHost "${a}TotalRowsOfMergeTreeTables")) // { width = 8 }
+                [ (P.timeseries "Total size" T.Unit.Bytes (Q.gaugeSingle "${a}TotalBytesOfMergeTreeTables")) // { width = 8 }
+                , (P.timeseries "Total rows" T.Unit.Short (Q.gaugeSingle "${a}TotalRowsOfMergeTreeTables")) // { width = 8 }
                 , (P.timeseries "Tables / databases" T.Unit.Short
                     (Q.gaugeMulti "'${a}NumberOfTables', '${a}NumberOfDatabases'")
                   ) // { width = 8 }
@@ -180,8 +180,8 @@ let dashboard =
                 [ (P.timeseries "Fetch / Send" T.Unit.Short
                     (Q.gaugeMulti "'${m}ReplicatedFetch', '${m}ReplicatedSend'")
                   ) // { width = 8 }
-                , (P.timeseries "Max queue" T.Unit.Short (Q.gaugeForHost "${a}ReplicasMaxQueueSize")) // { width = 8 }
-                , (P.timeseries "Max delay" T.Unit.Seconds (Q.gaugeForHost "${a}ReplicasMaxAbsoluteDelay"))
+                , (P.timeseries "Max queue" T.Unit.Short (Q.gaugeSingle "${a}ReplicasMaxQueueSize")) // { width = 8 }
+                , (P.timeseries "Max delay" T.Unit.Seconds (Q.gaugeSingle "${a}ReplicasMaxAbsoluteDelay"))
                     // { width = 8, thresholds = Some thresholdDelay }
                 ]
             }
@@ -204,8 +204,8 @@ let dashboard =
             T.Row::{
             , title = "ZooKeeper Client"
             , panels =
-                [ (P.timeseries "In-flight requests" T.Unit.Short (Q.gaugeForHost "${m}ZooKeeperRequest")) // { width = 8 }
-                , (P.timeseries "Watches" T.Unit.Short (Q.gaugeForHost "${m}ZooKeeperWatch")) // { width = 8 }
+                [ (P.timeseries "In-flight requests" T.Unit.Short (Q.gaugeSingle "${m}ZooKeeperRequest")) // { width = 8 }
+                , (P.timeseries "Watches" T.Unit.Short (Q.gaugeSingle "${m}ZooKeeperWatch")) // { width = 8 }
                 , (P.timeseries "Ops/sec (get/set/create/txn)" T.Unit.OpsPerSec
                     (Q.rateByKey "${e}ZooKeeperGet" "MetricName" "metric")
                   ) // { width = 8 }
