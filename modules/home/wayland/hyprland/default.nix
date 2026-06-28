@@ -1,11 +1,13 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #                                              // hyper-modern-nixos // hyprland
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
+#
 #
 # Hyprland window manager configuration with high-level abstractions.
 #
-
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
 {
   config,
   lib,
@@ -26,6 +28,7 @@ let
   colors = config.lib.stylix.colors;
 
   # ── Monitor Type ────────────────────────────────────────────────────────────
+  
   monitorType = types.submodule {
     options = {
       description = mkOption {
@@ -42,7 +45,7 @@ let
 
       refreshRate = mkOption {
         type = types.int;
-        default = 60;
+        default = 120;
         description = "Refresh rate in Hz";
       };
 
@@ -54,7 +57,9 @@ let
           "auto-up"
           "auto-down"
         ]) types.str;
+        
         default = "auto";
+        
         description = ''
           Monitor position. Use:
           - "auto" - automatic placement
@@ -63,6 +68,7 @@ let
           - "auto-up" / "auto-down" - vertical placement
           - "0x0", "1920x0", etc. - explicit pixel coordinates
         '';
+        
         example = "auto-left";
       };
 
@@ -94,6 +100,7 @@ let
   };
 
   # ── App Launcher Type ───────────────────────────────────────────────────────
+  
   appType = types.submodule {
     options = {
       terminal = mkOption {
@@ -129,6 +136,7 @@ let
   };
 
   # ── Appearance Type ─────────────────────────────────────────────────────────
+  
   appearanceType = types.submodule {
     options = {
       gaps = {
@@ -208,6 +216,7 @@ let
   };
 
   # ── Input Type ──────────────────────────────────────────────────────────────
+  
   inputType = types.submodule {
     options = {
       keyboard = {
@@ -216,6 +225,7 @@ let
           default = "us";
           description = "Keyboard layout";
         };
+        
         options = mkOption {
           type = types.str;
           default = "ctrl:nocaps";
@@ -229,11 +239,13 @@ let
           default = 0.0;
           description = "Mouse sensitivity (-1.0 to 1.0)";
         };
+        
         accelProfile = mkOption {
           type = types.enum [
             "flat"
             "adaptive"
           ];
+          
           default = "flat";
           description = "Mouse acceleration profile";
         };
@@ -245,6 +257,7 @@ let
           default = true;
           description = "Natural (inverted) scrolling";
         };
+        
         tapToClick = mkOption {
           type = types.bool;
           default = true;
@@ -255,6 +268,7 @@ let
   };
 
   # ── Window Rule Type ────────────────────────────────────────────────────────
+  
   windowRuleType = types.submodule {
     options = {
       match = mkOption {

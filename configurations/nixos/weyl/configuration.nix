@@ -42,13 +42,14 @@ in
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
+    wireplumber.enable = true;
   };
 
   # ── Per-host display config ────────────────────────────────────────────────
 
   home-manager.users.b7r6 = {
     hyper-modern-nixos = {
-      
+
       hyprland.monitors = (import ../../../lib/monitors.nix).ultraviolence;
 
       themes.display = {
@@ -61,29 +62,29 @@ in
   };
 
   # ── attic api-server replica (module self-wires its secrets) ────────────────
-  
+
   hyper-modern-nixos.attic-node = {
     enable = true;
     profile = "replica";
   };
 
   # ── OTel agent (host metrics + journald → watchtower gateway) ──────────────
-  
+
   hyper-modern-nixos.observability.otel.agent = {
     enable = true;
-    
+
     scrapeTargets = [
       "127.0.0.1:9153" # coredns
     ];
   };
 
   # ── Tailscale safety net ────────────────────────────────────────────────────
-  
+
   age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;
   hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
 
   # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
-  
+
   # Per-host repo (backups-restic/weyl). Module self-wires its secrets.
   # FIRST init declarative + idempotent:  nix run .#restic-init -- weyl
   hyper-modern-nixos.backup = {

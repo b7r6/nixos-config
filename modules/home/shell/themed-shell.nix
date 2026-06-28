@@ -52,6 +52,7 @@ in
 
     programs.atuin = {
       enable = true;
+
       enableBashIntegration = true;
       enableZshIntegration = true;
 
@@ -60,7 +61,7 @@ in
         dialect = "us";
         style = "auto";
         auto_sync = true;
-        sync_frequency = "5m";
+        sync_frequency = "10s";
         filter_mode = "global";
         search_mode = "fuzzy";
         show_time = "relative";

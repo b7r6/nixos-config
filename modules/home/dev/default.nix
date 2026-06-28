@@ -19,6 +19,12 @@ in
       description = "Enable core development tools (cmake, gh, just, etc.)";
     };
 
+    buck2.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable `buck2`";
+    };
+
     python.enable = lib.mkOption {
       type = lib.types.bool;
       default = true;
@@ -120,6 +126,11 @@ in
           dos2unix
           wget
           yazi
+        ])
+
+        # `buck2 development
+        (lib.optionals cfg.python.enable [
+          buck2
         ])
 
         # Python development

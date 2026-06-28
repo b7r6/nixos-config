@@ -1,8 +1,12 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                           // hyper-modern-nixos // lockscreen
+#                                            // hyper-modern-nixos // lockscreen
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-# Lock screen (swaylock) configuration
+# Lock screen (swaylock) configuration.
+#
+# TODO[b7r6]: figure out how this fuckin thing works...
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 { config, lib, ... }:
 let

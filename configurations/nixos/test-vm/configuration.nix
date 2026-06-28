@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                              // hyper-modern-nixos // test-vm
+#                                               // hyper-modern-nixos // test-vm
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # VM configuration for testing desktop/portal functionality.
@@ -17,8 +17,15 @@
 #   - Run 'Hyprland' to start the desktop
 #   - Test portals with: portal-test (screenshot, file picker, etc.)
 #
-{ pkgs, lib, ... }:
-
+{
+  flake,
+  pkgs,
+  lib,
+  ...
+}:
+let
+  inherit (flake) inputs;
+in
 {
   # ── Machine Identity ─────────────────────────────────────────────────────────
 
@@ -94,7 +101,16 @@
   };
 
   # Hyprland window manager
-  programs.hyprland.enable = true;
+  programs.hyprland.enable = {
+    enable = true;
+
+    # set the flake package
+    package = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
+
+    # make sure to also set the portal package, so that they are in sync
+    portalPackage =
+      inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
+  };
 
   # Auto-login to TTY1 for easy testing
   services.getty.autologinUser = "test";

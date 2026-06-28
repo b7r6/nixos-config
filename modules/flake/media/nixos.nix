@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                                // hyper-modern-nixos // media
+#                                                  // hypermodern-nixos // media
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # Two self-hosted media servers, each independently gated, OFF BY DEFAULT:
@@ -13,6 +13,7 @@
 #     `libraryRoot/video` (point its libraries wherever in the UI).
 #
 # ── library on disk ────────────────────────────────────────────────────────
+#
 # Both read a plain directory tree rooted at `libraryRoot` (default
 # /var/lib/media). That dir is declared ONCE here as an `authoritative` state
 # dir (hyper-modern-nixos.state.dirs), from which the fleet plumbing DERIVES:
@@ -22,11 +23,15 @@
 # the semantics. See modules/nixos/state.nix.
 #
 # ── reachability ───────────────────────────────────────────────────────────
+#
 # The fleet firewall trusts tailscale0 wholesale (modules/nixos/network.nix), so
 # tailnet clients (phone/laptop) reach these ports with NO extra rule. A Google
 # TV / Chromecast can't join the tailnet without sideloading, so for it we ALSO
 # open the ports on the LAN interface (`lanInterface`). Set openLan = false to
 # go tailnet-only.
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
 { config, lib, ... }:
 let
   cfg = config.hyper-modern-nixos.media;
@@ -39,6 +44,7 @@ in
     libraryRoot = lib.mkOption {
       type = lib.types.str;
       default = "/var/lib/media";
+
       description = ''
         Root of the media tree both servers read. Declared as an `authoritative`
         state dir, so it is backed up (restic→R2) and persisted across an
@@ -80,6 +86,7 @@ in
     hardwareAcceleration = lib.mkOption {
       type = lib.types.bool;
       default = config.hyper-modern-nixos.nvidia.enable or false;
+
       description = ''
         Wire Jellyfin for NVIDIA hardware transcoding (NVENC/NVDEC). Defaults to
         on whenever the host nvidia module is enabled. Requires
@@ -109,14 +116,17 @@ in
     ];
 
     # ── Navidrome (music) ────────────────────────────────────────────────────
+
     services.navidrome = lib.mkIf cfg.enableNavidrome {
       enable = true;
       settings = {
         MusicFolder = "${cfg.libraryRoot}/music";
+
         # Bind all interfaces; exposure is governed by the firewall (tailscale0
         # trusted + optional LAN rule), NOT by the bind address.
         Address = "0.0.0.0";
         Port = cfg.navidromePort;
+
         # SoundCloud-style rips often lack album tags; let folder structure and
         # filenames carry the library so single tracks/mixes still show up.
         Scanner.Extractor = "taglib";
@@ -124,6 +134,7 @@ in
     };
 
     # ── Jellyfin (video + music, Google-TV client, NVENC) ─────────────────────
+
     services.jellyfin = lib.mkIf cfg.enableJellyfin {
       enable = true;
       openFirewall = false; # we manage exposure ourselves (tailnet + optional LAN)

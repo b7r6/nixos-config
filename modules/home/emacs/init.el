@@ -15,23 +15,24 @@
 (require 'cl-lib)
 (require 'seq)
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                      // memory // performance // optimization
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
+;;                            // memory // performance // optimization
+;; ───────────────────────────────────────────────────────────────────
 
 (defvar hypermodern--file-name-handler-alist file-name-handler-alist)
 
 (setq file-name-handler-alist nil
       gc-cons-threshold most-positive-fixnum)
 
-(add-hook 'emacs-startup-hook
-          (lambda ()
-            (setq file-name-handler-alist hypermodern--file-name-handler-alist
-                  gc-cons-threshold (* 128 1024 1024))))
+(add-hook
+ 'emacs-startup-hook
+ (lambda ()
+   (setq file-name-handler-alist hypermodern--file-name-handler-alist
+         gc-cons-threshold (* 128 1024 1024))))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 ;;             // early frame seeding // prevent PGTK pink flash
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 
 (setq default-frame-alist
       '((background-color . "#111417")
@@ -47,11 +48,13 @@
 ;; disable gtk tooltips (cause color issues on PGTK)
 (setq x-gtk-use-system-tooltips nil)
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // package loading (straight.el + Nix hybrid)
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
+;;                                               // package // loading
+;; ───────────────────────────────────────────────────────────────────
 ;;
-;; Portable config: works on NixOS (packages preloaded) and vanilla emacs.
+;; Portable config: works on NixOS (packages preloaded) and vanilla
+;; emacs.
+;;
 ;; - On Nix: packages are preloaded, straight.el available for extras
 ;; - On vanilla: straight.el fetches everything
 ;;
@@ -100,9 +103,9 @@
  use-package-verbose nil
  use-package-expand-minimally t)
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                                    // forward // declarations
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
+;;                                          // forward // declarations
+;; ───────────────────────────────────────────────────────────────────
 
 ;; External package functions
 (declare-function eglot-format-buffer "eglot" ())
@@ -157,18 +160,18 @@
 (declare-function hypermodern/kill-buffer "init" ())
 (declare-function hypermodern/format-buffer "init" ())
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                                          // PGTK // detection
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
+;;                                                             // PGTK
+;; ───────────────────────────────────────────────────────────────────
 
 (defvar hypermodern/is-pgtk
   (and (boundp 'system-configuration-features)
        (string-match-p "PGTK" system-configuration-features))
   "Non-nil if running on PGTK build of Emacs.")
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                         // theme engine // zero depdendencies
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
+;;                               // theme engine // zero depdendencies
+;; ───────────────────────────────────────────────────────────────────
 
 (defvar hypermodern/palettes
   '((ono-sendai-razorgirl
@@ -745,11 +748,11 @@
     (let ((bg (plist-get palette :base00)))
       (modify-all-frames-parameters `((background-color . ,bg))))
 
-    (message "Applied theme: %s" (plist-get palette :name))))
+    (message "// theme // %s //" (plist-get palette :name))))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 ;;                                               // css // reset
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 
 (defun hypermodern/css-reset ()
   "Strip typography crimes. Color only."
@@ -793,9 +796,9 @@
     (when (facep face)
       (set-face-attribute face nil :underline nil))))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // hypermodern // ui system
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
+;;                                                // hypermodern // ui
+;; ───────────────────────────────────────────────────────────────────
 
 (defvar hypermodern/ui-density 'tight)
 (defvar hypermodern/ui-signal 'minimal)
@@ -1069,9 +1072,9 @@
   (interactive)
   (call-interactively 'hypermodern/ui-style))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                            // disable // flymake // squiggles
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
+;;                                  // disable // flymake // squiggles
+;; ───────────────────────────────────────────────────────────────────
 
 ;; n.b. disable flymake globally...
 (with-eval-after-load 'flymake
@@ -1081,9 +1084,9 @@
 ;; (setq flymake-start-on-flymake-mode nil)
 ;; (add-hook 'flymake-mode-hook (lambda () (flymake-mode -1)))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                                // reinit // user // interface
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
+;;                                      // reinit // user // interface
+;; ───────────────────────────────────────────────────────────────────
 
 (setq inhibit-startup-screen t
       inhibit-startup-message t
@@ -1120,9 +1123,9 @@
 (show-paren-mode 1)
 (fset 'yes-or-no-p 'y-or-n-p)
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 ;;                                        // frame // discipline
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 
 ;; ── `shackle`: No popup without permission ──────────────────────────
 
@@ -1297,9 +1300,9 @@
   (setq popper-display-control nil) ;; n.b. let shackle control placement...
   (popper-mode 1))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 ;;                                         // window // movement
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 
 (defun hypermodern/hsplit ()
   (interactive)
@@ -1320,9 +1323,9 @@
       (dotimes (i n)
         (set-window-buffer (nth i windows) (nth (mod (1+ i) n) buffers))))))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                                               // mode // line
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
+;;                                                     // mode // line
+;; ───────────────────────────────────────────────────────────────────
 
 (use-package doom-modeline
   :demand t
@@ -1334,9 +1337,9 @@
         doom-modeline-icon nil
         doom-modeline-buffer-encoding nil))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                             // gptel // passage // openrouter
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
+;;                                   // gptel // passage // openrouter
+;; ───────────────────────────────────────────────────────────────────
 
 (defun hypermodern/gptel--netrc-get (host)
   "Get the password for HOST by parsing ~/.netrc DIRECTLY.
@@ -1486,7 +1489,7 @@ Uses the provisioning key from passage (api/openrouter-provisioning) or netrc."
   (expand-file-name "gptel-models-cache.el" user-emacs-directory)
   "File to cache OpenRouter models list.")
 
-(defvar hypermodern/gptel-models-cache-ttl 86400
+(defvar hypermodern/gptel-models-cache-ttl 3600
   "Cache TTL in seconds (default 24 hours).")
 
 ;; BYOK providers that this key routes through (via GCP Vertex AI)
@@ -1502,13 +1505,7 @@ Models are filtered to only show those from these providers.
 Set to nil to show all models.")
 
 (defvar hypermodern/gptel-preferred-models
-  '(anthropic/claude-sonnet-4.5    ; Fast + capable (default)
-    anthropic/claude-sonnet-4.6
-    anthropic/claude-opus-4.5      ; Most capable
-    anthropic/claude-opus-4.6
-    anthropic/claude-haiku-4.5     ; Fastest
-    google/gemini-3.1-pro-preview
-    deepseek/deepseek-chat)
+  '(anthropic/claude-opus-4.8)
   "Preferred models to try as default, in order of preference.")
 
 (defvar hypermodern/gptel-provider-routing
@@ -1555,17 +1552,15 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
 
 (defun hypermodern/gptel--model-display-name (model-id)
   "Convert MODEL-ID to a human-readable display name."
-
   (let* ((parts (split-string model-id "/"))
          (provider (car parts))
          (model (cadr parts)))
-    (format "%s (%s)"
+    (format "// %s // %s //"
             (capitalize (replace-regexp-in-string "[-_]" " " (or model model-id)))
             provider)))
 
 (defun hypermodern/gptel-load-models ()
   "Load models from cache or fetch from API."
-
   (let ((cache-valid (and (file-exists-p hypermodern/gptel-models-cache-file)
                           (< (float-time
                               (time-subtract
@@ -1578,15 +1573,18 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
         (with-temp-buffer
           (insert-file-contents hypermodern/gptel-models-cache-file)
           (setq hypermodern/gptel-models (read (current-buffer))))
-      ;; Fetch fresh and cache
+
+      ;; fetch fresh and cache
       (message "[gptel] Fetching available models from OpenRouter...")
       (let ((models (hypermodern/gptel-fetch-models)))
         (when models
           (setq hypermodern/gptel-models models)
-          ;; Write cache
+
+          ;; write cache
           (with-temp-file hypermodern/gptel-models-cache-file
             (prin1 models (current-buffer)))
-          (message "[gptel] Loaded %d models" (length models))))))
+
+          (message " // gptel // loaded %d models" (length models))))))
   hypermodern/gptel-models)
 
 (defun hypermodern/gptel-refresh-models ()
@@ -1597,14 +1595,17 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
     (delete-file hypermodern/gptel-models-cache-file))
 
   (hypermodern/gptel-load-models)
-  ;; Update backend
+
+  ;; update backend
   (when gptel-backend
     (setf (gptel-backend-models gptel-backend)
           (mapcar #'cdr hypermodern/gptel-models)))
-  (message "[gptel] Refreshed %d models" (length hypermodern/gptel-models)))
+
+  (message "// gptel // refreshed %d models" (length hypermodern/gptel-models)))
 
 ;; ── system prompts library ─────────────────────────────────────────
 
+;; TODO[b7r6]: this is fuckin silly...
 (defvar hypermodern/gptel-prompts
   '(("Default" . nil)
     ("Concise" . "You are a helpful assistant. Be concise and direct. No preamble.")
@@ -1677,11 +1678,13 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
   (setq gptel-use-tools t)
 
   ;; sensible defaults
-  (setq gptel-default-mode 'org-mode
+  (setq gptel-default-mode 'markdown-mode
         gptel-display-buffer-action '(display-buffer-pop-up-window)
+
         gptel-prompt-prefix-alist '((org-mode . "* ")
                                     (markdown-mode . "## ")
                                     (text-mode . ""))
+
         gptel-response-prefix-alist '((org-mode . "** ")
                                       (markdown-mode . "### ")
                                       (text-mode . "\n")))
@@ -1691,14 +1694,17 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
   (defun hypermodern/gptel-switch-model ()
     "Switch gptel model with completion."
     (interactive)
+
     (let* ((choice (completing-read "Model: " (mapcar #'car hypermodern/gptel-models) nil t))
            (model (cdr (assoc choice hypermodern/gptel-models))))
+
       (setq gptel-model model)
-      (message "Model: %s" choice)))
+      (message "// model // %s" choice)))
 
   (defun hypermodern/gptel-switch-prompt ()
     "Switch system prompt with completion."
     (interactive)
+
     (let* ((choice (completing-read "Prompt: " (mapcar #'car hypermodern/gptel-prompts) nil t))
            (prompt (cdr (assoc choice hypermodern/gptel-prompts))))
       (setq gptel--system-message prompt)
@@ -1707,6 +1713,7 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
   (defun hypermodern/gptel-rewrite-region (start end)
     "Rewrite selected region to be clearer."
     (interactive "r")
+
     (let ((gptel--system-message "Rewrite the following to be clearer and more concise. Output only the rewritten text, no explanation."))
       (gptel-send start end)))
 
@@ -1738,7 +1745,7 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
     (setq hypermodern/gptel-tools-enabled (not hypermodern/gptel-tools-enabled))
     (setq gptel-use-tools hypermodern/gptel-tools-enabled)
 
-    (message "Tools: %s" (if hypermodern/gptel-tools-enabled "enabled" "disabled")))
+    (message "// tools // %s" (if hypermodern/gptel-tools-enabled "enabled" "disabled")))
 
   ;; ── Tool definitions ───────────────────────────────────────────────
 
@@ -1863,7 +1870,7 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
           :category "filesystem"
           :confirm t)
 
-         ;; ── search ───────────────────────────────────────────────────
+         ;; ── search files ──────────────────────────────────────────────
 
          (gptel-make-tool
           :name "search_files"
@@ -1946,6 +1953,7 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
           :confirm t)
 
          ;; ── emacs/buffer ─────────────────────────────────────────────
+
          (gptel-make-tool
           :name "read_buffer"
           :function (lambda (buffer_name)
@@ -2090,13 +2098,14 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
   (defun hypermodern/gptel--before-send (&rest _)
     "Called before sending request."
     (hypermodern/gptel--spinner-start)
-    (message "Sending to %s..." gptel-model))
+    (message "// gptel // sending // %s..." gptel-model))
 
   (defun hypermodern/gptel--after-response (beg end)
     "Called after response completes."
     (hypermodern/gptel--spinner-stop)
+
     (let ((tokens (- end beg)))
-      (message "Response complete (%d chars)" tokens))
+      (message "// gptel // response complete // %d tok)" tokens))
     ;; Pulse the response region briefly
     (when (and (fboundp 'pulse-momentary-highlight-region) (< (- end beg) 10000))
       (pulse-momentary-highlight-region beg end 'highlight)))
@@ -2188,9 +2197,9 @@ When you've completed the task or need clarification, say so clearly.")
               ("C-c g A" . hypermodern/gptel-toggle-agent-mode)
               ("C-c g T" . hypermodern/gptel-agent-task)))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 ;; // aider - AI pair programming
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 
 ;; (use-package aider
 ;;   :straight '(:host github :repo "tninja/aider.el")
@@ -2225,9 +2234,9 @@ When you've completed the task or need clarification, say so clearly.")
 ;;          ("C-c i u" . aider-undo-last-change)
 ;;          ("C-c i R" . aider-reset)))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // minibuffer // completion
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
+;;                                         // minibuffer // completion
+;; ───────────────────────────────────────────────────────────────────
 
 (use-package vertico
   :demand t
@@ -2270,31 +2279,34 @@ When you've completed the task or need clarification, say so clearly.")
 (use-package embark-consult
   :after (embark consult))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 ;;                                                // history // memory
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 
 ;; Save minibuffer history (M-x commands, search strings, etc.)
 (use-package savehist
   :demand t
+
   :config
-  (setq savehist-file (expand-file-name "savehist" user-emacs-directory)
-        savehist-save-minibuffer-history t
-        savehist-additional-variables '(kill-ring
-                                        search-ring
-                                        regexp-search-ring
-                                        compile-command
-                                        shell-command-history
-                                        extended-command-history
-                                        file-name-history
-                                        read-expression-history
-                                        command-history
-                                        query-replace-history))
+  (setq
+   savehist-file (expand-file-name "savehist" user-emacs-directory)
+   savehist-save-minibuffer-history t
+   savehist-additional-variables '(kill-ring
+                                   search-ring
+                                   regexp-search-ring
+                                   compile-command
+                                   shell-command-history
+                                   extended-command-history
+                                   file-name-history
+                                   read-expression-history
+                                   command-history
+                                   query-replace-history))
   (savehist-mode 1))
 
-;; Enhanced recentf - remember recent files
+;; enhanced recentf - remember recent files
 (use-package recentf
   :demand t
+
   :config
   (setq recentf-max-saved-items 500
         recentf-max-menu-items 25
@@ -2302,38 +2314,45 @@ When you've completed the task or need clarification, say so clearly.")
         recentf-save-file (expand-file-name "recentf" user-emacs-directory)
         recentf-exclude '("/tmp/" "/ssh:" "/sudo:" "\\.git/" "COMMIT_EDITMSG"
                           "\\.elc$" "/nix/store/" "\\.cache/"))
+
   ;; Save recentf periodically (every 5 mins) and on quit
   (run-at-time nil (* 5 60) 'recentf-save-list)
   (recentf-mode 1))
 
-;; Prescient - frequency + recency sorting for completions
+;; prescient - frequency + recency sorting for completions
 (use-package prescient
   :demand t
+
   :config
   (setq prescient-save-file (expand-file-name "prescient-save.el" user-emacs-directory)
         prescient-sort-full-matches-first t
         prescient-history-length 1000)
-  (prescient-persist-mode 1))
 
-;; Vertico integration - sort candidates by frecency
+  (prescient-persist-mode 1)
+  )
+
+;; vertico integration - sort candidates by frecency
 (use-package vertico-prescient
   :after (vertico prescient)
   :demand t
+
   :config
   (setq vertico-prescient-enable-filtering nil  ; use orderless for filtering
         vertico-prescient-enable-sorting t)     ; use prescient for sorting
+
   (vertico-prescient-mode 1))
 
-;; Company integration - sort completions by frecency
+;; company integration - sort completions by frecency
 (use-package company-prescient
   :after (company prescient)
   :demand t
+
   :config
   (company-prescient-mode 1))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 ;;                                                          // company
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 
 (use-package company
   :demand t
@@ -2358,9 +2377,9 @@ When you've completed the task or need clarification, say so clearly.")
   :demand t
   :config (yas-global-mode 1))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 ;; // codeium - AI code completion (FIM)
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 
 (use-package codeium
   :straight '(:host github :repo "Exafunction/codeium.el")
@@ -2402,9 +2421,9 @@ When you've completed the task or need clarification, say so clearly.")
   ("C-c a i" . hypermodern/codeium-ensure-installed)  ; Install/check
   ("C-c a s" . hypermodern/codeium-status))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // tree-sitter
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
+;;                                                      // tree-sitter
+;; ───────────────────────────────────────────────────────────────────
 
 (use-package treesit-auto
   :demand t
@@ -2412,13 +2431,14 @@ When you've completed the task or need clarification, say so clearly.")
   (setq treesit-auto-install 'prompt)
   (global-treesit-auto-mode 1))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 ;; // LSP
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 
 (use-package lsp-mode
   :commands (lsp lsp-deferred)
   :init (setq lsp-keymap-prefix "C-c l")
+
   :config
   (setq lsp-idle-delay 0.5
         lsp-completion-provider :capf
@@ -2432,15 +2452,15 @@ When you've completed the task or need clarification, say so clearly.")
 
 (use-package lsp-ui
   :after lsp-mode
+
   :config
   (setq lsp-ui-sideline-enable nil
         lsp-ui-doc-enable t
         lsp-ui-doc-show-with-cursor nil))
 
 (with-eval-after-load 'lsp-mode
-  ;; Alternatively, if the above doesn't work (depends on lsp-mode version):
-  (add-to-list 'lsp-language-id-configuration '(lean4-mode . "lean4"))
-  )
+  ;; alternatively, if the above doesn't work (depends on lsp-mode version):
+  (add-to-list 'lsp-language-id-configuration '(lean4-mode . "lean4")))
 
 ;; (with-eval-after-load 'lsp-mode
 ;;   (setq lsp-warn-no-matched-clients nil))
@@ -2467,9 +2487,19 @@ When you've completed the task or need clarification, say so clearly.")
     :server-id 'nixd
     :priority 10)))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // language // configuration // registry
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+(with-eval-after-load 'lsp-mode
+  ;; buck2's Starlark language server: `buck2 lsp` speaks LSP over stdio.
+  ;; Bound to bazel-starlark-mode (BUCK / *.bzl) for the buck2 build graph.
+  (lsp-register-client
+   (make-lsp-client
+    :new-connection (lsp-stdio-connection '("buck2" "lsp"))
+    :major-modes '(bazel-starlark-mode)
+    :server-id 'buck2
+    :priority 10)))
+
+;; ───────────────────────────────────────────────────────────────────
+;;                            // language // configuration // registry
+;; ───────────────────────────────────────────────────────────────────
 
 (defvar hypermodern/language-registry
   '((nix
@@ -2517,7 +2547,7 @@ When you've completed the task or need clarification, say so clearly.")
 
     (c
      :mode c-mode
-     :extensions ("\\.c\\'" "\\.h\\'")
+     :extensions ("\\.c\\'")
      :backend lsp
      :server clangd
      :formatter clang-format
@@ -2528,7 +2558,7 @@ When you've completed the task or need clarification, say so clearly.")
 
     (cpp
      :mode c++-mode
-     :extensions ("\\.cpp\\'" "\\.cc\\'" "\\.cxx\\'" "\\.hpp\\'" "\\.hh\\'" "\\.hxx\\'")
+     :extensions ("\\.cpp\\'" "\\.cc\\'" "\\.cxx\\'" "\\.h\\'" "\\.hpp\\'" "\\.hh\\'" "\\.hxx\\'")
      :backend lsp
      :server clangd
      :formatter clang-format
@@ -2628,24 +2658,21 @@ When you've completed the task or need clarification, say so clearly.")
      :type-checker lean
      :notes "lean4-mode has built-in LSP client; do NOT use lsp-mode")
 
-    (bazel
-     :mode bazel-mode
-     :extensions (("\\.bazel\\'" . bazel-mode)
-                  ("\\.bzl\\'" . bazel-mode)
-                  ("\\.star\\'" . bazel-mode)
-                  ("WORKSPACE\\'" . bazel-mode)
-                  ("WORKSPACE\\.bazel\\'" . bazel-mode)
-                  ("BUILD\\'" . bazel-mode)
-                  ("BUCK\\'" . bazel-mode)
-                  ("BUILD\\.bazel\\'" . bazel-mode)
-                  ("\\.BUILD\\'" . bazel-mode))
-     :backend nil
-     :server nil
+    (starlark
+     :mode bazel-starlark-mode
+
+     :extensions (("\\.bzl\\'" . bazel-starlark-mode)
+                  ("BUCK\\'" . bazel-starlark-mode))
+
+     :backend lsp
+     :server buck2
      :formatter buildifier
      :format-all-formatter buildifier
      :linter buildifier
      :type-checker nil
-     :notes "buildifier does both formatting and linting"))
+     :notes "buck2: `buck2 lsp` over stdio; buildifier formats + lints .bzl/BUCK")
+    )
+
   "Registry of language configurations for hypermodern Emacs.
 
 Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
@@ -2753,9 +2780,9 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 
     (pop-to-buffer (current-buffer))))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 ;;                                                        // languages
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 
 (use-package nix-mode
   :mode "\\.nix\\'"
@@ -2832,19 +2859,17 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
       (define-key lean4-mode-map (kbd "C-c C-i") toggle-fn)
       (define-key lean4-mode-map (kbd "C-c i") toggle-fn))))
 
+;; Starlark for buck2. bazel.el provides `bazel-starlark-mode' for .bzl/BUCK
+;; files; we attach it to the buck2 LSP (registered above) and let buildifier
+;; handle formatting/linting via format-all.
 (use-package bazel
-  :mode (("\\.bazel\\'" . bazel-mode)
-         ("\\.bzl\\'" . bazel-mode)
-         ("\\.star\\'" . bazel-mode)
-         ("WORKSPACE\\'" . bazel-mode)
-         ("WORKSPACE\\.bazel\\'" . bazel-mode)
-         ("BUILD\\'" . bazel-mode)
-         ("BUILD\\.bazel\\'" . bazel-mode)
-         ("\\.BUILD\\'" . bazel-mode)))
+  :mode (("\\.bzl\\'" . bazel-starlark-mode)
+         ("BUCK\\'" . bazel-starlark-mode))
+  :hook (bazel-starlark-mode . lsp-deferred))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 ;;                                                       // formatting
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 
 (defun hypermodern/format-buffer ()
   "Format buffer if in prog-mode and formatter is available."
@@ -2855,51 +2880,52 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
         (require 'format-all)
         (condition-case err
             (format-all-buffer nil)
-          (error (message "[hypermodern] formatter not available: %s" err))))
+          (error (message "// formatter // unavailable // %s" err))))
 
     (message "[hypermodern] M-z: not in a formattable buffer")))
 
 (use-package format-all
   :commands (format-all-buffer format-all-mode)
+
   :hook (prog-mode . format-all-mode)
+
   :config
   (setq format-all-show-errors 'never)
 
   ;; format-all-formatters uses LANGUAGE NAMES (strings), not mode names
   ;; The format is: ("Language Name" . (formatter-symbol args...))
-  (setq-default format-all-formatters
-                '(("Bazel"        . (buildifier))
-                  ("C"            . (clang-format))
-                  ("C++"          . (clang-format))
-                  ("C#"           . (clang-format))
-                  ("CSS"          . (prettier))
-                  ("Dhall"        . (dhall))
-                  ("Emacs Lisp"   . (emacs-lisp))
-                  ("F#"           . (fantomas))
-                  ("Go"           . (gofmt))
-                  ("Haskell"      . (fourmolu))
-                  ("HTML"         . (prettier))
-                  ("JavaScript"   . (prettier))
-                  ("JSON"         . (prettier))
-                  ("JSX"          . (prettier))
-                  ("Markdown"     . (prettier))
-                  ;; Match treefmt (modules/flake/fmt.nix): nixfmt, strict,
-                  ;; width 100. NOT nixpkgs-fmt — that fights treefmt on save.
-                  ("Nix"          . (nixfmt "--strict" "--width" "100"))
-                  ("Protocol Buffer" . (clang-format))
-                  ("PureScript"   . (purs-tidy))
-                  ("Python"       . (ruff))
-                  ("Rust"         . (rustfmt))
-                  ("Shell"        . (shfmt "-i" "2"))
-                  ("TOML"         . (taplo))
-                  ("TSX"          . (prettier))
-                  ("TypeScript"   . (prettier))
-                  ("YAML"         . (prettier))
-                  ("Zig"          . (zig)))))
+  (setq-default
+   format-all-formatters
+   '(("Bazel"           . (buildifier))
+     ("C"               . (clang-format))
+     ("C++"             . (clang-format))
+     ("C#"              . (clang-format))
+     ("CSS"             . (prettier))
+     ("Dhall"           . (dhall))
+     ("Emacs Lisp"      . (emacs-lisp))
+     ("F#"              . (fantomas))
+     ("Go"              . (gofmt))
+     ("Haskell"         . (fourmolu))
+     ("HTML"            . (prettier))
+     ("JavaScript"      . (prettier))
+     ("JSON"            . (prettier))
+     ("JSX"             . (prettier))
+     ("Markdown"        . (prettier))
+     ("Nix"             . (nixfmt))
+     ("Protocol Buffer" . (clang-format))
+     ("PureScript"      . (purs-tidy))
+     ("Python"          . (ruff))
+     ("Rust"            . (rustfmt))
+     ("Shell"           . (shfmt "-i" "2"))
+     ("TOML"            . (taplo))
+     ("TSX"             . (prettier))
+     ("TypeScript"      . (prettier))
+     ("YAML"            . (prettier))
+     ("Zig"             . (zig)))))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // magit
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
+;;                                                            // magit
+;; ───────────────────────────────────────────────────────────────────
 
 (use-package magit
   :bind ("C-x g" . magit))
@@ -2907,9 +2933,9 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 (use-package forge
   :after magit)
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;; // terminals
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
+;;                                                        // terminals
+;; ───────────────────────────────────────────────────────────────────
 ;;
 ;; ghostel is the PRIMARY terminal (libghostty-vt: true color, kitty
 ;; keyboard+graphics, hyperlinks, shell integration). vterm and eat stay
@@ -2975,9 +3001,9 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 (use-package eat
   :commands eat)
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 ;;                           // passage // age-based // password store
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 
 ;; Configure password-store to use passage (age instead of GPG)
 (use-package password-store
@@ -3052,9 +3078,9 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 (global-set-key (kbd "C-c p g") #'password-store-generate)
 (global-set-key (kbd "C-c p i") #'password-store-insert)
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                               // tramp // bulletproof // sshx
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
+;;                                     // tramp // bulletproof // sshx
+;; ───────────────────────────────────────────────────────────────────
 
 (use-package tramp
   :demand t  ; n.b. load immediately so file-name handler is registered
@@ -3080,9 +3106,9 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 
 (global-set-key (kbd "C-c T c") #'hypermodern/tramp-cleanup)
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 ;;                                                             // misc
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 
 (use-package rainbow-mode
   :hook (prog-mode . rainbow-mode))
@@ -3092,7 +3118,8 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 
   :config
   (setq which-key-idle-delay 0.8)
-  (which-key-mode 1))
+  (which-key-mode 1)
+  )
 
 (use-package direnv
   :demand t
@@ -3101,9 +3128,9 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 (use-package paredit
   :hook ((emacs-lisp-mode lisp-mode scheme-mode) . paredit-mode))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 ;;                                                            // icons
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 
 (use-package nerd-icons
   :demand t)
@@ -3111,13 +3138,15 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 (use-package nerd-icons-completion
   :after marginalia
   :demand t
+
   :config
   (nerd-icons-completion-mode)
-  (add-hook 'marginalia-mode-hook #'nerd-icons-completion-marginalia-setup))
+  (add-hook 'marginalia-mode-hook #'nerd-icons-completion-marginalia-setup)
+  )
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                                   // comint // asni // colors
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
+;;                                         // comint // asni // colors
+;; ───────────────────────────────────────────────────────────────────
 
 (add-hook 'comint-preoutput-filter-functions 'ansi-color-process-output)
 
@@ -3128,9 +3157,9 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 
 (setq ansi-color-for-comint-mode t)
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                                                  // dashboard
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
+;;                                                        // dashboard
+;; ───────────────────────────────────────────────────────────────────
 
 (defvar hypermodern/gibson-quotes
   '("he mythform is usually encountered in one of two modes. one mode
@@ -3181,9 +3210,9 @@ no way human."))
     (expand-file-name "dashboard-banner-0x04.txt" user-emacs-directory))
 
   (defvar hypermodern/dashboard-banner-text
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-              // hypermodern
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    "────────────────────────────────────────────
+                                   // hypermodern
+────────────────────────────────────────────")
 
   (unless (file-exists-p hypermodern/dashboard-banner-file)
     (with-temp-file hypermodern/dashboard-banner-file
@@ -3200,9 +3229,9 @@ no way human."))
         dashboard-items '((recents . 5)))
   (dashboard-setup-startup-hook))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 ;;                                                      // keybindings
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
 
 (use-package general
   :demand t
@@ -3240,13 +3269,15 @@ Moves to end of current line, deletes newline, and collapses whitespace."
 
   (general-define-key
 
-   ;; editing essentials
+   ;; ─── editing essentials ──────────────────────────────────────────
+
    "M-/"       #'undo
    "C-c q"     #'join-line
    "C-j"       #'newline-and-indent
    "M-z"       #'hypermodern/format-buffer
 
-   ;; window navigation
+   ;; ─── window navigation  ──────────────────────────────────────────
+
    "M-N"       #'windmove-right
    "M-P"       #'windmove-left
    "M-R"       #'hypermodern/rotate-windows
@@ -3254,13 +3285,15 @@ Moves to end of current line, deletes newline, and collapses whitespace."
    "C-x 3"     #'hypermodern/hsplit
    "C-x k"     #'hypermodern/kill-buffer
 
-   ;; file/buffer operations
+   ;; ─── file/buffer operations───────────────────────────────────────
+
    "M-i"       #'hypermodern/visit-init
    "C-c r"     #'revert-buffer
    "C-c d"     #'dashboard-open
    "C-c f"     #'hypermodern/show-current-file
 
-   ;; search/navigation
+   ;; ─── search/navigation────────────────────────────────────────────
+
    "C-x C-r"   #'consult-ripgrep
    "C-x C-d"   #'consult-recent-file
    "C-x C-i"   #'consult-info
@@ -3269,11 +3302,13 @@ Moves to end of current line, deletes newline, and collapses whitespace."
    "C-x f"     #'consult-fd
    "C-M-r"     #'consult-ripgrep
 
-   ;; language info
+   ;; ─── language info────────────────────────────────────────────────
+
    "C-c L i"   #'hypermodern/language-info
    "C-c L r"   #'hypermodern/show-language-registry
 
-   ;; theme controls
+   ;; ─── theme controls───────────────────────────────────────────────
+
    "C-c t t"   #'hypermodern/apply-theme
    "C-c t d"   #'hypermodern/switch-dark
    "C-c t l"   #'hypermodern/switch-light
@@ -3285,9 +3320,9 @@ Moves to end of current line, deletes newline, and collapses whitespace."
    "C-c t m"   #'hypermodern/ui-menu
    ))
 
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;                                                    // startup
-;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+;; ───────────────────────────────────────────────────────────────────
+;;                                                          // startup
+;; ───────────────────────────────────────────────────────────────────
 
 (add-hook 'after-make-frame-functions
           (lambda (_) (hypermodern/ui-apply)))
