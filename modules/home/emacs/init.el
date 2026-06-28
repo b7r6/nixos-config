@@ -1140,7 +1140,7 @@
         '(
           ;; ─ never show these automatically ─────────────────────────
 
-          ("\\*Warnings\\*"                 :ignore t)
+          ("\\`\\*Warnings\\*\\'"           :ignore t :regexp t)
           ("\\*Async Shell Command\\*"      :ignore t)
           ("\\*Async-native-compile-log\\*" :ignore t)
           ("\\*Native-compile-Log\\*"       :ignore t)
@@ -2490,6 +2490,13 @@ When you've completed the task or need clarification, say so clearly.")
 (with-eval-after-load 'lsp-mode
   ;; buck2's Starlark language server: `buck2 lsp` speaks LSP over stdio.
   ;; Bound to bazel-starlark-mode (BUCK / *.bzl) for the buck2 build graph.
+  ;;
+  ;; lsp-mode computes a buffer's languageId from `lsp-language-id-configuration'.
+  ;; Without an entry for bazel-starlark-mode it can't tell buck2 what language
+  ;; the buffer is and warns "Unable to calculate the languageId". The buck2 LSP
+  ;; expects "starlark" as the language id.
+  (add-to-list 'lsp-language-id-configuration
+               '(bazel-starlark-mode . "starlark"))
   (lsp-register-client
    (make-lsp-client
     :new-connection (lsp-stdio-connection '("buck2" "lsp"))
@@ -2862,7 +2869,7 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 ;; Starlark for buck2. bazel.el provides `bazel-starlark-mode' for .bzl/BUCK
 ;; files; we attach it to the buck2 LSP (registered above) and let buildifier
 ;; handle formatting/linting via format-all.
-(use-package bazel
+(use-package bazel-starlark-mode
   :mode (("\\.bzl\\'" . bazel-starlark-mode)
          ("BUCK\\'" . bazel-starlark-mode))
   :hook (bazel-starlark-mode . lsp-deferred))
