@@ -1,9 +1,43 @@
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--                       // hypermodern // grafana // coredns
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--
+-- split-horizon fleet DNS. 5 nodes run CoreDNS.
+-- 4 zones: authoritative (sju1.s4.gl), CNAME template (s4.gl),
+--           tailnet forward (MagicDNS), catch-all (1.1.1.1/8.8.8.8).
+
 let T = ../schema/types.dhall
 let S = ../schema/sql.dhall
+let Q = ../schema/queries.dhall
 let P = ../schema/panels.dhall
 let R = ../schema/render.dhall
 
-let hostVar = T.Variable::{ name = "host", label = "Host", type = T.VariableType.Query, query = "SELECT DISTINCT ${S.host} FROM ${S.gauge} WHERE TimeUnix > now() - INTERVAL 1 HOUR ORDER BY 1", includeAll = True }
+-- ── DNS-specific helpers ───────────────────────────────────────────────────────
+
+-- rate of a counter split by an attribute (rcode, type, zone, proto, etc.)
+let dnsRate =
+      \(metric : Text) ->
+      \(attr : Text) ->
+      \(alias : Text) ->
+        "SELECT TimeUnix as time, Attributes['${attr}'] as ${alias}, sum(runningDifference(Value)) / 30 as value FROM ${S.sum} WHERE MetricName = '${metric}' AND ${S.tf} AND runningDifference(Value) >= 0 GROUP BY time, ${alias} ORDER BY time"
+
+-- rate of a counter split by upstream ('to' attribute)
+let byUpstream =
+      \(metric : Text) ->
+        "SELECT TimeUnix as time, Attributes['to'] as upstream, sum(runningDifference(Value)) / 30 as value FROM ${S.sum} WHERE MetricName = '${metric}' AND ${S.tf} AND runningDifference(Value) >= 0 GROUP BY time, upstream ORDER BY time"
+
+-- ── variables ──────────────────────────────────────────────────────────────────
+
+let hostVar =
+      T.Variable::{
+      , name = "host"
+      , label = "Host"
+      , type = T.VariableType.Query
+      , query = "SELECT DISTINCT ${S.host} FROM ${S.gauge} WHERE TimeUnix > now() - INTERVAL 1 HOUR ORDER BY 1"
+      , includeAll = True
+      }
+
+-- ═══════════════════════════════════════════════════════════════════════════════
 
 let dashboard =
       T.Dashboard::{
@@ -14,99 +48,120 @@ let dashboard =
       , timeFrom = "now-1h"
       , variables = [ hostVar ]
       , rows =
-          [ T.Row::{
+
+          [ -- ── health ─────────────────────────────────────────────────────────
+            T.Row::{
             , title = "Health"
             , panels =
-                [ (P.stat "Queries/sec (fleet)" "SELECT sum(rate) as value FROM (SELECT runningDifference(Value) / 30 as rate FROM ${S.sum} WHERE MetricName = 'coredns_dns_requests_total' AND TimeUnix > now() - INTERVAL 2 MINUTE ORDER BY TimeUnix) WHERE rate >= 0") // { unit = T.Unit.ReqPerSec }
-                , (P.stat "Cache entries" "SELECT sum(Value) as value FROM ${S.gauge} WHERE MetricName = 'coredns_cache_entries' AND TimeUnix > now() - INTERVAL 2 MINUTE")
-                , (P.statWithThreshold "SERVFAIL/sec" "SELECT sum(rate) as value FROM (SELECT runningDifference(Value) / 30 as rate FROM ${S.sum} WHERE MetricName = 'coredns_dns_responses_total' AND Attributes['rcode'] = 'SERVFAIL' AND TimeUnix > now() - INTERVAL 2 MINUTE ORDER BY TimeUnix) WHERE rate >= 0" T.thresholdErrors)
-                , (P.statWithThreshold "Panics" "SELECT sum(Value) as value FROM ${S.sum} WHERE MetricName = 'coredns_panics_total' AND TimeUnix > now() - INTERVAL 2 MINUTE" { mode = "absolute", steps = [ { color = "green", value = None Natural }, { color = "red", value = Some 1 } ] })
-                , (P.stat "Nodes serving DNS" "SELECT uniq(${S.host}) as value FROM ${S.sum} WHERE MetricName = 'coredns_dns_requests_total' AND TimeUnix > now() - INTERVAL 2 MINUTE")
-                , (P.statWithThreshold "Healthcheck failures" "SELECT sum(rate) as value FROM (SELECT runningDifference(Value) as rate FROM ${S.sum} WHERE MetricName = 'coredns_forward_healthcheck_broken_total' AND TimeUnix > now() - INTERVAL 5 MINUTE ORDER BY TimeUnix) WHERE rate >= 0" T.thresholdErrors)
+                [ (P.stat "Queries/sec (fleet)"
+                    "SELECT sum(rate) as value FROM (SELECT runningDifference(Value) / 30 as rate FROM ${S.sum} WHERE MetricName = 'coredns_dns_requests_total' AND TimeUnix > now() - INTERVAL 2 MINUTE ORDER BY TimeUnix) WHERE rate >= 0"
+                  ) // { width = 4, unit = T.Unit.ReqPerSec }
+                , (P.stat "Cache entries"
+                    "SELECT sum(Value) as value FROM ${S.gauge} WHERE MetricName = 'coredns_cache_entries' AND TimeUnix > now() - INTERVAL 2 MINUTE"
+                  ) // { width = 4 }
+                , (P.statWithThreshold "SERVFAIL/sec"
+                    "SELECT sum(rate) as value FROM (SELECT runningDifference(Value) / 30 as rate FROM ${S.sum} WHERE MetricName = 'coredns_dns_responses_total' AND Attributes['rcode'] = 'SERVFAIL' AND TimeUnix > now() - INTERVAL 2 MINUTE ORDER BY TimeUnix) WHERE rate >= 0"
+                    T.thresholdErrors
+                  ) // { width = 4 }
+                , (P.statWithThreshold "Panics"
+                    "SELECT sum(Value) as value FROM ${S.sum} WHERE MetricName = 'coredns_panics_total' AND TimeUnix > now() - INTERVAL 2 MINUTE"
+                    { mode = "absolute", steps = [ { color = "green", value = None Natural }, { color = "red", value = Some 1 } ] }
+                  ) // { width = 4 }
+                , (P.stat "Nodes serving"
+                    "SELECT uniq(${S.host}) as value FROM ${S.sum} WHERE MetricName = 'coredns_dns_requests_total' AND TimeUnix > now() - INTERVAL 2 MINUTE"
+                  ) // { width = 4 }
+                , (P.statWithThreshold "HC failures"
+                    "SELECT sum(rate) as value FROM (SELECT runningDifference(Value) as rate FROM ${S.sum} WHERE MetricName = 'coredns_forward_healthcheck_broken_total' AND TimeUnix > now() - INTERVAL 5 MINUTE ORDER BY TimeUnix) WHERE rate >= 0"
+                    T.thresholdErrors
+                  ) // { width = 4 }
                 ]
             }
-          , T.Row::{
+
+          , -- ── query rate ─────────────────────────────────────────────────────
+            T.Row::{
             , title = "Query Rate"
             , panels =
-                [ (P.timeseries "Queries/sec by node" T.Unit.ReqPerSec
-                    (S.rateByKey "coredns_dns_requests_total" S.host "node")
-                  )
-                , P.timeseries "Queries/sec by type (A, AAAA, PTR, SRV, ...)" T.Unit.ReqPerSec
-                    "SELECT TimeUnix as time, Attributes['type'] as qtype, sum(runningDifference(Value)) / 30 as value FROM ${S.sum} WHERE MetricName = 'coredns_dns_requests_total' AND ${S.tf} AND runningDifference(Value) >= 0 GROUP BY time, qtype ORDER BY time"
+                [ P.timeseries "By node" T.Unit.ReqPerSec
+                    (Q.rateByHost "coredns_dns_requests_total")
+                , P.timeseries "By type (A, AAAA, PTR, SRV...)" T.Unit.ReqPerSec
+                    (dnsRate "coredns_dns_requests_total" "type" "qtype")
                 ]
             }
-          , T.Row::{
-            , title = "Responses & RCODEs"
+
+          , -- ── responses ──────────────────────────────────────────────────────
+            T.Row::{
+            , title = "Responses"
             , panels =
-                [ (P.timeseriesStacked "Responses/sec by RCODE" T.Unit.ReqPerSec
-                    "SELECT TimeUnix as time, Attributes['rcode'] as rcode, sum(runningDifference(Value)) / 30 as value FROM ${S.sum} WHERE MetricName = 'coredns_dns_responses_total' AND ${S.tf} AND runningDifference(Value) >= 0 GROUP BY time, rcode ORDER BY time"
+                [ (P.timeseriesStacked "By RCODE" T.Unit.ReqPerSec
+                    (dnsRate "coredns_dns_responses_total" "rcode" "rcode")
                   ) // { fillOpacity = 60 }
-                , (P.timeseries "NXDOMAIN + SERVFAIL rate" T.Unit.ReqPerSec
+                , (P.timeseries "NXDOMAIN + SERVFAIL" T.Unit.ReqPerSec
                     "SELECT TimeUnix as time, Attributes['rcode'] as rcode, ${S.host} as node, sum(runningDifference(Value)) / 30 as value FROM ${S.sum} WHERE MetricName = 'coredns_dns_responses_total' AND Attributes['rcode'] IN ('NXDOMAIN', 'SERVFAIL') AND ${S.tf} AND runningDifference(Value) >= 0 GROUP BY time, rcode, node ORDER BY time"
                   ) // { thresholds = Some T.thresholdErrors }
                 ]
             }
-          , T.Row::{
-            , title = "Latency"
+
+          , -- ── plugins & latency ──────────────────────────────────────────────
+            T.Row::{
+            , title = "Plugins & Upstream"
             , panels =
-                [ P.timeseries "Responses/sec by plugin" T.Unit.Short
-                    "SELECT TimeUnix as time, Attributes['plugin'] as plugin, sum(runningDifference(Value)) / 30 as value FROM ${S.sum} WHERE MetricName = 'coredns_dns_responses_total' AND ${S.tf} AND runningDifference(Value) >= 0 GROUP BY time, plugin ORDER BY time"
-                , (P.timeseries "Proxy healthcheck failures by upstream" T.Unit.Short
+                [ P.timeseries "Responses by plugin" T.Unit.Short
+                    (dnsRate "coredns_dns_responses_total" "plugin" "plugin")
+                , (P.timeseries "Proxy HC failures by upstream" T.Unit.Short
                     "SELECT TimeUnix as time, Attributes['to'] as upstream, runningDifference(Value) as value FROM ${S.sum} WHERE MetricName = 'coredns_proxy_healthcheck_failures_total' AND ${S.tf} AND runningDifference(Value) >= 0 ORDER BY time"
                   ) // { thresholds = Some T.thresholdErrors }
                 ]
             }
-          , T.Row::{
+
+          , -- ── cache ──────────────────────────────────────────────────────────
+            T.Row::{
             , title = "Cache"
             , panels =
-                [ (P.timeseries "Cache hit rate (success + denial)" T.Unit.Percentunit
+                [ (P.timeseries "Hit rate" T.Unit.Percentunit
                     "SELECT h.TimeUnix as time, h.${S.host} as host, sum(h.Value) / (sum(h.Value) + sum(m.Value)) as value FROM ${S.sum} h INNER JOIN ${S.sum} m ON h.TimeUnix = m.TimeUnix AND h.${S.host} = m.${S.host} WHERE h.MetricName = 'coredns_cache_hits_total' AND m.MetricName = 'coredns_cache_misses_total' AND h.${S.tf} GROUP BY time, host ORDER BY time"
                   ) // { width = 8 }
-                , (P.timeseries "Cache hits/sec by type" T.Unit.ReqPerSec
-                    "SELECT TimeUnix as time, Attributes['type'] as cache_type, sum(runningDifference(Value)) / 30 as value FROM ${S.sum} WHERE MetricName = 'coredns_cache_hits_total' AND ${S.tf} AND runningDifference(Value) >= 0 GROUP BY time, cache_type ORDER BY time"
+                , (P.timeseries "Hits by type" T.Unit.ReqPerSec
+                    (dnsRate "coredns_cache_hits_total" "type" "cache_type")
                   ) // { width = 8 }
-                , (P.timeseries "Cache entries (current)" T.Unit.Short
+                , (P.timeseries "Entries (current)" T.Unit.Short
                     "SELECT TimeUnix as time, ${S.host} as node, Attributes['type'] as cache_type, avg(Value) as value FROM ${S.gauge} WHERE MetricName = 'coredns_cache_entries' AND ${S.tf} AND ${S.hostFilter} GROUP BY time, node, cache_type ORDER BY time"
                   ) // { width = 8 }
-                , (P.timeseries "Cache misses/sec by node" T.Unit.ReqPerSec
-                    (S.rateByKey "coredns_cache_misses_total" S.host "node")
-                  )
-                , (P.timeseries "Cache requests/sec (total lookups)" T.Unit.ReqPerSec
-                    (S.rateByKey "coredns_cache_requests_total" S.host "node")
-                  )
+                , P.timeseries "Misses by node" T.Unit.ReqPerSec
+                    (Q.rateByHost "coredns_cache_misses_total")
+                , P.timeseries "Requests by node" T.Unit.ReqPerSec
+                    (Q.rateByHost "coredns_cache_requests_total")
                 ]
             }
-          , T.Row::{
-            , title = "Forwarding (Upstreams)"
+
+          , -- ── forwarding ─────────────────────────────────────────────────────
+            T.Row::{
+            , title = "Forwarding"
             , panels =
-                [ P.timeseries "Proxy conn cache hits/sec by upstream" T.Unit.ReqPerSec
-                    "SELECT TimeUnix as time, Attributes['to'] as upstream, sum(runningDifference(Value)) / 30 as value FROM ${S.sum} WHERE MetricName = 'coredns_proxy_conn_cache_hits_total' AND ${S.tf} AND runningDifference(Value) >= 0 GROUP BY time, upstream ORDER BY time"
-                , P.timeseries "Proxy conn cache misses/sec by upstream" T.Unit.ReqPerSec
-                    "SELECT TimeUnix as time, Attributes['to'] as upstream, sum(runningDifference(Value)) / 30 as value FROM ${S.sum} WHERE MetricName = 'coredns_proxy_conn_cache_misses_total' AND ${S.tf} AND runningDifference(Value) >= 0 GROUP BY time, upstream ORDER BY time"
-                , (P.timeseries "Upstream healthcheck failures" T.Unit.Short
+                [ P.timeseries "Conn cache hits by upstream" T.Unit.ReqPerSec
+                    (byUpstream "coredns_proxy_conn_cache_hits_total")
+                , P.timeseries "Conn cache misses by upstream" T.Unit.ReqPerSec
+                    (byUpstream "coredns_proxy_conn_cache_misses_total")
+                , (P.timeseries "All upstreams broken" T.Unit.Short
                     "SELECT TimeUnix as time, Attributes['to'] as upstream, runningDifference(Value) as value FROM ${S.sum} WHERE MetricName = 'coredns_forward_healthcheck_broken_total' AND ${S.tf} AND runningDifference(Value) >= 0 ORDER BY time"
                   ) // { thresholds = Some T.thresholdErrors }
-                , P.timeseries "Connection cache hits vs misses" T.Unit.ReqPerSec
-                    "SELECT TimeUnix as time, MetricName as metric, sum(runningDifference(Value)) / 30 as value FROM ${S.sum} WHERE MetricName IN ('coredns_proxy_conn_cache_hits_total', 'coredns_proxy_conn_cache_misses_total') AND ${S.tf} AND runningDifference(Value) >= 0 GROUP BY time, metric ORDER BY time"
+                , P.timeseries "Conn cache hits vs misses" T.Unit.ReqPerSec
+                    (Q.rateByKey "coredns_proxy_conn_cache_hits_total" "MetricName" "metric")
                 ]
             }
-          , T.Row::{
-            , title = "Zones & Templates"
+
+          , -- ── zones & protocol ───────────────────────────────────────────────
+            T.Row::{
+            , title = "Zones & Protocol"
             , panels =
-                [ (P.timeseriesStacked "Queries by zone" T.Unit.ReqPerSec
-                    "SELECT TimeUnix as time, Attributes['zone'] as zone, sum(runningDifference(Value)) / 30 as value FROM ${S.sum} WHERE MetricName = 'coredns_dns_requests_total' AND ${S.tf} AND runningDifference(Value) >= 0 GROUP BY time, zone ORDER BY time"
+                [ (P.timeseriesStacked "By zone" T.Unit.ReqPerSec
+                    (dnsRate "coredns_dns_requests_total" "zone" "zone")
                   ) // { fillOpacity = 60 }
-                , P.timeseries "Cache requests vs hits/sec" T.Unit.ReqPerSec
-                    "SELECT TimeUnix as time, MetricName as metric, sum(runningDifference(Value)) / 30 as value FROM ${S.sum} WHERE MetricName IN ('coredns_cache_requests_total', 'coredns_cache_hits_total') AND ${S.tf} AND runningDifference(Value) >= 0 GROUP BY time, metric ORDER BY time"
-                ]
-            }
-          , T.Row::{
-            , title = "Protocol Breakdown"
-            , panels =
-                [ P.timeseries "Queries by protocol (UDP vs TCP)" T.Unit.ReqPerSec
-                    "SELECT TimeUnix as time, Attributes['proto'] as proto, sum(runningDifference(Value)) / 30 as value FROM ${S.sum} WHERE MetricName = 'coredns_dns_requests_total' AND ${S.tf} AND runningDifference(Value) >= 0 GROUP BY time, proto ORDER BY time"
-                , P.timeseries "Queries by family (IPv4 vs IPv6)" T.Unit.ReqPerSec
-                    "SELECT TimeUnix as time, Attributes['family'] as family, sum(runningDifference(Value)) / 30 as value FROM ${S.sum} WHERE MetricName = 'coredns_dns_requests_total' AND ${S.tf} AND runningDifference(Value) >= 0 GROUP BY time, family ORDER BY time"
+                , P.timeseries "Template matches (CNAME)" T.Unit.ReqPerSec
+                    (Q.rateByHost "coredns_template_matches_total")
+                , P.timeseries "By protocol (UDP/TCP)" T.Unit.ReqPerSec
+                    (dnsRate "coredns_dns_requests_total" "proto" "proto")
+                , P.timeseries "By family (IPv4/IPv6)" T.Unit.ReqPerSec
+                    (dnsRate "coredns_dns_requests_total" "family" "family")
                 ]
             }
           ]

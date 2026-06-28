@@ -1,11 +1,58 @@
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--                // hypermodern // grafana // clickhouse-internals
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--
+-- the OLAP engine that stores our telemetry. watch it watch itself.
+
 let T = ../schema/types.dhall
 let S = ../schema/sql.dhall
+let Q = ../schema/queries.dhall
 let P = ../schema/panels.dhall
 let R = ../schema/render.dhall
 
-let chRate = \(metric : Text) -> "SELECT TimeUnix as time, runningDifference(Value) / 30 as value FROM ${S.sum} WHERE MetricName = '${metric}' AND ${S.tf} AND runningDifference(Value) >= 0 ORDER BY time"
-let chGauge = \(metric : Text) -> "SELECT TimeUnix as time, avg(Value) as value FROM ${S.gauge} WHERE MetricName = '${metric}' AND ${S.tf} GROUP BY time ORDER BY time"
-let chGaugeMulti = \(metrics : Text) -> "SELECT TimeUnix as time, MetricName as metric, avg(Value) as value FROM ${S.gauge} WHERE MetricName IN (${metrics}) AND ${S.tf} GROUP BY time, metric ORDER BY time"
+-- ── ClickHouse-specific shortcuts ──────────────────────────────────────────────
+-- single server on watchtower; all CH metrics come from one host.
+
+let m = "ClickHouseMetrics_"
+let e = "ClickHouseProfileEvents_"
+let a = "ClickHouseAsyncMetrics_"
+
+-- microsecond counter → milliseconds/interval
+let usRate =
+      \(metric : Text) ->
+        "SELECT TimeUnix as time, runningDifference(Value) / 1000 as value FROM ${S.sum} WHERE MetricName = '${metric}' AND ${S.tf} AND runningDifference(Value) >= 0 ORDER BY time"
+
+-- ensemble nodes (for the keeper section at the bottom)
+let ensemble =
+      "${S.host} IN (SELECT DISTINCT ${S.host} FROM ${S.gauge} WHERE MetricName LIKE '${a}Keeper%' AND TimeUnix > now() - INTERVAL 5 MINUTE)"
+
+-- ── thresholds ─────────────────────────────────────────────────────────────────
+
+let thresholdParts =
+      { mode = "absolute"
+      , steps = [ { color = "green", value = None Natural }
+                , { color = "yellow", value = Some 200 }
+                , { color = "red", value = Some 500 }
+                ]
+      }
+
+let thresholdMaxParts =
+      { mode = "absolute"
+      , steps = [ { color = "green", value = None Natural }
+                , { color = "yellow", value = Some 100 }
+                , { color = "red", value = Some 300 }
+                ]
+      }
+
+let thresholdDelay =
+      { mode = "absolute"
+      , steps = [ { color = "green", value = None Natural }
+                , { color = "yellow", value = Some 30 }
+                , { color = "red", value = Some 300 }
+                ]
+      }
+
+-- ═══════════════════════════════════════════════════════════════════════════════
 
 let dashboard =
       T.Dashboard::{
@@ -15,139 +62,174 @@ let dashboard =
       , refresh = "30s"
       , timeFrom = "now-1h"
       , rows =
-          [ T.Row::{
+
+          [ -- ── server health ──────────────────────────────────────────────────
+            T.Row::{
             , title = "Server Health"
             , panels =
-                [ (P.statGauge "Active queries" "ClickHouseMetrics_Query") // { width = 3 }
-                , (P.stat "Uptime" (S.statGauge "ClickHouseAsyncMetrics_Uptime")) // { width = 3, unit = T.Unit.Seconds }
-                , (P.stat "MergeTree size" (S.statGauge "ClickHouseAsyncMetrics_TotalBytesOfMergeTreeTables")) // { width = 3, unit = T.Unit.Bytes }
-                , (P.statGauge "Total rows" "ClickHouseAsyncMetrics_TotalRowsOfMergeTreeTables") // { width = 3 }
-                , (P.statWithThreshold "Active parts" (S.statGauge "ClickHouseMetrics_PartsActive") { mode = "absolute", steps = [ { color = "green", value = None Natural }, { color = "yellow", value = Some 200 }, { color = "red", value = Some 500 } ] }) // { width = 3 }
-                , (P.statWithThreshold "Max parts/partition" (S.statGauge "ClickHouseAsyncMetrics_MaxPartCountForPartition") { mode = "absolute", steps = [ { color = "green", value = None Natural }, { color = "yellow", value = Some 100 }, { color = "red", value = Some 300 } ] }) // { width = 3 }
-                , (P.stat "Memory tracked" (S.statGauge "ClickHouseMetrics_MemoryTracking")) // { width = 3, unit = T.Unit.Bytes }
-                , (P.statWithThreshold "Delayed inserts" (S.statGauge "ClickHouseMetrics_DelayedInserts") T.thresholdErrors) // { width = 3 }
+                [ (P.statGauge "Active queries" "${m}Query") // { width = 3 }
+                , (P.stat "Uptime" (Q.statGauge "${a}Uptime")) // { width = 3, unit = T.Unit.Seconds }
+                , (P.stat "MergeTree size" (Q.statGauge "${a}TotalBytesOfMergeTreeTables")) // { width = 3, unit = T.Unit.Bytes }
+                , (P.statGauge "Total rows" "${a}TotalRowsOfMergeTreeTables") // { width = 3 }
+                , (P.statWithThreshold "Active parts" (Q.statGauge "${m}PartsActive") thresholdParts) // { width = 3 }
+                , (P.statWithThreshold "Max parts/partition" (Q.statGauge "${a}MaxPartCountForPartition") thresholdMaxParts) // { width = 3 }
+                , (P.stat "Memory tracked" (Q.statGauge "${m}MemoryTracking")) // { width = 3, unit = T.Unit.Bytes }
+                , (P.statWithThreshold "Delayed inserts" (Q.statGauge "${m}DelayedInserts") T.thresholdErrors) // { width = 3 }
                 ]
             }
-          , T.Row::{
+
+          , -- ── query throughput ───────────────────────────────────────────────
+            T.Row::{
             , title = "Query Throughput"
             , panels =
-                [ (P.timeseries "Queries running" T.Unit.Short (chGauge "ClickHouseMetrics_Query")) // { width = 8 }
-                , (P.timeseries "SELECT queries/sec" T.Unit.QueriesPerSec (chRate "ClickHouseProfileEvents_SelectQuery")) // { width = 8 }
-                , (P.timeseries "INSERT queries/sec" T.Unit.QueriesPerSec (chRate "ClickHouseProfileEvents_InsertQuery")) // { width = 8 }
+                [ (P.timeseries "Queries running" T.Unit.Short (Q.gaugeForHost "${m}Query")) // { width = 8 }
+                , (P.timeseries "SELECT/sec" T.Unit.QueriesPerSec (Q.rate "${e}SelectQuery")) // { width = 8 }
+                , (P.timeseries "INSERT/sec" T.Unit.QueriesPerSec (Q.rate "${e}InsertQuery")) // { width = 8 }
                 ]
             }
-          , T.Row::{
+
+          , -- ── insert throughput ──────────────────────────────────────────────
+            T.Row::{
             , title = "Insert Throughput"
             , panels =
-                [ (P.timeseries "Inserted rows/sec" T.Unit.RowsPerSec (chRate "ClickHouseProfileEvents_InsertedRows")) // { width = 8 }
-                , (P.timeseries "Inserted bytes/sec" T.Unit.BytesPerSec (chRate "ClickHouseProfileEvents_InsertedBytes")) // { width = 8 }
-                , (P.timeseries "Failed queries (select + insert)" T.Unit.Short
-                    (chGaugeMulti "'ClickHouseProfileEvents_FailedSelectQuery', 'ClickHouseProfileEvents_FailedInsertQuery'")
+                [ (P.timeseries "Rows/sec" T.Unit.RowsPerSec (Q.rate "${e}InsertedRows")) // { width = 8 }
+                , (P.timeseries "Bytes/sec" T.Unit.BytesPerSec (Q.rate "${e}InsertedBytes")) // { width = 8 }
+                , (P.timeseries "Failed queries" T.Unit.Short
+                    (Q.gaugeMulti "'${e}FailedSelectQuery', '${e}FailedInsertQuery'")
                   ) // { width = 8, thresholds = Some T.thresholdErrors }
                 ]
             }
-          , T.Row::{
+
+          , -- ── memory ─────────────────────────────────────────────────────────
+            T.Row::{
             , title = "Memory"
             , panels =
-                [ (P.timeseries "Memory tracked" T.Unit.Bytes (chGauge "ClickHouseMetrics_MemoryTracking")) // { width = 8 }
+                [ (P.timeseries "Memory tracked" T.Unit.Bytes (Q.gaugeForHost "${m}MemoryTracking")) // { width = 8 }
                 , (P.timeseries "jemalloc resident vs allocated" T.Unit.Bytes
-                    (chGaugeMulti "'ClickHouseAsyncMetrics_jemalloc_resident', 'ClickHouseAsyncMetrics_jemalloc_allocated'")
-                  ) // { width = 8 }
-                , (P.timeseries "OS memory free (without cached)" T.Unit.Bytes (chGauge "ClickHouseAsyncMetrics_OSMemoryFreeWithoutCached")) // { width = 8 }
+                    (Q.gaugeMulti "'${a}jemalloc_resident', '${a}jemalloc_allocated'")
+                  ) // { width = 8, description = "gap = fragmentation" }
+                , (P.timeseries "OS free (no cache)" T.Unit.Bytes (Q.gaugeForHost "${a}OSMemoryFreeWithoutCached")) // { width = 8 }
                 ]
             }
-          , T.Row::{
+
+          , -- ── merges ─────────────────────────────────────────────────────────
+            T.Row::{
             , title = "Merges & Mutations"
             , panels =
-                [ (P.timeseries "Background merges" T.Unit.Short (chGauge "ClickHouseMetrics_Merge")) // { width = 8 }
-                , (P.timeseries "Merged rows/sec" T.Unit.RowsPerSec (chRate "ClickHouseProfileEvents_MergedRows")) // { width = 8 }
-                , (P.timeseries "Merge time (ms/interval)" T.Unit.Milliseconds (chRate "ClickHouseProfileEvents_MergeTotalMilliseconds")) // { width = 8 }
+                [ (P.timeseries "Background merges" T.Unit.Short (Q.gaugeForHost "${m}Merge")) // { width = 8 }
+                , (P.timeseries "Merged rows/sec" T.Unit.RowsPerSec (Q.rate "${e}MergedRows")) // { width = 8 }
+                , (P.timeseries "Merge time" T.Unit.Milliseconds (Q.rate "${e}MergeTotalMilliseconds")) // { width = 8 }
                 , P.timeseries "Parts: active vs outdated" T.Unit.Short
-                    (chGaugeMulti "'ClickHouseMetrics_PartsActive', 'ClickHouseMetrics_PartsOutdated'")
-                , (P.timeseries "Max parts per partition" T.Unit.Short (chGauge "ClickHouseAsyncMetrics_MaxPartCountForPartition"))
-                    // { thresholds = Some { mode = "absolute", steps = [ { color = "green", value = None Natural }, { color = "yellow", value = Some 100 }, { color = "red", value = Some 300 } ] } }
+                    (Q.gaugeMulti "'${m}PartsActive', '${m}PartsOutdated'")
+                , (P.timeseries "Max parts/partition" T.Unit.Short (Q.gaugeForHost "${a}MaxPartCountForPartition"))
+                    // { thresholds = Some thresholdMaxParts, description = ">300 triggers InsertDelay" }
                 ]
             }
-          , T.Row::{
-            , title = "Storage (MergeTree)"
+
+          , -- ── storage ────────────────────────────────────────────────────────
+            T.Row::{
+            , title = "Storage"
             , panels =
-                [ (P.timeseries "Total compressed size" T.Unit.Bytes (chGauge "ClickHouseAsyncMetrics_TotalBytesOfMergeTreeTables")) // { width = 8 }
-                , (P.timeseries "Total rows stored" T.Unit.Short (chGauge "ClickHouseAsyncMetrics_TotalRowsOfMergeTreeTables")) // { width = 8 }
-                , (P.timeseries "Tables / databases" T.Unit.Short (chGaugeMulti "'ClickHouseAsyncMetrics_NumberOfTables', 'ClickHouseAsyncMetrics_NumberOfDatabases'")) // { width = 8 }
+                [ (P.timeseries "Total size" T.Unit.Bytes (Q.gaugeForHost "${a}TotalBytesOfMergeTreeTables")) // { width = 8 }
+                , (P.timeseries "Total rows" T.Unit.Short (Q.gaugeForHost "${a}TotalRowsOfMergeTreeTables")) // { width = 8 }
+                , (P.timeseries "Tables / databases" T.Unit.Short
+                    (Q.gaugeMulti "'${a}NumberOfTables', '${a}NumberOfDatabases'")
+                  ) // { width = 8 }
                 ]
             }
-          , T.Row::{
-            , title = "S3 / R2 (Object Storage)"
+
+          , -- ── S3 / R2 ───────────────────────────────────────────────────────
+            T.Row::{
+            , title = "S3 / R2"
             , panels =
-                [ (P.timeseries "S3 read bytes/sec" T.Unit.BytesPerSec (chRate "ClickHouseProfileEvents_ReadBufferFromS3Bytes")) // { width = 6 }
-                , (P.timeseries "S3 write bytes/sec" T.Unit.BytesPerSec (chRate "ClickHouseProfileEvents_WriteBufferFromS3Bytes")) // { width = 6 }
-                , (P.timeseries "S3 read requests/sec" T.Unit.ReqPerSec (chRate "ClickHouseProfileEvents_S3ReadRequestsCount")) // { width = 6 }
-                , (P.timeseries "S3 write requests/sec" T.Unit.ReqPerSec (chRate "ClickHouseProfileEvents_S3WriteRequestsCount")) // { width = 6 }
+                [ (P.timeseries "Read bytes/sec" T.Unit.BytesPerSec (Q.rate "${e}ReadBufferFromS3Bytes")) // { width = 6 }
+                , (P.timeseries "Write bytes/sec" T.Unit.BytesPerSec (Q.rate "${e}WriteBufferFromS3Bytes")) // { width = 6 }
+                , (P.timeseries "Read reqs/sec" T.Unit.ReqPerSec (Q.rate "${e}S3ReadRequestsCount")) // { width = 6 }
+                , (P.timeseries "Write reqs/sec" T.Unit.ReqPerSec (Q.rate "${e}S3WriteRequestsCount")) // { width = 6 }
                 ]
             }
-          , T.Row::{
+
+          , -- ── disk I/O ───────────────────────────────────────────────────────
+            T.Row::{
             , title = "Disk I/O"
             , panels =
-                [ (P.timeseries "Disk read time (ms/interval)" T.Unit.Milliseconds "SELECT TimeUnix as time, runningDifference(Value) / 1000 as value FROM ${S.sum} WHERE MetricName = 'ClickHouseProfileEvents_DiskReadElapsedMicroseconds' AND ${S.tf} AND runningDifference(Value) >= 0 ORDER BY time") // { width = 8 }
-                , (P.timeseries "Disk write time (ms/interval)" T.Unit.Milliseconds "SELECT TimeUnix as time, runningDifference(Value) / 1000 as value FROM ${S.sum} WHERE MetricName = 'ClickHouseProfileEvents_DiskWriteElapsedMicroseconds' AND ${S.tf} AND runningDifference(Value) >= 0 ORDER BY time") // { width = 8 }
-                , (P.timeseries "Open file descriptors (R/W)" T.Unit.Short (chGaugeMulti "'ClickHouseMetrics_OpenFileForRead', 'ClickHouseMetrics_OpenFileForWrite'")) // { width = 8 }
+                [ (P.timeseries "Read time" T.Unit.Milliseconds (usRate "${e}DiskReadElapsedMicroseconds")) // { width = 8 }
+                , (P.timeseries "Write time" T.Unit.Milliseconds (usRate "${e}DiskWriteElapsedMicroseconds")) // { width = 8 }
+                , (P.timeseries "Open FDs (R/W)" T.Unit.Short
+                    (Q.gaugeMulti "'${m}OpenFileForRead', '${m}OpenFileForWrite'")
+                  ) // { width = 8 }
                 ]
             }
-          , T.Row::{
+
+          , -- ── connections ────────────────────────────────────────────────────
+            T.Row::{
             , title = "Connections & Network"
             , panels =
-                [ (P.timeseries "Connections by type" T.Unit.Short (chGaugeMulti "'ClickHouseMetrics_TCPConnection', 'ClickHouseMetrics_HTTPConnection', 'ClickHouseMetrics_InterserverConnection'")) // { width = 8 }
-                , (P.timeseries "Network send bytes/sec" T.Unit.BytesPerSec (chRate "ClickHouseProfileEvents_NetworkSendBytes")) // { width = 8 }
-                , (P.timeseries "Network receive bytes/sec" T.Unit.BytesPerSec (chRate "ClickHouseProfileEvents_NetworkReceiveBytes")) // { width = 8 }
+                [ (P.timeseries "By type" T.Unit.Short
+                    (Q.gaugeMulti "'${m}TCPConnection', '${m}HTTPConnection', '${m}InterserverConnection'")
+                  ) // { width = 8 }
+                , (P.timeseries "Net send/sec" T.Unit.BytesPerSec (Q.rate "${e}NetworkSendBytes")) // { width = 8 }
+                , (P.timeseries "Net recv/sec" T.Unit.BytesPerSec (Q.rate "${e}NetworkReceiveBytes")) // { width = 8 }
                 ]
             }
-          , T.Row::{
+
+          , -- ── replication ────────────────────────────────────────────────────
+            T.Row::{
             , title = "Replication"
             , panels =
-                [ (P.timeseries "Replica fetch / send" T.Unit.Short (chGaugeMulti "'ClickHouseMetrics_ReplicatedFetch', 'ClickHouseMetrics_ReplicatedSend'")) // { width = 8 }
-                , (P.timeseries "Max replication queue size" T.Unit.Short (chGauge "ClickHouseAsyncMetrics_ReplicasMaxQueueSize")) // { width = 8 }
-                , (P.timeseries "Max replica delay (seconds)" T.Unit.Seconds (chGauge "ClickHouseAsyncMetrics_ReplicasMaxAbsoluteDelay"))
-                    // { width = 8, thresholds = Some { mode = "absolute", steps = [ { color = "green", value = None Natural }, { color = "yellow", value = Some 30 }, { color = "red", value = Some 300 } ] } }
+                [ (P.timeseries "Fetch / Send" T.Unit.Short
+                    (Q.gaugeMulti "'${m}ReplicatedFetch', '${m}ReplicatedSend'")
+                  ) // { width = 8 }
+                , (P.timeseries "Max queue" T.Unit.Short (Q.gaugeForHost "${a}ReplicasMaxQueueSize")) // { width = 8 }
+                , (P.timeseries "Max delay" T.Unit.Seconds (Q.gaugeForHost "${a}ReplicasMaxAbsoluteDelay"))
+                    // { width = 8, thresholds = Some thresholdDelay }
                 ]
             }
-          , T.Row::{
+
+          , -- ── threads ────────────────────────────────────────────────────────
+            T.Row::{
             , title = "Threads & Pools"
             , panels =
-                [ (P.timeseries "Global threads (total / active)" T.Unit.Short (chGaugeMulti "'ClickHouseMetrics_GlobalThread', 'ClickHouseMetrics_GlobalThreadActive'")) // { width = 8 }
-                , (P.timeseries "Background pool tasks" T.Unit.Short (chGaugeMulti "'ClickHouseMetrics_BackgroundMergesAndMutationsPoolTask', 'ClickHouseMetrics_BackgroundSchedulePoolTask'")) // { width = 8 }
-                , (P.timeseries "CPU time (ms/interval)" T.Unit.Milliseconds "SELECT TimeUnix as time, runningDifference(Value) / 1000 as value FROM ${S.sum} WHERE MetricName = 'ClickHouseProfileEvents_OSCPUVirtualTimeMicroseconds' AND ${S.tf} AND runningDifference(Value) >= 0 ORDER BY time") // { width = 8 }
+                [ (P.timeseries "Global threads" T.Unit.Short
+                    (Q.gaugeMulti "'${m}GlobalThread', '${m}GlobalThreadActive'")
+                  ) // { width = 8 }
+                , (P.timeseries "Background pool" T.Unit.Short
+                    (Q.gaugeMulti "'${m}BackgroundMergesAndMutationsPoolTask', '${m}BackgroundSchedulePoolTask'")
+                  ) // { width = 8 }
+                , (P.timeseries "CPU time" T.Unit.Milliseconds (usRate "${e}OSCPUVirtualTimeMicroseconds")) // { width = 8 }
                 ]
             }
-          , T.Row::{
-            , title = "ZooKeeper Client (Server -> Keeper)"
+
+          , -- ── ZK client ──────────────────────────────────────────────────────
+            T.Row::{
+            , title = "ZooKeeper Client"
             , panels =
-                [ (P.timeseries "ZK in-flight requests" T.Unit.Short (chGauge "ClickHouseMetrics_ZooKeeperRequest")) // { width = 8 }
-                , (P.timeseries "ZK watches" T.Unit.Short (chGauge "ClickHouseMetrics_ZooKeeperWatch")) // { width = 8 }
-                , (P.timeseries "ZK operations/sec (get/set/create/txn)" T.Unit.OpsPerSec
-                    "SELECT time, metric, value FROM (SELECT TimeUnix as time, MetricName as metric, runningDifference(Value) / 30 as value FROM ${S.sum} WHERE MetricName IN ('ClickHouseProfileEvents_ZooKeeperGet', 'ClickHouseProfileEvents_ZooKeeperSet', 'ClickHouseProfileEvents_ZooKeeperCreate', 'ClickHouseProfileEvents_ZooKeeperTransactions') AND ${S.tf} ORDER BY metric, time) WHERE value >= 0 ORDER BY time"
+                [ (P.timeseries "In-flight requests" T.Unit.Short (Q.gaugeForHost "${m}ZooKeeperRequest")) // { width = 8 }
+                , (P.timeseries "Watches" T.Unit.Short (Q.gaugeForHost "${m}ZooKeeperWatch")) // { width = 8 }
+                , (P.timeseries "Ops/sec (get/set/create/txn)" T.Unit.OpsPerSec
+                    (Q.rateByKey "${e}ZooKeeperGet" "MetricName" "metric")
                   ) // { width = 8 }
                 ]
             }
-          , T.Row::{
-            , title = "Keeper Ensemble (3 nodes)"
+
+          , -- ── keeper ensemble ────────────────────────────────────────────────
+            T.Row::{
+            , title = "Keeper Ensemble"
             , panels =
-                [ (P.timeseries "Keeper sessions by node" T.Unit.Short
-                    "SELECT TimeUnix as time, ${S.host} as keeper, avg(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseMetrics_ZooKeeperSession' AND ${S.host} IN (SELECT DISTINCT ${S.host} FROM ${S.gauge} WHERE MetricName LIKE 'ClickHouseAsyncMetrics_Keeper%' AND TimeUnix > now() - INTERVAL 5 MINUTE) AND ${S.tf} GROUP BY time, keeper ORDER BY time"
-                  ) // { width = 8 }
-                , (P.timeseries "Keeper requests by node" T.Unit.Short
-                    "SELECT TimeUnix as time, ${S.host} as keeper, avg(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseMetrics_ZooKeeperRequest' AND ${S.host} IN (SELECT DISTINCT ${S.host} FROM ${S.gauge} WHERE MetricName LIKE 'ClickHouseAsyncMetrics_Keeper%' AND TimeUnix > now() - INTERVAL 5 MINUTE) AND ${S.tf} GROUP BY time, keeper ORDER BY time"
-                  ) // { width = 8 }
-                , (P.timeseries "Keeper watches by node" T.Unit.Short
-                    "SELECT TimeUnix as time, ${S.host} as keeper, avg(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseMetrics_ZooKeeperWatch' AND ${S.host} IN (SELECT DISTINCT ${S.host} FROM ${S.gauge} WHERE MetricName LIKE 'ClickHouseAsyncMetrics_Keeper%' AND TimeUnix > now() - INTERVAL 5 MINUTE) AND ${S.tf} GROUP BY time, keeper ORDER BY time"
-                  ) // { width = 8 }
+                [ (P.timeseries "Sessions by node" T.Unit.Short (Q.byNodeFiltered "${m}ZooKeeperSession" ensemble "keeper")) // { width = 8 }
+                , (P.timeseries "Requests by node" T.Unit.Short (Q.byNodeFiltered "${m}ZooKeeperRequest" ensemble "keeper")) // { width = 8 }
+                , (P.timeseries "Watches by node" T.Unit.Short (Q.byNodeFiltered "${m}ZooKeeperWatch" ensemble "keeper")) // { width = 8 }
                 ]
             }
-          , T.Row::{
+
+          , -- ── compression & I/O wait ─────────────────────────────────────────
+            T.Row::{
             , title = "Compression & IO Wait"
             , panels =
-                [ (P.timeseries "Compressed read bytes/sec" T.Unit.BytesPerSec (chRate "ClickHouseProfileEvents_CompressedReadBufferBytes")) // { width = 8 }
-                , (P.timeseries "S3 write latency (ms/interval)" T.Unit.Milliseconds "SELECT TimeUnix as time, runningDifference(Value) / 1000 as value FROM ${S.sum} WHERE MetricName = 'ClickHouseProfileEvents_DiskS3WriteMicroseconds' AND ${S.tf} AND runningDifference(Value) >= 0 ORDER BY time") // { width = 8 }
-                , (P.timeseries "IO wait time (ms/interval)" T.Unit.Milliseconds "SELECT TimeUnix as time, runningDifference(Value) / 1000 as value FROM ${S.sum} WHERE MetricName = 'ClickHouseProfileEvents_OSIOWaitMicroseconds' AND ${S.tf} AND runningDifference(Value) >= 0 ORDER BY time") // { width = 8 }
+                [ (P.timeseries "Compressed read/sec" T.Unit.BytesPerSec (Q.rate "${e}CompressedReadBufferBytes")) // { width = 8 }
+                , (P.timeseries "S3 write latency" T.Unit.Milliseconds (usRate "${e}DiskS3WriteMicroseconds")) // { width = 8 }
+                , (P.timeseries "IO wait" T.Unit.Milliseconds (usRate "${e}OSIOWaitMicroseconds"))
+                    // { width = 8, description = "high = storage bottleneck" }
                 ]
             }
           ]
