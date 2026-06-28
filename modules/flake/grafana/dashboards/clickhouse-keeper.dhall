@@ -1,11 +1,127 @@
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--                    // hypermodern // grafana // clickhouse-keeper
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--
+-- 3-node raft ensemble. the coordination plane for all replicated state.
+-- nodes auto-discovered from metrics (no hardcoded hostnames).
+
 let T = ../schema/types.dhall
 let S = ../schema/sql.dhall
 let P = ../schema/panels.dhall
 let R = ../schema/render.dhall
 
--- filter to nodes that report keeper metrics (derived from the fleet, not hardcoded)
-let keeperFilter = "${S.host} IN (SELECT DISTINCT ${S.host} FROM ${S.gauge} WHERE MetricName LIKE 'ClickHouseAsyncMetrics_Keeper%' AND TimeUnix > now() - INTERVAL 5 MINUTE)"
-let kGauge = \(metric : Text) -> "SELECT TimeUnix as time, ${S.host} as keeper, avg(Value) as value FROM ${S.gauge} WHERE MetricName = '${metric}' AND ${keeperFilter} AND ${S.tf} GROUP BY time, keeper ORDER BY time"
+-- ── keeper-specific helpers ────────────────────────────────────────────────────
+
+let k = "ClickHouseAsyncMetrics_Keeper"
+
+-- nodes that are reporting keeper metrics right now
+let ensemble =
+      "${S.host} IN (SELECT DISTINCT ${S.host} FROM ${S.gauge} WHERE MetricName LIKE '${k}%' AND TimeUnix > now() - INTERVAL 5 MINUTE)"
+
+-- per-node time series for a keeper gauge metric
+let byNode =
+      \(metric : Text) ->
+        "SELECT TimeUnix as time, ${S.host} as keeper, avg(Value) as value FROM ${S.gauge} WHERE MetricName = '${k}${metric}' AND ${ensemble} AND ${S.tf} GROUP BY time, keeper ORDER BY time"
+
+-- single aggregate across the ensemble (most recent 2m)
+let recent =
+      \(metric : Text) ->
+      \(agg : Text) ->
+        "SELECT ${agg}(Value) as value FROM ${S.gauge} WHERE MetricName = '${k}${metric}' AND ${ensemble} AND TimeUnix > now() - INTERVAL 2 MINUTE"
+
+-- cross-node spread: max(metric) - min(metric) over time
+let spread =
+      \(metric : Text) ->
+        "SELECT TimeUnix as time, max(Value) - min(Value) as value FROM ${S.gauge} WHERE MetricName = '${k}${metric}' AND ${ensemble} AND ${S.tf} GROUP BY time ORDER BY time"
+
+-- ── threshold presets ──────────────────────────────────────────────────────────
+
+let thresholdLatency =
+      { mode = "absolute"
+      , steps = [ { color = "green", value = None Natural }
+                , { color = "yellow", value = Some 100 }
+                , { color = "red", value = Some 1000 }
+                ]
+      }
+
+let thresholdFollowers =
+      { mode = "absolute"
+      , steps = [ { color = "red", value = None Natural }
+                , { color = "yellow", value = Some 1 }
+                , { color = "green", value = Some 2 }
+                ]
+      }
+
+let thresholdDivergence =
+      { mode = "absolute"
+      , steps = [ { color = "green", value = None Natural }
+                , { color = "yellow", value = Some 10 }
+                , { color = "red", value = Some 100 }
+                ]
+      }
+
+-- ── commit rate (the key derived metric) ───────────────────────────────────────
+-- raw LastCommittedLogIdx is monotonic. we want commits/sec per node.
+
+let commitRate =
+      ''
+      SELECT time, keeper, rate as value
+      FROM (
+        SELECT time, keeper, runningDifference(val) / 30 as rate
+        FROM (
+          SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time,
+                 ${S.host} as keeper,
+                 max(Value) as val
+          FROM ${S.gauge}
+          WHERE MetricName = '${k}LastCommittedLogIdx'
+            AND ${ensemble}
+            AND ${S.tf}
+          GROUP BY time, keeper
+          ORDER BY keeper, time
+        )
+      )
+      WHERE rate >= 0
+      ORDER BY time
+      ''
+
+-- ── raft lag: target - committed per node ──────────────────────────────────────
+
+let raftLag =
+      ''
+      SELECT t.TimeUnix as time,
+             t.${S.host} as keeper,
+             avg(t.Value) - avg(c.Value) as value
+      FROM ${S.gauge} t
+      INNER JOIN ${S.gauge} c
+        ON t.TimeUnix = c.TimeUnix
+        AND t.${S.host} = c.${S.host}
+      WHERE t.MetricName = '${k}TargetCommitLogIdx'
+        AND c.MetricName = '${k}LastCommittedLogIdx'
+        AND t.${S.tf}
+        AND ${ensemble}
+      GROUP BY time, keeper
+      ORDER BY time
+      ''
+
+-- ── leader latency (stat: latency of the current leader only) ──────────────────
+
+let leaderLatency =
+      ''
+      SELECT avg(Value) as value
+      FROM ${S.gauge}
+      WHERE MetricName = '${k}AvgLatency'
+        AND ${S.host} IN (
+          SELECT ${S.host} FROM ${S.gauge}
+          WHERE MetricName = '${k}IsLeader'
+            AND Value = 1
+            AND TimeUnix > now() - INTERVAL 2 MINUTE
+        )
+        AND TimeUnix > now() - INTERVAL 2 MINUTE
+      ''
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  dashboard
+-- ═══════════════════════════════════════════════════════════════════════════════
 
 let dashboard =
       T.Dashboard::{
@@ -15,79 +131,143 @@ let dashboard =
       , refresh = "30s"
       , timeFrom = "now-1h"
       , rows =
-          [ T.Row::{
+
+          [ -- ── ensemble health (stat row) ─────────────────────────────────────
+            T.Row::{
             , title = "Ensemble Health"
             , panels =
-                [ (P.stat "Nodes reporting" "SELECT uniq(${S.host}) as value FROM ${S.gauge} WHERE MetricName LIKE 'ClickHouseAsyncMetrics_Keeper%' AND TimeUnix > now() - INTERVAL 2 MINUTE") // { width = 4 }
-                , (P.statWithThreshold "Synced followers" "SELECT max(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseAsyncMetrics_KeeperSyncedFollowers' AND ${keeperFilter} AND TimeUnix > now() - INTERVAL 2 MINUTE" { mode = "absolute", steps = [ { color = "red", value = None Natural }, { color = "yellow", value = Some 1 }, { color = "green", value = Some 2 } ] }) // { width = 4 }
-                , (P.statWithThreshold "Avg latency (leader)" "SELECT avg(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseAsyncMetrics_KeeperAvgLatency' AND ${S.host} IN (SELECT ${S.host} FROM ${S.gauge} WHERE MetricName = 'ClickHouseAsyncMetrics_KeeperIsLeader' AND Value = 1 AND TimeUnix > now() - INTERVAL 2 MINUTE) AND TimeUnix > now() - INTERVAL 2 MINUTE" { mode = "absolute", steps = [ { color = "green", value = None Natural }, { color = "yellow", value = Some 100 }, { color = "red", value = Some 1000 } ] }) // { width = 4, unit = T.Unit.Milliseconds }
-                , (P.stat "Commits/sec" "SELECT (max(Value) - min(Value)) / 60 as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseAsyncMetrics_KeeperLastCommittedLogIdx' AND ${keeperFilter} AND TimeUnix > now() - INTERVAL 1 MINUTE") // { width = 4, unit = T.Unit.OpsPerSec }
-                , (P.stat "Znodes" "SELECT max(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseAsyncMetrics_KeeperZnodeCount' AND ${keeperFilter} AND TimeUnix > now() - INTERVAL 2 MINUTE") // { width = 4 }
-                , (P.stat "Data size" "SELECT max(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseAsyncMetrics_KeeperApproximateDataSize' AND ${keeperFilter} AND TimeUnix > now() - INTERVAL 2 MINUTE") // { width = 4, unit = T.Unit.Bytes }
+                [ (P.stat "Nodes reporting"
+                    "SELECT uniq(${S.host}) as value FROM ${S.gauge} WHERE MetricName LIKE '${k}%' AND TimeUnix > now() - INTERVAL 2 MINUTE"
+                  ) // { width = 4 }
+
+                , (P.statWithThreshold "Synced followers"
+                    (recent "SyncedFollowers" "max")
+                    thresholdFollowers
+                  ) // { width = 4 }
+
+                , (P.statWithThreshold "Leader latency"
+                    leaderLatency
+                    thresholdLatency
+                  ) // { width = 4, unit = T.Unit.Milliseconds }
+
+                , (P.stat "Commits/sec"
+                    "SELECT (max(Value) - min(Value)) / 60 as value FROM ${S.gauge} WHERE MetricName = '${k}LastCommittedLogIdx' AND ${ensemble} AND TimeUnix > now() - INTERVAL 1 MINUTE"
+                  ) // { width = 4, unit = T.Unit.OpsPerSec }
+
+                , (P.stat "Znodes"
+                    (recent "ZnodeCount" "max")
+                  ) // { width = 4 }
+
+                , (P.stat "Data size"
+                    (recent "ApproximateDataSize" "max")
+                  ) // { width = 4, unit = T.Unit.Bytes }
                 ]
             }
-          , T.Row::{
+
+          , -- ── raft consensus (the diagnostic section) ────────────────────────
+            T.Row::{
             , title = "Raft Consensus"
             , panels =
-                [ (P.timeseries "Commit rate (commits/sec per node)" T.Unit.OpsPerSec
-                    "SELECT time, keeper, rate as value FROM (SELECT time, keeper, runningDifference(val) / 30 as rate FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, ${S.host} as keeper, max(Value) as val FROM ${S.gauge} WHERE MetricName = 'ClickHouseAsyncMetrics_KeeperLastCommittedLogIdx' AND ${keeperFilter} AND ${S.tf} GROUP BY time, keeper ORDER BY keeper, time)) WHERE rate >= 0 ORDER BY time"
-                  ) // { width = 8, description = "how fast the ensemble is processing writes. all nodes should match (same log)." }
-                , (P.timeseries "Inter-node log divergence" T.Unit.Short
-                    "SELECT TimeUnix as time, max(Value) - min(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseAsyncMetrics_KeeperLastCommittedLogIdx' AND ${keeperFilter} AND ${S.tf} GROUP BY time ORDER BY time"
-                  ) // { width = 8, thresholds = Some { mode = "absolute", steps = [ { color = "green", value = None Natural }, { color = "yellow", value = Some 10 }, { color = "red", value = Some 100 } ] }, description = "max(idx) - min(idx) across nodes. 0 = perfectly in sync. >0 = replication lag." }
-                , (P.timeseries "Raft lag (target - committed)" T.Unit.Short
-                    "SELECT t.TimeUnix as time, t.${S.host} as keeper, avg(t.Value) - avg(c.Value) as value FROM ${S.gauge} t INNER JOIN ${S.gauge} c ON t.TimeUnix = c.TimeUnix AND t.${S.host} = c.${S.host} WHERE t.MetricName = 'ClickHouseAsyncMetrics_KeeperTargetCommitLogIdx' AND c.MetricName = 'ClickHouseAsyncMetrics_KeeperLastCommittedLogIdx' AND t.${S.tf} AND ${keeperFilter} GROUP BY time, keeper ORDER BY time"
-                  ) // { width = 8, thresholds = Some T.thresholdErrors, description = "per-node gap between target and committed. non-zero = node is behind." }
+                [ (P.timeseries "Commit rate per node" T.Unit.OpsPerSec commitRate)
+                    // { width = 8
+                       , description = "writes/sec. all nodes should overlap (same replicated log)."
+                       }
+
+                , (P.timeseries "Inter-node divergence" T.Unit.Short
+                    (spread "LastCommittedLogIdx")
+                  ) // { width = 8
+                     , thresholds = Some thresholdDivergence
+                     , description = "max - min log idx across nodes. 0 = in sync."
+                     }
+
+                , (P.timeseries "Raft lag (target - committed)" T.Unit.Short raftLag)
+                    // { width = 8
+                       , thresholds = Some T.thresholdErrors
+                       , description = "per-node backlog. non-zero = that node is behind."
+                       }
                 ]
             }
-          , T.Row::{
+
+          , -- ── latency ────────────────────────────────────────────────────────
+            T.Row::{
             , title = "Latency"
             , panels =
-                [ (P.timeseries "Avg request latency by node" T.Unit.Milliseconds
-                    (kGauge "ClickHouseAsyncMetrics_KeeperAvgLatency")
-                  ) // { width = 8, thresholds = Some { mode = "absolute", steps = [ { color = "green", value = None Natural }, { color = "yellow", value = Some 100 }, { color = "red", value = Some 1000 } ] } }
-                , (P.timeseries "Max request latency by node" T.Unit.Milliseconds
-                    (kGauge "ClickHouseAsyncMetrics_KeeperMaxLatency")
+                [ (P.timeseries "Avg latency by node" T.Unit.Milliseconds
+                    (byNode "AvgLatency")
+                  ) // { width = 8, thresholds = Some thresholdLatency }
+
+                , (P.timeseries "Max latency by node" T.Unit.Milliseconds
+                    (byNode "MaxLatency")
                   ) // { width = 8 }
-                , (P.timeseries "Latency spread (max - min across nodes)" T.Unit.Milliseconds
-                    "SELECT TimeUnix as time, max(Value) - min(Value) as value FROM ${S.gauge} WHERE MetricName = 'ClickHouseAsyncMetrics_KeeperAvgLatency' AND ${keeperFilter} AND ${S.tf} GROUP BY time ORDER BY time"
-                  ) // { width = 8, description = "large spread = one node is slow (network? disk? CPU?)" }
+
+                , (P.timeseries "Latency spread" T.Unit.Milliseconds
+                    (spread "AvgLatency")
+                  ) // { width = 8
+                     , description = "max - min across nodes. spike = one node slow."
+                     }
                 ]
             }
-          , T.Row::{
-            , title = "Leadership & Roles"
+
+          , -- ── leadership ─────────────────────────────────────────────────────
+            T.Row::{
+            , title = "Leadership"
             , panels =
-                [ (P.timeseries "Leader (1) / Follower (0) by node" T.Unit.Short
-                    (kGauge "ClickHouseAsyncMetrics_KeeperIsLeader")
-                  ) // { width = 12, description = "leadership changes visible as transitions. stable = 1 leader, N-1 followers." }
-                , (P.timeseries "Synced followers (from leader)" T.Unit.Short
-                    (kGauge "ClickHouseAsyncMetrics_KeeperSyncedFollowers")
-                  ) // { width = 12, thresholds = Some { mode = "absolute", steps = [ { color = "red", value = None Natural }, { color = "yellow", value = Some 1 }, { color = "green", value = Some 2 } ] } }
+                [ (P.timeseries "Leader / Follower by node" T.Unit.Short
+                    (byNode "IsLeader")
+                  ) // { width = 12
+                     , description = "1 = leader. transitions = elections."
+                     }
+
+                , (P.timeseries "Synced followers" T.Unit.Short
+                    (byNode "SyncedFollowers")
+                  ) // { width = 12, thresholds = Some thresholdFollowers }
                 ]
             }
-          , T.Row::{
-            , title = "State (Znodes / Watches / Ephemerals)"
+
+          , -- ── replicated state ───────────────────────────────────────────────
+            T.Row::{
+            , title = "Replicated State"
             , panels =
-                [ (P.timeseries "Znode count by node" T.Unit.Short (kGauge "ClickHouseAsyncMetrics_KeeperZnodeCount")) // { width = 8, description = "should be identical across all nodes (replicated state)" }
-                , (P.timeseries "Watch count by node" T.Unit.Short (kGauge "ClickHouseAsyncMetrics_KeeperWatchCount")) // { width = 8 }
-                , (P.timeseries "Ephemeral count by node" T.Unit.Short (kGauge "ClickHouseAsyncMetrics_KeeperEphemeralsCount")) // { width = 8 }
+                [ (P.timeseries "Znodes" T.Unit.Short (byNode "ZnodeCount"))
+                    // { width = 8
+                       , description = "identical across nodes = consistent."
+                       }
+                , (P.timeseries "Watches" T.Unit.Short (byNode "WatchCount"))
+                    // { width = 8 }
+                , (P.timeseries "Ephemerals" T.Unit.Short (byNode "EphemeralsCount"))
+                    // { width = 8 }
                 ]
             }
-          , T.Row::{
-            , title = "Memory & Storage"
+
+          , -- ── memory ─────────────────────────────────────────────────────────
+            T.Row::{
+            , title = "Memory"
             , panels =
-                [ (P.timeseries "Data size by node" T.Unit.Bytes (kGauge "ClickHouseAsyncMetrics_KeeperApproximateDataSize")) // { width = 8 }
-                , (P.timeseries "Key arena size by node" T.Unit.Bytes (kGauge "ClickHouseAsyncMetrics_KeeperKeyArenaSize")) // { width = 8 }
-                , (P.timeseries "Commit log cache by node" T.Unit.Bytes (kGauge "ClickHouseAsyncMetrics_KeeperCommitLogsCacheSize")) // { width = 8 }
+                [ (P.timeseries "Data size" T.Unit.Bytes (byNode "ApproximateDataSize"))
+                    // { width = 8 }
+                , (P.timeseries "Key arena" T.Unit.Bytes (byNode "KeyArenaSize"))
+                    // { width = 8 }
+                , (P.timeseries "Commit log cache" T.Unit.Bytes (byNode "CommitLogsCacheSize"))
+                    // { width = 8 }
                 ]
             }
-          , T.Row::{
-            , title = "Connections & Resources"
+
+          , -- ── connections ────────────────────────────────────────────────────
+            T.Row::{
+            , title = "Connections"
             , panels =
-                [ (P.timeseries "Sessions with watches by node" T.Unit.Short (kGauge "ClickHouseAsyncMetrics_KeeperSessionWithWatches")) // { width = 8 }
-                , (P.timeseries "Open FDs by node" T.Unit.Short (kGauge "ClickHouseAsyncMetrics_KeeperOpenFileDescriptorCount")) // { width = 8 }
-                , (P.timeseries "TCP rejected by node" T.Unit.Short (kGauge "ClickHouseAsyncMetrics_KeeperTCPRejectedConnections"))
-                    // { width = 8, thresholds = Some T.thresholdErrors, description = "non-zero = connections being refused. capacity issue." }
+                [ (P.timeseries "Sessions with watches" T.Unit.Short
+                    (byNode "SessionWithWatches")
+                  ) // { width = 8 }
+                , (P.timeseries "Open FDs" T.Unit.Short
+                    (byNode "OpenFileDescriptorCount")
+                  ) // { width = 8 }
+                , (P.timeseries "TCP rejected" T.Unit.Short
+                    (byNode "TCPRejectedConnections")
+                  ) // { width = 8
+                     , thresholds = Some T.thresholdErrors
+                     , description = "non-zero = connections refused. capacity issue."
+                     }
                 ]
             }
           ]
