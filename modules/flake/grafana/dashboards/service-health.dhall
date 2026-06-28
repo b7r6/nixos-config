@@ -1,5 +1,10 @@
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--                    // hypermodern // grafana // service-health
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 let T = ../schema/types.dhall
 let S = ../schema/sql.dhall
+let Q = ../schema/queries.dhall
 let P = ../schema/panels.dhall
 let R = ../schema/render.dhall
 

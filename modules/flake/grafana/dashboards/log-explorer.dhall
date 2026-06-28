@@ -1,5 +1,10 @@
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--                     // hypermodern // grafana // log-explorer
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 let T = ../schema/types.dhall
 let S = ../schema/sql.dhall
+let Q = ../schema/queries.dhall
 let P = ../schema/panels.dhall
 let R = ../schema/render.dhall
 
@@ -27,12 +32,12 @@ let dashboard =
           , T.Row::{
             , title = "Errors"
             , panels =
-                [ (P.timeseries "Error count by host" T.Unit.Short
+                [ (P.barGauge "Error count by host"
                     "SELECT ${S.host} as host, count() as errors FROM ${S.logs} WHERE ${S.isErr} AND ${S.tfLog} GROUP BY host ORDER BY errors DESC"
-                  ) // { width = 8, height = 7, type = T.PanelType.BarGauge, format = T.Format.Table }
-                , (P.timeseries "Error count by unit" T.Unit.Short
+                  )
+                , (P.barGauge "Error count by unit"
                     "SELECT ${S.unit} as unit, count() as errors FROM ${S.logs} WHERE ${S.isErr} AND ${S.unit} != '' AND ${S.tfLog} GROUP BY unit ORDER BY errors DESC LIMIT 15"
-                  ) // { width = 8, height = 7, type = T.PanelType.BarGauge, format = T.Format.Table }
+                  )
                 , (P.table "Top error messages"
                     "SELECT substring(${S.msg}, 1, 120) as message, count() as n FROM ${S.logs} WHERE ${S.isErr} AND ${S.tfLog} GROUP BY message ORDER BY n DESC LIMIT 20"
                   ) // { width = 8, height = 7 }
