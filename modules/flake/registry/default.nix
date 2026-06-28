@@ -11,6 +11,7 @@
 #   - the coredns-zone package (./packages/coredns-zone/) — fleet DNS compiler
 _: {
   flake.nixosModules.registry = ./nixos.nix;
+  flake.nixosModules.identity = ./nixos-users.nix;
 
   perSystem = { pkgs, ... }: {
     packages.coredns-zone = pkgs.callPackage ./packages/coredns-zone { };

@@ -23,6 +23,7 @@
     ./secrets.nix
     ./state.nix
     ../flake/registry/nixos.nix
+    ../flake/registry/nixos-users.nix
 
     # ── Hardware (gated) ──
     ./bluetooth.nix
