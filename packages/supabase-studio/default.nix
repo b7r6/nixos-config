@@ -75,7 +75,7 @@ let
 
       outputHashAlgo = "sha256";
       outputHashMode = "recursive";
-      outputHash = "sha256-AsYctiJ7Ho8EW0uT8HdwNIbMfirc7XZuG2dn2sFoAPA=";
+      outputHash = "sha256-LsMe3JK/wLIhssmVJ1ta3EjfGicsJp7bM7Cw4HrJosk=";
 
       SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
 
