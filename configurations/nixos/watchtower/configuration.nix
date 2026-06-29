@@ -260,7 +260,7 @@ in
         name = "Kanidm";
         icon = "signin";
         client_id = "grafana";
-        client_secret = "$__file{/run/agenix/kanidm-grafana-secret}";
+        client_secret = "$__file{/run/agenix/grafana-oauth-secret}";
         scopes = "openid email profile groups";
         auth_url = "https://auth.s4.gl/ui/oauth2";
         token_url = "https://auth.s4.gl/oauth2/token";
@@ -493,7 +493,14 @@ in
     group = "kanidm";
     mode = "0400";
   };
+  # same secret, two paths: kanidm needs it for provisioning, grafana for OIDC auth
   age.secrets.kanidm-grafana-secret = {
+    file = ../../../secrets/agenix/machines/kanidm-grafana-secret.age;
+    owner = "kanidm";
+    group = "kanidm";
+    mode = "0400";
+  };
+  age.secrets.grafana-oauth-secret = {
     file = ../../../secrets/agenix/machines/kanidm-grafana-secret.age;
     owner = "grafana";
     group = "grafana";
