@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                       // hyper-modern-nixos // nixos modules
+#                                             // hypermodern // nixos // modules
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # The single NixOS module every host imports. It pulls in:
@@ -12,13 +12,18 @@
 # Flat layout: each module is a sibling file here (no common/ or services/
 # nesting). Gated modules cost nothing when off, so importing them all keeps
 # host configs to "import this + set options" with zero per-host import lists.
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
 { lib, ... }: {
   imports = [
     # ── Core system (always-on) ──
+
     ./base.nix
     ./nix.nix
     ./packages.nix
     ./greetd.nix
+    ./kernel.nix
     ./myusers.nix
     ./secrets.nix
     ./state.nix
@@ -26,50 +31,57 @@
     ../flake/registry/nixos-users.nix
 
     # ── Hardware (gated) ──
+
     ./bluetooth.nix
     ./nvidia.nix
     ./radeon.nix
     ./usb.nix
 
     # ── Networking ──
+
     ./network.nix
     ./network-manager.nix
     ../flake/coredns/nixos.nix
     ./reverse-proxy.nix
 
     # ── Virtualization & containers (gated) ──
+
     ./docker.nix
     ./libvirt.nix
 
     # ── Services (gated) ──
-    ./postgres.nix
-    ./clickhouse.nix
-    ./otel.nix
-    ../flake/backup/nixos.nix
-    ../flake/attic/nixos.nix
+
     ../flake/attic/nixos-node.nix
-    ../flake/nativelink/nixos.nix
-    ./rclone-mount.nix
-    ./searxng.nix
-    ./supabase.nix
-    ./supabase-native.nix
-    ./registry.nix
-    ../flake/media/nixos.nix
+    ../flake/attic/nixos.nix
+    ../flake/backup/nixos.nix
+    ../flake/media/nixos-dropbox.nix
     ../flake/media/nixos-pinchflat.nix
     ../flake/media/nixos-torrents.nix
-    ../flake/media/nixos-dropbox.nix
+    ../flake/media/nixos.nix
+    ../flake/nativelink/nixos.nix
+    ./clickhouse.nix
+    ./otel.nix
+    ./postgres.nix
+    ./rclone-mount.nix
+    ./registry.nix
+    ./searxng.nix
+    ./supabase-native.nix
+    ./supabase.nix
 
     # ── Development ──
+
     ./android.nix
     ./appimage.nix
     ./nix-ld.nix
 
     # ── Special ──
+
     ./impermanence.nix
     ./impurity.nix
     ./xremap.nix
 
     # ── Subtrees ──
+
     ./dgx-spark
     ./wayland
   ];

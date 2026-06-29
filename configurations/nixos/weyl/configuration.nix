@@ -13,22 +13,10 @@ in
 
   networking.hostName = "weyl";
   networking.networkmanager.enable = true;
+
   hyper-modern-nixos.coredns.enable = true;
-
-  # networking.hosts = {
-  #   "192.168.50.12" = [ "files01.rhosts.net" ];
-  #   "10.215.1.12" = [ "cc1-agiti.cloud.parabolicsurf.net" ];
-  # };
-
-  # TODO[b7r6]: we've got to either converge or diverge on
-  # `autowire`, this in-between isn't working out...
-
   hyper-modern-nixos.nvidia.enable = true;
   hyper-modern-nixos.hyper-wayland.enable = true;
-
-  # b7r6 keys + base groups come from the fleet-wide user model; this host just
-  # adds its machine-specific group.
-  # hyper-modern-nixos.users.users.b7r6.extraGroups = [ "ps-v4" ];
 
   security.sudo.wheelNeedsPassword = false;
 

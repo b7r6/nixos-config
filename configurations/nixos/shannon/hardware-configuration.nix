@@ -32,7 +32,6 @@
   boot.initrd.kernelModules = [ ];
 
   boot.kernelModules = [ "kvm-amd" ];
-  boot.kernelPackages = pkgs.linuxPackages_testing;
   boot.kernelParams = [ "mem_sleep_default=deep" ];
   boot.blacklistedKernelModules = [ "ucsi_acpi" ];
 
@@ -51,14 +50,9 @@
 
   services.asusd = {
     enable = true;
-    # enableUserService is no longer required (removed in recent nixpkgs)
   };
 
   environment.systemPackages = with pkgs; [ ryzenadj ];
-
-  environment.sessionVariables = {
-    FREETYPE_PROPERTIES = "cff:no-stem-darkening=0 autofitter:no-stem-darkening=0 truetype:interpreter-version=40";
-  };
 
   networking.useDHCP = lib.mkDefault true;
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";

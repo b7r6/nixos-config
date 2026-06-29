@@ -41,13 +41,6 @@ in
     # Allow unfree packages (NVIDIA drivers are proprietary)
     nixpkgs.config.allowUnfree = true;
 
-    # Fleet uniformity: NVIDIA hosts (near-identical SKUs) all run the 7.1
-    # testing kernel for recent-motherboard bluetooth/wifi support, paired with
-    # the 610.x driver above. mkDefault so a host with different hardware can
-    # still override. (AMD-only hosts like watchtower don't import this module
-    # and keep the stock kernel.)
-    boot.kernelPackages = mkDefault pkgs.linuxPackages_testing;
-
     # Graphics configuration
     hardware.graphics = {
       enable = true;
