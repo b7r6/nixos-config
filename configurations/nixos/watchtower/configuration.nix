@@ -446,6 +446,18 @@ in
           "profile"
           "groups"
         ];
+        scopeMaps.fleet_admins = [
+          "openid"
+          "email"
+          "profile"
+          "groups"
+        ];
+        scopeMaps.grafana_admins = [
+          "openid"
+          "email"
+          "profile"
+          "groups"
+        ];
       };
     };
   };
