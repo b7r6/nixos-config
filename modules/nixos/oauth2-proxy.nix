@@ -99,9 +99,9 @@ in
 
       serviceConfig = {
         Type = "simple";
-        DynamicUser = true;
         Restart = "on-failure";
         RestartSec = 5;
+        # no DynamicUser — needs to read agenix secrets in /run/agenix/
         ExecStart = lib.concatStringsSep " " [
           "${pkgs.oauth2-proxy}/bin/oauth2-proxy"
           "--http-address=127.0.0.1:${toString cfg.port}"
