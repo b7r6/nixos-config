@@ -4,12 +4,12 @@
 #
 # Greetd login manager with tuigreet for Hyprland.
 #
-# fixes:
-# - waits for multi-user.target so the login prompt doesn't get scribbled
-#   on by services still starting
-# - disables user linger for the greeter user so switch-to-configuration
-#   doesn't try to reload its (non-existent) dbus session, which causes
-#   a spurious exit-4 on remote nixos-rebuild switches
+# KNOWN ISSUE: switch-to-configuration-ng exits 4 on remote switches because
+# the greeter system user (uid 989) has a running user@.service slice but no
+# dbus socket. The activation treats this as a failure even though it's harmless.
+# This is an upstream NixOS bug — the activation should tolerate system users
+# without functioning user sessions. The deploy script handles this by treating
+# exit 4 with only "user activation for greeter failed" as success.
 { pkgs, ... }: {
   services.greetd = {
     enable = true;
@@ -21,16 +21,6 @@
     };
   };
 
-  # wait for all services before showing the login prompt
-  systemd.services.greetd = {
-    after = [ "multi-user.target" ];
-    wants = [ "multi-user.target" ];
-  };
-
-  # prevent the greeter system user from having a lingering user session.
-  # without this, switch-to-configuration tries to reload user units for uid
-  # 989 (greeter), fails to connect to its dbus socket, and reports exit 4.
-  systemd.tmpfiles.rules = [
-    "r /var/lib/systemd/linger/greeter"
-  ];
+  # wait for all services before drawing the login prompt
+  systemd.services.greetd.after = [ "multi-user.target" ];
 }

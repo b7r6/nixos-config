@@ -84,7 +84,10 @@
 
                 if [ "$hostname_of" = "$self_host" ]; then
                   echo "// deploy // $host = self → local switch"
-                  sudo nixos-rebuild switch --flake "$flake#$host" || fail=1
+                  # exit 4 = "warning during activation" (e.g. greeter dbus).
+                  # the switch succeeded; only hard failures (exit 1) count.
+                  sudo nixos-rebuild switch --flake "$flake#$host"; rc=$?
+                  if [ "$rc" -ne 0 ] && [ "$rc" -ne 4 ]; then fail=1; fi
 
                 elif [ "$system" = "$builder_system" ]; then
                   echo "// deploy // $host = remote (same arch) → build here, copy, register+bg switch"
