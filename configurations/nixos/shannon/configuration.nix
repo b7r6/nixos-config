@@ -14,19 +14,23 @@ in
   networking.hostName = "shannon";
   networking.networkmanager.enable = true;
 
-  # disable wifi BSS roaming — MT7925 driver panics during AP transitions.
-  # the chip keeps trying to roam between 2.4/5GHz APs on the same SSID every
-  # ~5min, and eventually one transition causes a kernel panic. pinning to a
-  # single BSSID or disabling background scanning prevents this.
-  networking.networkmanager.wifi = {
-    scanRandMacAddress = false; # some firmwares crash on randomized scans
-    backend = "wpa_supplicant";
-  };
-  # disable wpa_supplicant background scanning (prevents roaming)
-  environment.etc."NetworkManager/conf.d/no-roam.conf".text = ''
-    [connection-wifi]
-    wifi.bgscan=
-  '';
+  # MT7925 wifi driver causes kernel panics. the chip crashes during any BSS
+  # transition (roaming OR initial multi-AP association). disabling bgscan
+  # didn't help — the driver itself is unstable in kernel 7.1.
+  #
+  # nuclear fix: blacklist the mt7925 module entirely. shannon uses wired
+  # ethernet at home and tailscale over it. wifi can be re-enabled when
+  # upstream fixes the driver (track: kernel 7.2+ or mt76 firmware update).
+  boot.blacklistedKernelModules = [
+    "mt7925e"
+    "mt7925_common"
+    "mt792x_lib"
+    "mt76_connac_lib"
+    "mt76"
+  ];
+
+  # ensure wired interface is preferred
+  networking.networkmanager.wifi.powersave = false;
 
   networking.hosts = { };
 
