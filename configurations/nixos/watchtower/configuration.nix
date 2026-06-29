@@ -254,6 +254,22 @@ in
         enabled = true;
         org_role = "Viewer";
       };
+
+      "auth.generic_oauth" = {
+        enabled = true;
+        name = "Kanidm";
+        icon = "signin";
+        client_id = "grafana";
+        client_secret = "$__file{/run/agenix/kanidm-grafana-secret}";
+        scopes = "openid email profile groups";
+        auth_url = "https://auth.s4.gl/ui/oauth2";
+        token_url = "https://auth.s4.gl/oauth2/token";
+        api_url = "https://auth.s4.gl/oauth2/openid/grafana/userinfo";
+        use_pkce = true;
+        allow_sign_up = true;
+        # map kanidm groups to grafana roles
+        role_attribute_path = "contains(groups[*], 'grafana_admins') && 'Admin' || 'Viewer'";
+      };
     };
 
     # declarative datasource provisioning
@@ -416,6 +432,21 @@ in
         allowInsecureClientDisablePkce = true;
         # scopeMaps driven by identity module
       };
+
+      systems.oauth2.grafana = {
+        displayName = "// straylight // grafana //";
+        originUrl = "https://grafana.s4.gl/login/generic_oauth";
+        originLanding = "https://grafana.s4.gl/";
+        basicSecretFile = "/run/agenix/kanidm-grafana-secret";
+        preferShortUsername = true;
+        allowInsecureClientDisablePkce = true;
+        scopeMaps.fleet_users = [
+          "openid"
+          "email"
+          "profile"
+          "groups"
+        ];
+      };
     };
   };
 
@@ -460,6 +491,12 @@ in
     file = ../../../secrets/agenix/machines/kanidm-forgejo-secret.age;
     owner = "kanidm";
     group = "kanidm";
+    mode = "0400";
+  };
+  age.secrets.kanidm-grafana-secret = {
+    file = ../../../secrets/agenix/machines/kanidm-grafana-secret.age;
+    owner = "grafana";
+    group = "grafana";
     mode = "0400";
   };
 

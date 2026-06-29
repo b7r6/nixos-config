@@ -120,6 +120,7 @@ in
   # kanidm oauth2 basic secret for the forgejo client (raw secret, no KEY=VAL)
   # Generate:  openssl rand -base64 32
   "agenix/machines/kanidm-forgejo-secret.age".publicKeys = mkGlobalSecret;
+  "agenix/machines/kanidm-grafana-secret.age".publicKeys = mkGlobalSecret;
 
   # litestream R2 credentials for kanidm SQLite replication:
   #   AWS_ACCESS_KEY_ID=<r2 access key>
