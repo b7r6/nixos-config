@@ -46,7 +46,9 @@ let
 in
 {
   options.hyper-modern-nixos.identity = {
-    enable = lib.mkEnableOption "fleet identity from the user registry";
+    enable = (lib.mkEnableOption "fleet identity from the user registry") // {
+      default = true;
+    };
 
     kanidm = lib.mkOption {
       type = lib.types.bool;
