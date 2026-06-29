@@ -57,7 +57,19 @@ in
 
   config = lib.mkIf cfg.enable {
 
-    # ── SSH authorized keys (from registry, merged with myusers defaults) ─────
+    # ── NixOS user accounts (ensures they exist even without home-manager) ────
+    users.users = lib.listToAttrs (
+      map (user: {
+        name = user.name;
+        value = {
+          isNormalUser = true;
+          extraGroups = lib.optional (hasGroup user "fleet_admins") "wheel" ++ [ "networkmanager" ];
+          openssh.authorizedKeys.keys = user.sshKeys;
+        };
+      }) users
+    );
+
+    # ── SSH authorized keys (merged with myusers for users that have home configs)
     hyper-modern-nixos.users.users = lib.listToAttrs (
       map (user: {
         name = user.name;
