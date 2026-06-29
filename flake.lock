@@ -1410,11 +1410,11 @@
     },
     "nixpkgs_4": {
       "locked": {
-        "lastModified": 1782135133,
-        "narHash": "sha256-CKuR0GpkICF4MIfCfZug0pk+F2k/5sRquvO3h7oS0Bs=",
+        "lastModified": 1782764868,
+        "narHash": "sha256-7ZOVqNZSb1CWXes02nQuRMYpaRtM61fKfRTRZf76prs=",
         "owner": "sensenet-ai",
         "repo": "nixpkgs",
-        "rev": "7f5aa8815f4802279c2982ee1a95a32ce059ee8b",
+        "rev": "ddb5e98374d1f16c86ecd70d9c4e2d6c6a5e8dbc",
         "type": "github"
       },
       "original": {
