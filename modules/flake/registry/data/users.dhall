@@ -64,6 +64,21 @@ let users =
         , hosts = [] : List Text  -- all hosts
         , passkeys = True
         }
+      , User::{
+        , name = "jesse"
+        , displayName = "Jesse"
+        , email = "jesse@straylight.software"
+        , recovery = ""
+        , sshKeys =
+            [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDF3SAVD2rKXB84b7+QEByxwZM1K3Kzht3Tbui1SHI11 jesse@marina.sju1.s4.gl"
+            ]
+        , groups =
+            [ Group.fleet_users
+            , Group.forgejo_users
+            ]
+        , hosts = [] : List Text
+        , passkeys = True
+        }
       ]
 
 in  { Group, User, users }
