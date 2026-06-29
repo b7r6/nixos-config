@@ -250,10 +250,7 @@ in
         secret_key = "$__file{/run/agenix/grafana-admin-password}";
       };
 
-      "auth.anonymous" = {
-        enabled = true;
-        org_role = "Viewer";
-      };
+      "auth.anonymous".enabled = false;
 
       "auth.generic_oauth" = {
         enabled = true;
