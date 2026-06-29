@@ -3,13 +3,6 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # Greetd login manager with tuigreet for Hyprland.
-#
-# KNOWN ISSUE: switch-to-configuration-ng exits 4 on remote switches because
-# the greeter system user (uid 989) has a running user@.service slice but no
-# dbus socket. The activation treats this as a failure even though it's harmless.
-# This is an upstream NixOS bug — the activation should tolerate system users
-# without functioning user sessions. The deploy script handles this by treating
-# exit 4 with only "user activation for greeter failed" as success.
 { pkgs, ... }: {
   services.greetd = {
     enable = true;
@@ -21,6 +14,18 @@
     };
   };
 
-  # wait for all services before drawing the login prompt
-  systemd.services.greetd.after = [ "multi-user.target" ];
+  # greetd holds a logind session for the greeter user (uid 989). that session
+  # needs a functioning user@989.service (with dbus socket) or switch-to-
+  # configuration-ng fails when it tries to reload user units for the greeter.
+  #
+  # ordering:
+  # - wait for multi-user.target (no scribble on the login prompt)
+  # - want user@989.service (keep the greeter's user manager alive)
+  systemd.services.greetd = {
+    after = [
+      "multi-user.target"
+      "user@989.service"
+    ];
+    wants = [ "user@989.service" ];
+  };
 }
