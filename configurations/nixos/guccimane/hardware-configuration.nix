@@ -22,7 +22,6 @@
   ];
 
   boot.extraModulePackages = [ ];
-  boot.kernelPackages = pkgs.linuxPackages_testing;
 
   # Enable firmware
   hardware.enableRedistributableFirmware = true;
