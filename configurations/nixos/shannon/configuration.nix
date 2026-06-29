@@ -14,6 +14,20 @@ in
   networking.hostName = "shannon";
   networking.networkmanager.enable = true;
 
+  # disable wifi BSS roaming — MT7925 driver panics during AP transitions.
+  # the chip keeps trying to roam between 2.4/5GHz APs on the same SSID every
+  # ~5min, and eventually one transition causes a kernel panic. pinning to a
+  # single BSSID or disabling background scanning prevents this.
+  networking.networkmanager.wifi = {
+    scanRandMacAddress = false; # some firmwares crash on randomized scans
+    backend = "wpa_supplicant";
+  };
+  # disable wpa_supplicant background scanning (prevents roaming)
+  environment.etc."NetworkManager/conf.d/no-roam.conf".text = ''
+    [connection-wifi]
+    wifi.bgscan=
+  '';
+
   networking.hosts = { };
 
   hyper-modern-nixos.nvidia.enable = true;
