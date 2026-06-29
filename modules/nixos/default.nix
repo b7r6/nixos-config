@@ -43,6 +43,7 @@
     ./network-manager.nix
     ../flake/coredns/nixos.nix
     ./reverse-proxy.nix
+    ./oauth2-proxy.nix
 
     # ── Virtualization & containers (gated) ──
 
