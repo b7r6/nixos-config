@@ -143,6 +143,17 @@ in
     services.pinchflat.port = 8945;
   };
 
+  # ── oauth2-proxy (gates jellyfin + navidrome + pinchflat through Kanidm) ────
+  age.secrets.oauth2-proxy-secret.file = ../../../secrets/agenix/machines/oauth2-proxy-guccimane-secret.age;
+  age.secrets.oauth2-proxy-cookie.file = ../../../secrets/agenix/machines/oauth2-proxy-guccimane-cookie.age;
+
+  hyper-modern-nixos.oauth2-proxy = {
+    enable = true;
+    clientId = "guccimane-proxy";
+    clientSecretFile = "/run/agenix/oauth2-proxy-secret";
+    cookieSecretFile = "/run/agenix/oauth2-proxy-cookie";
+  };
+
   # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
   # Module self-wires its secrets from the names below (per-host R2 env:
   # restic-r2-env.guccimane). FIRST init is declarative + idempotent:

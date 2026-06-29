@@ -456,6 +456,49 @@ in
           "groups"
         ];
       };
+
+      # oauth2-proxy instances (one per host, gates non-OIDC services)
+      systems.oauth2.ultraviolence-proxy = {
+        displayName = "// straylight // ultraviolence //";
+        originUrl = "https://ultraviolence.s4.gl/oauth2/callback";
+        originLanding = "https://searxng.s4.gl/";
+        basicSecretFile = "/run/agenix/oauth2-proxy-ultraviolence-secret";
+        preferShortUsername = true;
+        allowInsecureClientDisablePkce = true;
+        scopeMaps.fleet_users = [
+          "openid"
+          "email"
+          "profile"
+          "groups"
+        ];
+        scopeMaps.fleet_admins = [
+          "openid"
+          "email"
+          "profile"
+          "groups"
+        ];
+      };
+
+      systems.oauth2.guccimane-proxy = {
+        displayName = "// straylight // guccimane //";
+        originUrl = "https://guccimane.s4.gl/oauth2/callback";
+        originLanding = "https://jellyfin.s4.gl/";
+        basicSecretFile = "/run/agenix/oauth2-proxy-guccimane-secret";
+        preferShortUsername = true;
+        allowInsecureClientDisablePkce = true;
+        scopeMaps.fleet_users = [
+          "openid"
+          "email"
+          "profile"
+          "groups"
+        ];
+        scopeMaps.fleet_admins = [
+          "openid"
+          "email"
+          "profile"
+          "groups"
+        ];
+      };
     };
   };
 
@@ -505,6 +548,18 @@ in
   # same secret, two paths: kanidm needs it for provisioning, grafana for OIDC auth
   age.secrets.kanidm-grafana-secret = {
     file = ../../../secrets/agenix/machines/kanidm-grafana-secret.age;
+    owner = "kanidm";
+    group = "kanidm";
+    mode = "0400";
+  };
+  age.secrets.oauth2-proxy-ultraviolence-secret = {
+    file = ../../../secrets/agenix/machines/oauth2-proxy-ultraviolence-secret.age;
+    owner = "kanidm";
+    group = "kanidm";
+    mode = "0400";
+  };
+  age.secrets.oauth2-proxy-guccimane-secret = {
+    file = ../../../secrets/agenix/machines/oauth2-proxy-guccimane-secret.age;
     owner = "kanidm";
     group = "kanidm";
     mode = "0400";

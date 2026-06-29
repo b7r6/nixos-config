@@ -122,6 +122,12 @@ in
   "agenix/machines/kanidm-forgejo-secret.age".publicKeys = mkGlobalSecret;
   "agenix/machines/kanidm-grafana-secret.age".publicKeys = mkGlobalSecret;
 
+  # oauth2-proxy per-host secrets (client secret + cookie encryption)
+  "agenix/machines/oauth2-proxy-ultraviolence-secret.age".publicKeys = mkGlobalSecret;
+  "agenix/machines/oauth2-proxy-ultraviolence-cookie.age".publicKeys = mkGlobalSecret;
+  "agenix/machines/oauth2-proxy-guccimane-secret.age".publicKeys = mkGlobalSecret;
+  "agenix/machines/oauth2-proxy-guccimane-cookie.age".publicKeys = mkGlobalSecret;
+
   # litestream R2 credentials for kanidm SQLite replication:
   #   AWS_ACCESS_KEY_ID=<r2 access key>
   #   AWS_SECRET_ACCESS_KEY=<r2 secret key>
