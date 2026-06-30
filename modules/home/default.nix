@@ -27,6 +27,10 @@
     ./session
     ./wayland
     ./vscode
+
+    # new-suzuki: Quickshell desktop shell (orbital aesthetic)
+    # Disabled by default; enabled per-host (e.g. shannon)
+    ./new-suzuki
   ];
 
   # enable all hyper-modern-nixos modules...

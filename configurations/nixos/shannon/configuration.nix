@@ -47,6 +47,26 @@ in
 
   programs.firefox.enable = true;
 
+  # ── New Suzuki Quickshell prototype ────────────────────────────────────────
+  # Runs alongside waybar/mako/wofi for now. Kill with `pkill quickshell`.
+  # Set exclusive = true to disable the old shell components.
+  home-manager.users.b7r6.hyper-modern-nixos.new-suzuki = {
+    enable = true;
+    exclusive = true;
+  };
+
+  users.users.b7r6 = {
+    extraGroups = [
+      "wheel"
+      "docker"
+    ];
+
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINbn+XF6n9v9VKLFGLBVz+G1LyL6GlcgZbIwhP89PPsp" # weyl b7r7 key
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ1ptqyz5C3YCcMgh3LUbXtjeS1rIZ5/6RHnH7D93Nqf" # 1password id_ed25519_b7r6
+    ];
+  };
+
   security.sudo.wheelNeedsPassword = false;
 
   time.timeZone = "America/New_York";
