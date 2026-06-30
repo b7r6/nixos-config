@@ -31,7 +31,7 @@
          gc-cons-threshold (* 128 1024 1024))))
 
 ;; ───────────────────────────────────────────────────────────────────
-;;             // early frame seeding // prevent PGTK pink flash
+;;                   // early frame seeding // prevent PGTK pink flash
 ;; ───────────────────────────────────────────────────────────────────
 
 (setq default-frame-alist
@@ -3218,7 +3218,7 @@ no way human."))
 
   (defvar hypermodern/dashboard-banner-text
     "────────────────────────────────────────────
-                                   // hypermodern
+                              // hypermodern
 ────────────────────────────────────────────")
 
   (unless (file-exists-p hypermodern/dashboard-banner-file)

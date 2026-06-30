@@ -47,6 +47,14 @@ in
 
   programs.firefox.enable = true;
 
+  # ── New Suzuki Quickshell prototype ────────────────────────────────────────
+  # Runs alongside waybar/mako/wofi for now. Kill with `pkill quickshell`.
+  # Set exclusive = true to disable the old shell components.
+  home-manager.users.b7r6.hyper-modern-nixos.new-suzuki = {
+    enable = true;
+    exclusive = true;
+  };
+
   users.users.b7r6 = {
     extraGroups = [
       "wheel"
