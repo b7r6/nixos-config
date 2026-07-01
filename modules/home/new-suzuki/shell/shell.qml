@@ -22,6 +22,7 @@ ShellRoot {
     property QtObject theme: ThemeService
 
     // ── Scanline Overlay (idle-triggered in facility mode) ─────────────────
+    // Uses Background layer so it sits behind windows — doesn't intercept clicks.
     Variants {
         model: Quickshell.screens
         PanelWindow {
@@ -33,7 +34,7 @@ ShellRoot {
             focusable: false
             aboveWindows: false
             WlrLayershell.namespace: "qs_scanlines"
-            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.layer: WlrLayer.Background
 
             ScanlineOverlay {
                 anchors.fill: parent
