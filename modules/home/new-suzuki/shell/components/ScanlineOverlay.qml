@@ -41,12 +41,8 @@ Item {
         }
     }
 
-    // Reset idle on any mouse movement over the overlay
-    MouseArea {
-        anchors.fill: parent
-        acceptedButtons: Qt.NoButton
-        hoverEnabled: true
-        onPositionChanged: root.resetIdle()
+    // No MouseArea — the scanline overlay must be completely click-through.
+    // Idle detection is handled by the timer only.
     }
 
     function resetIdle() {

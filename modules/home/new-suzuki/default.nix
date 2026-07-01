@@ -167,7 +167,6 @@ let
     "$mod SHIFT, P, global, quickshell:control_panel"
   ];
 
-  nierCursors = pkgs.callPackage ./nier-cursors.nix { };
   azonixFont = pkgs.callPackage ./azonix.nix { };
 in
 {
@@ -201,20 +200,16 @@ in
           playerctl
           nerd-fonts.symbols-only # Nerd Font icon glyphs for the vendored shell
           orbitron # geometric sci-fi display font
-          phinger-cursors # angular monochrome cursor (fallback)
         ]
-        ++ [
-          nierCursors
-          azonixFont
-        ];
+        ++ [ azonixFont ];
 
       # ── Font configuration ─────────────────────────────────────────────
       fonts.fontconfig.enable = true;
 
-      # ── Cursor theme ───────────────────────────────────────────────────
+      # ── Cursor theme — capitaine-cursors: clean, modern, unobtrusive ─────
       home.pointerCursor = {
-        package = nierCursors;
-        name = "NieR_Cursors";
+        package = pkgs.capitaine-cursors;
+        name = "capitaine-cursors";
         size = 24;
         x11.enable = true;
         gtk.enable = true;
@@ -247,7 +242,7 @@ in
 
       # ── Hyprland cursor config ─────────────────────────────────────────
       wayland.windowManager.hyprland.settings.exec-once = lib.mkAfter [
-        "hyprctl setcursor NieR_Cursors 24"
+        "hyprctl setcursor capitaine-cursors 24"
       ];
     }
 
