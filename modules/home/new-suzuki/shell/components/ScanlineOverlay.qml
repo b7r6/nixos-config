@@ -43,7 +43,6 @@ Item {
 
     // No MouseArea — the scanline overlay must be completely click-through.
     // Idle detection is handled by the timer only.
-    }
 
     function resetIdle() {
         idleSeconds = 0
