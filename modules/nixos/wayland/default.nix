@@ -45,7 +45,9 @@ in
         "kvantum"
         "gnome"
       ];
+      
       default = "qt5ct";
+      
       description = ''
         Qt theming backend:
           gtk2    - Use GTK2 theme (simple, requires gtk2 theme installed)
@@ -172,37 +174,45 @@ in
     # ── Environment Variables ──────────────────────────────────────────────────
 
     environment.sessionVariables = {
-      # ── Wayland enforcement ──
+
+      # ── Wayland enforcement ──────────────────────────────────────────────────
+      
       XDG_CURRENT_DESKTOP = "Hyprland";
       XDG_SESSION_TYPE = "wayland";
       XDG_SESSION_DESKTOP = "Hyprland";
 
-      # ── Electron/Chromium ──
+      # ── Electron/Chromium ────────────────────────────────────────────────────
+      
       NIXOS_OZONE_WL = if cfg.electronOzone then "1" else "0";
       ELECTRON_OZONE_PLATFORM_HINT = "auto"; # Let Electron auto-detect
 
-      # ── Mozilla ──
+      # ── Mozilla ──────────────────────────────────────────────────────────────
+      
       MOZ_ENABLE_WAYLAND = "1";
       MOZ_DBUS_REMOTE = "1"; # Better Firefox integration
 
-      # ── Java ──
+      # ── Java ─────────────────────────────────────────────────────────────────
       _JAVA_AWT_WM_NONREPARENTING = "1";
       AWT_TOOLKIT = "MToolkit"; # Better Java GUI support
 
-      # ── Qt ──
+      # ── Qt ───────────────────────────────────────────────────────────────────
+      
       QT_QPA_PLATFORM = "wayland;xcb"; # Wayland preferred, X11 fallback
       QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
       QT_AUTO_SCREEN_SCALE_FACTOR = "1";
       QT_QPA_PLATFORMTHEME = cfg.qtTheme;
 
-      # ── GTK ──
+      # ── GTK ──────────────────────────────────────────────────────────────────
+      
       GDK_BACKEND = "wayland,x11"; # Wayland preferred, X11 fallback
       GTK_USE_PORTAL = "1"; # Use portal for file dialogs
 
-      # ── SDL ──
+      # ── SDL ──────────────────────────────────────────────────────────────────
+      
       SDL_VIDEODRIVER = "wayland,x11"; # Wayland preferred, X11 fallback
 
-      # ── Clutter ──
+      # ── Clutter ──────────────────────────────────────────────────────────────
+      
       CLUTTER_BACKEND = "wayland";
 
       # ── Wine ──
@@ -213,6 +223,7 @@ in
 
     services.dbus = {
       enable = true;
+
       # Use broker implementation (faster, more reliable)
       implementation = "broker";
     };
@@ -236,9 +247,11 @@ in
     # GNOME polkit agent is more reliable than others
     systemd.user.services.polkit-gnome-authentication-agent-1 = {
       description = "polkit-gnome-authentication-agent-1";
+      
       wantedBy = [ "graphical-session.target" ];
       wants = [ "graphical-session.target" ];
       after = [ "graphical-session.target" ];
+      
       serviceConfig = {
         Type = "simple";
         ExecStart = "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";

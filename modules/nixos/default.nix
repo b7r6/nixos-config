@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                       // hyper-modern-nixos // nixos modules
+#                                         // hyper-modern-nixos // nixos modules
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # The single NixOS module every host imports. It pulls in:
@@ -14,7 +14,8 @@
 # host configs to "import this + set options" with zero per-host import lists.
 { lib, ... }: {
   imports = [
-    # ── Core system (always-on) ──
+    # ── Core system (always-on) ──────────────────────────────────────────────
+    
     ./base.nix
     ./nix.nix
     ./packages.nix
@@ -23,21 +24,25 @@
     ./secrets.nix
     ./state.nix
 
-    # ── Hardware (gated) ──
+    # ── Hardware (gated) ─────────────────────────────────────────────────────
+    
     ./bluetooth.nix
     ./nvidia.nix
     ./radeon.nix
     ./usb.nix
 
-    # ── Networking ──
+    # ── Networking ───────────────────────────────────────────────────────────
+    
     ./network.nix
     ./network-manager.nix
 
-    # ── Virtualization & containers (gated) ──
+    # ── Virtualization & containers (gated) ──────────────────────────────────
+    
     ./docker.nix
     ./libvirt.nix
 
-    # ── Services (gated) ──
+    # ── Services (gated) ─────────────────────────────────────────────────────
+    
     ./postgres.nix
     ./backup.nix
     ./attic.nix
@@ -48,22 +53,26 @@
     ./torrents.nix
     ./registry.nix
 
-    # ── Development ──
+    # ── Development ──────────────────────────────────────────────────────────
+    
     ./android.nix
     ./appimage.nix
     ./nix-ld.nix
 
-    # ── Special ──
+    # ── Special ──────────────────────────────────────────────────────────────
+    
     ./impermanence.nix
     ./impurity.nix
     ./xremap.nix
 
-    # ── Subtrees ──
+    # ── Subtrees ─────────────────────────────────────────────────────────────
+    
     ./dgx-spark
     ./wayland
   ];
 
   # ── Fleet-wide network defaults ─────────────────────────────────────────────
+  
   # Firewall ON fleet-wide (the module default). tailscale0 is trusted, so this
   # never blocks tailnet/SSH — it just closes the PUBLIC interfaces and makes the
   # per-service interfaces.tailscale0.allowedTCPPorts rules actually ENFORCE the
@@ -78,6 +87,7 @@
   };
 
   # ── Fleet-wide R2 mounts ────────────────────────────────────────────────────
+  
   # Every host that imports this module mounts the shared /mnt/r2/common and its
   # own /mnt/r2/<hostname> off the straylight-r2 `host-mount` bucket. The module
   # self-wires the rclone.conf agenix secret, so there's nothing per-host to
@@ -86,9 +96,11 @@
   hyper-modern-nixos.rcloneMount.enable = lib.mkDefault true;
 
   # ── Fleet-wide user model ───────────────────────────────────────────────────
+  
   # Groups + SSH keys declared ONCE here apply to every managed user on every
   # host (see myusers.nix). Per-host/per-user extras go in
   # hyper-modern-nixos.users.users.<name>.{extraGroups,authorizedKeys}.
+  
   hyper-modern-nixos.users = {
     defaultAuthorizedKeys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINbn+XF6n9v9VKLFGLBVz+G1LyL6GlcgZbIwhP89PPsp" # b7r6
