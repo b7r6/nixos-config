@@ -56,7 +56,9 @@
 #
 # Nothing here is active until a host sets enable = true, so this module is inert
 # and cannot brick a box.
-
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
 {
   config,
   lib,
@@ -79,6 +81,7 @@ let
   storeRoot = "/var/lib/nativelink";
 
   # ── Config source: the TYPED Dhall fleet, rendered at eval via IFD ──────────
+
   # nativelink/fleet.dhall IS the real program: it computes each host's config as
   # a typed schema.Config and renders it (render.dhall, JSON.render). We render it
   # at eval time via import-from-derivation (enabled fleet-wide; see nix.nix) — no
@@ -124,6 +127,7 @@ let
   configFile = if cfg.configFile != null then cfg.configFile else renderedConfig;
 
   # ── Nix binary cache (substituter) ──────────────────────────────────────────
+
   # A SECOND, independent nativelink instance serving the Nix HTTP binary-cache
   # protocol from the straylight fork (inputs.nativelink-nix, which carries the
   # nix_cache service upstream lacks). Its config is a trivial 3-store + 1-service
@@ -152,6 +156,7 @@ let
     stores = [
       {
         name = "NIX_NAR_STORE";
+
         verify = {
           verify_size = true;
           verify_hash = true;
@@ -160,19 +165,23 @@ let
       }
       {
         name = "NIX_PATH_INFO_STORE";
+
         completeness_checking = {
           backend = nixCacheFsStore "path-info" 1073741824; # 1 GiB of records
           cas_store.ref_store.name = "NIX_NAR_STORE";
         };
       }
+
       ({ name = "NIX_ALIAS_STORE"; } // nixCacheFsStore "alias" 1073741824)
     ];
+
     servers = [
       {
         name = "nix-cache";
         listener.http.socket_address = cfg.nixCache.listen;
         services = {
           health = { };
+
           nix_cache = [
             (
               {
@@ -182,6 +191,7 @@ let
                 alias_store = "NIX_ALIAS_STORE";
                 store_dir = cfg.nixCache.storeDir;
                 priority = cfg.nixCache.priority;
+
                 # Per-upload cap: an upload whose UNCOMPRESSED NAR exceeds this
                 # is rejected with 413 (it also bounds the decompress spool of a
                 # compressed upload — a bomb guard). Raise for large artifacts.
@@ -210,7 +220,9 @@ in
     package = lib.mkOption {
       type = lib.types.nullOr lib.types.package;
       default = null;
+
       defaultText = lib.literalExpression "inputs.nativelink.packages.\${system}.nativelink";
+
       description = "NativeLink package. Defaults to the flake input for this host's architecture.";
     };
 
@@ -220,7 +232,9 @@ in
         "scheduler"
         "worker"
       ];
+
       default = "monolithic";
+
       description = ''
         monolithic = CAS + scheduler + local worker (single x86_64 host).
         scheduler  = CAS + scheduler only (workers dial in from other hosts).
@@ -259,12 +273,14 @@ in
     publicListen = lib.mkOption {
       type = lib.types.str;
       default = "0.0.0.0:50051";
+
       description = "Public gRPC API (CAS/AC/Execution/ByteStream) listen address.";
     };
 
     trustedInterfaces = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [ "tailscale0" ];
+
       description = "Interfaces on which openFirewall opens the RE ports. Defaults to tailscale0 (tailnet-only).";
     };
 
@@ -276,12 +292,14 @@ in
       certFile = lib.mkOption {
         type = lib.types.str;
         default = "/var/lib/nativelink-tls/cert.pem";
+
         description = "Path to the TLS certificate (PEM). Provisioned by tls.tailscale, or supply your own.";
       };
 
       keyFile = lib.mkOption {
         type = lib.types.str;
         default = "/var/lib/nativelink-tls/key.pem";
+
         description = "Path to the TLS private key (PEM).";
       };
 
@@ -291,6 +309,7 @@ in
         domain = lib.mkOption {
           type = lib.types.str;
           example = "ultraviolence.example.ts.net";
+
           description = "MagicDNS name to issue the cert for (must be this node's name; tailnet HTTPS must be enabled).";
         };
       };
@@ -299,6 +318,7 @@ in
     workerApiListen = lib.mkOption {
       type = lib.types.str;
       default = "0.0.0.0:50061";
+
       description = "Private worker_api listen address (scheduler/monolithic roles).";
     };
 
@@ -306,6 +326,7 @@ in
       type = lib.types.str;
       default = "grpc://127.0.0.1:50061";
       example = "grpc://weyl.example.ts.net:50061";
+
       description = "Where a `worker` role dials the scheduler. Point this at the monolithic/scheduler host over the tailnet.";
     };
 
@@ -326,12 +347,14 @@ in
     # module header / configurations comment.
     workerProperties = lib.mkOption {
       type = lib.types.attrsOf (lib.types.listOf lib.types.str);
+
       default = {
         cpu_count = [ "1" ];
         memory_kb = [ "1000000" ];
         # cpu_arch / OSFamily / container-image / lre-rs / ISA filled below from
         # the host; merged with whatever the host overrides here.
       };
+
       description = ''
         Platform properties this worker advertises to the scheduler. Keys must
         be a subset of the scheduler's supported_platform_properties. cpu_arch,
@@ -343,6 +366,7 @@ in
     workerEntrypoint = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
+
       description = ''
         Path to a wrapper script the worker runs every action command through
         ("entrypoint script arg..."). When null, a built-in wrapper that puts a
@@ -354,9 +378,11 @@ in
     };
 
     # ── Local fast-cache sizing (fronting R2 when r2.enable) ──────────────────
+
     localCacheBytes = lib.mkOption {
       type = lib.types.int;
       default = 274877906944; # 256 GiB
+
       description = ''
         Size of the local NVMe filesystem fast tier that fronts R2 (per content
         store). Default 256 GiB; override down on space-constrained hosts.
@@ -384,22 +410,28 @@ in
 
       accountId = lib.mkOption {
         type = lib.types.str;
+
         default = "";
         example = "6063b6652178f5cf1cfb87e7e41acf1e";
+
         description = "Cloudflare account ID (endpoint derives from it).";
       };
 
       bucket = lib.mkOption {
         type = lib.types.str;
+
         default = "";
         example = "straylight-nativelink-cas";
+
         description = "R2 bucket for the CAS/AC backend. nativelink namespaces within it via key_prefix.";
       };
 
       environmentFile = lib.mkOption {
         type = lib.types.nullOr lib.types.path;
+
         default = null;
         example = "/run/agenix/nativelink-r2-env";
+
         description = ''
           Env file defining R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY, fed to the
           service and referenced by the config via shellexpand. NEVER a store path.
@@ -409,13 +441,17 @@ in
 
     configFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
+
       default = null;
+
       description = "Override the generated JSON5 config with your own file.";
     };
 
     openFirewall = lib.mkOption {
       type = lib.types.bool;
+
       default = false;
+
       description = "Open the public/worker_api ports in the firewall (if enabled).";
     };
 
@@ -429,13 +465,16 @@ in
       package = lib.mkOption {
         type = lib.types.nullOr lib.types.package;
         default = null;
+
         defaultText = lib.literalExpression "inputs.nativelink-nix.packages.\${system}.nativelink";
+
         description = "Package providing the nix_cache-capable nativelink binary. Defaults to the straylight fork input.";
       };
 
       listen = lib.mkOption {
         type = lib.types.str;
         default = "0.0.0.0:50071";
+
         description = "Nix binary-cache HTTP listen address. Cache root is http://<host>:<port>/nix/<instanceName>. Bound on all interfaces; exposure is gated at the firewall (trustedInterfaces).";
       };
 
@@ -448,6 +487,7 @@ in
       stateDir = lib.mkOption {
         type = lib.types.str;
         default = "/var/lib/nativelink-nix-cache";
+
         description = "Directory holding the NAR / path-info / alias filesystem stores.";
       };
 
@@ -466,6 +506,7 @@ in
       maxNarBytes = lib.mkOption {
         type = lib.types.int;
         default = 214748364800; # 200 GiB
+
         description = ''
           Total EVICTION cap for the NAR filesystem store (how much the CAS
           holds before evicting oldest). This is store capacity, not a
@@ -477,6 +518,7 @@ in
       maxNarUploadBytes = lib.mkOption {
         type = lib.types.int;
         default = 34359738368; # 32 GiB (the fork's own default)
+
         description = ''
           Per-upload cap: an upload whose UNCOMPRESSED NAR exceeds this is
           rejected with HTTP 413. It also bounds the spool when decompressing a
@@ -491,8 +533,10 @@ in
 
       signingKeyFile = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
+
         default = null;
         example = "/run/agenix/nativelink-nix-cache-key";
+
         description = ''
           Path to a `nix key generate-secret` secret key. When set, the server
           signs every narinfo with it and clients trust the matching public key.
@@ -505,18 +549,21 @@ in
       trustedInterfaces = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [ "tailscale0" ];
+
         description = "Interfaces on which openFirewall opens the cache port. Tailnet-only by default.";
       };
 
       openFirewall = lib.mkOption {
         type = lib.types.bool;
         default = true;
+
         description = "Open the cache listen port, but only on trustedInterfaces (tailscale0 by default).";
       };
 
       pushLocalBuilds = lib.mkOption {
         type = lib.types.bool;
         default = false;
+
         description = ''
           Install a nix post-build-hook that copies every locally-built path into
           this cache over loopback — populating it from this host's own builds
@@ -532,6 +579,7 @@ in
           "xz"
           "none"
         ];
+
         default = "zstd";
         description = ''
           Compression `nix copy` applies when pushLocalBuilds pushes a path.
@@ -674,6 +722,7 @@ in
     })
 
     # ── Nix binary-cache substituter (independent of the RE service above) ──────
+
     (lib.mkIf cfg.nixCache.enable {
       # A reconstructible cache: NARs are re-pushable/re-derivable, so the store
       # is persisted across an impermanence reboot (warm cache) but not backed up.
@@ -686,9 +735,11 @@ in
 
       systemd.services.nativelink-nix-cache = {
         description = "NativeLink Nix binary-cache substituter";
+
         wantedBy = [ "multi-user.target" ];
         after = [ "network-online.target" ];
         wants = [ "network-online.target" ];
+
         serviceConfig = {
           ExecStart = "${nixCachePkg}/bin/nativelink ${nixCacheConfigFile}";
           Restart = "on-failure";

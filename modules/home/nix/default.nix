@@ -9,7 +9,9 @@ let
   cfg = config.hyper-modern-nixos.nix;
 in
 {
-  imports = [ flake.inputs.nix-index-database.homeModules.nix-index ];
+  imports = [
+    flake.inputs.nix-index-database.homeModules.nix-index
+  ];
 
   options.hyper-modern-nixos.nix = {
     enable = lib.mkEnableOption "Nix development tools and integration";
@@ -17,24 +19,28 @@ in
     development.enable = lib.mkOption {
       type = lib.types.bool;
       default = true;
+
       description = "Enable Nix development packages (nixd, nixfmt, statix, etc.)";
     };
 
     nix-index.enable = lib.mkOption {
       type = lib.types.bool;
       default = true;
+
       description = "Enable nix-index for command-not-found suggestions";
     };
 
     nixd.enable = lib.mkOption {
       type = lib.types.bool;
       default = true;
+
       description = "Enable nixd language server configuration";
     };
   };
 
   config = lib.mkIf cfg.enable {
     # ── Per-user nix.conf substituters (managed) ──────────────────────────────
+
     # b7r6 is a trusted-user, so the USER-level ~/.config/nix/nix.conf
     # substituters OVERRIDE the system ones for interactive `nix` commands. A
     # stale hand-edited file here was pointing at weyl-ai/hyprland cachix and
@@ -43,12 +49,14 @@ in
     # caches. (weyl-ai/hyprland dropped — dead/unreliable.) This file is now
     # owned by home-manager, so it can't drift again.
     nix.package = lib.mkDefault pkgs.nix;
+
     nix.settings = {
       substituters = [
         "http://localhost:8080/hypermodern?priority=10"
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
       ];
+
       trusted-public-keys = [
         "hypermodern:x+kBunu5nD1KOhzCIawyZeq8w0LV0GC6A7suIRoHTm8="
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="

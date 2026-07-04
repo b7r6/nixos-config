@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                 // hyper-modern-nixos // flake // nativelink
+#                                            // hypermodern // nix // nativelink
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # Self-contained flake-parts module for NativeLink remote execution.
@@ -8,6 +8,8 @@
 #   - the NixOS module (./nixos.nix) — `hyper-modern-nixos.nativelink`
 #   - the typed Dhall fleet config (./data/) — rendered at eval via IFD
 #   - the VM test (./checks/serve.nix)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
 { inputs, ... }: {
   flake.nixosModules.nativelink = ./nixos.nix;
 

@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                          // hyper-modern-nixos // attic-node
+#                                          // hypermodern // nix // attic //node
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # "Be an attic cache node." A profile selector over the orthogonal attic axes
@@ -104,6 +104,7 @@ in
     };
 
     # ── database ────────────────────────────────────────────────────────────
+
     sharedDatabaseUrl = lib.mkOption {
       type = lib.types.str;
       default = "postgresql://atticd@watchtower.${tailnetDomain}:5433/atticd";
@@ -139,18 +140,21 @@ in
     };
 
     # ── storage ───────────────────────────────────────────────────────────────
+
     r2 = {
       enable = lib.mkEnableOption "back storage with R2 (forced on for shared profiles)";
 
       bucket = lib.mkOption {
         type = lib.types.str;
         default = "straylight-attic-cache";
+
         description = "R2 chunk-store bucket (owned fleet-wide by atticd).";
       };
 
       endpoint = lib.mkOption {
         type = lib.types.str;
         default = "https://6063b6652178f5cf1cfb87e7e41acf1e.r2.cloudflarestorage.com";
+
         description = "R2 S3 endpoint.";
       };
     };
@@ -158,18 +162,21 @@ in
     publicKey = lib.mkOption {
       type = lib.types.str;
       default = "hypermodern:x+kBunu5nD1KOhzCIawyZeq8w0LV0GC6A7suIRoHTm8=";
+
       description = "The `hypermodern` cache's binary-cache public key.";
     };
 
     cacheName = lib.mkOption {
       type = lib.types.str;
       default = "hypermodern";
+
       description = "The cache name (URL path segment + DB cache row).";
     };
 
     keypairSecret = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = "attic-cache-keypair";
+
       description = ''
         monolithic-shared only: agenix secret NAME holding the cache's NixKeypair
         string. Restored into the postgres `cache` table on activation so the
@@ -291,15 +298,18 @@ in
           lib.mkIf (cfg.keypairSecret != null && !cfg.useSupabaseDb)
             {
               description = "restore the attic cache signing keypair into postgres";
+
               after = [ "postgresql-role-passwords.service" ];
               requires = [ "postgresql.service" ];
               wantedBy = [ "multi-user.target" ];
               before = [ "atticd.service" ];
+
               serviceConfig = {
                 Type = "oneshot";
                 User = "postgres";
                 RemainAfterExit = true;
               };
+
               script =
                 let
                   psql = "${config.services.postgresql.package}/bin/psql -d atticd -v ON_ERROR_STOP=1";
@@ -320,12 +330,14 @@ in
       })
 
       # ── monolithic-shared + useSupabaseDb: order atticd after the supabase DB ──
+
       # The old PG16 is untouched; atticd connects to the supabase cluster instead.
       # The keypair restore targets the supabase cluster's psql.
       (lib.mkIf (cfg.profile == "monolithic-shared" && cfg.useSupabaseDb) {
         assertions = [
           {
             assertion = config.hyper-modern-nixos.supabase-native.enable;
+
             message = ''
               attic-node.useSupabaseDb requires hyper-modern-nixos.supabase-native.enable.
               The supabase-native module provides the PG17 cluster.
@@ -350,15 +362,18 @@ in
 
         systemd.services.attic-cache-keypair-restore = lib.mkIf (cfg.keypairSecret != null) {
           description = "restore the attic cache signing keypair into supabase postgres";
+
           after = [ "supabase-db-ensure-dbs.service" ];
           requires = [ "supabase-db.service" ];
           wantedBy = [ "multi-user.target" ];
           before = [ "atticd.service" ];
+
           serviceConfig = {
             Type = "oneshot";
             User = "supabase-postgres";
             RemainAfterExit = true;
           };
+
           script =
             let
               supabasePgPort = toString config.hyper-modern-nixos.supabase-native.db.port;
