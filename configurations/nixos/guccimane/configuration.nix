@@ -43,6 +43,13 @@ in
     nixCache = {
       enable = true;
       pushLocalBuilds = true;
+      # The static LLVM toolchain's -g3 debug outputs are enormous NARs
+      # (clang-static/llvm-static hit 60-73 GiB each), which 413 against the
+      # fork's default 32 GiB per-upload cap. Raise it to accept them (well
+      # under the 200 GiB store cap). The durable fix is shrinking the debug
+      # artifacts (-g, separateDebugInfo/stripping); until then, this unblocks
+      # caching them. pushCompression defaults to zstd (xz would take hours).
+      maxNarUploadBytes = 137438953472; # 128 GiB
     };
   };
 

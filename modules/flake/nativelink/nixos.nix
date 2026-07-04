@@ -182,6 +182,10 @@ let
                 alias_store = "NIX_ALIAS_STORE";
                 store_dir = cfg.nixCache.storeDir;
                 priority = cfg.nixCache.priority;
+                # Per-upload cap: an upload whose UNCOMPRESSED NAR exceeds this
+                # is rejected with 413 (it also bounds the decompress spool of a
+                # compressed upload — a bomb guard). Raise for large artifacts.
+                max_nar_size_bytes = cfg.nixCache.maxNarUploadBytes;
               }
               // lib.optionalAttrs (cfg.nixCache.signingKeyFile != null) {
                 signing_key_files = [ cfg.nixCache.signingKeyFile ];
@@ -462,7 +466,27 @@ in
       maxNarBytes = lib.mkOption {
         type = lib.types.int;
         default = 214748364800; # 200 GiB
-        description = "Eviction cap for the NAR filesystem store. Raise on a dedicated builder that caches large toolchains.";
+        description = ''
+          Total EVICTION cap for the NAR filesystem store (how much the CAS
+          holds before evicting oldest). This is store capacity, not a
+          per-upload limit — see maxNarUploadBytes for that. Raise on a
+          dedicated builder that caches large toolchains.
+        '';
+      };
+
+      maxNarUploadBytes = lib.mkOption {
+        type = lib.types.int;
+        default = 34359738368; # 32 GiB (the fork's own default)
+        description = ''
+          Per-upload cap: an upload whose UNCOMPRESSED NAR exceeds this is
+          rejected with HTTP 413. It also bounds the spool when decompressing a
+          compressed upload, so it doubles as a decompression-bomb guard — which
+          is why the default is a conservative 32 GiB. Raise it (well under
+          maxNarBytes) to accept genuinely large artifacts. Note: `-g3` debug
+          builds produce enormous NARs (60-70+ GiB per output) that need this
+          raised; the more durable fix is to shrink those artifacts (`-g`,
+          separateDebugInfo, stripping).
+        '';
       };
 
       signingKeyFile = lib.mkOption {
@@ -499,6 +523,24 @@ in
           (the intended workout). The hook runs synchronously after each build,
           but over loopback it is fast and is made non-fatal, so a cache hiccup
           never fails a build.
+        '';
+      };
+
+      pushCompression = lib.mkOption {
+        type = lib.types.enum [
+          "zstd"
+          "xz"
+          "none"
+        ];
+        default = "zstd";
+        description = ''
+          Compression `nix copy` applies when pushLocalBuilds pushes a path.
+          `nix copy`'s own compression is the throughput bottleneck, not the
+          cache: xz (nix's default) is CPU-bound to a crawl on large NARs
+          (hours on tens-of-GiB toolchains), while zstd sustains hundreds of
+          MB/s at a fraction of the CPU. `none` is fastest on a fast loopback/
+          LAN link. The server stores + serves back whatever compression was
+          pushed (round-trip fidelity), so this is a pure push-cost choice.
         '';
       };
     };
@@ -670,7 +712,7 @@ in
             set -u
             [ -n "''${OUT_PATHS:-}" ] || exit 0
             ${config.nix.package}/bin/nix copy --to \
-              'http://127.0.0.1:${nixCachePort}/nix/${cfg.nixCache.instanceName}' $OUT_PATHS \
+              'http://127.0.0.1:${nixCachePort}/nix/${cfg.nixCache.instanceName}?compression=${cfg.nixCache.pushCompression}' $OUT_PATHS \
               || echo "nativelink-nix-cache: push failed (non-fatal)" >&2
           ''
         )

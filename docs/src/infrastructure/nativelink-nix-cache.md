@@ -89,9 +89,11 @@ Key options (`hyper-modern-nixos.nativelink.nixCache`):
 | `enable` | `false` | Run the substituter instance. |
 | `listen` | `0.0.0.0:50071` | HTTP listener; cache root is `/nix/<instanceName>`. |
 | `stateDir` | `/var/lib/nativelink-nix-cache` | NAR / path-info / alias filesystem stores. |
-| `maxNarBytes` | 200 GiB | Eviction cap on the NAR store. Raise on a big builder. |
+| `maxNarBytes` | 200 GiB | Total EVICTION cap on the NAR store (store capacity). |
+| `maxNarUploadBytes` | 32 GiB | Per-upload cap; an upload whose uncompressed NAR exceeds it gets **413**. Also bounds the decompress spool (bomb guard). Raise for huge artifacts. |
 | `signingKeyFile` | `null` | `nix key generate-secret` key (agenix path). `null` ⇒ unsigned. |
 | `pushLocalBuilds` | `false` | Install a loopback post-build-hook that pushes this host's builds. |
+| `pushCompression` | `zstd` | Compression the push hook applies. `zstd` (fast) / `xz` (nix default, slow) / `none`. |
 | `trustedInterfaces` / `openFirewall` | `[tailscale0]` / `true` | Bind all interfaces, open the port only on the tailnet. |
 
 ## The workout: `pushLocalBuilds`
@@ -105,6 +107,26 @@ This is the deliberate difference from attic's `watch-store` (an async daemon): 
 synchronous post-build-hook, which is fine for a single-host evaluation cache and keeps the moving
 parts to one systemd service. Nothing else on the fleet sets `post-build-hook`, so there is no
 conflict with attic (which auto-pushes via `watch-store`).
+
+## What the LLVM-toolchain workout found
+
+Stress-pushing the toolchain closure (~90 paths, ~234 GiB) surfaced exactly the properties this cache
+was built for, plus two knobs:
+
+- **Memory is bounded.** nativelink held a ~140 MB peak across the whole run, flat under concurrent
+  read+write, at ~2% CPU — it is a streaming CAS receiver. (For contrast, the attic client OOM'd the
+  box on the same closure.) This is the headline win and the reason to run it.
+- **The push cost is `nix copy`, not the cache.** nix's own compression dominates; the server sits
+  idle. xz (nix's default) is CPU-bound to a crawl on tens-of-GiB NARs — hence `pushCompression`
+  defaults to **zstd**, which sustained ~180 MB/s of compressed data (~600 MB/s uncompressed) in the
+  run. Use `none` on a fast LAN.
+- **The `-g3` debug monsters hit the 413 cap.** Three outputs (`clang-static`/`llvm-static`) are
+  60-73 GiB *uncompressed* — they blow past the default 32 GiB `maxNarUploadBytes` and are rejected
+  with 413. `guccimane` raises the cap to 128 GiB to accept them, but the real fix is upstream in the
+  toolchain: `-g3` bakes ~60 GiB of macro debug info into each output. Dropping to `-g` (or
+  `separateDebugInfo`/stripping) shrinks each to a few GiB — which makes them cacheable *everywhere*
+  (attic too), fast to compress, and comfortably under any body limit, at the cost of only rarely-used
+  macro debug info. The cache limit and the artifact size are two levers on the same wall; pull both.
 
 ## Signing and using it as a substituter
 
