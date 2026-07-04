@@ -33,6 +33,17 @@ in
       bucket = "straylight-nativelink-cas";
       environmentFile = "/run/agenix/nativelink-r2-env";
     };
+
+    # Nix binary-cache substituter (our fork's nix_cache) running alongside
+    # attic on the tailnet at http://guccimane:50071/nix/main. This box builds
+    # the per-platform static LLVM toolchains, so pushLocalBuilds copies each
+    # built path into it over loopback — the intended workout. Unsigned for now
+    # (tailnet-internal; pullers set require-sigs = false). To sign, generate a
+    # `nix key generate-secret`, store it via agenix, and set signingKeyFile.
+    nixCache = {
+      enable = true;
+      pushLocalBuilds = true;
+    };
   };
 
   hyper-modern-nixos.hyper-wayland = {

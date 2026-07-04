@@ -22,6 +22,7 @@
 - [Backups (restic → R2)](./infrastructure/backups.md)
 - [Remote execution (nativelink)](./infrastructure/nativelink.md)
 - [NativeLink production architecture](./infrastructure/nativelink-production.md)
+- [Nix binary cache (nativelink)](./infrastructure/nativelink-nix-cache.md)
 - [ClickHouse production architecture](./infrastructure/clickhouse.md)
 
 # Services
