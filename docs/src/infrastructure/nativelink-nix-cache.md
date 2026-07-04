@@ -130,18 +130,27 @@ was built for, plus two knobs:
 
 ## Signing and using it as a substituter
 
-On `guccimane` the cache is **unsigned** — sufficient for the workout, since pushing never needs
-signatures. To *pull* from it:
+The cache is **signed**. The server signs every narinfo with an ed25519 key held in
+[agenix](./secrets.md) (`nativelink-nix-cache-key`, wired via `signingKeyFile`), and its public half
+is trusted **fleet-wide** in `modules/nixos/nix.nix`:
 
-- **Quick/tailnet-internal**: clients set `require-sigs = false` for it.
-- **Signed**: generate a key, store it via [agenix](./secrets.md), and set `signingKeyFile`. The
-  server then signs every narinfo; clients trust the matching public key and wire it as a substituter
-  the way [attic's `clientCache`](./attic.md) does (prepend to `substituters`, add to
-  `trusted-public-keys`).
+```
+nativelink-nix-cache-1:ccYfraJDD/wVIFzw6LJ7psrYahwv4Wztad4XHJcdG4M=
+```
+
+So any host can substitute its signed paths under `require-sigs = true` — the cache is a real
+pull-cache, not just a push target. What remains (deliberately not done fleet-wide yet, since it is a
+single-host evaluation cache) is wiring it into `substituters`: add
+`http://guccimane.<tailnet>:50071/nix/main?priority=<n>` to the hosts that should pull from it, the
+way [attic's `clientCache`](./attic.md) does.
+
+The signing secret is a one-line `nix key generate-secret` output (`<name>:<base64>`), encrypted to
+the fleet with agenix (`mkGlobalSecret`, so any operator key can recover it). To rotate: regenerate,
+re-encrypt the secret, and replace the public key above.
 
 ```sh
-nix key generate-secret --key-name nativelink-nix-cache-guccimane-1 > key   # → agenix; set signingKeyFile
-nix key convert-secret-to-public < key                                       # → clients' trusted-public-keys
+nix key generate-secret --key-name nativelink-nix-cache-1 > key   # secret → agenix (signingKeyFile)
+nix key convert-secret-to-public < key                            # public → trusted-public-keys
 ```
 
 ## Firewall
@@ -164,8 +173,10 @@ run it against the generated JSON.
 
 ## Status
 
-Single-host, unsigned, push-only evaluation cache. It is **not** a fleet substituter and does not
-replace [attic](./attic.md) — attic remains the shared, signed, R2-backed cache every host pulls
-from. The open questions this deployment answers: does the CAS-backed serve path hold up under the
-LLVM-toolchain NAR firehose, and is the storage/dedup behavior worth graduating it to a fleet role
-(shared CAS with the RE services, signed, wired as a substituter). Until then it rides alongside.
+Single-host, signed evaluation cache: `guccimane` pushes its builds into it and it serves
+signed narinfos the whole fleet trusts. It is **not** yet wired into anyone's `substituters` and does
+not replace [attic](./attic.md) — attic remains the shared, R2-backed cache every host pulls from.
+The open questions this deployment answers: does the CAS-backed serve path hold up under the
+LLVM-toolchain NAR firehose (memory: proven; throughput: `nix copy`-bound, use zstd), and is the
+storage/dedup behavior worth graduating it to a fleet role — shared CAS with the RE services, wired
+as a substituter alongside attic. Until then it rides alongside.

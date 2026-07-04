@@ -23,6 +23,7 @@ in
   # From the typed Dhall fleet (out/guccimane.json): a CAS shard server + an
   # x86_64 worker dialing watchtower's scheduler over the tailnet.
   age.secrets.nativelink-r2-env.file = ../../../secrets/agenix/machines/nativelink-r2-env.age;
+  age.secrets.nativelink-nix-cache-key.file = ../../../secrets/agenix/machines/nativelink-nix-cache-key.age;
   hyper-modern-nixos.nativelink = {
     enable = true;
     dhallHost = "guccimane";
@@ -43,6 +44,10 @@ in
     nixCache = {
       enable = true;
       pushLocalBuilds = true;
+      # Sign served narinfos with the agenix-held key; the public half is trusted
+      # fleet-wide (modules/nixos/nix.nix), so require-sigs consumers can now
+      # substitute from this cache, not just push to it.
+      signingKeyFile = "/run/agenix/nativelink-nix-cache-key";
       # The static LLVM toolchain's -g3 debug outputs are enormous NARs
       # (clang-static/llvm-static hit 60-73 GiB each), which 413 against the
       # fork's default 32 GiB per-upload cap. Raise it to accept them (well
