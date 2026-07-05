@@ -125,28 +125,24 @@ in
       };
     };
 
-    # nginx locations for the proxy itself (every vhost inherits these)
-    services.nginx.virtualHosts = lib.mkIf (config.services.nginx.enable or false) {
-      "_oauth2_internal" = {
-        # internal vhost — the auth_request locations
-        # this is referenced by the snippet via /oauth2/ paths
-      };
-    };
-
-    # add oauth2 location to the nginx http-level (all vhosts share it)
-    services.nginx.appendHttpConfig = ''
-      # oauth2-proxy endpoints (shared across all vhosts on this host)
-      upstream _oauth2_proxy {
-        server 127.0.0.1:${toString cfg.port};
-      }
-    '';
-
-    # every nginx server gets the /oauth2/ location
-    services.nginx.commonHttpConfig = lib.mkAfter ''
-      # oauth2-proxy auth endpoints
-      map $host $oauth2_upstream {
-        default http://127.0.0.1:${toString cfg.port};
-      }
-    '';
+    # callback vhost: oauth2-proxy's redirect_url points to
+    # https://<hostname>.s4.gl/oauth2/callback — this vhost serves it.
+    services.nginx.virtualHosts."${config.networking.hostName}.s4.gl" =
+      lib.mkIf (config.services.nginx.enable or false)
+        {
+          serverAliases = [ "${config.networking.hostName}.sju1.s4.gl" ];
+          forceSSL = true;
+          useACMEHost = "sju1.s4.gl-wildcard";
+          locations."/oauth2/" = {
+            proxyPass = "http://127.0.0.1:${toString cfg.port}/oauth2/";
+            extraConfig = ''
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Auth-Request-Redirect $request_uri;
+            '';
+          };
+          locations."/" = {
+            return = "302 https://${config.networking.hostName}.s4.gl/oauth2/sign_in";
+          };
+        };
   };
 }
