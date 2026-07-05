@@ -122,10 +122,14 @@ in
       settings = {
         MusicFolder = "${cfg.libraryRoot}/music";
 
-        # Bind all interfaces; exposure is governed by the firewall (tailscale0
-        # trusted + optional LAN rule), NOT by the bind address.
-        Address = "0.0.0.0";
+        # Bind loopback only — nginx handles TLS and oauth2-proxy gates access.
+        Address = "127.0.0.1";
         Port = cfg.navidromePort;
+
+        # Trust the X-User header from oauth2-proxy for SSO (no double login).
+        # nginx passes it after auth_request validates the session with kanidm.
+        ReverseProxyUserHeader = "X-User";
+        ReverseProxyWhitelist = "127.0.0.1/32";
 
         # SoundCloud-style rips often lack album tags; let folder structure and
         # filenames carry the library so single tracks/mixes still show up.
