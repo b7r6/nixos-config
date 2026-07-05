@@ -193,8 +193,13 @@ in
               <PluginConfiguration>
                 <OidEndpoint>https://auth.s4.gl/oauth2/openid/jellyfin/.well-known/openid-configuration</OidEndpoint>
                 <OidClientId>jellyfin</OidClientId>
-                <OidSecret>$SECRET</OidSecret>
-                <Enabled>true</Enabled>
+          <OidSecret>$SECRET</OidSecret>
+          <OidScopes>
+            <string>email</string>
+            <string>profile</string>
+            <string>groups</string>
+          </OidScopes>
+          <Enabled>true</Enabled>
                 <EnableAuthorization>true</EnableAuthorization>
                 <EnableAllFolders>true</EnableAllFolders>
                 <EnabledFolders />
