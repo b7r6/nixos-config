@@ -507,7 +507,6 @@ in
         originLanding = "https://jellyfin.s4.gl/";
         basicSecretFile = "/run/agenix/kanidm-jellyfin-secret";
         preferShortUsername = true;
-        allowInsecureClientDisablePkce = true;
         scopeMaps.fleet_users = [
           "openid"
           "email"
