@@ -499,6 +499,28 @@ in
           "groups"
         ];
       };
+
+      # jellyfin SSO plugin talks directly to kanidm (no proxy needed)
+      systems.oauth2.jellyfin = {
+        displayName = "// straylight // jellyfin //";
+        originUrl = "https://jellyfin.s4.gl/sso/OID/redirect/kanidm";
+        originLanding = "https://jellyfin.s4.gl/";
+        basicSecretFile = "/run/agenix/kanidm-jellyfin-secret";
+        preferShortUsername = true;
+        allowInsecureClientDisablePkce = true;
+        scopeMaps.fleet_users = [
+          "openid"
+          "email"
+          "profile"
+          "groups"
+        ];
+        scopeMaps.fleet_admins = [
+          "openid"
+          "email"
+          "profile"
+          "groups"
+        ];
+      };
     };
   };
 
@@ -548,6 +570,12 @@ in
   # same secret, two paths: kanidm needs it for provisioning, grafana for OIDC auth
   age.secrets.kanidm-grafana-secret = {
     file = ../../../secrets/agenix/machines/kanidm-grafana-secret.age;
+    owner = "kanidm";
+    group = "kanidm";
+    mode = "0400";
+  };
+  age.secrets.kanidm-jellyfin-secret = {
+    file = ../../../secrets/agenix/machines/kanidm-jellyfin-secret.age;
     owner = "kanidm";
     group = "kanidm";
     mode = "0400";

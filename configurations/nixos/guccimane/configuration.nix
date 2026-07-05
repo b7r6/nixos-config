@@ -1,4 +1,4 @@
-{ flake, ... }:
+{ flake, pkgs, ... }:
 let
   inherit (flake) inputs;
 in
@@ -144,7 +144,7 @@ in
     };
     services.jellyfin = {
       port = 8096;
-      protected = true;
+      protected = false; # SSO plugin handles auth directly with Kanidm
     };
     services.pinchflat = {
       port = 8945;
@@ -152,7 +152,81 @@ in
     };
   };
 
-  # ── oauth2-proxy (gates jellyfin + navidrome + pinchflat through Kanidm) ────
+  # ── Jellyfin SSO plugin config (OIDC directly against Kanidm) ────────────────
+  age.secrets.jellyfin-oidc-secret = {
+    file = ../../../secrets/agenix/machines/kanidm-jellyfin-secret.age;
+    owner = "jellyfin";
+    group = "jellyfin";
+    mode = "0400";
+  };
+
+  # declarative SSO plugin install + OIDC config (exact XML format from the plugin's serializer)
+  systemd.services.jellyfin.preStart =
+    let
+      ssoPlugin = pkgs.fetchzip {
+        url = "https://github.com/9p4/jellyfin-plugin-sso/releases/download/v4.0.0.4/sso-authentication_4.0.0.4.zip";
+        hash = "sha256-MJTyE6CeVLk7mlugauJ/F6bpi1kYwNtzNmQeH3+CFeQ=";
+        stripRoot = false;
+      };
+    in
+    ''
+          # install plugin DLLs
+          mkdir -p /var/lib/jellyfin/plugins/SSO
+          cp -f ${ssoPlugin}/*.dll ${ssoPlugin}/meta.json /var/lib/jellyfin/plugins/SSO/
+          chmod -R u+w /var/lib/jellyfin/plugins/SSO
+
+          # write OIDC config (only if not already configured — don't clobber user edits)
+          CONF=/var/lib/jellyfin/plugins/configurations/SSO-Auth.xml
+          if ! grep -q "kanidm" "$CONF" 2>/dev/null; then
+            mkdir -p /var/lib/jellyfin/plugins/configurations
+            SECRET=$(cat /run/agenix/jellyfin-oidc-secret)
+            cat > "$CONF" << XMLEOF
+      <?xml version="1.0" encoding="utf-8"?>
+      <PluginConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <SamlConfigs />
+        <OidConfigs>
+          <item>
+            <key>
+              <string>kanidm</string>
+            </key>
+            <value>
+              <PluginConfiguration>
+                <OidEndpoint>https://auth.s4.gl/oauth2/openid/jellyfin/.well-known/openid-configuration</OidEndpoint>
+                <OidClientId>jellyfin</OidClientId>
+                <OidSecret>$SECRET</OidSecret>
+                <Enabled>true</Enabled>
+                <EnableAuthorization>true</EnableAuthorization>
+                <EnableAllFolders>true</EnableAllFolders>
+                <EnabledFolders />
+                <AdminRoles>
+                  <string>fleet_admins</string>
+                </AdminRoles>
+                <Roles>
+                  <string>fleet_users</string>
+                </Roles>
+                <EnableFolderRoles>false</EnableFolderRoles>
+                <EnableLiveTvRoles>false</EnableLiveTvRoles>
+                <EnableLiveTv>false</EnableLiveTv>
+                <EnableLiveTvManagement>false</EnableLiveTvManagement>
+                <SchemeOverride>https</SchemeOverride>
+                <PortOverride xsi:nil="true" />
+                <NewPath>false</NewPath>
+                <CanonicalLinks />
+                <DisableHttps>false</DisableHttps>
+                <DisablePushedAuthorization>false</DisablePushedAuthorization>
+                <DoNotValidateEndpoints>false</DoNotValidateEndpoints>
+                <DoNotValidateIssuerName>false</DoNotValidateIssuerName>
+                <DoNotLoadProfile>false</DoNotLoadProfile>
+              </PluginConfiguration>
+            </value>
+          </item>
+        </OidConfigs>
+      </PluginConfiguration>
+      XMLEOF
+          fi
+    '';
+
+  # ── oauth2-proxy (gates navidrome + pinchflat through Kanidm) ───────────────
   age.secrets.oauth2-proxy-secret.file = ../../../secrets/agenix/machines/oauth2-proxy-guccimane-secret.age;
   age.secrets.oauth2-proxy-cookie.file = ../../../secrets/agenix/machines/oauth2-proxy-guccimane-cookie.age;
 

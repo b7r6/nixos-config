@@ -127,6 +127,7 @@ in
   "agenix/machines/oauth2-proxy-ultraviolence-cookie.age".publicKeys = mkGlobalSecret;
   "agenix/machines/oauth2-proxy-guccimane-secret.age".publicKeys = mkGlobalSecret;
   "agenix/machines/oauth2-proxy-guccimane-cookie.age".publicKeys = mkGlobalSecret;
+  "agenix/machines/kanidm-jellyfin-secret.age".publicKeys = mkGlobalSecret;
 
   # litestream R2 credentials for kanidm SQLite replication:
   #   AWS_ACCESS_KEY_ID=<r2 access key>

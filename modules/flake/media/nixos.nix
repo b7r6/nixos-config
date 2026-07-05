@@ -118,19 +118,7 @@ in
       "d ${cfg.libraryRoot}        0755 root root - -"
       "d ${cfg.libraryRoot}/music  0755 root root - -"
       "d ${cfg.libraryRoot}/video  0755 root root - -"
-    ]
-    ++ lib.optionals cfg.enableJellyfin (
-      let
-        ssoPlugin = pkgs.fetchzip {
-          url = "https://github.com/9p4/jellyfin-plugin-sso/releases/download/v4.0.0.4/sso-authentication_4.0.0.4.zip";
-          hash = "sha256-MJTyE6CeVLk7mlugauJ/F6bpi1kYwNtzNmQeH3+CFeQ=";
-          stripRoot = false;
-        };
-      in
-      [
-        "C+ /var/lib/jellyfin/plugins/SSO 0755 jellyfin jellyfin - ${ssoPlugin}"
-      ]
-    );
+    ];
 
     # ── Navidrome (music) ────────────────────────────────────────────────────
 
