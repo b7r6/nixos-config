@@ -190,9 +190,9 @@ in
               <string>kanidm</string>
             </key>
             <value>
-              <PluginConfiguration>
-                <OidEndpoint>https://auth.s4.gl/oauth2/openid/jellyfin/.well-known/openid-configuration</OidEndpoint>
-                <OidClientId>jellyfin</OidClientId>
+               <PluginConfiguration>
+          <OidEndpoint>https://auth.s4.gl/oauth2/openid/jellyfin/.well-known/openid-configuration</OidEndpoint>
+          <OidClientId>jellyfin</OidClientId>
           <OidSecret>$SECRET</OidSecret>
           <OidScopes>
             <string>email</string>
@@ -200,21 +200,23 @@ in
             <string>groups</string>
           </OidScopes>
           <Enabled>true</Enabled>
-                <EnableAuthorization>true</EnableAuthorization>
-                <EnableAllFolders>true</EnableAllFolders>
-                <EnabledFolders />
-                <AdminRoles>
-                  <string>fleet_admins</string>
-                </AdminRoles>
-                <Roles>
-                  <string>fleet_users</string>
-                </Roles>
-                <EnableFolderRoles>false</EnableFolderRoles>
-                <EnableLiveTvRoles>false</EnableLiveTvRoles>
-                <EnableLiveTv>false</EnableLiveTv>
-                <EnableLiveTvManagement>false</EnableLiveTvManagement>
+          <EnableAuthorization>true</EnableAuthorization>
+          <EnableAllFolders>true</EnableAllFolders>
+          <EnabledFolders />
+          <AdminRoles>
+            <string>fleet_admins@s4.gl</string>
+          </AdminRoles>
+          <Roles>
+            <string>fleet_admins@s4.gl</string>
+            <string>fleet_users@s4.gl</string>
+            <string>forgejo_users@s4.gl</string>
+          </Roles>
+          <EnableFolderRoles>false</EnableFolderRoles>
+          <EnableLiveTvRoles>false</EnableLiveTvRoles>
+          <EnableLiveTv>false</EnableLiveTv>
+          <EnableLiveTvManagement>false</EnableLiveTvManagement>
                 <SchemeOverride>https</SchemeOverride>
-                <PortOverride xsi:nil="true" />
+          <PortOverride xsi:nil="true" />
                 <NewPath>false</NewPath>
                 <CanonicalLinks />
                 <DisableHttps>false</DisableHttps>
