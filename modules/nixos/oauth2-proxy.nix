@@ -121,6 +121,10 @@ in
           "--code-challenge-method=S256"
           "--reverse-proxy=true"
           "--set-xauthrequest=true"
+          # kanidm may not include email in id_token if the user's mail
+          # isn't verified. use preferred_username as the session identity.
+          "--oidc-email-claim=preferred_username"
+          "--user-id-claim=preferred_username"
         ];
       };
     };
