@@ -138,9 +138,18 @@ in
       root = "/mnt/r2/drop";
       maxBodySize = "0"; # large file fetches, no cap
     };
-    services.navidrome.port = 4533;
-    services.jellyfin.port = 8096;
-    services.pinchflat.port = 8945;
+    services.navidrome = {
+      port = 4533;
+      protected = true;
+    };
+    services.jellyfin = {
+      port = 8096;
+      protected = true;
+    };
+    services.pinchflat = {
+      port = 8945;
+      protected = true;
+    };
   };
 
   # ── oauth2-proxy (gates jellyfin + navidrome + pinchflat through Kanidm) ────

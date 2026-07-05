@@ -130,6 +130,15 @@ in
                   disable the limit for a registry vhost, or a size like "2g".
                 '';
               };
+              protected = mkOption {
+                type = types.bool;
+                default = false;
+                description = ''
+                  Gate this service behind oauth2-proxy (Kanidm OIDC). Requires
+                  hyper-modern-nixos.oauth2-proxy.enable = true on this host.
+                  Adds auth_request + /oauth2/ locations to the vhost.
+                '';
+              };
             };
           }
         )
@@ -210,9 +219,6 @@ in
           locations."/" =
             if svc.root != null then
               {
-                # static file serving (e.g. the dropbox FUSE mount). autoindex off
-                # so the bucket root is never listable — the token path is the only
-                # way in, preserving the "secret-gist" property.
                 inherit (svc) root;
                 extraConfig = "autoindex off;";
               }
@@ -220,7 +226,32 @@ in
               {
                 proxyPass = "${svc.scheme}://${svc.upstream}";
                 proxyWebsockets = svc.websockets;
+                extraConfig = lib.optionalString svc.protected ''
+                  auth_request /oauth2/auth;
+                  error_page 401 = /oauth2/sign_in;
+                  auth_request_set $user $upstream_http_x_auth_request_user;
+                  auth_request_set $email $upstream_http_x_auth_request_email;
+                  proxy_set_header X-User $user;
+                  proxy_set_header X-Email $email;
+                '';
               };
+
+          # oauth2-proxy endpoints (only when this vhost is protected)
+          locations."/oauth2/" = lib.mkIf svc.protected {
+            proxyPass = "http://127.0.0.1:${toString config.hyper-modern-nixos.oauth2-proxy.port}/oauth2/";
+            extraConfig = ''
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Auth-Request-Redirect $request_uri;
+            '';
+          };
+          locations."/oauth2/auth" = lib.mkIf svc.protected {
+            proxyPass = "http://127.0.0.1:${toString config.hyper-modern-nixos.oauth2-proxy.port}/oauth2/auth";
+            extraConfig = ''
+              internal;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Auth-Request-Redirect $request_uri;
+            '';
+          };
         }
       ) cfg.services;
     };
