@@ -214,6 +214,21 @@ in
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
+
+    # Floor the graph quantum. The PreSonus AudioBox USB 96 DAC on this box's
+    # NVIDIA USB controller (NVDA8000) glitches when PipeWire drives the quantum
+    # down to tiny values (observed period_size=128): it produces continuous
+    # micro-glitches whose loudness tracks the signal level, i.e. audible
+    # "sizzle"/distortion that scales with volume. `aplay -D hw:0` was always
+    # clean (large fixed buffer, no dynamic quantum), which localised it to
+    # PipeWire scheduling rather than hardware/ALSA. Forcing a larger quantum
+    # live made it clean, so we pin a minimum floor here. Bump to 2048 if any
+    # crackle returns under heavy load.
+    extraConfig.pipewire."50-min-quantum" = {
+      "context.properties" = {
+        "default.clock.min-quantum" = 1024;
+      };
+    };
   };
 
   # Shimmer-specific packages
