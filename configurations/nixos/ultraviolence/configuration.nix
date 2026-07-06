@@ -92,7 +92,7 @@ in
   hyper-modern-nixos.reverseProxy = {
     enable = true;
     services.searxng.port = 8889;
-    services.flood.port = 3001;
+    services.torrents.port = 3001;
   };
 
   # ── oauth2-proxy (gates searxng + flood through Kanidm) ─────────────────────
