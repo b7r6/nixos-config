@@ -199,6 +199,7 @@ in
             <string>profile</string>
             <string>groups</string>
           </OidScopes>
+          <RoleClaim>groups</RoleClaim>
           <Enabled>true</Enabled>
           <EnableAuthorization>true</EnableAuthorization>
           <EnableAllFolders>true</EnableAllFolders>
