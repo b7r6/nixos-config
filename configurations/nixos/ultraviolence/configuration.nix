@@ -70,20 +70,28 @@ in
   # ── Incubating services (tailnet-only) ──────────────────────────────────────
 
   # SearXNG metasearch + transmission/flood torrent stack, both reachable on the
-  # tailnet. When ultraviolence routes through the Mullvad Miami exit node
+  # tailnet — but ONLY through nginx, gated by Kanidm (oauth2-proxy). When
+  # ultraviolence routes through the Mullvad Miami exit node
   # (`tailscale set --exit-node=<mullvad-mia>`), all egress — including
   # transmission — exits Miami (no separate killswitch, per the chosen posture).
   age.secrets.searxng-env.file = ../../../secrets/agenix/machines/searxng-env.age;
-  age.secrets.transmission-rpc.file = ../../../secrets/agenix/machines/transmission-rpc.age;
 
   hyper-modern-nixos.searxng = {
     enable = true;
     # Bind loopback; nginx fronts it on searxng.sju1.s4.gl with TLS.
     listenAddress = "127.0.0.1";
     port = 8889;
+    # nginx (Kanidm-gated) is the only path in — don't open 8889 on tailscale0.
+    openTailnet = false;
   };
 
-  hyper-modern-nixos.torrents.enable = true;
+  # ssoGated: flood's own login is disabled and it connects straight to
+  # transmission over loopback, so the Kanidm gate below is the single auth
+  # point (no double login, no transmission-rpc secret needed).
+  hyper-modern-nixos.torrents = {
+    enable = true;
+    ssoGated = true;
+  };
 
   # ── Reverse proxy + internal ACME (nginx → loopback services) ───────────────
 
@@ -91,8 +99,14 @@ in
   # nginx terminates TLS on the logical names. CoreDNS resolves them here.
   hyper-modern-nixos.reverseProxy = {
     enable = true;
-    services.searxng.port = 8889;
-    services.torrents.port = 3001;
+    services.searxng = {
+      port = 8889;
+      protected = true;
+    };
+    services.torrents = {
+      port = 3001;
+      protected = true;
+    };
   };
 
   # ── oauth2-proxy (gates searxng + flood through Kanidm) ─────────────────────

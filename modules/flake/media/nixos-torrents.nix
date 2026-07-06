@@ -16,6 +16,20 @@
 # RPC password (REQUIRED): transmission reads rpc-password from credentialsFile
 # (an agenix JSON file: {"rpc-password":"…"}). transmission rewrites it to a
 # salted hash on first start. Stored as agenix machines/transmission-rpc.age.
+#
+# ── ssoGated ────────────────────────────────────────────────────────────────
+# When an EXTERNAL gate fronts flood (oauth2-proxy → Kanidm on nginx), set
+# `ssoGated = true` to authenticate the human ONCE at the perimeter instead of
+# again at flood's own login:
+#
+#   - flood runs with `--auth none` — no flood login screen; it connects
+#     DIRECTLY to transmission over loopback using the built-in configUser.
+#   - transmission RPC auth is dropped: the 127.0.0.1 bind is the boundary (flood
+#     is the sole client and is itself Kanidm-gated), so no rpc-password travels
+#     anywhere — no store/cmdline exposure, no credentialsFile needed.
+#   - flood binds LOOPBACK and the tailnet port stays CLOSED, so nobody can reach
+#     flood directly on tailscale0 and skip the SSO gate. nginx (same host)
+#     proxies 127.0.0.1:floodPort under the protected vhost.
 {
   config,
   lib,
@@ -28,6 +42,13 @@ in
 {
   options.hyper-modern-nixos.torrents = {
     enable = lib.mkEnableOption "transmission + flood torrent stack (off by default)";
+
+    ssoGated = lib.mkEnableOption ''
+      flood single-sign-on mode. Disables flood's own login (--auth none) and
+      transmission's RPC auth (loopback bind is the boundary), binds flood to
+      loopback, and keeps the tailnet port closed. Use when oauth2-proxy/Kanidm
+      fronts flood on nginx so users authenticate ONCE at the perimeter
+    '';
 
     downloadDir = lib.mkOption {
       type = lib.types.str;
@@ -73,7 +94,8 @@ in
     services.transmission = {
       enable = true;
       package = pkgs.transmission_4;
-      inherit (cfg) credentialsFile;
+      # ssoGated drops RPC auth (loopback bind is the boundary) — no credentials.
+      credentialsFile = lib.mkIf (!cfg.ssoGated) cfg.credentialsFile;
       # Open the peer port in the firewall for inbound BT connectivity.
       openPeerPorts = true;
 
@@ -86,7 +108,9 @@ in
         rpc-enabled = true;
         rpc-bind-address = "127.0.0.1";
         rpc-port = cfg.rpcPort;
-        rpc-authentication-required = true;
+        # ssoGated: loopback bind + external Kanidm gate is the boundary, so no
+        # per-request RPC auth (flood connects with --auth none, no password).
+        rpc-authentication-required = !cfg.ssoGated;
         rpc-username = "transmission";
         # rpc-password comes from credentialsFile (never the store).
         rpc-whitelist-enabled = false; # loopback-only bind already gates it
@@ -119,13 +143,26 @@ in
     services.flood = {
       enable = true;
       port = cfg.floodPort;
-      # Bound broad so flood is reachable on the tailnet (binding the tailscale0
-      # IP directly races boot). Exposure is enforced by the firewall (ON
-      # fleet-wide), which opens floodPort ONLY on tailscale0 — see below.
-      host = "0.0.0.0";
+      # ssoGated: bind LOOPBACK (nginx fronts it; no tailnet bypass of the SSO
+      # gate). Otherwise bind broad so flood is reachable on the tailnet (binding
+      # the tailscale0 IP directly races boot); the firewall opens floodPort ONLY
+      # on tailscale0 — see below.
+      host = if cfg.ssoGated then "127.0.0.1" else "0.0.0.0";
+      # ssoGated: disable flood's own login and connect straight to transmission
+      # over loopback, so the Kanidm perimeter is the single auth point.
+      extraArgs = lib.mkIf cfg.ssoGated [
+        "--auth"
+        "none"
+        "--trurl"
+        "http://127.0.0.1:${toString cfg.rpcPort}/transmission/rpc"
+        "--truser"
+        "transmission"
+      ];
     };
 
-    networking.firewall.interfaces = lib.mkIf cfg.openTailnet {
+    # Tailnet exposure only when NOT ssoGated — a direct tailscale0 port would
+    # let clients reach flood without passing the oauth2-proxy/Kanidm gate.
+    networking.firewall.interfaces = lib.mkIf (cfg.openTailnet && !cfg.ssoGated) {
       tailscale0.allowedTCPPorts = [ cfg.floodPort ];
     };
   };
