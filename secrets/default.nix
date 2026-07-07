@@ -34,6 +34,7 @@
         pkgs.gnused
         pkgs.gawk
         pkgs.jq
+        pkgs.dhall-json # render-admin-recipients (registry → recipient set)
       ];
 
       # name -> script source. Names become both devShell command names and
@@ -50,6 +51,7 @@
         scan-host-key = ./sh/scan-host-key.sh;
         init-passage = ./sh/init-passage.sh;
         secrets-usage = ./sh/secrets-usage.sh;
+        render-admin-recipients = ./sh/render-admin-recipients.sh;
       };
 
       # Wrap a script so it always runs from the repo's secrets/ directory and

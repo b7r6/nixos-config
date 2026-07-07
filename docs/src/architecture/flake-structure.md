@@ -58,10 +58,10 @@ homeManagerNixosModule = {
 ```
 
 Note: `homeModules.default` is **not** in `sharedModules`. Managed users get their home config
-through [`myusers.nix`](./module-conventions.md)
-(`home-manager.users.<name>.imports = [ configurations/home/<name>.nix ]`), so a host like test-vm
-with an inline `test` user isn't forced to carry the full home config (which expects the home agenix
-module).
+through the [`identity`](./module-conventions.md) module
+(`home-manager.users.<name>.imports = [ configurations/home/<name>.nix ]`, auto-imported when the
+file exists), so a host like test-vm with an inline `test` user isn't forced to carry the full home
+config (which expects the home agenix module).
 
 ### The hosts table
 
@@ -105,7 +105,7 @@ homeUsers = lib.pipe (builtins.readDir ./home) [
 ];
 ```
 
-Every `configurations/home/<user>.nix` (currently `b7r6.nix`, `niteria.nix`) becomes a standalone
+Every `configurations/home/<user>.nix` (currently `b7r6.nix`, `jesse.nix`) becomes a standalone
 `homeConfiguration` for `nh home switch`. Adding one is auto-found — no registration needed.
 
 ### Outputs assembled here

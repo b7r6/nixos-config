@@ -167,8 +167,9 @@ See [SearXNG + torrents](../services/searxng-torrents.md) for the full writeup.
 
 ## Other infra options
 
-- `hyper-modern-nixos.users.*` — fleet-wide user model (groups, authorized keys, admin flag).
-  Source: `modules/nixos/myusers.nix`.
+- `hyper-modern-nixos.identity.*` — fleet identity from the user registry
+  (`users.dhall`): NixOS accounts, SSH keys, groups, home-manager configs, `nix.settings`,
+  and (on the IdP host) Kanidm provisioning. Source: `modules/flake/registry/nixos-users.nix`.
 - `hyper-modern-nixos.secrets.enable` — 1Password + Yubikey/PAM packages. Source:
   `modules/nixos/secrets.nix`.
 

@@ -55,9 +55,9 @@ in
 }
 ```
 
-Users, SSH `authorizedKeys`, groups, and `nix.settings` come from the fleet-wide
-`hyper-modern-nixos.users` model (`modules/nixos/myusers.nix`) — don't redeclare `users.users` per
-host.
+Users, SSH `authorizedKeys`, groups, and `nix.settings` are derived from the fleet user registry
+(`modules/flake/registry/data/users.dhall`) by the `hyper-modern-nixos.identity` module
+(`modules/flake/registry/nixos-users.nix`) — don't redeclare `users.users` per host.
 
 ## 2. Register the host
 

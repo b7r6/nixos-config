@@ -1,4 +1,4 @@
-{ flake, lib, ... }:
+{ flake, ... }:
 let
   inherit (flake) inputs;
 in
@@ -46,18 +46,6 @@ in
   };
 
   programs.firefox.enable = true;
-
-  users.users.b7r6 = {
-    extraGroups = [
-      "wheel"
-      "docker"
-    ];
-
-    openssh.authorizedKeys.keys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINbn+XF6n9v9VKLFGLBVz+G1LyL6GlcgZbIwhP89PPsp" # weyl b7r7 key
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ1ptqyz5C3YCcMgh3LUbXtjeS1rIZ5/6RHnH7D93Nqf" # 1password id_ed25519_b7r6
-    ];
-  };
 
   security.sudo.wheelNeedsPassword = false;
 

@@ -76,8 +76,8 @@ in
 
   security.sudo.wheelNeedsPassword = false;
 
-  # b7r6 SSH keys + groups come from the fleet-wide hyper-modern-nixos.users
-  # model (modules/nixos/default.nix + myusers.nix).
+  # b7r6 SSH keys + groups come from the fleet user registry (users.dhall) via
+  # the hyper-modern-nixos.identity module.
 
   # ── attic api-server replica (module self-wires its secrets) ────────────────
   hyper-modern-nixos.attic-node = {

@@ -62,7 +62,7 @@ autowire. It defines the fleet as a plain attrset and maps a `mkHost` builder ov
   `useGlobalPkgs = true`, `useUserPackages = true`, and `extraSpecialArgs = specialArgs`. It
   deliberately does **not** put `homeModules.default` into `sharedModules` — that would force the
   full home config onto every HM user (e.g. test-vm's inline `test` user). Managed users pick up
-  `configurations/home/<name>.nix` via [`myusers.nix`](./module-conventions.md) instead.
+  `configurations/home/<name>.nix` via the [`identity`](./module-conventions.md) module instead.
 
 A host dir is tiny. `configurations/nixos/ultraviolence/default.nix`:
 

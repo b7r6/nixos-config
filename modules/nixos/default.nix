@@ -24,7 +24,6 @@
     ./packages.nix
     ./greetd.nix
     ./kernel.nix
-    ./myusers.nix
     ./secrets.nix
     ./state.nix
     ../flake/registry/nixos.nix
@@ -108,15 +107,4 @@
   # declare. mkDefault so an individual host can still cleanly opt out. (test-vm
   # imports only the wayland module, not this one, so it's unaffected.)
   hyper-modern-nixos.rcloneMount.enable = lib.mkDefault true;
-
-  # ── Fleet-wide user model ───────────────────────────────────────────────────
-  # Groups + SSH keys declared ONCE here apply to every managed user on every
-  # host (see myusers.nix). Per-host/per-user extras go in
-  # hyper-modern-nixos.users.users.<name>.{extraGroups,authorizedKeys}.
-  hyper-modern-nixos.users = {
-    defaultAuthorizedKeys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINbn+XF6n9v9VKLFGLBVz+G1LyL6GlcgZbIwhP89PPsp" # b7r6
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ1ptqyz5C3YCcMgh3LUbXtjeS1rIZ5/6RHnH7D93Nqf" # 1password id_ed25519_b7r6
-    ];
-  };
 }

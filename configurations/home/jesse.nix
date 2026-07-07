@@ -10,9 +10,9 @@ in
   ];
 
   me = {
-    username = "niteria";
-    fullname = "niteria";
-    email = "bartosz@fleek.xyz";
+    username = "jesse";
+    fullname = "Jesse";
+    email = "jesse@straylight.software";
   };
 
   # TODO[b7r6]: this probably belongs in a central place

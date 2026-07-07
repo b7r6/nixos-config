@@ -2,13 +2,19 @@
 #                              // hyper-modern-nixos // secrets/keys
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-# Single source of truth for age/agenix recipient public keys. Consumed by:
+# Single source of truth for age/agenix HOST recipient public keys. Consumed by:
 #   - secrets/secrets.nix  (recipient sets for every .age secret)
 #   - any module that needs a peer's host key (knownHosts, build machines, …)
 #
-# This file is DATA ONLY: two attrsets, `users` and `hosts`, mapping a name to
-# a list of ssh-ed25519 public keys. agenix accepts SSH ed25519 keys directly
-# (no ssh-to-age conversion needed).
+# This file is DATA ONLY: one attrset, `hosts`, mapping a host to its
+# ssh-ed25519 host key(s). agenix accepts SSH ed25519 keys directly (no
+# ssh-to-age conversion needed).
+#
+# n.b. USER recipients are NOT here anymore — they derive from the fleet user
+# registry (modules/flake/registry/data/users.dhall): the fleet_admins group's
+# sshKeys are rendered to secrets/admin-recipients.json (regenerate with
+# `nix run .#render-admin-recipients`; a flake check guards staleness). This is
+# the "one source of truth for identity" carried through to secret access.
 #
 # ── Adding / rotating a host key ───────────────────────────────────────────
 #   ssh-keyscan -t ed25519 <host> 2>/dev/null | grep -v '^#' | awk '{print $2,$3}'
@@ -31,19 +37,6 @@
 #   beratna, flatline, galois, noether, railgun, ultralight
 #
 {
-  # ── User Keys ──────────────────────────────────────────────────────────────
-  # Personal SSH keys that can decrypt every secret (for editing/rekeying).
-  users = {
-    b7r6 = [
-      # Primary key (id_ed25519)
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINbn+XF6n9v9VKLFGLBVz+G1LyL6GlcgZbIwhP89PPsp"
-      # Named key (id_ed25519_b7r6)
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ1ptqyz5C3YCcMgh3LUbXtjeS1rIZ5/6RHnH7D93Nqf"
-      # Yubikey-resident key (if applicable)
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILBEaqZY7H09brD/syW20HVDpYmKf44TOZ/Whzemwc/+"
-    ];
-  };
-
   # ── Host Keys ────────────────────────────────────────────────────────────────
   # Machine SSH host keys (ed25519). Secrets encrypted to these are decryptable
   # by the corresponding host's /etc/ssh/ssh_host_ed25519_key at activation.

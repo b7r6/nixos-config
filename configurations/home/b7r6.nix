@@ -14,7 +14,7 @@ in
   # Standalone `nh home switch` has no NixOS host context, so it still needs a
   # monitor layout. Pull the default host's layout from the single source of
   # truth (lib/monitors.nix) at mkDefault priority: when this same config is
-  # evaluated INSIDE a NixOS host (via myusers.nix), that host's
+  # evaluated INSIDE a NixOS host (via the identity module), that host's
   # configuration.nix sets the same option at normal priority and wins cleanly
   # — so there is no conflicting-definition error (e.g. shimmer vs ultraviolence).
   hyper-modern-nixos.hyprland.monitors =

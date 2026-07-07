@@ -3,9 +3,10 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # agenix secret definitions: which public keys may decrypt each .age secret.
-# Recipient sets are derived from secrets/keys.nix (the single source of truth)
-# via the mkSecret / mkGlobalSecret helpers below, so adding a host to keys.nix
-# and re-keying is all it takes to extend access — no per-secret edits.
+# Recipient sets are derived from secrets/keys.nix (host keys) + the fleet user
+# registry (admin user keys) via the mkSecret / mkGlobalSecret helpers below, so
+# adding a host to keys.nix (or an admin to the registry) and re-keying is all it
+# takes to extend access — no per-secret edits.
 #
 # Layout:
 #   agenix/machines/<secret>.age        → machine secrets → /run/agenix/ (root)
@@ -13,35 +14,38 @@
 #   passage-store/                      → interactive secrets, NOT agenix-managed
 #
 # ── Recipient model ──────────────────────────────────────────────────────────
-# Every secret is always encrypted to ALL user keys (so any operator can edit /
-# rekey). `mkSecret [hosts…]` adds the named hosts; `mkGlobalSecret` adds every
-# configured host. Today everything is global (single operator, mutually-trusted
-# fleet); the mkSecret helper exists so future least-privilege scoping is a
-# one-line change per secret rather than a structural refactor.
+# Every secret is always encrypted to ALL admin user keys (so any operator can
+# edit / rekey). `mkSecret [hosts…]` adds the named hosts; `mkGlobalSecret` adds
+# every configured host. Today everything is global (single operator,
+# mutually-trusted fleet); the mkSecret helper exists so future least-privilege
+# scoping is a one-line change per secret rather than a structural refactor.
+#
+# ── User recipients ────────────────────────────────────────────────────────────
+# The operator key set is NOT hand-listed: it is the fleet_admins group's sshKeys
+# from the user registry (modules/flake/registry/data/users.dhall), rendered to
+# ./admin-recipients.json. Regenerate with `nix run .#render-admin-recipients`
+# after changing admin membership; the admin-recipients-sync flake check fails if
+# the committed JSON drifts from the registry. Read as plain JSON here (no IFD)
+# so the agenix rules eval stays pkgs-free.
 #
 let
   keys = import ./keys.nix;
 
-  inherit (builtins)
-    attrNames
-    attrValues
-    concatLists
-    concatMap
-    filter
-    ;
+  inherit (builtins) attrNames concatMap filter;
 
-  # All user public keys, flattened.
-  allUserKeys = concatLists (attrValues keys.users);
+  # All admin user public keys — derived from the registry (fleet_admins), NOT
+  # hand-maintained. See ./admin-recipients.json + the sync check.
+  allUserKeys = builtins.fromJSON (builtins.readFile ./admin-recipients.json);
 
   # Hosts that actually have a key listed (skip TODO stubs like a powered-down
   # laptop), so we never try to encrypt to an empty recipient.
   configuredHosts = filter (h: (keys.hosts.${h} or [ ]) != [ ]) (attrNames keys.hosts);
 
-  # mkSecret: recipients = all users + the named hosts' keys.
+  # mkSecret: recipients = all admin users + the named hosts' keys.
   # Unknown / unconfigured host names contribute nothing (or [ ]).
   mkSecret = hostList: allUserKeys ++ (concatMap (h: keys.hosts.${h} or [ ]) hostList);
 
-  # mkGlobalSecret: recipients = all users + every configured host.
+  # mkGlobalSecret: recipients = all admin users + every configured host.
   mkGlobalSecret = mkSecret configuredHosts;
 in
 {

@@ -23,7 +23,7 @@ Real examples, with their files:
 | `hyper-modern-nixos.backup` | `modules/nixos/backup.nix` |
 | `hyper-modern-nixos.nativelink` | `modules/nixos/nativelink.nix` |
 | `hyper-modern-nixos.rcloneMount` | `modules/nixos/rclone-mount.nix` |
-| `hyper-modern-nixos.users` | `modules/nixos/myusers.nix` |
+| `hyper-modern-nixos.identity` | `modules/flake/registry/nixos-users.nix` |
 | `hyper-modern-nixos.wayland` / `.hyper-wayland` | `modules/nixos/wayland` |
 
 This makes "ours vs. upstream" obvious at a host call site, and keeps grep honest.
@@ -38,7 +38,7 @@ safe to import all of them unconditionally. That is exactly what the aggregator 
 # modules/nixos/default.nix
 { lib, ... }: {
   imports = [
-    ./base.nix ./nix.nix ./packages.nix ./greetd.nix ./myusers.nix ./secrets.nix
+    ./base.nix ./nix.nix ./packages.nix ./greetd.nix ./secrets.nix
     ./state.nix ./topology.nix
     ./bluetooth.nix ./nvidia.nix ./radeon.nix ./usb.nix
     ./network.nix ./network-manager.nix ./coredns.nix ./reverse-proxy.nix
@@ -58,7 +58,7 @@ enabled, a host config is "import the aggregator + set the options you want" —
 per-host import lists**. Layout is flat: each module is a sibling file (no `common/` or `services/`
 nesting).
 
-A handful of always-on essentials don't gate (`base`, `nix`, `packages`, `greetd`, `myusers`,
+A handful of always-on essentials don't gate (`base`, `nix`, `packages`, `greetd`, `identity`,
 `secrets`), plus a few fleet-wide defaults set directly in the aggregator:
 
 ```nix
@@ -68,7 +68,6 @@ hyper-modern-nixos.network = {
   useBackupResolver = true;
 };
 hyper-modern-nixos.rcloneMount.enable = lib.mkDefault true;   # /mnt/r2 mounts fleet-wide
-hyper-modern-nixos.users.defaultAuthorizedKeys = [ "ssh-ed25519 …" /* b7r6 */ ];
 ```
 
 The firewall is **on fleet-wide** (the module default `firewall.enable = true`); `tailscale0` is

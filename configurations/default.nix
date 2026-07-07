@@ -33,8 +33,9 @@ let
   # behaviour: useGlobalPkgs + useUserPackages + extraSpecialArgs. We do NOT put
   # homeModules.default in sharedModules — that would force the full home config
   # onto every HM user (e.g. test-vm's inline `test` user, which lacks the home
-  # agenix module). Managed users get homeModules.default via myusers.nix, which
-  # imports configurations/home/<name>.nix per user.
+  # agenix module). Managed users get homeModules.default via the identity module
+  # (modules/flake/registry/nixos-users.nix), which imports
+  # configurations/home/<name>.nix per registry user when the file exists.
   homeManagerNixosModule = {
     imports = [ home-manager.nixosModules.home-manager ];
     home-manager = {
