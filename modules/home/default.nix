@@ -183,6 +183,7 @@
       };
 
       autostart = [
+        "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE"
         "hyprpaper"
         "mako"
         "blueman-applet"

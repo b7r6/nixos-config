@@ -128,10 +128,15 @@ in
 
   config = mkIf cfg.enable {
     # Use the NVIDIA kernel if enabled, otherwise use latest kernel
-    # NOTE: The standard NixOS kernel does not include the r8127 driver for the
-    # Realtek RTL8127 10GbE controller. You will need to build and load r8127 as
-    # an out-of-tree module separately for working Ethernet with the standard kernel.
+    # NOTE: The mainline r8169 driver claims the RTL8127 PCI ID but cannot
+    # actually drive the PHY. We use the out-of-tree r8127 driver instead and
+    # blacklist r8169 to prevent it from binding first.
     boot.kernelPackages = if cfg.useNvidiaKernel then nvidiaKernel else pkgs.linuxPackages_latest;
+
+    # Out-of-tree Realtek RTL8127 10GbE driver
+    boot.extraModulePackages = [
+      (config.boot.kernelPackages.callPackage ./r8127 { })
+    ];
 
     boot.kernelParams = [
       # TH500 early console - REQUIRED for any output before full driver init
@@ -186,7 +191,7 @@ in
 
     boot.blacklistedKernelModules = [
       "nouveau" # Ensure we use the proprietary NVIDIA driver
-      "r8169" # Use the r8127 driver in the NVIDIA kernel
+      "r8169" # Broken for RTL8127 — use out-of-tree r8127 instead
       "coresight_etm4x" # ARM CoreSight debugging (can cause overhead on DGX)
     ];
 

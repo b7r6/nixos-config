@@ -44,7 +44,7 @@ let
     };
   };
 
-  # The fleet. system defaults to x86_64-linux; shimmer is the aarch64 DGX.
+  # The fleet. system defaults to x86_64-linux; shimmer/gossamer are the aarch64 DGX Sparks.
   hosts = {
     ultraviolence = { };
     watchtower = { };
@@ -52,6 +52,7 @@ let
     guccimane = { };
     shannon = { };
     shimmer.system = "aarch64-linux";
+    gossamer.system = "aarch64-linux";
     test-vm = { };
   };
 

@@ -185,6 +185,13 @@ in
       MOZ_ENABLE_WAYLAND = "1";
       MOZ_DBUS_REMOTE = "1"; # Better Firefox integration
 
+      # ── NVIDIA VA-API ──
+      NVD_BACKEND = "direct";
+      LIBVA_DRIVER_NAME = "nvidia";
+
+      # ── Aquamarine (Hyprland backend) ──
+      AQ_NO_ATOMIC = "1"; # NVIDIA atomic modesetting is buggy
+
       # ── Java ──
       _JAVA_AWT_WM_NONREPARENTING = "1";
       AWT_TOOLKIT = "MToolkit"; # Better Java GUI support
@@ -197,7 +204,6 @@ in
 
       # ── GTK ──
       GDK_BACKEND = "wayland,x11"; # Wayland preferred, X11 fallback
-      GTK_USE_PORTAL = "1"; # Use portal for file dialogs
 
       # ── SDL ──
       SDL_VIDEODRIVER = "wayland,x11"; # Wayland preferred, X11 fallback
@@ -269,9 +275,9 @@ in
       };
 
       subpixel = {
-        # For OLED, disable subpixel (it causes color fringing)
-        rgba = "none";
-        lcdfilter = "none";
+        # LG WOLED panels use WRGB stripe — subpixel rendering works correctly
+        rgba = "rgb";
+        lcdfilter = "default";
       };
     };
   };

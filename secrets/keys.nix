@@ -25,8 +25,7 @@
 #   guccimane      x86_64  NixOS
 #   shimmer        aarch64 NixOS    DGX Spark (GB10)
 #   shannon        x86_64  NixOS    laptop (frequently powered down, still fleet)
-#   gossamer       aarch64 DGX OS   global Nix, NOT a nixosConfiguration; recorded
-#                                   here so it can be an attic client / build node
+#   gossamer       aarch64 NixOS    DGX Spark (GB10) — secondary compute node
 #
 # Decommissioned & removed from the fleet (do not re-add without a real host):
 #   beratna, flatline, galois, noether, railgun, ultralight
@@ -66,9 +65,10 @@
     # ── aarch64-linux ──
     shimmer = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAFyVtrt3AmJrLqcdAnZn5hXrvMenOUKGAS182qBnuYN" ];
 
-    # ── non-NixOS Nix nodes ──
-    # gossamer runs DGX OS with a global Nix install (not managed by this flake).
-    # Recorded so it can receive secrets / act as an attic client + build node.
-    gossamer = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEJbZaoyyS2ini7oG0mDP/Ayz5GFb5ataDa8cWyqQ6zd" ];
+    # ── non-NixOS → NixOS converted ──
+    # gossamer freshly installed via nixos-anywhere 2026-07-06
+    gossamer = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINIiiPOjVfmCk3AzW00dOmZNNYa46nkoy6sCTUi2xM3g root@gossamer"
+    ];
   };
 }

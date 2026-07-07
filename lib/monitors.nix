@@ -107,4 +107,28 @@
       ];
     };
   };
+
+  # ── gossamer (DGX Spark): single 4K LG OLED ─────────────────────────────────
+  gossamer = {
+    center = {
+      description = "";
+      resolution = "3840x2160";
+      refreshRate = 120;
+      position = "0x0";
+      scale = 1.5;
+      workspaces = [
+        1
+        2
+        3
+        4
+        5
+        6
+        7
+        8
+        9
+        10
+      ];
+      primary = true;
+    };
+  };
 }

@@ -189,8 +189,6 @@ in
 
     extraPackages = with pkgs; [
       nvidia-vaapi-driver
-      libva-vdpau-driver
-      libvdpau-va-gl
     ];
   };
 
@@ -203,9 +201,7 @@ in
     "kvm"
   ];
 
-  boot.extraModprobeConfig = ''
-    options nvidia-drm modeset=1
-  '';
+
 
   # Audio (PipeWire)
   security.rtkit.enable = true;
