@@ -222,6 +222,12 @@ in
         ];
       };
 
+      # Don't let tailscale autoconnect block boot if secrets aren't decrypted yet
+      # (e.g. fresh install before agenix rekey). Just skip gracefully.
+      systemd.services.tailscaled-autoconnect = mkIf (ts.authKeyFile != null) {
+        unitConfig.ConditionPathExists = toString ts.authKeyFile;
+      };
+
       # Throughput tuning for the default NIC (straylight): UDP GRO forwarding
       # materially improves tailscale wireguard throughput on many drivers.
       systemd.services.tailscale-ethtool = {

@@ -1,4 +1,4 @@
-# DGX Spark disk layout - simple ext4 on NVMe
+# DGX Spark disk layout - btrfs with impermanence subvolumes
 {
   disko.devices.disk.main = {
     device = "/dev/nvme0n1";
@@ -7,7 +7,7 @@
       type = "gpt";
       partitions = {
         ESP = {
-          size = "1G";
+          size = "2G";
           type = "EF00";
           content = {
             type = "filesystem";
@@ -18,9 +18,27 @@
         root = {
           size = "100%";
           content = {
-            type = "filesystem";
-            format = "ext4";
-            mountpoint = "/";
+            type = "btrfs";
+            extraArgs = [ "-f" ]; # force overwrite
+            subvolumes = {
+              "@" = {
+                mountpoint = "/";
+                mountOptions = [ "compress=zstd:1" "noatime" ];
+              };
+              "@persist" = {
+                mountpoint = "/persist";
+                mountOptions = [ "compress=zstd:1" "noatime" ];
+              };
+              "@nix" = {
+                mountpoint = "/nix";
+                mountOptions = [ "compress=zstd:1" "noatime" ];
+              };
+              "@home" = {
+                mountpoint = "/home";
+                mountOptions = [ "compress=zstd:1" "noatime" ];
+              };
+              "@root-blank" = { };
+            };
           };
         };
       };

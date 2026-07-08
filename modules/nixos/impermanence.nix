@@ -85,14 +85,15 @@ in
         "/var/lib/postgresql"
         "/var/lib/redis"
         "/etc/NetworkManager/system-connections"
-        "/etc/ssh"
       ];
       description = "System directories to persist";
     };
 
     files = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ "/etc/machine-id" ];
+      default = [
+        "/etc/machine-id"
+      ];
       description = "System files to persist";
     };
 
@@ -225,16 +226,25 @@ in
         {
           description = "Rollback btrfs root to a pristine snapshot";
           wantedBy = [ "initrd.target" ];
-          after = [ "initrd-root-device.target" ];
+          after = [
+            "dev-disk-by\\x2dpartlabel-disk\\x2dmain\\x2droot.device"
+          ];
           before = [ "sysroot.mount" ];
           unitConfig.DefaultDependencies = "no";
-          serviceConfig.Type = "oneshot";
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+          };
           script = ''
             mkdir -p /mnt
-            mount -o subvol=/ ${toString cfg.device} /mnt
+            mount -t btrfs -o subvol=/ ${toString cfg.device} /mnt
             if [[ -e /mnt/@root-blank ]]; then
-              btrfs subvolume delete /mnt/@
+              echo "Rolling back @ to blank snapshot..."
+              # Recursively delete all nested subvolumes under @
+              btrfs subvolume delete --recursive /mnt/@
               btrfs subvolume snapshot /mnt/@root-blank /mnt/@
+            else
+              echo "WARNING: @root-blank snapshot not found, skipping rollback"
             fi
             umount /mnt
           '';

@@ -61,7 +61,7 @@
     # ── non-NixOS → NixOS converted ──
     # gossamer freshly installed via nixos-anywhere 2026-07-06
     gossamer = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINIiiPOjVfmCk3AzW00dOmZNNYa46nkoy6sCTUi2xM3g root@gossamer"
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOVmQ8pwaRwgrDpZMriiMIuFVamndu1OxhbWykeqqTpy root@gossamer"
     ];
   };
 }

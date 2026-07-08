@@ -88,15 +88,26 @@ in
     profile = "replica";
   };
 
+  # ── Graceful degradation when secrets aren't available (fresh install) ──────
+  # Services that depend on agenix secrets should not block boot if secrets
+  # can't be decrypted (e.g. first boot before host key is rekeyed).
+  systemd.services.atticd.unitConfig.ConditionPathExists = "/run/agenix/atticd-rs256";
+  systemd.services.atticd-watch-store.unitConfig.ConditionPathExists = "/run/agenix/attic-push-token";
+
   # ── OTel agent (host metrics → watchtower gateway) ─────────────────────────
   hyper-modern-nixos.observability.otel.agent = {
     enable = true;
-    scrapeTargets = [ ];
+    scrapeTargets = [
+      "127.0.0.1:9153" # coredns
+    ];
   };
 
   # ── Tailscale ───────────────────────────────────────────────────────────────
   age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;
   hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
+
+  # CoreDNS as this node's own resolver
+  hyper-modern-nixos.coredns.enable = true;
 
   # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
   # TODO: enable after creating restic-r2-env.gossamer.age and rekeying
@@ -110,7 +121,28 @@ in
   # ── fwupd (firmware updates — guinea pig) ───────────────────────────────────
   services.fwupd.enable = true;
 
+  # ── Impermanence (btrfs rollback) ──────────────────────────────────────────
+  hyper-modern-nixos.impermanence = {
+    enable = true;
+    device = "/dev/disk/by-partlabel/disk-main-root";
+    rollbackRoot = true;
+    rollbackUseSystemdInitrd = true;
+    users.b7r6 = { };
+  };
+
+  # Disko doesn't set neededForBoot on subvolumes; impermanence requires it
+  fileSystems."/persist".neededForBoot = true;
+  fileSystems."/home".neededForBoot = true;
+
+  # btrfs tools in initrd for rollback
+  boot.initrd.systemd.extraBin = {
+    btrfs = "${pkgs.btrfs-progs}/bin/btrfs";
+  };
+
   networking.hostName = "gossamer";
+
+  # NM wait-online is useless when primary links are statically configured
+  systemd.services.NetworkManager-wait-online.enable = false;
 
   time.timeZone = "America/Puerto_Rico";
 
