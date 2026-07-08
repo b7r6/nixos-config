@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                               // hyper-modern-nixos // attic
+#                                                 // hypermodern // nix // attic
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # attic.rs binary cache server (atticd), OFF BY DEFAULT.
@@ -42,7 +42,9 @@
 # Generate once, store it with agenix as `atticd-rs256.age`, and wire
 # `age.secrets.atticd-rs256` to decrypt it. This module points
 # `services.atticd.environmentFile` at that decrypted path. Inert until enabled.
-
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
 {
   config,
   lib,
@@ -62,7 +64,9 @@ in
         "api-server"
         "garbage-collector"
       ];
+
       default = "monolithic";
+
       description = ''
         atticd run mode. In the fleet topology, watchtower runs "monolithic"
         (api-server + the single garbage collector) and every other host runs
@@ -74,7 +78,9 @@ in
     databaseUrl = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
+
       example = "postgresql://atticd@watchtower.example.ts.net/atticd";
+
       description = ''
         PASSWORDLESS postgres connection string for the shared backend. attic
         uses sea-orm + sqlx-postgres, and sqlx honours libpq env vars — so the
@@ -89,8 +95,10 @@ in
 
     environmentFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
+
       default = null;
       example = "/run/agenix/atticd-rs256";
+
       description = ''
         Path to the env file defining ATTIC_SERVER_TOKEN_RS256_SECRET. A host
         that enables attic should declare `age.secrets.atticd-rs256`
@@ -101,8 +109,10 @@ in
 
     listen = lib.mkOption {
       type = lib.types.str;
+
       default = "[::]:8080";
       example = "[::1]:8080";
+
       description = ''
         Address atticd binds. Default binds all interfaces but the port is only
         opened on `trustedInterfaces` (tailscale0) — so it's reachable across
@@ -112,7 +122,9 @@ in
 
     trustedInterfaces = lib.mkOption {
       type = lib.types.listOf lib.types.str;
+
       default = [ "tailscale0" ];
+
       description = ''
         Interfaces on which the atticd port is opened. Defaults to the tailscale
         interface so the cache is tailnet-only. The listen address can be
@@ -139,19 +151,23 @@ in
           "local"
           "s3"
         ];
+
         default = "local";
+
         description = "atticd storage backend.";
       };
 
       path = lib.mkOption {
         type = lib.types.str;
         default = "/var/lib/atticd/storage";
+
         description = "Local storage directory (type = local).";
       };
 
       region = lib.mkOption {
         type = lib.types.str;
         default = "auto";
+
         description = "S3 region. R2 is region-agnostic; use \"auto\".";
       };
 
@@ -159,6 +175,7 @@ in
         type = lib.types.str;
         default = "";
         example = "straylight-attic-cache";
+
         description = "S3 bucket name (type = s3). atticd owns the whole bucket.";
       };
 
@@ -166,6 +183,7 @@ in
         type = lib.types.str;
         default = "";
         example = "https://<acct>.r2.cloudflarestorage.com";
+
         description = "Custom S3 endpoint for S3-compatible backends (R2/Minio).";
       };
     };
@@ -173,6 +191,7 @@ in
     settings = lib.mkOption {
       type = lib.types.attrs;
       default = { };
+
       description = "Extra settings merged into services.atticd.settings (TOML). e.g. database.url, storage.";
     };
 
@@ -189,26 +208,35 @@ in
       narSizeThreshold = lib.mkOption {
         type = lib.types.int;
         default = 65536; # 64 KiB — upstream default; dedup-friendly (prefetch fixes the latency)
+
         description = "NARs at or below this size are stored unchunked (0 = disable chunking; 1 = always chunk).";
       };
+
       minSize = lib.mkOption {
         type = lib.types.int;
         default = 16384; # 16 KiB (upstream default)
+
         description = "Preferred minimum chunk size.";
       };
+
       avgSize = lib.mkOption {
         type = lib.types.int;
         default = 65536; # 64 KiB (upstream default)
+
         description = "Preferred average (target) chunk size.";
       };
+
       maxSize = lib.mkOption {
         type = lib.types.int;
         default = 262144; # 256 KiB (upstream default)
+
         description = "Preferred maximum chunk size.";
       };
+
       narPrefetch = lib.mkOption {
         type = lib.types.int;
         default = 32;
+
         description = ''
           Concurrent chunk-prefetch depth when SERVING a NAR (our fork's
           chunking.nar-prefetch). Upstream hardcoded 2, serializing R2 chunk GETs.
@@ -232,24 +260,29 @@ in
       name = lib.mkOption {
         type = lib.types.str;
         default = "hypermodern";
+
         description = "Attic cache name (the URL path segment).";
       };
 
       endpoint = lib.mkOption {
         type = lib.types.str;
         example = "http://ultraviolence.example.ts.net:8080";
+
         description = "Base atticd URL (no trailing slash, no cache name).";
       };
 
       publicKey = lib.mkOption {
         type = lib.types.str;
+
         example = "hypermodern:x+kBunu5nD1KOhzCIawyZeq8w0LV0GC6A7suIRoHTm8=";
+
         description = "The cache's binary-cache public key (from `attic cache info`).";
       };
 
       priority = lib.mkOption {
         type = lib.types.int;
         default = 10;
+
         description = ''
           Substituter priority. LOWER = consulted earlier. Default 10 beats
           cache.nixos.org (40) and nix-community (~40), so this cache is tried
@@ -262,8 +295,10 @@ in
 
       pushTokenFile = lib.mkOption {
         type = lib.types.nullOr lib.types.path;
+
         default = null;
         example = "/run/agenix/attic-push-token";
+
         description = ''
           Optional path to a file containing a raw attic push JWT (a token with
           push access to `name`). Referenced by the generated attic client
@@ -277,6 +312,7 @@ in
 
   config = lib.mkMerge [
     # ── Server (atticd) ────────────────────────────────────────────────────────
+
     (lib.mkIf cfg.enable {
       # atticd's local state is a reconstructible chunk cache: the authoritative
       # chunks live in R2 (or are re-pushable), so it's persisted across an
@@ -374,6 +410,7 @@ in
     })
 
     # ── Client (use a cache as substituter + auto-push) ─────────────────────────
+
     (lib.mkIf cfg.clientCache.enable {
       nix.settings = {
         # Consulted FIRST: prepended, and given a lower (= higher) priority via
@@ -381,6 +418,7 @@ in
         substituters = lib.mkBefore [
           "${cfg.clientCache.endpoint}/${cfg.clientCache.name}?priority=${toString cfg.clientCache.priority}"
         ];
+
         trusted-public-keys = [ cfg.clientCache.publicKey ];
       };
 
@@ -402,6 +440,7 @@ in
             endpoint = "${cfg.clientCache.endpoint}"
             token-file = "${toString cfg.clientCache.pushTokenFile}"
           '';
+
           atticConfigHome = pkgs.runCommand "attic-config-home" { } ''
             mkdir -p $out/attic
             cp ${atticConfig} $out/attic/config.toml
@@ -409,22 +448,28 @@ in
         in
         {
           description = "attic watch-store: auto-push new store paths to ${cfg.clientCache.name}";
+
           wantedBy = [ "multi-user.target" ];
+
           # Order after tailscale so the cache's MagicDNS endpoint resolves;
           # otherwise the service races DNS at boot and crash-loops on NXDOMAIN.
           after = [
             "network-online.target"
             "tailscaled.service"
           ];
+
           wants = [
             "network-online.target"
             "tailscaled.service"
           ];
+
           environment.XDG_CONFIG_HOME = "${atticConfigHome}";
+
           serviceConfig = {
             ExecStart = "${pkgs.attic-client}/bin/attic watch-store ${cfg.clientCache.name}";
             Restart = "on-failure";
             RestartSec = 10;
+
             # best-effort: a dead cache must never wedge the box
             DynamicUser = false;
           };

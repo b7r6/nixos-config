@@ -81,6 +81,9 @@ in
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
         # "nativelink.cachix.org-1:Mr5Mc8jLgI/Q8nlmgzqgVfg3pHX8GdW1l8AbWQ4Kit4="
         "nix-postgres-artifacts:dGZlQOvKcNEjvT7QEeBMKja1bMnGqCiQ5vzg4IZ4Qbk="
+        # NativeLink Nix cache on guccimane (hyper-modern-nixos.nativelink.nixCache);
+        # trusted fleet-wide so any host can substitute its signed paths.
+        "nativelink-nix-cache-1:ccYfraJDD/wVIFzw6LJ7psrYahwv4Wztad4XHJcdG4M="
       ];
     };
 

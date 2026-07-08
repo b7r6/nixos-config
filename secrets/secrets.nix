@@ -162,6 +162,15 @@ in
   #   hypermodern:x+kBunu5nD1KOhzCIawyZeq8w0LV0GC6A7suIRoHTm8=
   "agenix/machines/attic-cache-keypair.age".publicKeys = mkGlobalSecret;
 
+  # NativeLink Nix-cache signing key (the `nix key generate-secret` secret for
+  # the CAS-backed substituter on guccimane, hyper-modern-nixos.nativelink.
+  # nixCache.signingKeyFile). One line: `<name>:<base64>`. The server signs every
+  # narinfo with it; the public half is trusted fleet-wide in modules/nixos/nix.nix
+  # so require-sigs consumers can substitute. Public key:
+  #   nativelink-nix-cache-1:ccYfraJDD/wVIFzw6LJ7psrYahwv4Wztad4XHJcdG4M=
+  # Regenerate:  nix key generate-secret --key-name nativelink-nix-cache-1
+  "agenix/machines/nativelink-nix-cache-key.age".publicKeys = mkGlobalSecret;
+
   # Supabase stack secrets — ONE env file consumed by every service unit via
   # systemd EnvironmentFile (modules/nixos/supabase). Generated as a unit by
   # `nix run .#gen-supabase-secrets` (mirrors upstream utils/generate-keys.sh):

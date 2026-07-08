@@ -1,14 +1,26 @@
-{ flake, pkgs, ... }:
+{ flake, pkgs, lib, ... }:
 let
   inherit (flake) inputs;
 in
 {
+  # ── Nix substituters: nativelink-nix-cache (local), disable attic ───────────
+  # The attic module prepends its substituter via mkBefore, but attic's
+  # watch-store daemon saturates the box during megabuilds. Override it off and
+  # use the nativelink-nix-cache on localhost instead (pushLocalBuilds populates
+  # it, and this lets us substitute back what we've already built).
+  nix.settings.substituters = lib.mkForce [
+    "http://127.0.0.1:50071/nix/main"
+    "https://cache.nixos.org"
+    "https://nix-community.cachix.org"
+    "https://nix-postgres-artifacts.s3.amazonaws.com"
+  ];
   imports = [
     ./hardware-configuration.nix
     inputs.agenix.nixosModules.default
   ];
 
   # ── Tailscale safety net ────────────────────────────────────────────────────
+
   # Declarative enrollment so the tailscaled restart on switch can't strand this
   # remote box off the tailnet (the deploy itself runs over the tailnet).
   age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;
@@ -20,18 +32,46 @@ in
   hyper-modern-nixos.coredns.enable = true;
 
   # ── NativeLink: x86_64 CAS shard (weight 4) + worker ────────────────────────
+
   # From the typed Dhall fleet (out/guccimane.json): a CAS shard server + an
   # x86_64 worker dialing watchtower's scheduler over the tailnet.
   age.secrets.nativelink-r2-env.file = ../../../secrets/agenix/machines/nativelink-r2-env.age;
+  age.secrets.nativelink-nix-cache-key.file = ../../../secrets/agenix/machines/nativelink-nix-cache-key.age;
+
   hyper-modern-nixos.nativelink = {
     enable = true;
     dhallHost = "guccimane";
     openFirewall = true;
+
     r2 = {
       enable = true;
       accountId = "6063b6652178f5cf1cfb87e7e41acf1e";
       bucket = "straylight-nativelink-cas";
       environmentFile = "/run/agenix/nativelink-r2-env";
+    };
+
+    # Nix binary-cache substituter (our fork's nix_cache) running alongside
+    # attic on the tailnet at http://guccimane:50071/nix/main. This box builds
+    # the per-platform static LLVM toolchains, so pushLocalBuilds copies each
+    # built path into it over loopback — the intended workout. Unsigned for now
+    # (tailnet-internal; pullers set require-sigs = false). To sign, generate a
+    # `nix key generate-secret`, store it via agenix, and set signingKeyFile.
+    nixCache = {
+      enable = true;
+      pushLocalBuilds = true;
+
+      # Sign served narinfos with the agenix-held key; the public half is trusted
+      # fleet-wide (modules/nixos/nix.nix), so require-sigs consumers can now
+      # substitute from this cache, not just push to it.
+      signingKeyFile = "/run/agenix/nativelink-nix-cache-key";
+
+      # The static LLVM toolchain's -g3 debug outputs are enormous NARs
+      # (clang-static/llvm-static hit 60-73 GiB each), which 413 against the
+      # fork's default 32 GiB per-upload cap. Raise it to accept them (well
+      # under the 200 GiB store cap). The durable fix is shrinking the debug
+      # artifacts (-g, separateDebugInfo/stripping); until then, this unblocks
+      # caching them. pushCompression defaults to zstd (xz would take hours).
+      maxNarUploadBytes = 137438953472; # 128 GiB
     };
   };
 
@@ -246,6 +286,7 @@ in
   };
 
   # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
+
   # Module self-wires its secrets from the names below (per-host R2 env:
   # restic-r2-env.guccimane). FIRST init is declarative + idempotent:
   #   nix run .#restic-init -- guccimane
@@ -272,6 +313,7 @@ in
   };
 
   # ── Per-host monitor & display config ──────────────────────────────────────
+
   # TODO: set monitor descriptions once displays are connected
   # home-manager.users.b7r6 = {
   #   hyper-modern-nixos = {

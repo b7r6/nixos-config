@@ -1,0 +1,182 @@
+# Nix binary cache (nativelink)
+
+A second cache, next to [attic](./attic.md): the **straylight NativeLink fork's Nix substituter**
+(`nix_cache`), which serves the Nix HTTP binary-cache protocol backed by the NativeLink CAS instead
+of attic's own chunk tables. Wired via `hyper-modern-nixos.nativelink.nixCache` in
+`modules/flake/nativelink/nixos.nix`. **Off by default; currently live only on `guccimane`** as an
+evaluation cache — it is not (yet) the fleet cache.
+
+The point is to give the substituter a real workout. `guccimane` builds the per-platform static LLVM
+toolchains, so every path it builds is pushed into this cache over loopback — a steady stream of
+large NARs to exercise ingest, dedup, eviction, and the serve path under load. attic keeps running
+unchanged; this rides alongside it.
+
+## Why a second cache at all
+
+attic and this are the same *protocol* (a Nix binary cache) over different *storage*. attic invented
+its own machinery — content-defined chunk tables in postgres + an R2 object store, a bespoke garbage
+collector. The NativeLink substituter instead reuses the CAS primitives NativeLink already has:
+
+- **NARs** are digest-keyed CAS blobs (`sha256(nar)`), wrapped in `verify` so a corrupt or truncated
+  upload is rejected at write time.
+- **Path-info records** (the `.narinfo` metadata) are REv2 `ActionResult` envelopes behind a
+  `completeness_checking` store, so an evicted NAR reads as a clean **404 miss** rather than a
+  dangling narinfo — garbage collection is just eviction plus a reachability check, not a bespoke
+  sweep.
+- **Compression fidelity**: a `nix copy` push is stored *and served back* under its original
+  compression (`preserve_upload_compression`, on by default), so pushing then pulling the same path
+  works within Nix's narinfo TTL — attic/harmonia/nix-serve parity.
+
+The strategic upside (not exploited yet on `guccimane`): the substituter's NAR store can be the
+**same** CAS the RE services use, so Nix NARs and Bazel/REv2 blobs share one content-addressed store.
+Here they are kept separate for isolation while the substituter earns trust.
+
+## Deployment: an independent instance
+
+This is **not** part of the [Dhall RE fleet](./nativelink-production.md). It is a separate `systemd`
+service (`nativelink-nix-cache`) running a second `nativelink` process with its own trivial config —
+three stores and one service — generated in Nix (no Dhall). On `guccimane` it runs beside the RE CAS
+shard/worker and `atticd`:
+
+```
+guccimane  (one host, three peers on the tailnet)
+  ├─ nativelink RE      :50051/:50052/:50061   CAS shard + x86_64 worker (Dhall fleet)
+  ├─ atticd (replica)   :8080                  fleet binary cache
+  └─ nativelink nix     :50071                  THIS — /nix/main, CAS-backed substituter
+       NIX_NAR_STORE          verify → filesystem              (digest-keyed NAR blobs)
+       NIX_PATH_INFO_STORE    completeness_checking → filesystem  (narinfo; evicted NAR ⇒ 404)
+       NIX_ALIAS_STORE        filesystem                       (client URL name → digest)
+```
+
+Cache root: `http://guccimane:50071/nix/main`, tailnet-only.
+
+### The fork input
+
+The substituter service is upstream-absent, so `nixCache` pulls its binary from a **separate** flake
+input — the straylight fork — rather than the upstream `nativelink` input the RE fleet uses:
+
+```nix
+# flake.nix
+nativelink-nix.url = "git+https://git.s4.gl/straylight/straylight-nativelink?ref=b7r6/nativelink-nix";
+nativelink-nix.inputs.nixpkgs.follows = "nixpkgs";
+```
+
+It is a strict superset of upstream, kept separate on purpose: standing up the Nix cache on one host
+must not rebuild the RE fleet's `nativelink`. Only the host that enables `nixCache` builds the fork.
+
+## Enabling it
+
+```nix
+# configurations/nixos/guccimane/configuration.nix
+hyper-modern-nixos.nativelink = {
+  enable = true;            # the RE CAS shard + worker (Dhall fleet)
+  dhallHost = "guccimane";
+  # …r2, openFirewall…
+
+  # The Nix substituter, alongside attic. pushLocalBuilds copies every path this
+  # box builds into it over loopback — the workout.
+  nixCache = {
+    enable = true;
+    pushLocalBuilds = true;
+  };
+};
+```
+
+Key options (`hyper-modern-nixos.nativelink.nixCache`):
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `enable` | `false` | Run the substituter instance. |
+| `listen` | `0.0.0.0:50071` | HTTP listener; cache root is `/nix/<instanceName>`. |
+| `stateDir` | `/var/lib/nativelink-nix-cache` | NAR / path-info / alias filesystem stores. |
+| `maxNarBytes` | 200 GiB | Total EVICTION cap on the NAR store (store capacity). |
+| `maxNarUploadBytes` | 32 GiB | Per-upload cap; an upload whose uncompressed NAR exceeds it gets **413**. Also bounds the decompress spool (bomb guard). Raise for huge artifacts. |
+| `signingKeyFile` | `null` | `nix key generate-secret` key (agenix path). `null` ⇒ unsigned. |
+| `pushLocalBuilds` | `false` | Install a loopback post-build-hook that pushes this host's builds. |
+| `pushCompression` | `zstd` | Compression the push hook applies. `zstd` (fast) / `xz` (nix default, slow) / `none`. |
+| `trustedInterfaces` / `openFirewall` | `[tailscale0]` / `true` | Bind all interfaces, open the port only on the tailnet. |
+
+## The workout: `pushLocalBuilds`
+
+With `pushLocalBuilds = true`, the module sets a Nix `post-build-hook` that runs after every build
+and `nix copy`s the outputs to `http://127.0.0.1:50071/nix/main`. It is **non-fatal** — a cache
+hiccup logs and returns `0`, so it can never fail a build. Over loopback the copy is fast, so the
+latency it adds to each build's finalize is small even for multi-GiB toolchain NARs.
+
+This is the deliberate difference from attic's `watch-store` (an async daemon): here it is a
+synchronous post-build-hook, which is fine for a single-host evaluation cache and keeps the moving
+parts to one systemd service. Nothing else on the fleet sets `post-build-hook`, so there is no
+conflict with attic (which auto-pushes via `watch-store`).
+
+## What the LLVM-toolchain workout found
+
+Stress-pushing the toolchain closure (~90 paths, ~234 GiB) surfaced exactly the properties this cache
+was built for, plus two knobs:
+
+- **Memory is bounded.** nativelink held a ~140 MB peak across the whole run, flat under concurrent
+  read+write, at ~2% CPU — it is a streaming CAS receiver. (For contrast, the attic client OOM'd the
+  box on the same closure.) This is the headline win and the reason to run it.
+- **The push cost is `nix copy`, not the cache.** nix's own compression dominates; the server sits
+  idle. xz (nix's default) is CPU-bound to a crawl on tens-of-GiB NARs — hence `pushCompression`
+  defaults to **zstd**, which sustained ~180 MB/s of compressed data (~600 MB/s uncompressed) in the
+  run. Use `none` on a fast LAN.
+- **The `-g3` debug monsters hit the 413 cap.** Three outputs (`clang-static`/`llvm-static`) are
+  60-73 GiB *uncompressed* — they blow past the default 32 GiB `maxNarUploadBytes` and are rejected
+  with 413. `guccimane` raises the cap to 128 GiB to accept them, but the real fix is upstream in the
+  toolchain: `-g3` bakes ~60 GiB of macro debug info into each output. Dropping to `-g` (or
+  `separateDebugInfo`/stripping) shrinks each to a few GiB — which makes them cacheable *everywhere*
+  (attic too), fast to compress, and comfortably under any body limit, at the cost of only rarely-used
+  macro debug info. The cache limit and the artifact size are two levers on the same wall; pull both.
+
+## Signing and using it as a substituter
+
+The cache is **signed**. The server signs every narinfo with an ed25519 key held in
+[agenix](./secrets.md) (`nativelink-nix-cache-key`, wired via `signingKeyFile`), and its public half
+is trusted **fleet-wide** in `modules/nixos/nix.nix`:
+
+```
+nativelink-nix-cache-1:ccYfraJDD/wVIFzw6LJ7psrYahwv4Wztad4XHJcdG4M=
+```
+
+So any host can substitute its signed paths under `require-sigs = true` — the cache is a real
+pull-cache, not just a push target. What remains (deliberately not done fleet-wide yet, since it is a
+single-host evaluation cache) is wiring it into `substituters`: add
+`http://guccimane.<tailnet>:50071/nix/main?priority=<n>` to the hosts that should pull from it, the
+way [attic's `clientCache`](./attic.md) does.
+
+The signing secret is a one-line `nix key generate-secret` output (`<name>:<base64>`), encrypted to
+the fleet with agenix (`mkGlobalSecret`, so any operator key can recover it). To rotate: regenerate,
+re-encrypt the secret, and replace the public key above.
+
+```sh
+nix key generate-secret --key-name nativelink-nix-cache-1 > key   # secret → agenix (signingKeyFile)
+nix key convert-secret-to-public < key                            # public → trusted-public-keys
+```
+
+## Firewall
+
+The instance binds `0.0.0.0:50071` but the port is opened **only** on `trustedInterfaces`
+(`tailscale0`), so the cache is tailnet-reachable, never internet-exposed — the same posture as attic
+and the RE endpoint.
+
+## Validating a config offline
+
+The fork's binary carries `nativelink --check <config>`, which parses a config and resolves every
+store/scheduler reference (catching a mistyped store name) **without** binding a socket, touching a
+backend, or creating a directory. The module-rendered config passes it; a CI or pre-deploy gate can
+run it against the generated JSON.
+
+> Build note: like the RE `nativelink`, the fork is not in nixpkgs and builds ~640 derivations from
+> source, and it is **not** in `nativelink.cachix.org` (it is our branch). The first `nixos-rebuild`
+> on `guccimane` builds it there — fine, since `guccimane` is a builder, but expect a long first
+> switch.
+
+## Status
+
+Single-host, signed evaluation cache: `guccimane` pushes its builds into it and it serves
+signed narinfos the whole fleet trusts. It is **not** yet wired into anyone's `substituters` and does
+not replace [attic](./attic.md) — attic remains the shared, R2-backed cache every host pulls from.
+The open questions this deployment answers: does the CAS-backed serve path hold up under the
+LLVM-toolchain NAR firehose (memory: proven; throughput: `nix copy`-bound, use zstd), and is the
+storage/dedup behavior worth graduating it to a fleet role — shared CAS with the RE services, wired
+as a substituter alongside attic. Until then it rides alongside.

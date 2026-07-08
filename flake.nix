@@ -88,6 +88,15 @@
     nativelink.url = "github:TraceMachina/nativelink";
     nativelink.inputs.nixpkgs.follows = "nixpkgs";
 
+    # Straylight's NativeLink fork carrying the Nix binary-cache (substituter)
+    # service — `nix_cache` — that upstream lacks. Consumed by the `nixCache`
+    # option in modules/flake/nativelink to serve the Nix HTTP binary-cache
+    # protocol. It is a strict superset of upstream, kept as a SEPARATE input so
+    # standing up the Nix cache on one host does not rebuild the RE fleet's
+    # `nativelink`. Fetched over the self-hosted forge's HTTPS git endpoint.
+    nativelink-nix.url = "git+https://git.s4.gl/straylight/straylight-nativelink?ref=b7r6/nativelink-nix";
+    nativelink-nix.inputs.nixpkgs.follows = "nixpkgs";
+
     # attic binary cache — our fork (sensenet-ai) carrying the configurable
     # NAR chunk-prefetch fix (chunking.nar-prefetch). Upstream hardcodes prefetch
     # depth 2, which serializes chunk GETs against R2 (~150ms each) and makes
