@@ -157,6 +157,12 @@ in
         "http://127.0.0.1:${toString cfg.rpcPort}/transmission/rpc"
         "--truser"
         "transmission"
+        # transmission RPC auth is disabled in ssoGated mode (loopback bind is the
+        # boundary), so there is no password — but flood's --auth=none schema still
+        # REQUIRES configUser.password to be a string, so pass an empty one or flood
+        # dies at startup with a ZodError ("configUser.password Required").
+        "--trpass"
+        ""
       ];
     };
 

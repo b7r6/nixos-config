@@ -4,7 +4,20 @@
 #
 # Core system settings: SSH, sudo, home-manager integration.
 #
-{ lib, ... }: {
+{ config, lib, ... }:
+let
+  # On impermanence hosts the root is wiped on boot, so host keys must live under
+  # the persist volume to survive. On normal hosts they belong at the standard
+  # /etc/ssh location. This is NOT cosmetic: agenix derives age.identityPaths from
+  # services.openssh.hostKeys, so pointing this at /persist on a non-impermanence
+  # host makes sshd generate a brand-new keypair there and agenix then tries to
+  # decrypt with a key that isn't a registered recipient (secrets are keyed to the
+  # original /etc/ssh host key in secrets/keys.nix) → "no identity matched any of
+  # the recipients" at activation.
+  imperm = config.hyper-modern-nixos.impermanence;
+  sshKeyPrefix = if imperm.enable then "${imperm.persistPath}/etc/ssh" else "/etc/ssh";
+in
+{
   # SSH daemon — accept passwords, keys, whatever works. Security comes from
   # the network layer (tailscale, firewalls), not from crippling auth methods.
   services.openssh = {
@@ -13,11 +26,9 @@
       PasswordAuthentication = true;
       PermitRootLogin = "yes";
     };
-    # Store host keys in /persist so they survive impermanence root wipes.
-    # On non-impermanence hosts this is harmless (the keys just also exist there).
     hostKeys = [
-      { path = "/persist/etc/ssh/ssh_host_ed25519_key"; type = "ed25519"; }
-      { path = "/persist/etc/ssh/ssh_host_rsa_key"; type = "rsa"; bits = 4096; }
+      { path = "${sshKeyPrefix}/ssh_host_ed25519_key"; type = "ed25519"; }
+      { path = "${sshKeyPrefix}/ssh_host_rsa_key"; type = "rsa"; bits = 4096; }
     ];
   };
 
