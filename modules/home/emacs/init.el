@@ -3218,7 +3218,7 @@ no way human."))
 
   (defvar hypermodern/dashboard-banner-text
     "────────────────────────────────────────────
-                                   // hypermodern
+                              // hypermodern
 ────────────────────────────────────────────")
 
   (unless (file-exists-p hypermodern/dashboard-banner-file)
