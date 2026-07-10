@@ -116,6 +116,13 @@ in
     ssoGated = true;
   };
 
+  # ── rayfish (Tailscale FALLBACK mesh — incubating) ──────────────────────────
+  # Independent iroh P2P mesh, remapped to 10.64.0.0/10 so it coexists with the
+  # tailnet on this box. Out-of-band reach for when the tailnet is down (no IPMI
+  # here). Daemon runs idle until a network is joined (`ray create`/`ray join`);
+  # bring it up by hand during incubation. Identity/rosters → backed up.
+  hyper-modern-nixos.rayfish.enable = true;
+
   # ── Reverse proxy + internal ACME (nginx → loopback services) ───────────────
 
   # Same pattern as watchtower: wildcard cert (*.sju1.s4.gl via DNS-01/Njalla),

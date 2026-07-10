@@ -62,6 +62,7 @@
     ./clickhouse.nix
     ./otel.nix
     ./postgres.nix
+    ./rayfish.nix
     ./rclone-mount.nix
     ./registry.nix
     ./searxng.nix

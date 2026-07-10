@@ -106,6 +106,15 @@
     nativelink-nix.url = "git+https://git.s4.gl/straylight/straylight-nativelink?ref=b7r6/nativelink-nix";
     nativelink-nix.inputs.nixpkgs.follows = "nixpkgs";
 
+    # rayfish — our vendored fork of the iroh-powered P2P mesh VPN (rayfish/rayfish),
+    # remapped off Tailscale's 100.64.0.0/10 CGNAT block onto 10.64.0.0/10 so it
+    # coexists with the tailnet as an INDEPENDENT fallback mesh (out-of-band reach
+    # for boxes with no IPMI when the tailnet/control-plane is down). Its own flake
+    # exposes packages.rayfish (the `ray` daemon+CLI). Consumed by
+    # modules/nixos/rayfish.nix. Fetched over the self-hosted forge's HTTPS endpoint.
+    rayfish.url = "git+https://git.s4.gl/vendor/rayfish.git?ref=master";
+    rayfish.inputs.nixpkgs.follows = "nixpkgs";
+
     # attic binary cache — our fork (sensenet-ai) carrying the configurable
     # NAR chunk-prefetch fix (chunking.nar-prefetch). Upstream hardcodes prefetch
     # depth 2, which serializes chunk GETs against R2 (~150ms each) and makes
