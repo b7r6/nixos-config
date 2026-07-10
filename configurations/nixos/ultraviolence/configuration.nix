@@ -70,19 +70,24 @@ in
   # ── Incubating services (tailnet-only) ──────────────────────────────────────
 
   # SearXNG metasearch + transmission/flood torrent stack, both reachable on the
-  # tailnet — but ONLY through nginx, gated by Kanidm (oauth2-proxy). When
-  # ultraviolence routes through the Mullvad Miami exit node
+  # tailnet. flood is ONLY through nginx, gated by Kanidm (oauth2-proxy); SearXNG
+  # is ALSO open directly on tailscale0 (unauthed) so its json/csv/rss API is
+  # usable as a scripted / LLM web-search backend. When ultraviolence routes
+  # through the Mullvad Miami exit node
   # (`tailscale set --exit-node=<mullvad-mia>`), all egress — including
   # transmission — exits Miami (no separate killswitch, per the chosen posture).
   age.secrets.searxng-env.file = ../../../secrets/agenix/machines/searxng-env.age;
 
   hyper-modern-nixos.searxng = {
     enable = true;
-    # Bind loopback; nginx fronts it on searxng.sju1.s4.gl with TLS.
-    listenAddress = "127.0.0.1";
+    # Bind 0.0.0.0 (binding the tailscale0 IP directly races boot) and open the
+    # port on tailscale0 ONLY — the fleet-wide firewall keeps it off the public
+    # internet. Unauthed on the tailnet by design: the limiter/Kanidm gate just
+    # block our own JSON API calls. The Kanidm-gated nginx path
+    # (searxng.sju1.s4.gl, below) still works for browser use.
+    listenAddress = "0.0.0.0";
     port = 8889;
-    # nginx (Kanidm-gated) is the only path in — don't open 8889 on tailscale0.
-    openTailnet = false;
+    openTailnet = true;
   };
 
   # ssoGated: flood's own login is disabled and it connects straight to
@@ -149,6 +154,11 @@ in
       bucket = "straylight-nativelink-cas";
       environmentFile = "/run/agenix/nativelink-r2-env";
     };
+  };
+
+  # nix-ld for running unpatched binaries (CUDA containers, etc.)
+  programs.nix-ld = {
+    enable = true;
   };
 
   fileSystems."/" = {

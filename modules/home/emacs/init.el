@@ -2989,7 +2989,77 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 ;; Run compile/eshell-visual commands through ghostel's VT engine too.
 (use-package ghostel-compile
   :after ghostel
-  :hook (after-init . ghostel-compile-global-mode))
+  :hook (after-init . ghostel-compile-global-mode)
+  :config
+  ;; Compile: land on the REAL file, every time -- no `cd` prefix needed.
+  ;;
+  ;; Build tools print error paths relative to the *workspace root*, not to
+  ;; wherever you launched compile. buck2/bazel run from the root and clang
+  ;; prints e.g. `src/.../core.cpp`; generated headers show up under
+  ;; `buck-out/.../buck-headers/...` which are symlinks back to the real
+  ;; sources. Emacs resolves relative error paths against the compile
+  ;; buffer's `default-directory' -- which ghostel pins to wherever you
+  ;; launched from -- so `next-error' looks under the wrong prefix and
+  ;; either misses or opens the buck-out symlink.
+  ;;
+  ;; Fix: find the workspace root by walking up for a marker file, pin the
+  ;; compile buffer there, add it to `compilation-search-path', and resolve
+  ;; opened files through their truename (so a buck-out symlink becomes the
+  ;; canonical source path -- one buffer, real file).
+
+  (defvar hypermodern/compile-root-markers
+    ;; Ordered by specificity: build-system roots first (these are the
+    ;; directories error paths are actually relative to), then generic VCS
+    ;; roots as a fallback. `.jj' before `.git' because a colocated jj repo
+    ;; still has `.git', but the jj root is the one you think in.
+    '(;; buck2 / bazel
+      ".buckconfig" ".buckroot" "WORKSPACE" "WORKSPACE.bazel" "MODULE.bazel"
+      ;; language / build specific
+      "Cargo.toml"           ; rust (workspace or crate)
+      "go.mod"               ; go
+      "package.json"         ; js/ts
+      "pyproject.toml" "setup.py" "setup.cfg"  ; python
+      "dune-project"         ; ocaml
+      "stack.yaml" "cabal.project"             ; haskell
+      "flake.nix"            ; nix flake
+      "CMakeLists.txt" "meson.build" "Makefile"
+      ;; generic VCS fallback
+      ".jj" ".git" ".hg" ".svn")
+    "Files/dirs that mark a project root, most-specific first.
+`hypermodern/compile-root' returns the DEEPEST directory containing the
+FIRST marker in this list that is found on the way up -- i.e. build-system
+roots win over a `.git' higher in the tree.")
+
+  (defun hypermodern/compile-root (&optional dir)
+    "Return the project root at or above DIR, or nil.
+Walks the marker list in priority order; the first marker that resolves
+to a containing directory wins, so a build-system root (`.buckconfig',
+`Cargo.toml', ...) takes precedence over an enclosing `.git'."
+    (let ((start (or dir default-directory)))
+      (catch 'found
+        (dolist (marker hypermodern/compile-root-markers nil)
+          (when-let ((hit (locate-dominating-file start marker)))
+            (throw 'found (expand-file-name hit)))))))
+
+  (defun hypermodern/compile--pin-to-root ()
+    "Pin compile buffer's dir to the project root; add it to search path."
+    (when-let ((root (hypermodern/compile-root)))
+      (setq-local default-directory root)
+      (setq-local compilation-search-path
+                  (cons root (bound-and-true-p compilation-search-path)))))
+
+  (add-hook 'compilation-mode-hook #'hypermodern/compile--pin-to-root)
+  (when (fboundp 'ghostel-compile-view-mode)
+    (add-hook 'ghostel-compile-view-mode-hook #'hypermodern/compile--pin-to-root))
+
+  ;; Resolve symlinked (e.g. buck-out) paths to the real source file.
+  (defun hypermodern/compile--truename (orig marker filename &rest args)
+    (let ((real (let ((f (if (file-name-absolute-p filename)
+                             filename
+                           (expand-file-name filename default-directory))))
+                  (if (file-exists-p f) (file-truename f) filename))))
+      (apply orig marker real args)))
+  (advice-add 'compilation-find-file :around #'hypermodern/compile--truename))
 
 (use-package ghostel-eshell
   :after (ghostel eshell)

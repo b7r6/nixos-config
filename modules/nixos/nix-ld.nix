@@ -40,9 +40,6 @@ in
       libGL
       libGLU
 
-      # CUDA libs managed via nvidia-sdk containers
-      linuxPackages.nvidia_x11
-
       # Add these for OpenCV support
       glib
       glib.out
@@ -67,6 +64,13 @@ in
       libxrender
       libxi
       libxfixes
-    ];
+    ]
+    # CUDA user-mode driver (libcuda.so). Must track the *running* kernel
+    # module, not nixpkgs' default linuxPackages.nvidia_x11 (which lags at
+    # 595.84 and injects a stale libcuda.so → CUDA error 803 UMD/KMD mismatch
+    # for nix-ld'd binaries such as pip/uv torch wheels). Using the exact
+    # driver derivation the KMD is built from keeps libcuda in lockstep.
+    # Guarded so non-NVIDIA hosts don't drag in the proprietary driver.
+    ++ lib.optional config.hyper-modern-nixos.nvidia.enable config.hardware.nvidia.package;
   };
 }
