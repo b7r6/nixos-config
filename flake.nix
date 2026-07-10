@@ -72,6 +72,15 @@
 
     nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
 
+    # opencode — the Anomaly fork (github:anomalyco/opencode, default branch
+    # `dev`). Its overlay (opencode.overlays.default) provides pkgs.opencode +
+    # pkgs.opencode-desktop, wired into the fleet overlays (pkgs.nix + nixos/nix.nix)
+    # and installed for the b7r6 home via modules/home/llm. `nix flake update
+    # opencode` bumps to the newest fork commit. Its own nixpkgs is unstable; we
+    # pin it to ours per the repo-wide convention.
+    opencode.url = "github:anomalyco/opencode";
+    opencode.inputs.nixpkgs.follows = "nixpkgs";
+
     # Bleeding-edge Emacs (master/31.x pgtk) + same-day MELPA snapshots. nixpkgs
     # only ships emacs 30.2; the overlay exposes pkgs.emacs-pgtk tracking the
     # emacs-31 dev branch. Consumed by modules/home/emacs to drive

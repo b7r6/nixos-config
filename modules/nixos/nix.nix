@@ -105,6 +105,23 @@ in
 
     inputs.nix-vscode-extensions.overlays.default
 
+    # opencode (anomalyco fork) -> pkgs.opencode / pkgs.opencode-desktop.
+    # modules/home/llm installs it for b7r6.
+    inputs.opencode.overlays.default
+
+    # opencode-desktop's prebuild script demands bun ^1.3.14 but nixpkgs has
+    # 1.3.13. Patch the version check out of the source rather than bumping bun
+    # globally (bun 1.3.14 segfaults on aarch64).
+    (final: prev: {
+      opencode-desktop = prev.opencode-desktop.overrideAttrs (old: {
+        postPatch = (old.postPatch or "") + ''
+          substituteInPlace packages/script/src/index.ts \
+            --replace-fail 'const expectedBunVersionRange = `^''${expectedBunVersion}`' \
+                           'const expectedBunVersionRange = ">=1.3.0"'
+        '';
+      });
+    })
+
     # Patched attic (sensenet-ai fork): configurable NAR chunk prefetch
     # (chunking.nar-prefetch). Provides pkgs.attic-server / attic-client used by
     # modules/nixos/attic.nix. Fixes serialized R2 chunk GETs on the serve path.

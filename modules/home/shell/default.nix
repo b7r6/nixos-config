@@ -131,7 +131,7 @@ in
 
       sessionVariables = {
         TERM = "xterm-256color";
-        COLORTERM = "TRUECOLOR";
+        COLORTERM = "truecolor";
         COLORFGBG = "15;0";
         EZA_COLORS = ezaColors;
       };

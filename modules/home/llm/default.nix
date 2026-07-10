@@ -6,6 +6,7 @@
 }:
 let
   cfg = config.hyper-modern-nixos.llm;
+  colors = config.hyper-modern-nixos.themes.palette;
 
   readNetrcEntry = domain: ''
     if [ -f "$HOME/.netrc" ]; then
@@ -134,6 +135,12 @@ in
       description = "Enable llm CLI tool with various providers";
     };
 
+    opencode.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Install the opencode CLI (anomalyco fork) and manage its global config: the searxng web_search plugin + permission:allow.";
+    };
+
     secrets.enable = lib.mkOption {
       type = lib.types.bool;
       default = true;
@@ -171,7 +178,88 @@ in
         ])
         (lib.optional cfg.claude-code.enable claude-code)
         (lib.optional cfg.aider.enable aider-chat)
+        (lib.optional cfg.opencode.enable opencode)
+        (lib.optional cfg.opencode.enable pkgs.opencode-desktop)
       ];
+
+    # opencode global config (~/.config/opencode). opencode runs `bun install`
+    # at startup against package.json to fetch @opencode-ai/plugin, then loads
+    # the local searxng.ts plugin (a `web_search` tool against the tailnet
+    # SearXNG). `permission: allow` disables the interactive tool-permission
+    # prompts. bun.lock + node_modules are created at runtime alongside these
+    # (not managed here).
+    home.file.".config/opencode/opencode.jsonc" = lib.mkIf cfg.opencode.enable {
+      source = ./opencode/opencode.jsonc;
+    };
+    home.file.".config/opencode/package.json" = lib.mkIf cfg.opencode.enable {
+      source = ./opencode/package.json;
+    };
+    home.file.".config/opencode/plugin/searxng.ts" = lib.mkIf cfg.opencode.enable {
+      source = ./opencode/searxng.ts;
+    };
+    home.file.".config/opencode/tui.json" = lib.mkIf cfg.opencode.enable {
+      text = builtins.toJSON {
+        "$schema" = "https://opencode.ai/tui.json";
+        theme = "hyper-modern";
+      };
+    };
+    home.file.".config/opencode/themes/hyper-modern.json" = lib.mkIf cfg.opencode.enable {
+      text = builtins.toJSON {
+        "$schema" = "https://opencode.ai/theme.json";
+        theme = {
+          primary = colors.base0D;
+          secondary = colors.base0E;
+          accent = colors.base0C;
+          error = colors.base08;
+          warning = colors.base09;
+          success = colors.base0B;
+          info = colors.base0D;
+          text = colors.base05;
+          textMuted = colors.base03;
+          background = colors.base00;
+          backgroundPanel = colors.base01;
+          backgroundElement = colors.base01;
+          border = colors.base02;
+          borderActive = colors.base03;
+          borderSubtle = colors.base02;
+          diffAdded = colors.base0B;
+          diffRemoved = colors.base08;
+          diffContext = colors.base03;
+          diffHunkHeader = colors.base03;
+          diffHighlightAdded = colors.base0B;
+          diffHighlightRemoved = colors.base08;
+          diffAddedBg = colors.base01;
+          diffRemovedBg = colors.base01;
+          diffContextBg = colors.base01;
+          diffLineNumber = colors.base03;
+          diffAddedLineNumberBg = colors.base01;
+          diffRemovedLineNumberBg = colors.base01;
+          markdownText = colors.base05;
+          markdownHeading = colors.base0D;
+          markdownLink = colors.base0C;
+          markdownLinkText = colors.base0D;
+          markdownCode = colors.base0B;
+          markdownBlockQuote = colors.base03;
+          markdownEmph = colors.base09;
+          markdownStrong = colors.base0A;
+          markdownHorizontalRule = colors.base02;
+          markdownListItem = colors.base0D;
+          markdownListEnumeration = colors.base0C;
+          markdownImage = colors.base0E;
+          markdownImageText = colors.base0D;
+          markdownCodeBlock = colors.base05;
+          syntaxComment = colors.base03;
+          syntaxKeyword = colors.base0E;
+          syntaxFunction = colors.base0D;
+          syntaxVariable = colors.base0C;
+          syntaxString = colors.base0B;
+          syntaxNumber = colors.base09;
+          syntaxType = colors.base0A;
+          syntaxOperator = colors.base05;
+          syntaxPunctuation = colors.base04;
+        };
+      };
+    };
 
     # Aider configuration - uses OpenRouter by default
     home.file.".aider.conf.yml" = lib.mkIf cfg.aider.enable {
