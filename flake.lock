@@ -48,6 +48,31 @@
         "type": "github"
       }
     },
+    "agenix_2": {
+      "inputs": {
+        "darwin": "darwin_2",
+        "home-manager": "home-manager_4",
+        "nixpkgs": [
+          "vllm-stack",
+          "nvidia-sdk",
+          "nixpkgs"
+        ],
+        "systems": "systems_7"
+      },
+      "locked": {
+        "lastModified": 1762618334,
+        "narHash": "sha256-wyT7Pl6tMFbFrs8Lk/TlEs81N6L+VSybPfiIgzU8lbQ=",
+        "owner": "ryantm",
+        "repo": "agenix",
+        "rev": "fcdea223397448d35d9b31f798479227e80183f6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ryantm",
+        "repo": "agenix",
+        "type": "github"
+      }
+    },
     "attic": {
       "inputs": {
         "crane": "crane",
@@ -205,6 +230,30 @@
     "darwin": {
       "inputs": {
         "nixpkgs": [
+          "agenix",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1744478979,
+        "narHash": "sha256-dyN+teG9G82G+m+PX/aSAagkC+vUv0SgUw3XkPhQodQ=",
+        "owner": "lnl7",
+        "repo": "nix-darwin",
+        "rev": "43975d782b418ebf4969e9ccba82466728c2851b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "lnl7",
+        "ref": "master",
+        "repo": "nix-darwin",
+        "type": "github"
+      }
+    },
+    "darwin_2": {
+      "inputs": {
+        "nixpkgs": [
+          "vllm-stack",
+          "nvidia-sdk",
           "agenix",
           "nixpkgs"
         ]
@@ -436,6 +485,46 @@
         "type": "github"
       }
     },
+    "flake-parts_10": {
+      "inputs": {
+        "nixpkgs-lib": [
+          "vllm-stack",
+          "nvidia-sdk",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1767602221,
+        "narHash": "sha256-wl3P4WioICNY9SEvClT4JLAWFtItk3CbFNm/FmeeWlI=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "1e34f377e37de05071735d373b481da2508dd625",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
+    "flake-parts_11": {
+      "inputs": {
+        "nixpkgs-lib": "nixpkgs-lib_7"
+      },
+      "locked": {
+        "lastModified": 1765835352,
+        "narHash": "sha256-XswHlK/Qtjasvhd1nOa1e8MgZ8GS//jBoTqWtrS1Giw=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "a34fae9c08a15ad73f295041fec82323541400a9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
     "flake-parts_2": {
       "inputs": {
         "nixpkgs-lib": [
@@ -576,11 +665,11 @@
         "nixpkgs-lib": "nixpkgs-lib_6"
       },
       "locked": {
-        "lastModified": 1765835352,
-        "narHash": "sha256-XswHlK/Qtjasvhd1nOa1e8MgZ8GS//jBoTqWtrS1Giw=",
+        "lastModified": 1782949081,
+        "narHash": "sha256-vp6Y/Grm98ESt6ceOkWiHWyZRDV3J1RID4w+6NWK9yA=",
         "owner": "hercules-ci",
         "repo": "flake-parts",
-        "rev": "a34fae9c08a15ad73f295041fec82323541400a9",
+        "rev": "17c9d6cdfc60c64f4ee8d306f9bc0b4ccb51481e",
         "type": "github"
       },
       "original": {
@@ -915,6 +1004,29 @@
         "type": "github"
       }
     },
+    "home-manager_4": {
+      "inputs": {
+        "nixpkgs": [
+          "vllm-stack",
+          "nvidia-sdk",
+          "agenix",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1745494811,
+        "narHash": "sha256-YZCh2o9Ua1n9uCvrvi5pRxtuVNml8X2a03qIFfRKpFs=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "abfad3d2958c9e6300a883bd443512c55dfeb1be",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
     "impermanence": {
       "inputs": {
         "home-manager": "home-manager_3",
@@ -946,6 +1058,23 @@
       "original": {
         "owner": "outfoxxed",
         "repo": "impurity.nix",
+        "type": "github"
+      }
+    },
+    "llvm-project": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1767604300,
+        "narHash": "sha256-mxeR/IxwZqi+Wbh0MXE0YFFzCQl8YpIY/nHF5WyHMNE=",
+        "owner": "llvm",
+        "repo": "llvm-project",
+        "rev": "bb1f220d534b0f6d80bea36662f5188ff11c2e54",
+        "type": "github"
+      },
+      "original": {
+        "owner": "llvm",
+        "repo": "llvm-project",
+        "rev": "bb1f220d534b0f6d80bea36662f5188ff11c2e54",
         "type": "github"
       }
     },
@@ -1460,6 +1589,21 @@
     },
     "nixpkgs-lib_6": {
       "locked": {
+        "lastModified": 1782614948,
+        "narHash": "sha256-ePjCwr1sNm9NYUqywL7QfK3JnlS015msC+eBu2zKlp8=",
+        "owner": "nix-community",
+        "repo": "nixpkgs.lib",
+        "rev": "db3f255737b94216eb71cce308e2912cf6bc2d7c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "nixpkgs.lib",
+        "type": "github"
+      }
+    },
+    "nixpkgs-lib_7": {
+      "locked": {
         "lastModified": 1765674936,
         "narHash": "sha256-k00uTP4JNfmejrCLJOwdObYC9jHRrr/5M/a/8L2EIdo=",
         "owner": "nix-community",
@@ -1594,6 +1738,22 @@
         "url": "https://channels.nixos.org/nixos-unstable/nixexprs.tar.xz"
       }
     },
+    "nixpkgs_7": {
+      "locked": {
+        "lastModified": 1783224372,
+        "narHash": "sha256-8i/87eeoqiGE4yOTjwSA3Eh/ziJRQEmd/unYU+K27sk=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "d407951447dcd00442e97087bf374aad70c04cea",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "nur": {
       "inputs": {
         "flake-parts": [
@@ -1663,6 +1823,32 @@
         "type": "github"
       }
     },
+    "nvidia-sdk": {
+      "inputs": {
+        "agenix": "agenix_2",
+        "flake-parts": "flake-parts_10",
+        "llvm-project": "llvm-project",
+        "nixpkgs": [
+          "vllm-stack",
+          "nixpkgs"
+        ],
+        "systems": "systems_8",
+        "treefmt-nix": "treefmt-nix_5"
+      },
+      "locked": {
+        "lastModified": 1782897257,
+        "narHash": "sha256-Ih7mN2uKBvyQ75HSz8rsEm2GBHnZsC4W5P4N97O+/E0=",
+        "ref": "refs/heads/main",
+        "rev": "3215cac6bcf3cc7645659dcb4b0e5e43ce36cf56",
+        "revCount": 30,
+        "type": "git",
+        "url": "ssh://git@git.s4.gl/straylight/nvidia-sdk.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@git.s4.gl/straylight/nvidia-sdk.git"
+      }
+    },
     "opencode": {
       "inputs": {
         "nixpkgs": [
@@ -1710,6 +1896,7 @@
         "supabase-postgres": "supabase-postgres",
         "systems": "systems_6",
         "treefmt-nix": "treefmt-nix_4",
+        "vllm-stack": "vllm-stack",
         "xremap-flake": "xremap-flake"
       }
     },
@@ -1945,6 +2132,36 @@
         "type": "github"
       }
     },
+    "systems_7": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    },
+    "systems_8": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    },
     "tinted-kitty": {
       "flake": false,
       "locked": {
@@ -2089,6 +2306,48 @@
         "type": "github"
       }
     },
+    "treefmt-nix_5": {
+      "inputs": {
+        "nixpkgs": [
+          "vllm-stack",
+          "nvidia-sdk",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1780220602,
+        "narHash": "sha256-eynAfOmbmxJnkp7YewvCEbShNnnYJ9gLLqkzsYtBPeM=",
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "rev": "db947814a175b7ca6ded66e21383d938df01c227",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "type": "github"
+      }
+    },
+    "vllm-stack": {
+      "inputs": {
+        "flake-parts": "flake-parts_9",
+        "nixpkgs": "nixpkgs_7",
+        "nvidia-sdk": "nvidia-sdk"
+      },
+      "locked": {
+        "lastModified": 1783788925,
+        "narHash": "sha256-8Tyo7Z7F0bW3KKSdwoZZGXqGkuQY33IX4h/zsRW7Tp0=",
+        "ref": "refs/heads/main",
+        "rev": "691f317bf89246acb0dc7f0003048398a71ad18e",
+        "revCount": 1,
+        "type": "git",
+        "url": "ssh://git@git.s4.gl/hypermodern/hypermodern-vllm.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@git.s4.gl/hypermodern/hypermodern-vllm.git"
+      }
+    },
     "xremap": {
       "flake": false,
       "locked": {
@@ -2109,7 +2368,7 @@
     "xremap-flake": {
       "inputs": {
         "crane": "crane_4",
-        "flake-parts": "flake-parts_9",
+        "flake-parts": "flake-parts_11",
         "nixpkgs": [
           "nixpkgs"
         ],

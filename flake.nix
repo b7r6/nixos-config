@@ -115,6 +115,13 @@
     attic.url = "github:sensenet-ai/attic/b7r6/nar-prefetch-concurrency";
     attic.inputs.nixpkgs.follows = "nixpkgs";
 
+    # vLLM serving harness for Qwen3.6-27B-NVFP4-MTP on Blackwell. Provides
+    # nixosModules.vllm (managed systemd service) + gpuPowercap (475W cap).
+    # It pulls nvidia-sdk for the NGC-extracted python environment (torch cu130,
+    # triton, tensorrt_llm) and does NOT follow our nixpkgs fork, so the NGC
+    # packages stay pinned to upstream nixos-unstable.
+    vllm-stack.url = "git+ssh://git@git.s4.gl/hypermodern/hypermodern-vllm.git";
+
     # Self-hosted Supabase. NOT a flake — we consume its docker/ tree as a SOURCE
     # for the version-coupled config files (volumes/api/kong.yml, the db init
     # SQL, volumes/pooler/pooler.exs) that ship OUTSIDE the container images and

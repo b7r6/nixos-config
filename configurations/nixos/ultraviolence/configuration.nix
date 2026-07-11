@@ -6,6 +6,7 @@ in
   imports = [
     ./hardware-configuration.nix
     inputs.agenix.nixosModules.default
+    inputs.vllm-stack.nixosModules.vllm
   ];
 
   # ── Tailscale declarative enrollment (test bed) ─────────────────────────────
@@ -159,6 +160,14 @@ in
   # nix-ld for running unpatched binaries (CUDA containers, etc.)
   programs.nix-ld = {
     enable = true;
+  };
+
+  # vLLM OpenAI-compatible server for Qwen3.6-27B-NVFP4-MTP on Blackwell.
+  # Uses the NGC python environment from the vllm-stack flake (torch cu130,
+  # triton, tensorrt_llm) and caps the GPU at 475W to avoid Xid 79.
+  services.vllm = {
+    enable = true;
+    # openFirewall = true;  # uncomment to expose 8000 beyond localhost
   };
 
   fileSystems."/" = {
