@@ -2328,18 +2328,40 @@
         "type": "github"
       }
     },
+    "treefmt-nix_6": {
+      "inputs": {
+        "nixpkgs": [
+          "vllm-stack",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1780220602,
+        "narHash": "sha256-eynAfOmbmxJnkp7YewvCEbShNnnYJ9gLLqkzsYtBPeM=",
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "rev": "db947814a175b7ca6ded66e21383d938df01c227",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "type": "github"
+      }
+    },
     "vllm-stack": {
       "inputs": {
         "flake-parts": "flake-parts_9",
         "nixpkgs": "nixpkgs_7",
-        "nvidia-sdk": "nvidia-sdk"
+        "nvidia-sdk": "nvidia-sdk",
+        "treefmt-nix": "treefmt-nix_6"
       },
       "locked": {
-        "lastModified": 1783788925,
-        "narHash": "sha256-8Tyo7Z7F0bW3KKSdwoZZGXqGkuQY33IX4h/zsRW7Tp0=",
+        "lastModified": 1783789971,
+        "narHash": "sha256-5L+6P5FcROr08qoVPh9eA9oBU8hn2aNiHpr9sYX6/NU=",
         "ref": "refs/heads/main",
-        "rev": "691f317bf89246acb0dc7f0003048398a71ad18e",
-        "revCount": 1,
+        "rev": "2f135a0a3f6e4a9b1388a2f12d09d7e3e14fbb50",
+        "revCount": 3,
         "type": "git",
         "url": "ssh://git@git.s4.gl/hypermodern/hypermodern-vllm.git"
       },
