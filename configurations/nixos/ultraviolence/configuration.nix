@@ -1,4 +1,4 @@
-{ flake, ... }:
+{ flake, lib, ... }:
 let
   inherit (flake) inputs;
 in
@@ -7,6 +7,18 @@ in
     ./hardware-configuration.nix
     inputs.agenix.nixosModules.default
     inputs.vllm-stack.nixosModules.vllm
+  ];
+
+  # ── Nix substituters: nativelink-nix-cache (local), disable attic ───────────
+  # The attic module prepends its substituter via mkBefore, but attic's
+  # watch-store daemon saturates the box during megabuilds. Override it off and
+  # use the nativelink-nix-cache on localhost instead (pushLocalBuilds populates
+  # it, and this lets us substitute back what we've already built).
+  nix.settings.substituters = lib.mkForce [
+    "http://127.0.0.1:50071/nix/main"
+    "https://cache.nixos.org"
+    "https://nix-community.cachix.org"
+    "https://nix-postgres-artifacts.s3.amazonaws.com"
   ];
 
   # ── Tailscale declarative enrollment (test bed) ─────────────────────────────
@@ -44,14 +56,17 @@ in
     paths = [ "/home" ];
   };
 
-  # ── attic binary cache: REPLICA (api-server against watchtower's central pg) ─
-  # Stateless api-server replica: connects to watchtower's postgres over the
-  # tailnet, shares the R2 chunk store + RS256 secret, consults its OWN
-  # localhost:8080 first, watch-store pushes every build (dedup vs R2). The
-  # module SELF-WIRES its agenix secrets (atticd-rs256, attic-push-token).
-  hyper-modern-nixos.attic-node = {
+  # ── nativelink-nix binary cache (local) ────────────────────────────────────
+  # Replaces the attic replica: pushLocalBuilds copies each built path into the
+  # nativelink-nix-cache over loopback, and we substitute from it. The public
+  # key is trusted fleet-wide (modules/nixos/nix.nix); the secret key signs
+  # served narinfos so require-sigs consumers can substitute too.
+  age.secrets.nativelink-nix-cache-key.file = ../../../secrets/agenix/machines/nativelink-nix-cache-key.age;
+
+  hyper-modern-nixos.nativelink.nixCache = {
     enable = true;
-    profile = "replica";
+    pushLocalBuilds = true;
+    signingKeyFile = "/run/agenix/nativelink-nix-cache-key";
   };
 
   # ── ClickHouse Keeper (coordination plane) ──────────────────────────────────
@@ -62,6 +77,7 @@ in
 
   hyper-modern-nixos.observability.otel.agent = {
     enable = true;
+
     scrapeTargets = [
       "127.0.0.1:9153" # coredns
       "127.0.0.1:9364" # clickhouse-keeper
@@ -81,6 +97,7 @@ in
 
   hyper-modern-nixos.searxng = {
     enable = true;
+
     # Bind 0.0.0.0 (binding the tailscale0 IP directly races boot) and open the
     # port on tailscale0 ONLY — the fleet-wide firewall keeps it off the public
     # internet. Unauthed on the tailnet by design: the limiter/Kanidm gate just
@@ -105,10 +122,12 @@ in
   # nginx terminates TLS on the logical names. CoreDNS resolves them here.
   hyper-modern-nixos.reverseProxy = {
     enable = true;
+
     services.searxng = {
       port = 8889;
       protected = true;
     };
+
     services.torrents = {
       port = 3001;
       protected = true;
@@ -173,6 +192,7 @@ in
   fileSystems."/" = {
     device = "/dev/disk/by-uuid/8d797692-927e-46c4-8047-0c9ea975a41f";
     fsType = "btrfs";
+
     options = [
       "subvol=@"
       "compress=zstd:1"
