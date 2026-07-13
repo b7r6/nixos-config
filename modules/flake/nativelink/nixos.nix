@@ -270,6 +270,30 @@ in
       '';
     };
 
+    # ── Telemetry: OTLP push to the local otel collector ──────────────────────
+    # This nativelink build has NO Prometheus /metrics scrape endpoint — the
+    # `admin` service only exposes /admin/scheduler/.../set_drain_worker. Metrics
+    # (and traces) are emitted via OTLP gRPC, but ONLY when the NL_OTEL_ENDPOINT
+    # env var is set (nativelink-util/src/telemetry.rs: no endpoint → no exporter
+    # → silent no-op). So without this the dashboards can only count journald log
+    # lines. Point it at the host-local otel agent's OTLP receiver and the
+    # metrics flow agent → gateway → ClickHouse like every other fleet service.
+    otlpEndpoint = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default =
+        let
+          otelAgent = config.hyper-modern-nixos.observability.otel.agent;
+        in
+        if otelAgent.enable then "http://127.0.0.1:${toString otelAgent.localOtlpPort}" else null;
+      defaultText = lib.literalExpression ''"http://127.0.0.1:''${otel.agent.localOtlpPort}" when the otel agent is enabled, else null'';
+      example = "http://127.0.0.1:4319";
+      description = ''
+        gRPC OTLP endpoint nativelink pushes metrics/traces to (sets
+        NL_OTEL_ENDPOINT). Defaults to the host-local otel agent's OTLP receiver.
+        Set to null to disable OTLP export entirely.
+      '';
+    };
+
     publicListen = lib.mkOption {
       type = lib.types.str;
       default = "0.0.0.0:50051";
@@ -676,6 +700,11 @@ in
           "network-online.target"
         ]
         ++ lib.optional cfg.tls.tailscale.enable "nativelink-tls-cert.service";
+        # OTLP push target (metrics + traces). Empty list when otlpEndpoint is
+        # null, so export stays off unless a collector is wired up.
+        environment = lib.optionalAttrs (cfg.otlpEndpoint != null) {
+          NL_OTEL_ENDPOINT = cfg.otlpEndpoint;
+        };
         serviceConfig = {
           ExecStart = "${nativelinkPkg}/bin/nativelink ${configFile}";
           Restart = "on-failure";

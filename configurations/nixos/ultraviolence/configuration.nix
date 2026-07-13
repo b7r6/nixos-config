@@ -185,7 +185,10 @@ in
   # Uses the NGC python environment from the vllm-stack flake (torch cu130,
   # triton, tensorrt_llm) and caps the GPU at 475W to avoid Xid 79.
   services.vllm = {
-    enable = true;
+    # Temporarily disabled: vllm-stack bumped ucx to 1.21.0, whose new gdaki
+    # module fails to build (missing DOCA GPUNetIO headers). Re-enable once the
+    # hypermodern-vllm flake pins/patches ucx.
+    enable = false;
     # openFirewall = true;  # uncomment to expose 8000 beyond localhost
   };
 

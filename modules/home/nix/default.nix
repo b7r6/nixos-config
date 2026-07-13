@@ -44,15 +44,22 @@ in
     # b7r6 is a trusted-user, so the USER-level ~/.config/nix/nix.conf
     # substituters OVERRIDE the system ones for interactive `nix` commands. A
     # stale hand-edited file here was pointing at weyl-ai/hyprland cachix and
-    # NOT the local attic — so `nix build` bypassed our cache. Manage it
-    # declaratively to mirror the system: the local attic FIRST, then the public
-    # caches. (weyl-ai/hyprland dropped — dead/unreliable.) This file is now
-    # owned by home-manager, so it can't drift again.
+    # NOT the local cache — so `nix build` bypassed our cache. Manage it
+    # declaratively to mirror the system: the local nativelink-nix-cache FIRST,
+    # then the public caches. This file is now owned by home-manager, so it
+    # can't drift again.
+    #
+    # Migrated off attic (localhost:8080/hypermodern) to nativelink
+    # (127.0.0.1:50071/nix/main) to match the system move in 182a40d. The old
+    # attic endpoint is dead, and being pinned here made every interactive `nix`
+    # command hang retrying it. nativelink binds 127.0.0.1, so on hosts that
+    # don't run it the endpoint is simply unreachable and nix falls through to
+    # cache.nixos.org — same fall-through as before, minus the stale name.
     nix.package = lib.mkDefault pkgs.nix;
 
     nix.settings = {
       substituters = [
-        "http://localhost:8080/hypermodern?priority=10"
+        "http://127.0.0.1:50071/nix/main"
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
       ];

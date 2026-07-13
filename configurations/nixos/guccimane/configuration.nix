@@ -1,4 +1,9 @@
-{ flake, pkgs, lib, ... }:
+{
+  flake,
+  pkgs,
+  lib,
+  ...
+}:
 let
   inherit (flake) inputs;
 in
@@ -120,15 +125,18 @@ in
   # the hyper-modern-nixos.identity module.
 
   # ── attic api-server replica (module self-wires its secrets) ────────────────
+
   hyper-modern-nixos.attic-node = {
     enable = true;
     profile = "replica";
   };
 
   # ── ClickHouse Keeper (coordination plane) ──────────────────────────────────
+
   hyper-modern-nixos.databases.clickhouse.keeper.enable = true;
 
   # ── OTel agent (host metrics + journald → watchtower gateway) ──────────────
+
   hyper-modern-nixos.observability.otel.agent = {
     enable = true;
     scrapeTargets = [
@@ -145,6 +153,7 @@ in
   # 5090 since hyper-modern-nixos.nvidia is enabled above.
   #   - Navidrome : http://guccimane:4533  (music: /var/lib/media/music)
   #   - Jellyfin  : http://guccimane:8096  (video: /var/lib/media/video)
+
   hyper-modern-nixos.media = {
     enableNavidrome = true;
     enableJellyfin = true;
@@ -154,6 +163,7 @@ in
   # Web UI on :8945 (tailnet-only). Image pulled from the fleet zot registry;
   # downloads land in the shared /var/lib/media so the tagging pipeline +
   # Navidrome/Jellyfin pick them up. Smoke-testing SoundCloud-source handling.
+
   hyper-modern-nixos.pinchflat.enable = true;
 
   # ── R2 dropbox: shareable URLs for private files (secret-gist model) ────────
@@ -162,6 +172,7 @@ in
   # so the token is the capability. STAGED on the tailnet (CoreDNS + internal TLS)
   # for now; graduate to truly-public DNS all at once later. See
   # docs/src/architecture/dropbox.md.
+
   hyper-modern-nixos.dropbox = {
     enable = true;
     mountEnable = true; # bucket exists + remote resolves; mount the share
@@ -174,18 +185,22 @@ in
   # the bucket non-listable.
   hyper-modern-nixos.reverseProxy = {
     enable = true;
+
     services.drop = {
       root = "/mnt/r2/drop";
       maxBodySize = "0"; # large file fetches, no cap
     };
+
     services.navidrome = {
       port = 4533;
       protected = true;
     };
+
     services.jellyfin = {
       port = 8096;
       protected = false; # SSO plugin handles auth directly with Kanidm
     };
+
     services.pinchflat = {
       port = 8945;
       protected = true;
@@ -193,6 +208,7 @@ in
   };
 
   # ── Jellyfin SSO plugin config (OIDC directly against Kanidm) ────────────────
+
   age.secrets.jellyfin-oidc-secret = {
     file = ../../../secrets/agenix/machines/kanidm-jellyfin-secret.age;
     owner = "jellyfin";
@@ -327,5 +343,5 @@ in
   #   };
   # };
 
-  system.stateVersion = "24.05";
+  system.stateVersion = "26.06";
 }

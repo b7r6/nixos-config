@@ -1,7 +1,6 @@
 -- renders users.dhall → JSON for Nix consumption
 -- dhall-to-json serializes records and lists natively, so we just need to
 -- convert the Group union to Text before serialization.
-
 let registry = ./users.dhall
 
 let groupToText =
@@ -15,7 +14,6 @@ let groupToText =
           }
           g
 
--- dhall has no List/map builtin; use List/build + List/fold
 let map =
       \(a : Type) ->
       \(b : Type) ->
@@ -26,7 +24,12 @@ let map =
           ( \(list : Type) ->
             \(cons : b -> list -> list) ->
             \(nil : list) ->
-              List/fold a xs list (\(x : a) -> \(acc : list) -> cons (f x) acc) nil
+              List/fold
+                a
+                xs
+                list
+                (\(x : a) -> \(acc : list) -> cons (f x) acc)
+                nil
           )
 
 let renderUser =

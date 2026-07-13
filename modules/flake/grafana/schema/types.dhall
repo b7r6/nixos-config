@@ -13,13 +13,10 @@
 --    - stacking/fillOpacity field config
 
 -- ── datasource ─────────────────────────────────────────────────────────────────
-
 let Datasource =
       { Type = { type : Text, uid : Text }
       , default = { type = "grafana-clickhouse-datasource", uid = "clickhouse" }
       }
-
--- ── units ──────────────────────────────────────────────────────────────────────
 
 let Unit =
       < Percent
@@ -54,8 +51,6 @@ let unitToGrafana =
           }
           u
 
--- ── panel types ────────────────────────────────────────────────────────────────
-
 let PanelType =
       < TimeSeries | Stat | Gauge | Table | Logs | BarGauge | Heatmap | Row >
 
@@ -73,84 +68,62 @@ let panelTypeToGrafana =
           }
           t
 
--- ── format (clickhouse plugin) ─────────────────────────────────────────────────
--- 0 = auto (pivots string columns into multi-frame time series)
--- 2 = table (raw rows, no pivot)
-
 let Format = < Auto | Table >
 
-let formatToNat =
-      \(f : Format) ->
-        merge { Auto = 0, Table = 2 } f
-
--- ── thresholds ─────────────────────────────────────────────────────────────────
+let formatToNat = \(f : Format) -> merge { Auto = 0, Table = 2 } f
 
 let ThresholdStep = { color : Text, value : Optional Natural }
 
 let Thresholds =
       { Type = { mode : Text, steps : List ThresholdStep }
       , default =
-          { mode = "absolute"
-          , steps = [ { color = "green", value = None Natural } ] : List ThresholdStep
-          }
+        { mode = "absolute"
+        , steps =
+            [ { color = "green", value = None Natural } ] : List ThresholdStep
+        }
       }
 
--- common threshold presets
 let thresholdPct =
       { mode = "percentage"
       , steps =
-          [ { color = "green", value = None Natural }
-          , { color = "yellow", value = Some 70 }
-          , { color = "red", value = Some 90 }
-          ]
+        [ { color = "green", value = None Natural }
+        , { color = "yellow", value = Some 70 }
+        , { color = "red", value = Some 90 }
+        ]
       }
 
 let thresholdLoad =
       { mode = "absolute"
       , steps =
-          [ { color = "green", value = None Natural }
-          , { color = "yellow", value = Some 4 }
-          , { color = "red", value = Some 8 }
-          ]
+        [ { color = "green", value = None Natural }
+        , { color = "yellow", value = Some 4 }
+        , { color = "red", value = Some 8 }
+        ]
       }
 
 let thresholdErrors =
       { mode = "absolute"
       , steps =
-          [ { color = "green", value = None Natural }
-          , { color = "yellow", value = Some 1 }
-          , { color = "red", value = Some 10 }
-          ]
+        [ { color = "green", value = None Natural }
+        , { color = "yellow", value = Some 1 }
+        , { color = "red", value = Some 10 }
+        ]
       }
 
 let thresholdHealth =
       { mode = "absolute"
       , steps =
-          [ { color = "red", value = None Natural }
-          , { color = "green", value = Some 1 }
-          ]
+        [ { color = "red", value = None Natural }
+        , { color = "green", value = Some 1 }
+        ]
       }
-
--- ── stacking ───────────────────────────────────────────────────────────────────
 
 let Stacking = < None | Normal | Percent >
 
--- ── target (query) ─────────────────────────────────────────────────────────────
-
 let Target =
-      { Type =
-          { sql : Text
-          , format : Format
-          , refId : Text
-          }
-      , default =
-          { sql = ""
-          , format = Format.Auto
-          , refId = "A"
-          }
+      { Type = { sql : Text, format : Format, refId : Text }
+      , default = { sql = "", format = Format.Auto, refId = "A" }
       }
-
--- ── panel ──────────────────────────────────────────────────────────────────────
 
 let Panel =
       { Type =
@@ -168,29 +141,26 @@ let Panel =
           , colorMode : Text
           }
       , default =
-          { title = ""
-          , type = PanelType.TimeSeries
-          , sql = ""
-          , format = Format.Auto
-          , unit = Unit.Short
-          , width = 12
-          , height = 8
-          , description = ""
-          , thresholds = None Thresholds.Type
-          , stacking = Stacking.None
-          , fillOpacity = 10
-          , colorMode = "palette-classic"
-          }
+        { title = ""
+        , type = PanelType.TimeSeries
+        , sql = ""
+        , format = Format.Auto
+        , unit = Unit.Short
+        , width = 12
+        , height = 8
+        , description = ""
+        , thresholds = None Thresholds.Type
+        , stacking = Stacking.None
+        , fillOpacity = 10
+        , colorMode = "palette-classic"
+        }
       }
-
--- ── row (section divider) ──────────────────────────────────────────────────────
 
 let Row =
       { Type = { title : Text, panels : List Panel.Type, collapsed : Bool }
-      , default = { title = "", panels = [] : List Panel.Type, collapsed = False }
+      , default =
+        { title = "", panels = [] : List Panel.Type, collapsed = False }
       }
-
--- ── variable ───────────────────────────────────────────────────────────────────
 
 let VariableType = < Query | Textbox | Custom >
 
@@ -204,16 +174,14 @@ let Variable =
           , includeAll : Bool
           }
       , default =
-          { name = ""
-          , label = ""
-          , type = VariableType.Query
-          , query = ""
-          , multi = False
-          , includeAll = False
-          }
+        { name = ""
+        , label = ""
+        , type = VariableType.Query
+        , query = ""
+        , multi = False
+        , includeAll = False
+        }
       }
-
--- ── dashboard ──────────────────────────────────────────────────────────────────
 
 let Dashboard =
       { Type =
@@ -226,14 +194,14 @@ let Dashboard =
           , variables : List Variable.Type
           }
       , default =
-          { title = ""
-          , uid = ""
-          , tags = [] : List Text
-          , refresh = "30s"
-          , timeFrom = "now-1h"
-          , rows = [] : List Row.Type
-          , variables = [] : List Variable.Type
-          }
+        { title = ""
+        , uid = ""
+        , tags = [] : List Text
+        , refresh = "30s"
+        , timeFrom = "now-1h"
+        , rows = [] : List Row.Type
+        , variables = [] : List Variable.Type
+        }
       }
 
 in  { Datasource

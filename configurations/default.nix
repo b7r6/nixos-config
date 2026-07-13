@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                   // hyper-modern-nixos // configurations //
+#                                        // hypermodern // nix // configurations
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # The flake-parts module that wires the whole fleet. Replaces nixos-unified:
@@ -12,6 +12,8 @@
 #
 # Adding a NixOS host = one entry in `hosts` + a configurations/nixos/<name>/.
 # Adding a standalone home user = one configurations/home/<name>.nix (auto-found).
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
 {
   self,
   inputs,
@@ -37,7 +39,11 @@ let
   # (modules/flake/registry/nixos-users.nix), which imports
   # configurations/home/<name>.nix per registry user when the file exists.
   homeManagerNixosModule = {
-    imports = [ home-manager.nixosModules.home-manager ];
+
+    imports = [
+      home-manager.nixosModules.home-manager
+    ];
+
     home-manager = {
       useGlobalPkgs = true;
       useUserPackages = true;
@@ -47,14 +53,15 @@ let
 
   # The fleet. system defaults to x86_64-linux; shimmer/gossamer are the aarch64 DGX Sparks.
   hosts = {
+    gossamer.system = "aarch64-linux";
+    shimmer.system = "aarch64-linux";
+
+    guccimane = { };
+    shannon = { };
+    test-vm = { };
     ultraviolence = { };
     watchtower = { };
     weyl = { };
-    guccimane = { };
-    shannon = { };
-    shimmer.system = "aarch64-linux";
-    gossamer.system = "aarch64-linux";
-    test-vm = { };
   };
 
   mkHost =
