@@ -1,4 +1,9 @@
-{ flake, pkgs, ... }:
+{
+  flake,
+  lib,
+  pkgs,
+  ...
+}:
 let
   inherit (flake) inputs;
 in
@@ -102,6 +107,15 @@ in
   # (meta, realtime, storage, studio) run as containers pointed at the native DB
   # until their Nix derivations are built. Self-wires the supabase-env agenix
   # bundle (same secret as before). See docs/src/services/supabase.md.
+
+  # The `atticd` Postgres role/database below uses this secret as its password.
+  # Declared here — independent of whether atticd itself runs — so the database
+  # persists through attic being disabled fleet-wide (modules/nixos/default.nix).
+  # mkDefault so the attic-node module still owns it verbatim if attic is ever
+  # re-enabled (same file, so no conflict either way).
+  age.secrets.atticd-rs256.file =
+    lib.mkDefault ../../../secrets/agenix/machines/atticd-rs256.age;
+
   hyper-modern-nixos.supabase-native = {
     enable = true;
     publicUrl = "https://studio.sju1.s4.gl";

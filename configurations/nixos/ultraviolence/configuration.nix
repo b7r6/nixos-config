@@ -9,18 +9,6 @@ in
     inputs.vllm-stack.nixosModules.vllm
   ];
 
-  # ── Nix substituters: nativelink-nix-cache (local), disable attic ───────────
-  # The attic module prepends its substituter via mkBefore, but attic's
-  # watch-store daemon saturates the box during megabuilds. Override it off and
-  # use the nativelink-nix-cache on localhost instead (pushLocalBuilds populates
-  # it, and this lets us substitute back what we've already built).
-  nix.settings.substituters = lib.mkForce [
-    "http://127.0.0.1:50071/nix/main"
-    "https://cache.nixos.org"
-    "https://nix-community.cachix.org"
-    "https://nix-postgres-artifacts.s3.amazonaws.com"
-  ];
-
   # ── Tailscale declarative enrollment (test bed) ─────────────────────────────
   # ultraviolence is already on the tailnet; wiring authKeyFile just makes
   # enrollment declarative (idempotent — tailscaled won't re-auth a Running
@@ -57,17 +45,10 @@ in
   };
 
   # ── nativelink-nix binary cache (local) ────────────────────────────────────
-  # Replaces the attic replica: pushLocalBuilds copies each built path into the
-  # nativelink-nix-cache over loopback, and we substitute from it. The public
-  # key is trusted fleet-wide (modules/nixos/nix.nix); the secret key signs
-  # served narinfos so require-sigs consumers can substitute too.
-  age.secrets.nativelink-nix-cache-key.file = ../../../secrets/agenix/machines/nativelink-nix-cache-key.age;
-
-  hyper-modern-nixos.nativelink.nixCache = {
-    enable = true;
-    pushLocalBuilds = true;
-    signingKeyFile = "/run/agenix/nativelink-nix-cache-key";
-  };
+  # Enabled fleet-wide (modules/nixos/default.nix): a local nativelink nix_cache
+  # populated by a nix copy post-build hook, substituted from first, signed with
+  # the global cache key (public half trusted fleet-wide in nix.nix). Replaces
+  # the old attic replica. Nothing host-specific to declare here.
 
   # ── ClickHouse Keeper (coordination plane) ──────────────────────────────────
 

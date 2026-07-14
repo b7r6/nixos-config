@@ -103,7 +103,7 @@
     # protocol. It is a strict superset of upstream, kept as a SEPARATE input so
     # standing up the Nix cache on one host does not rebuild the RE fleet's
     # `nativelink`. Fetched over the self-hosted forge's HTTPS git endpoint.
-    nativelink-nix.url = "git+https://git.s4.gl/straylight/straylight-nativelink?ref=b7r6/nativelink-nix";
+    nativelink-nix.url = "git+https://git.s4.gl/straylight/straylight-nativelink?ref=nix-cache";
     nativelink-nix.inputs.nixpkgs.follows = "nixpkgs";
 
     # rayfish — our vendored fork of the iroh-powered P2P mesh VPN (rayfish/rayfish),

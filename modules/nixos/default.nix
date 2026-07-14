@@ -108,4 +108,29 @@
   # declare. mkDefault so an individual host can still cleanly opt out. (test-vm
   # imports only the wayland module, not this one, so it's unaffected.)
   hyper-modern-nixos.rcloneMount.enable = lib.mkDefault true;
+
+  # ── Fleet-wide Nix binary cache (replaces the attic replica) ────────────────
+  # Every host runs a local nativelink nix_cache on :50071, populated by a
+  # `nix copy` post-build hook and consulted first as a substituter (the module
+  # injects it when enabled). The signing key is a GLOBAL agenix secret and its
+  # public half is trusted fleet-wide (nix.nix), so any host can both push to and
+  # substitute from its own signed cache. mkDefault so a host can opt out
+  # (`hyper-modern-nixos.nativelink.nixCache.enable = lib.mkForce false`), e.g.
+  # a disk-constrained box or the test-vm. Rollout is per-host: this codifies the
+  # default; each host adopts it on its next rebuild.
+  age.secrets.nativelink-nix-cache-key.file =
+    ../../secrets/agenix/machines/nativelink-nix-cache-key.age;
+
+  hyper-modern-nixos.nativelink.nixCache = {
+    enable = lib.mkDefault true;
+    watchStore = lib.mkDefault true;
+    signingKeyFile = lib.mkDefault "/run/agenix/nativelink-nix-cache-key";
+  };
+
+  # ── attic retired fleet-wide ────────────────────────────────────────────────
+  # Superseded by the nativelink nix_cache above. The attic modules stay imported
+  # (rollback path) but no host runs atticd, its watch-store, or its substituter.
+  # Forced off centrally rather than per-host so the switch is one line; prune the
+  # now-inert per-host `attic-node` blocks as each host is rolled onto nativelink.
+  hyper-modern-nixos.attic-node.enable = lib.mkForce false;
 }

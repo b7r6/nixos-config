@@ -139,6 +139,11 @@ let
     else
       inputs.nativelink-nix.packages.${pkgs.stdenv.hostPlatform.system}.nativelink;
 
+  # The client crate (nl-nix + nl-watch-store), built native-glibc — used for the
+  # watch-store auto-push daemon below.
+  nixCacheClientPkg =
+    inputs.nativelink-nix.packages.${pkgs.stdenv.hostPlatform.system}.nativelink-nix-client;
+
   nixCacheFsStore = sub: caps: {
     filesystem = {
       content_path = "${cfg.nixCache.stateDir}/${sub}/content";
@@ -361,6 +366,7 @@ in
     };
 
     # ── Worker platform properties (the toolchain/RE matching handshake) ───────
+
     # The scheduler matches an action's requested platform properties against
     # what each worker ADVERTISES here. A Buck2/Bazel action that requests
     # properties the worker doesn't advertise will never schedule; an action
@@ -584,35 +590,31 @@ in
         description = "Open the cache listen port, but only on trustedInterfaces (tailscale0 by default).";
       };
 
-      pushLocalBuilds = lib.mkOption {
+      watchStore = lib.mkOption {
         type = lib.types.bool;
         default = false;
 
         description = ''
-          Install a nix post-build-hook that copies every locally-built path into
-          this cache over loopback — populating it from this host's own builds
-          (the intended workout). The hook runs synchronously after each build,
-          but over loopback it is fast and is made non-fatal, so a cache hiccup
-          never fails a build.
+          Run the `nl-watch-store` daemon (from the client crate): a fanotify
+          watcher on the store that streams every newly-committed path into this
+          cache over loopback, zstd-compressed. Unlike a nix post-build-hook it
+          is decoupled from builds — it never blocks a build's completion and
+          catches paths however they arrive (built or substituted), so the local
+          cache becomes a full mirror of this host's closure. `watchConcurrency`
+          bounds its parallel pushes so a big substitution can't saturate the box.
         '';
       };
 
-      pushCompression = lib.mkOption {
-        type = lib.types.enum [
-          "zstd"
-          "xz"
-          "none"
-        ];
+      watchConcurrency = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 4;
 
-        default = "zstd";
         description = ''
-          Compression `nix copy` applies when pushLocalBuilds pushes a path.
-          `nix copy`'s own compression is the throughput bottleneck, not the
-          cache: xz (nix's default) is CPU-bound to a crawl on large NARs
-          (hours on tens-of-GiB toolchains), while zstd sustains hundreds of
-          MB/s at a fraction of the CPU. `none` is fastest on a fast loopback/
-          LAN link. The server stores + serves back whatever compression was
-          pushed (round-trip fidelity), so this is a pure push-cost choice.
+          Maximum concurrent path pushes for the `watchStore` daemon. Kept
+          conservative because the watcher mirrors every committed path,
+          including bursts substituted from upstream during a large rebuild —
+          this is the knob that keeps that from saturating disk/CPU. Raise it on
+          a dedicated builder with headroom.
         '';
       };
     };
@@ -777,6 +779,13 @@ in
         };
       };
 
+      # Substitute from this host's own cache first — the client side of the
+      # loopback push above, and the drop-in for the old attic replica's
+      # mkBefore injection. Its public key is trusted fleet-wide (nix.nix).
+      nix.settings.substituters = lib.mkBefore [
+        "http://127.0.0.1:${nixCachePort}/nix/${cfg.nixCache.instanceName}"
+      ];
+
       # Open the cache port only on the trusted (tailscale) interfaces.
       networking.firewall = lib.mkIf cfg.nixCache.openFirewall {
         interfaces = lib.genAttrs cfg.nixCache.trustedInterfaces (_: {
@@ -784,19 +793,45 @@ in
         });
       };
 
-      # Populate the cache from this host's own builds (the workout). Non-fatal:
-      # a cache hiccup logs and returns 0 so it never fails a build.
-      nix.settings.post-build-hook = lib.mkIf cfg.nixCache.pushLocalBuilds (
-        toString (
-          pkgs.writeShellScript "nativelink-nix-cache-push" ''
-            set -u
-            [ -n "''${OUT_PATHS:-}" ] || exit 0
-            ${config.nix.package}/bin/nix copy --to \
-              'http://127.0.0.1:${nixCachePort}/nix/${cfg.nixCache.instanceName}?compression=${cfg.nixCache.pushCompression}' $OUT_PATHS \
-              || echo "nativelink-nix-cache: push failed (non-fatal)" >&2
-          ''
-        )
-      );
+      # Populate the cache with the nl-watch-store daemon: a fanotify watcher
+      # that streams every newly-committed store path into the cache over
+      # loopback, decoupled from the build (no post-build-hook fork, never blocks
+      # a build). Bounded by watchConcurrency so it can't saturate the box.
+      systemd.services.nativelink-nix-cache-watch = lib.mkIf cfg.nixCache.watchStore {
+        description = "Auto-push new store paths to the local NativeLink nix_cache";
+
+        wantedBy = [ "multi-user.target" ];
+        after = [
+          "network-online.target"
+          "nativelink-nix-cache.service"
+        ];
+        wants = [ "network-online.target" ];
+
+        serviceConfig = {
+          ExecStart = lib.escapeShellArgs (
+            [
+              "${nixCacheClientPkg}/bin/nl-watch-store"
+              "--to"
+              "http://127.0.0.1:${nixCachePort}/nix/${cfg.nixCache.instanceName}"
+              "--store"
+              cfg.nixCache.storeDir
+              "--concurrency"
+              (toString cfg.nixCache.watchConcurrency)
+            ]
+            ++ lib.optionals (cfg.nixCache.signingKeyFile != null) [
+              "--signing-key"
+              cfg.nixCache.signingKeyFile
+            ]
+          );
+          Restart = "on-failure";
+          RestartSec = 5;
+
+          # fanotify (FAN_MARK on the store dir) needs CAP_SYS_ADMIN. Runs as root
+          # to read the store, db.sqlite, and the signing key; grant only that cap.
+          AmbientCapabilities = [ "CAP_SYS_ADMIN" ];
+          CapabilityBoundingSet = [ "CAP_SYS_ADMIN" ];
+        };
+      };
     })
   ];
 }
