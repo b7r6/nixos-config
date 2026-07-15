@@ -150,48 +150,45 @@ let
   # (data/{schema,render,nix-cache}.dhall) — shared with the RE fleet. Here we
   # only turn the per-host NixOS options into a Dhall record and render it via
   # IFD (below), exactly like the RE config, so the two can't drift.
-  dq = s: "\"" + s + "\""; # our values never contain a quote or backslash
-
-  nixCacheUpstreamsExpr =
-    if cfg.nixCache.upstreamCaches == [ ] then
-      "[] : List { url : Text, trusted_public_keys : List Text }"
-    else
-      "[ "
-      + lib.concatMapStringsSep ", " (
-        u:
-        "{ url = ${dq u.url}, trusted_public_keys = [ ${lib.concatMapStringsSep ", " dq u.trustedPublicKeys} ] }"
-      ) cfg.nixCache.upstreamCaches
-      + " ]";
-
-  nixCacheR2Expr =
-    if cfg.r2.enable then
-      "Some { account = ${dq cfg.r2.accountId}, bucket = ${dq cfg.r2.bucket} }"
-    else
-      "None { account : Text, bucket : Text }";
-
-  nixCacheProxyExpr =
-    if cfg.nixCache.fetchProxy.enable then
-      "Some { listen = ${dq cfg.nixCache.fetchProxy.listen}, maxFetch = ${toString cfg.nixCache.fetchProxy.maxFetchBytes}, caCert = ${dq "${casWitnessDir}/ca.crt"}, caKey = ${dq "${casWitnessDir}/ca.key"} }"
-    else
-      "None { listen : Text, maxFetch : Natural, caCert : Text, caKey : Text }";
-
-  nixCacheParamsFile = buildPkgs.writeText "nix-cache-params.dhall" ''
-    { stateDir = ${dq cfg.nixCache.stateDir}
-    , storeDir = ${dq cfg.nixCache.storeDir}
-    , instanceName = ${dq cfg.nixCache.instanceName}
-    , listen = ${dq cfg.nixCache.listen}
-    , priority = ${toString cfg.nixCache.priority}
-    , maxNarUpload = ${toString cfg.nixCache.maxNarUploadBytes}
-    , maxNarBytes = ${toString cfg.nixCache.maxNarBytes}
-    , fastBytes = ${toString cfg.nixCache.fastCacheBytes}
-    , r2 = ${nixCacheR2Expr}
-    , signingKeyFile = ${
-      if cfg.nixCache.signingKeyFile != null then "Some ${dq cfg.nixCache.signingKeyFile}" else "None Text"
-    }
-    , upstreams = ${nixCacheUpstreamsExpr}
-    , fetchProxy = ${nixCacheProxyExpr}
-    }
-  '';
+  # The per-host values as a plain Nix attrset, serialized to JSON. `json-to-dhall`
+  # (in the render below) type-checks this JSON against `(nix-cache.dhall).Params`,
+  # so the Nix -> Dhall conversion is validated, not string-spliced. `null` maps to
+  # the `Optional` fields' `None`. No secrets appear here: render.dhall emits the
+  # `${R2_ACCESS_KEY_ID}` placeholders for runtime shellexpand.
+  nixCacheParamsJson = builtins.toJSON {
+    stateDir = cfg.nixCache.stateDir;
+    storeDir = cfg.nixCache.storeDir;
+    instanceName = cfg.nixCache.instanceName;
+    listen = cfg.nixCache.listen;
+    priority = cfg.nixCache.priority;
+    maxNarUpload = cfg.nixCache.maxNarUploadBytes;
+    maxNarBytes = cfg.nixCache.maxNarBytes;
+    fastBytes = cfg.nixCache.fastCacheBytes;
+    r2 =
+      if cfg.r2.enable then
+        {
+          account = cfg.r2.accountId;
+          bucket = cfg.r2.bucket;
+        }
+      else
+        null;
+    signingKeyFile = cfg.nixCache.signingKeyFile; # null | agenix path
+    upstreams = map (u: {
+      url = u.url;
+      trusted_public_keys = u.trustedPublicKeys;
+    }) cfg.nixCache.upstreamCaches;
+    fetchProxy =
+      if cfg.nixCache.fetchProxy.enable then
+        {
+          listen = cfg.nixCache.fetchProxy.listen;
+          maxFetch = cfg.nixCache.fetchProxy.maxFetchBytes;
+          caCert = "${casWitnessDir}/ca.crt";
+          caKey = "${casWitnessDir}/ca.key";
+        }
+      else
+        null;
+  };
+  nixCacheParamsFile = buildPkgs.writeText "nix-cache-params.json" nixCacheParamsJson;
 
   # Rendered from the typed Dhall (data/nix-cache.dhall) via IFD — the same
   # mechanism, prelude, and buildPkgs as the RE renderedConfig above. `render`
@@ -214,7 +211,10 @@ let
         export XDG_CACHE_HOME="$TMPDIR/dhall-cache"
         export HOME="$TMPDIR"
         mkdir -p "$XDG_CACHE_HOME"
-        json=$(echo "(${fleetDir}/nix-cache.dhall).render (${nixCacheParamsFile})" \
+        # Type-check the NixOS options (JSON) into the typed Params, then render.
+        json-to-dhall "(${fleetDir}/nix-cache.dhall).Params" \
+          < ${nixCacheParamsFile} > "$TMPDIR/params.dhall"
+        json=$(echo "(${fleetDir}/nix-cache.dhall).render ($TMPDIR/params.dhall)" \
                  | dhall-to-json | jq -r .)
         printf '%s' "$json" | jq . > "$out"
       '';

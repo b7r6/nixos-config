@@ -1,5 +1,5 @@
 --  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
---                                  // hypermodern // nativelink // nix-cache
+--                                    // hypermodern // nativelink // nix // cache
 --  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 --
 --  The nix_cache substituter + cas_witness fetch-proxy config, rendered from the
@@ -11,6 +11,9 @@
 --  module writes a `Params` record and applies `render` to it via IFD. Paths and
 --  toggles that live in NixOS (state dir, agenix key, which upstreams) are inputs
 --  here; the store composition and R2 wiring are shared with the RE side.
+--
+--  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--
 let schema = ./schema.dhall
 
 let r = ./render.dhall
@@ -40,26 +43,38 @@ let render =
         let fsStore =
               \(sub : Text) ->
               \(cap : Natural) ->
-                r.filesystem "${p.stateDir}/${sub}/content" "${p.stateDir}/${sub}/tmp" cap
+                r.filesystem
+                  "${p.stateDir}/${sub}/content"
+                  "${p.stateDir}/${sub}/tmp"
+                  cap
 
-        -- NAR blobs: R2-backed fast_slow when R2 is set (bounded local fast tier
-        -- fronting the durable bucket, key_prefix nix-nar/), else a local fs CAS.
         let narBackend =
               merge
                 { None = fsStore "nar" p.maxNarBytes
                 , Some =
                     \(x : R2) ->
-                      r.fastSlow (fsStore "nar" p.fastBytes) (r.r2 x.account x.bucket "nix-nar/")
+                      r.fastSlow
+                        (fsStore "nar" p.fastBytes)
+                        (r.r2 x.account x.bucket "nix-nar/")
                 }
                 p.r2
 
         let baseStores =
-              [ schema.Store::{ name = "NIX_NAR_STORE", backend = r.verify narBackend }
+              [ schema.Store::{
+                , name = "NIX_NAR_STORE"
+                , backend = r.verify narBackend
+                }
               , schema.Store::{
                 , name = "NIX_PATH_INFO_STORE"
-                , backend = r.completeness (fsStore "path-info" 1073741824) "NIX_NAR_STORE"
+                , backend =
+                    r.completeness
+                      (fsStore "path-info" 1073741824)
+                      "NIX_NAR_STORE"
                 }
-              , schema.Store::{ name = "NIX_ALIAS_STORE", backend = fsStore "alias" 1073741824 }
+              , schema.Store::{
+                , name = "NIX_ALIAS_STORE"
+                , backend = fsStore "alias" 1073741824
+                }
               ]
 
         let proxyStores =
