@@ -152,13 +152,14 @@ in
         VISUAL = cfg.editor;
         NIXPKGS_ALLOW_UNFREE = "1";
 
-        # Point ssh/ssh-add at gnome-keyring's gcr-ssh-agent. The NixOS wayland
-        # module disables the standard ssh-agent and runs gcr-ssh-agent (its
-        # socket is XDG_RUNTIME_DIR/gcr/ssh, set in the systemd --user env) but
-        # that value isn't inherited by interactive shells — so `ssh-add` reports
-        # "Could not open a connection to your authentication agent". Export it
-        # here so every shell finds the agent.
-        SSH_AUTH_SOCK = "$XDG_RUNTIME_DIR/gcr/ssh";
+        # n.b. deliberately NO SSH_AUTH_SOCK export here. The standard agent
+        # (programs.ssh.startAgent in modules/nixos/base.nix) ships a properly
+        # guarded export via environment.extraInit — it never clobbers the
+        # forwarded socket sshd seeds on `ssh -A` sessions. An export in this
+        # block is unguarded on every fleet host and has broken agent
+        # forwarding twice (first for gcr-ssh-agent, since killed — the fleet
+        # runs passphrase-less keys for agenix, so gcr bought nothing). Do
+        # not reintroduce.
 
         # Pager
         PAGER = "less";
@@ -240,21 +241,24 @@ in
     };
 
     # ── Auto-load SSH keys into the agent at login (any session type) ───────────
-    # gcr-ssh-agent doesn't load keys on its own. This systemd USER service runs
-    # `ssh-add` for each configured key once the user session is up — wanted by
-    # default.target (NOT graphical-session.target), so it also applies to
-    # console / headless / SSH logins. Idempotent: re-adding a loaded key is a
-    # no-op; missing keys are skipped.
+    # ssh-agent starts empty. AddKeysToAgent=yes only adds a key on first local
+    # use — which is too late for agent FORWARDING (a remote host can only use
+    # keys already loaded). This systemd USER service runs `ssh-add` for each
+    # configured key once the user session is up — wanted by default.target
+    # (NOT graphical-session.target), so it also applies to console / headless
+    # / SSH logins. Idempotent: re-adding a loaded key is a no-op; missing
+    # keys are skipped.
     systemd.user.services.ssh-add-keys = lib.mkIf (cfg.ssh.enable && cfg.ssh.autoAddKeys != [ ]) {
       Unit = {
         Description = "Load SSH keys into the agent";
-        After = [ "gcr-ssh-agent.socket" ];
+        After = [ "ssh-agent.service" ];
       };
       Service = {
         Type = "oneshot";
         RemainAfterExit = true;
-        # gcr-ssh-agent socket; matches SSH_AUTH_SOCK exported in sessionVariables.
-        Environment = "SSH_AUTH_SOCK=%t/gcr/ssh";
+        # standard ssh-agent socket (programs.ssh.startAgent) — matches the
+        # guarded export in environment.extraInit.
+        Environment = "SSH_AUTH_SOCK=%t/ssh-agent";
         ExecStart = pkgs.writeShellScript "ssh-add-keys" (
           lib.concatMapStringsSep "\n" (
             key:

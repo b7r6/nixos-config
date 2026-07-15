@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                              // hyper-modern-nixos // hyprland
+#                                            // hypermodern // nixos // hyprland
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 #
@@ -28,7 +28,7 @@ let
   colors = config.lib.stylix.colors;
 
   # ── Monitor Type ────────────────────────────────────────────────────────────
-  
+
   monitorType = types.submodule {
     options = {
       description = mkOption {
@@ -57,9 +57,9 @@ let
           "auto-up"
           "auto-down"
         ]) types.str;
-        
+
         default = "auto";
-        
+
         description = ''
           Monitor position. Use:
           - "auto" - automatic placement
@@ -68,7 +68,7 @@ let
           - "auto-up" / "auto-down" - vertical placement
           - "0x0", "1920x0", etc. - explicit pixel coordinates
         '';
-        
+
         example = "auto-left";
       };
 
@@ -100,7 +100,7 @@ let
   };
 
   # ── App Launcher Type ───────────────────────────────────────────────────────
-  
+
   appType = types.submodule {
     options = {
       terminal = mkOption {
@@ -136,7 +136,7 @@ let
   };
 
   # ── Appearance Type ─────────────────────────────────────────────────────────
-  
+
   appearanceType = types.submodule {
     options = {
       gaps = {
@@ -145,6 +145,7 @@ let
           default = 4;
           description = "Gap between windows";
         };
+
         outer = mkOption {
           type = types.int;
           default = 8;
@@ -171,6 +172,7 @@ let
           default = 1.0;
           description = "Active window opacity";
         };
+
         inactive = mkOption {
           type = types.float;
           default = 0.85;
@@ -184,11 +186,13 @@ let
           default = true;
           description = "Enable window blur";
         };
+
         size = mkOption {
           type = types.int;
           default = 8;
           description = "Blur size";
         };
+
         passes = mkOption {
           type = types.int;
           default = 2;
@@ -202,6 +206,7 @@ let
           default = true;
           description = "Enable animations";
         };
+
         speed = mkOption {
           type = types.enum [
             "fast"
@@ -216,7 +221,7 @@ let
   };
 
   # ── Input Type ──────────────────────────────────────────────────────────────
-  
+
   inputType = types.submodule {
     options = {
       keyboard = {
@@ -225,7 +230,7 @@ let
           default = "us";
           description = "Keyboard layout";
         };
-        
+
         options = mkOption {
           type = types.str;
           default = "ctrl:nocaps";
@@ -239,13 +244,13 @@ let
           default = 0.0;
           description = "Mouse sensitivity (-1.0 to 1.0)";
         };
-        
+
         accelProfile = mkOption {
           type = types.enum [
             "flat"
             "adaptive"
           ];
-          
+
           default = "flat";
           description = "Mouse acceleration profile";
         };
@@ -257,7 +262,7 @@ let
           default = true;
           description = "Natural (inverted) scrolling";
         };
-        
+
         tapToClick = mkOption {
           type = types.bool;
           default = true;
@@ -268,7 +273,7 @@ let
   };
 
   # ── Window Rule Type ────────────────────────────────────────────────────────
-  
+
   windowRuleType = types.submodule {
     options = {
       match = mkOption {
@@ -276,6 +281,7 @@ let
         description = "Window match pattern (class, title, etc.)";
         example = "class:^(firefox)$";
       };
+
       rules = mkOption {
         type = types.listOf types.str;
         default = [ ];
@@ -311,7 +317,6 @@ let
     normal = 5;
     slow = 8;
   };
-
 in
 {
   # Using home-manager's built-in hyprland module with nixpkgs hyprland
@@ -333,6 +338,7 @@ in
           refreshRate = 240;
           position = "0x0";
           scale = 1.5;
+
           workspaces = [
             1
             2
@@ -340,8 +346,10 @@ in
             4
             5
           ];
+
           primary = true;
         };
+
         right = {
           description = "ASUSTek COMPUTER INC PG32UCDP T1LMQS044820";
           resolution = "3840x2160";
@@ -389,6 +397,7 @@ in
       type = types.listOf windowRuleType;
       default = [ ];
       description = "Window rules for automatic placement/behavior";
+
       example = [
         {
           match = "class:^(firefox)$";
@@ -405,16 +414,49 @@ in
     };
 
     # ── Autostart ─────────────────────────────────────────────────────────────
+    # Session daemons only (wallpaper, notifications). Tray applets live under
+    # `systray` below so each daemon is a toggle, its package is guaranteed
+    # installed, and hosts never hand-list applet commands (the old way rotted:
+    # autostart listed tailscale-systray for years with no package installed —
+    # a silent no-op).
 
     autostart = mkOption {
       type = types.listOf types.str;
+
       default = [
         "hyprpaper"
         "mako"
-        "blueman-applet"
-        "nm-applet"
       ];
-      description = "Programs to start on login";
+
+      description = "Programs to start on login (session daemons, not tray applets)";
+    };
+
+    # ── Systray daemons ───────────────────────────────────────────────────────
+    # StatusNotifier daemons surfaced by waybar's `tray` module.
+
+    systray = {
+      network.enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = "NetworkManager applet in the tray";
+      };
+
+      bluetooth.enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = "Blueman applet in the tray";
+      };
+
+      tailscale.enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Trayscale in the tray (maintained; nixpkgs tailscale-systray is
+          2022-abandonware). Status works read-only out of the box; control
+          (up/down, exit nodes) needs hyper-modern-nixos.network.tailscale
+          .operator set to the desktop user on the host.
+        '';
+      };
     };
 
     # ── Keybinding Preset ─────────────────────────────────────────────────────
@@ -426,6 +468,7 @@ in
           "emacs"
           "arrows"
         ];
+
         default = "vim";
         description = "Navigation keybinding style";
       };
@@ -481,8 +524,13 @@ in
           workspace = mkWorkspaceBindings cfg.monitors;
 
           # ── Autostart ───────────────────────────────────────────────────────
+          # session daemons from `autostart`, then the systray toggles
 
-          exec-once = cfg.autostart;
+          exec-once =
+            cfg.autostart
+            ++ lib.optional cfg.systray.network.enable "nm-applet"
+            ++ lib.optional cfg.systray.bluetooth.enable "blueman-applet"
+            ++ lib.optional cfg.systray.tailscale.enable "trayscale --hide-window";
 
           # ── General ─────────────────────────────────────────────────────────
 
@@ -495,6 +543,7 @@ in
 
             "col.active_border" =
               lib.mkForce "rgba(${lib.removePrefix "#" colors.base0D}ff) rgba(${lib.removePrefix "#" colors.base0E}ff) 45deg";
+
             "col.inactive_border" = lib.mkForce "rgba(${lib.removePrefix "#" colors.base02}66)";
           };
 
@@ -582,9 +631,32 @@ in
             focus_on_activate = true;
             disable_hyprland_logo = true;
             disable_splash_rendering = true;
-            vrr = 1;
+
+            # VRR pinned OFF for desktop work. With adaptive sync on, an idle
+            # screen — where a blinking terminal cursor is the only damage —
+            # lets the panel's refresh droop toward its VRR floor, so blink
+            # transitions land on an irregular cadence, and VA panels visibly
+            # shift brightness as the rate sweeps. Fixed refresh is the
+            # workstation answer; `2` (fullscreen-only) if a host ever wants
+            # VRR for games.
+            vrr = 0;
+
             mouse_move_enables_dpms = true;
             key_press_enables_dpms = true;
+          };
+
+          # ── Cursor ──────────────────────────────────────────────────────────
+
+          cursor = {
+            # The pointer normally rides a dedicated hardware plane, updated
+            # out-of-band from compositor frames. NVIDIA's handling of that
+            # plane is chronically buggy (flicker, vanishing pointer around
+            # modesets and VRR changes) and most interactive hosts here run
+            # nvidia — the `auto` default gets this wrong on e.g. GB10/595.
+            # Software cursors draw the pointer into the frame like any other
+            # pixel: rock solid, at the cost of pointer motion being tied to
+            # the compositor frame rate — imperceptible at 100–120Hz.
+            no_hardware_cursors = 1;
           };
 
           # ── hy3 Plugin ──────────────────────────────────────────────────────
@@ -799,38 +871,40 @@ in
 
     # ── Packages ──────────────────────────────────────────────────────────────
 
-    home.packages = with pkgs; [
-      blueman
-      brightnessctl
-      cliphist
-      grim
-      grimblast
-      hyprpaper
-      hyprpicker
-      jq
-      libnotify
-      networkmanagerapplet
-      pamixer
-      pavucontrol
-      playerctl
-      slurp
-      swappy
-      swaybg
-      swayidle
-      wdisplays
-      wev
-      wf-recorder
-      wl-clipboard
-      wlr-randr
-      wlsunset
-    ];
+    home.packages =
+      with pkgs;
+      [
+        blueman
+        brightnessctl
+        cliphist
+        grim
+        grimblast
+        hyprpaper
+        hyprpicker
+        jq
+        libnotify
+        networkmanagerapplet
+        pamixer
+        pavucontrol
+        playerctl
+        slurp
+        swappy
+        swaybg
+        swayidle
+        wdisplays
+        wev
+        wf-recorder
+        wl-clipboard
+        wlr-randr
+        wlsunset
+      ]
+      ++ lib.optional cfg.systray.tailscale.enable pkgs.trayscale;
 
     # ── Hyprpaper ─────────────────────────────────────────────────────────────
-
-    xdg.configFile."hypr/hyprpaper.conf".text = ''
-      preload = ~/.config/wallpaper.png
-      wallpaper = ,~/.config/wallpaper.png
-      splash = false
-    '';
+    # n.b. deliberately NO hyprpaper.conf here — stylix's hyprpaper target
+    # owns it (points at the generated wallpaper package). A hand-written
+    # config lived here for years referencing ~/.config/wallpaper.png, a file
+    # nothing creates; the module system merged both texts into one file and
+    # hyprpaper chased a dead path. Single writer, like the cursor rule.
   };
 }

@@ -105,6 +105,8 @@ in
   # ── Tailscale safety net ────────────────────────────────────────────────────
   age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;
   hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
+  # let the desktop user drive tailscale from the tray (trayscale) without sudo
+  hyper-modern-nixos.network.tailscale.operator = "b7r6";
 
   # CoreDNS as this node's own resolver (resolves *.sju1.s4.gl, incl. the
   # nativelink scheduler/CAS FQDNs; tailscale stops managing resolv.conf).
@@ -187,9 +189,7 @@ in
   hardware.graphics = {
     enable = true;
 
-    extraPackages = with pkgs; [
-      nvidia-vaapi-driver
-    ];
+    extraPackages = with pkgs; [ nvidia-vaapi-driver ];
   };
 
   # Additional kernel modules for GB10
@@ -200,8 +200,6 @@ in
     "nvidia_uvm"
     "kvm"
   ];
-
-
 
   # Audio (PipeWire)
   security.rtkit.enable = true;
@@ -241,11 +239,17 @@ in
     hyper-modern-nixos = {
       hyprland.monitors = (import ../../../lib/monitors.nix).shimmer;
 
+      # bar font: azonix won the shoot-out (vs orbitron, chakra petch)
+      waybar.font.family = "Azonix";
+      waybar.font.size = 14;
+
       themes.display = {
-        profile = "lg-ultragear-oled";
-        highDPI = false; # primary is the 1440p ultrawide at 1.0x
-        width = 3440;
-        height = 1440;
+        # pair of ASUS PG32UCDP 4K WOLEDs (see lib/monitors.nix b7r6-desk);
+        # wallpaper renders at panel resolution, scale 1.0 → 96dpi logical
+        profile = "oled";
+        highDPI = false;
+        width = 3840;
+        height = 2160;
       };
     };
   };

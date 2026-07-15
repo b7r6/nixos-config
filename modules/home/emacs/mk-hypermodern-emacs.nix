@@ -71,8 +71,7 @@ emacsPkgs.emacsWithPackages (
         company-prescient
         general
         which-key
-        popper
-        shackle
+        popper # placement lives in display-buffer-alist (see init.el popup table)
         company
         yasnippet
 

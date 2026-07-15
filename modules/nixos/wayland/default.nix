@@ -103,13 +103,71 @@ in
 
       # Portal debugging
       xdg-desktop-portal
+
+      # Portal test suite (backported from new-suzuki) — exercises the portal
+      # stack end to end: service state, routing config, Screenshot and
+      # FileChooser over D-Bus. Run after any compositor/portal change.
+      (pkgs.writeShellScriptBin "portal-test" ''
+        echo "=== XDG Portal Test Suite ==="
+        echo ""
+
+        echo "1. Checking portal services..."
+        systemctl --user status xdg-desktop-portal.service --no-pager || true
+        systemctl --user status xdg-desktop-portal-hyprland.service --no-pager || true
+        systemctl --user status xdg-desktop-portal-gtk.service --no-pager || true
+        echo ""
+
+        echo "2. Checking portal config..."
+        # n.b. NixOS renders xdg.portal.config here — not /etc/xdg-desktop-portal
+        # (the upstream default the new-suzuki branch checked, wrongly, on NixOS)
+        cat /etc/xdg/xdg-desktop-portal/*.conf 2>/dev/null || echo "No portal config found"
+        echo ""
+
+        echo "3. Testing Screenshot portal..."
+        echo "   Taking screenshot in 2 seconds..."
+        sleep 2
+        ${pkgs.grimblast}/bin/grimblast save screen /tmp/portal-test-screenshot.png \
+          && echo "   ok: screenshot saved to /tmp/portal-test-screenshot.png" \
+          || echo "   FAIL: screenshot failed"
+        echo ""
+
+        echo "4. Testing File Chooser portal..."
+        echo "   Opening file dialog (close it to continue)..."
+        ${pkgs.zenity}/bin/zenity --file-selection --title="Portal Test: Select a file" 2>/dev/null \
+          || echo "   dialog closed/cancelled"
+        echo ""
+
+        echo "5. Checking environment variables..."
+        echo "   XDG_CURRENT_DESKTOP=$XDG_CURRENT_DESKTOP"
+        echo "   XDG_SESSION_TYPE=$XDG_SESSION_TYPE"
+        echo "   QT_QPA_PLATFORM=$QT_QPA_PLATFORM"
+        echo "   QT_QPA_PLATFORMTHEME=$QT_QPA_PLATFORMTHEME"
+        echo ""
+
+        echo "6. D-Bus portal interfaces..."
+        busctl --user list | grep -iE "portal" || echo "   no portal services found on D-Bus"
+        echo ""
+
+        echo "=== Test Complete ==="
+      '')
     ];
+
+    # ── Hyprland: compositor + portal from the SAME source ──────────────────────
+    # programs.hyprland installs the compositor system-wide (session file for
+    # greetd, PATH, XDG_CURRENT_DESKTOP) and injects its portalPackage into
+    # xdg.portal.extraPortals. package/portalPackage stay at their defaults
+    # deliberately: both resolve from this one nixpkgs, so compositor and
+    # portal can never skew — skew between the two is the classic cause of
+    # broken screenshot/screencast. home-manager's hyprland module resolves
+    # the same attr, so the session runs this same derivation.
+    programs.hyprland.enable = true;
 
     # ── XDG Portal Configuration ───────────────────────────────────────────────
 
     #
     # Best practices for Hyprland:
-    #   - Use xdg-desktop-portal-hyprland for Wayland-specific features
+    #   - xdg-desktop-portal-hyprland comes via programs.hyprland.portalPackage
+    #     (same-source with the compositor, see above) — NOT listed here
     #   - Use xdg-desktop-portal-gtk for file dialogs, app chooser, etc.
     #   - Do NOT use xdg-desktop-portal-wlr (generic wlroots, less features)
     #   - Do NOT enable wlr.enable (conflicts with hyprland portal)
@@ -118,11 +176,8 @@ in
     xdg.portal = {
       enable = true;
 
-      # Hyprland + GTK portals (order matters for fallback)
-      extraPortals = with pkgs; [
-        xdg-desktop-portal-hyprland
-        xdg-desktop-portal-gtk
-      ];
+      # GTK fallback portal (hyprland portal injected by programs.hyprland)
+      extraPortals = with pkgs; [ xdg-desktop-portal-gtk ];
 
       # Explicit portal routing
       config = {
@@ -228,12 +283,17 @@ in
     # GSettings/dconf (required for GTK apps to read settings)
     programs.dconf.enable = true;
 
-    # GNOME keyring for secrets portal (also provides SSH agent via gcr)
+    # GNOME keyring for the secrets portal ONLY — its ssh-agent role is
+    # deliberately dead. The fleet uses passphrase-less keys (agenix requires
+    # them), so gcr-ssh-agent's whole value — GUI passphrase prompts,
+    # keyring-unlocked keys — buys nothing here, and its socket shadowing
+    # SSH_AUTH_SOCK repeatedly broke agent forwarding (dead socket on
+    # headless hosts clobbering the live forwarded one). The standard
+    # ssh-agent from base.nix (programs.ssh.startAgent, default true) serves
+    # everything, desktop and headless alike.
     services.gnome.gnome-keyring.enable = true;
+    services.gnome.gcr-ssh-agent.enable = false;
     security.pam.services.login.enableGnomeKeyring = true;
-
-    # Disable standard ssh-agent since gnome-keyring provides gcr-ssh-agent
-    programs.ssh.startAgent = false;
 
     # ── Polkit (required for many desktop operations) ──────────────────────────
 

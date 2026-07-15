@@ -65,10 +65,35 @@ in
         description = "Right-side modules";
       };
     };
+
+    # ── Bar font (backported from new-suzuki) ────────────────────────────────
+    font = {
+      family = mkOption {
+        type = types.str;
+        default = "Orbitron";
+        description = "Display font for the bar; falls back to the stylix monospace";
+      };
+
+      size = mkOption {
+        type = types.int;
+        default = 13;
+        description = "Bar font size in px";
+      };
+    };
   };
 
   config = mkIf cfg.enable {
-    home.packages = [ pkgs.waybar ];
+    home.packages = [
+      pkgs.waybar
+      # bar display fonts + icon glyph coverage — every candidate face
+      # installs, so font.family switches by string alone (cheap A/B via
+      # waybar restart). chakra petch is the rayfish.xyz heading face
+      # (squared techno, OFL); orbitron rounder sci-fi; azonix caps-only.
+      pkgs.orbitron
+      (pkgs.callPackage ./fonts/azonix.nix { })
+      (pkgs.google-fonts.override { fonts = [ "Chakra Petch" ]; })
+      pkgs.nerd-fonts.symbols-only
+    ];
 
     programs.waybar = {
       enable = true;
@@ -159,8 +184,8 @@ in
 
       style = ''
         * {
-          font-family: "${config.stylix.fonts.monospace.name}", monospace;
-          font-size: 13px;
+          font-family: "${cfg.font.family}", "${config.stylix.fonts.monospace.name}", "Symbols Nerd Font", monospace;
+          font-size: ${toString cfg.font.size}px;
           border-radius: 0px;
           border: none;
           min-height: 0;

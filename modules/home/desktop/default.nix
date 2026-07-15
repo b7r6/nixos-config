@@ -40,10 +40,53 @@ in
       default = true;
       description = "Enable 1Password GUI and CLI";
     };
+
+    # ── Cursor theme (backported from new-suzuki) ────────────────────────────
+    cursor = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable themed pointer cursor across GTK/Qt/X11";
+      };
+
+      package = lib.mkOption {
+        type = lib.types.package;
+        default = pkgs.capitaine-cursors;
+        description = "Cursor theme package";
+      };
+
+      name = lib.mkOption {
+        type = lib.types.str;
+        default = "capitaine-cursors";
+        description = "Cursor theme name as installed under share/icons";
+      };
+
+      size = lib.mkOption {
+        type = lib.types.int;
+        default = 32;
+        description = "Cursor size in px (32 reads right on 4K at scale 1.0)";
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
     fonts.fontconfig.enable = true;
+
+    # ── Pointer cursor ───────────────────────────────────────────────────────
+    # One coherent cursor across every toolkit. With hyprland rendering
+    # software cursors (cursor:no_hardware_cursors, see the wayland module)
+    # the themed pointer is exactly what reaches the glass. The setcursor
+    # exec-once re-asserts theme+size inside hyprland itself, covering apps
+    # that read the compositor's cursor rather than XCURSOR_* env.
+    home.pointerCursor = lib.mkIf cfg.cursor.enable {
+      inherit (cfg.cursor) package name size;
+      x11.enable = true;
+      gtk.enable = true;
+    };
+
+    wayland.windowManager.hyprland.settings.exec-once = lib.mkIf cfg.cursor.enable (
+      lib.mkAfter [ "hyprctl setcursor ${cfg.cursor.name} ${toString cfg.cursor.size}" ]
+    );
 
     home.packages =
       with pkgs;

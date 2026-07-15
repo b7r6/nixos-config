@@ -20,66 +20,22 @@
 #             ultraviolence).
 #
 # Adding a host = add one entry here. Nothing else duplicates these strings.
-{
-  # Standalone `nh home switch` (no NixOS host context) falls back to this
-  # host's layout. The primary workstation is the sane default.
-  defaultHost = "ultraviolence";
-
-  # ── ultraviolence: triple 4K (DP-5 left | DP-3 center | DP-4 right) ──────────
-  ultraviolence = {
+let
+  # ── b7r6-desk: pair of ASUS PG32UCDP 4K OLEDs ────────────────────────────────
+  # The physical desk, described once. Both desk machines drive the same pair
+  # of panels — ultraviolence over DP, shimmer (DGX Spark) over HDMI — and
+  # Hyprland matches monitors by EDID description (make/model/serial), so this
+  # layout applies on whichever host the panels are currently plugged into.
+  # n.b. the panels do 4K@240 (DSC); 120 is the deliberate choice here.
+  # scale 1.0, deliberately: at 32"/137dpi this is "large 1x" territory, and
+  # on WOLED (non-standard subpixel layout) fractional-scale downsampling
+  # visibly softens text. Density is handled by font sizes instead — sharp
+  # glyphs beat uniformly magnified chrome for a terminal-centric workload.
+  b7r6-desk = {
     left = {
       description = "ASUSTek COMPUTER INC PG32UCDP SCLMQS022729";
       resolution = "3840x2160";
       refreshRate = 120;
-      position = "0x0";
-      scale = 1.5;
-      workspaces = [
-        1
-        2
-        3
-        4
-        5
-      ];
-    };
-
-    center = {
-      description = "ASUSTek COMPUTER INC PG32UCDP T1LMQS044820";
-      resolution = "3840x2160";
-      refreshRate = 120;
-      position = "2560x0";
-      scale = 1.5;
-      workspaces = [
-        6
-        7
-        8
-        9
-        10
-      ];
-      primary = true;
-    };
-
-    right = {
-      description = "LG Electronics LG ULTRAGEAR+ 502NTMX7E483";
-      resolution = "3840x2160";
-      refreshRate = 144;
-      position = "5120x0";
-      scale = 1.5;
-      workspaces = [
-        11
-        12
-        13
-        14
-        15
-      ];
-    };
-  };
-
-  # ── shimmer (DGX Spark): 1440p ultrawide center + 4K right ───────────────────
-  shimmer = {
-    center = {
-      description = "AOC CU34G2XP 1Q1QBHA003180";
-      resolution = "3440x1440";
-      refreshRate = 100;
       position = "0x0";
       scale = 1.0;
       workspaces = [
@@ -89,15 +45,14 @@
         4
         5
       ];
-      primary = true;
     };
 
     right = {
-      description = "LG Electronics LG ULTRAGEAR+ 502NTMX7E483";
+      description = "ASUSTek COMPUTER INC PG32UCDP T1LMQS044820";
       resolution = "3840x2160";
-      refreshRate = 240;
-      position = "3440x0";
-      scale = 1.5;
+      refreshRate = 120;
+      position = "3840x0";
+      scale = 1.0;
       workspaces = [
         6
         7
@@ -105,8 +60,20 @@
         9
         10
       ];
+      primary = true;
     };
   };
+in
+{
+  # Standalone `nh home switch` (no NixOS host context) falls back to this
+  # host's layout. The primary workstation is the sane default.
+  defaultHost = "ultraviolence";
+
+  # ── ultraviolence: b7r6-desk over DP (currently headless, cables pulled) ─────
+  ultraviolence = b7r6-desk;
+
+  # ── shimmer (DGX Spark): b7r6-desk over HDMI ─────────────────────────────────
+  shimmer = b7r6-desk;
 
   # ── gossamer (DGX Spark): single 4K LG OLED ─────────────────────────────────
   gossamer = {

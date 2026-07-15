@@ -22,11 +22,14 @@ in
       viAlias = true;
       vimAlias = true;
 
-      # Force a BLINKING BLOCK cursor in every mode (no beam in insert, no
-      # underline in replace). `a:` applies to all modes; the blink timing makes
-      # it blink, and `guicursor` is what neovim uses to emit DECSCUSR escapes to
-      # the terminal — so this is the layer that would otherwise override
-      # ghostty's block. blinkwait/on/off in ms.
+      # Blinking block in every mode (no beam in insert, no underline in
+      # replace). `guicursor` is how neovim asserts cursor style: in the TUI it
+      # compiles to DECSCUSR escapes, which tmux passes through (Ss/Se
+      # overrides, see modules/home/shell) and which override the terminal's
+      # idle default until neovim exits and resets.
+      # n.b. the millisecond values do NOT survive translation to DECSCUSR —
+      # any nonzero blink params select the *blinking* variant, none selects
+      # steady; the terminal blinks at its own rate either way.
       extraConfig = ''
         set guicursor=a:block-blinkwait500-blinkon500-blinkoff500
       '';
