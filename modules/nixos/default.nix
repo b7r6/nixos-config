@@ -110,9 +110,9 @@
   hyper-modern-nixos.rcloneMount.enable = lib.mkDefault true;
 
   # ── Fleet-wide Nix binary cache (replaces the attic replica) ────────────────
-  # Every host runs a local nativelink nix_cache on :50071, populated by a
-  # `nix copy` post-build hook and consulted first as a substituter (the module
-  # injects it when enabled). The signing key is a GLOBAL agenix secret and its
+  # Every host runs a local nativelink nix_cache on :50071, populated by the
+  # nl-watch-store fanotify daemon and consulted first as a substituter (the
+  # module injects it when enabled). The signing key is a GLOBAL agenix secret and its
   # public half is trusted fleet-wide (nix.nix), so any host can both push to and
   # substitute from its own signed cache. mkDefault so a host can opt out
   # (`hyper-modern-nixos.nativelink.nixCache.enable = lib.mkForce false`), e.g.
