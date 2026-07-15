@@ -21,6 +21,8 @@ let str = JSON.string
 
 let nat = JSON.natural
 
+let bool = JSON.bool
+
 let arr = JSON.array
 
 let Backend = List (Map/Entry Text JSON.Type)
@@ -165,6 +167,32 @@ let shard =
           ]
         : Backend
 
+let verify =
+      \(backend : Backend) ->
+          [ { mapKey = "verify"
+            , mapValue =
+                obj
+                  [ { mapKey = "verify_size", mapValue = bool True }
+                  , { mapKey = "verify_hash", mapValue = bool True }
+                  , { mapKey = "backend", mapValue = wrap backend }
+                  ]
+            }
+          ]
+        : Backend
+
+let completeness =
+      \(backend : Backend) ->
+      \(casStore : Text) ->
+          [ { mapKey = "completeness_checking"
+            , mapValue =
+                obj
+                  [ { mapKey = "backend", mapValue = wrap backend }
+                  , { mapKey = "cas_store", mapValue = wrap (ref casStore) }
+                  ]
+            }
+          ]
+        : Backend
+
 let modeText =
       \(m : schema.MatchMode) ->
         merge { exact = "exact", minimum = "minimum", priority = "priority" } m
@@ -227,6 +255,64 @@ let capSvcJSON =
           , { mapKey = "remote_execution"
             , mapValue =
                 obj [ { mapKey = "scheduler", mapValue = str x.scheduler } ]
+            }
+          ]
+
+let upstreamJSON =
+      \(u : schema.UpstreamCache) ->
+        obj
+          [ { mapKey = "url", mapValue = str u.url }
+          , { mapKey = "trusted_public_keys"
+            , mapValue = arr (List/map Text JSON.Type str u.trusted_public_keys)
+            }
+          ]
+
+let nixCacheSvcJSON =
+      \(x : schema.NixCacheSvc.Type) ->
+        obj
+          (   [ { mapKey = "instance_name", mapValue = str x.instance_name }
+              , { mapKey = "cas_store", mapValue = str x.cas_store }
+              , { mapKey = "path_info_store", mapValue = str x.path_info_store }
+              , { mapKey = "alias_store", mapValue = str x.alias_store }
+              , { mapKey = "store_dir", mapValue = str x.store_dir }
+              , { mapKey = "priority", mapValue = nat x.priority }
+              , { mapKey = "max_nar_size_bytes"
+                , mapValue = nat x.max_nar_size_bytes
+                }
+              ]
+            # ( if    Prelude.List.null Text x.signing_key_files
+                then  [] : List (Map/Entry Text JSON.Type)
+                else  [ { mapKey = "signing_key_files"
+                        , mapValue =
+                            arr (List/map Text JSON.Type str x.signing_key_files)
+                        }
+                      ]
+              )
+            # ( if    Prelude.List.null schema.UpstreamCache x.upstream_caches
+                then  [] : List (Map/Entry Text JSON.Type)
+                else  [ { mapKey = "upstream_caches"
+                        , mapValue =
+                            arr
+                              ( List/map
+                                  schema.UpstreamCache
+                                  JSON.Type
+                                  upstreamJSON
+                                  x.upstream_caches
+                              )
+                        }
+                      ]
+              )
+          )
+
+let casWitnessSvcJSON =
+      \(x : schema.CasWitnessSvc) ->
+        obj
+          [ { mapKey = "cas_store", mapValue = str x.cas_store }
+          , { mapKey = "alias_store", mapValue = str x.alias_store }
+          , { mapKey = "ca_cert_file", mapValue = str x.ca_cert_file }
+          , { mapKey = "ca_key_file", mapValue = str x.ca_key_file }
+          , { mapKey = "max_fetch_size_bytes"
+            , mapValue = nat x.max_fetch_size_bytes
             }
           ]
 
@@ -333,6 +419,31 @@ let serverToJSON =
                       [ { mapKey = "worker_api"
                         , mapValue =
                             obj [ { mapKey = "scheduler", mapValue = str sch } ]
+                        }
+                      ]
+                  )
+                  ([] : List (Map/Entry Text JSON.Type))
+              # ( if    Prelude.List.null schema.NixCacheSvc.Type s.nix_cache
+                  then  [] : List (Map/Entry Text JSON.Type)
+                  else  [ { mapKey = "nix_cache"
+                          , mapValue =
+                              arr
+                                ( List/map
+                                    schema.NixCacheSvc.Type
+                                    JSON.Type
+                                    nixCacheSvcJSON
+                                    s.nix_cache
+                                )
+                          }
+                        ]
+                )
+              # Opt/fold
+                  schema.CasWitnessSvc
+                  s.cas_witness
+                  (List (Map/Entry Text JSON.Type))
+                  ( \(w : schema.CasWitnessSvc) ->
+                      [ { mapKey = "cas_witness"
+                        , mapValue = casWitnessSvcJSON w
                         }
                       ]
                   )
@@ -495,6 +606,8 @@ in  { filesystem
     , ref
     , fastSlow
     , r2
+    , verify
+    , completeness
     , ShardEntry
     , shard
     , renderConfig

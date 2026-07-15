@@ -144,144 +144,80 @@ let
   nixCacheClientPkg =
     inputs.nativelink-nix.packages.${pkgs.stdenv.hostPlatform.system}.nativelink-nix-client;
 
-  nixCacheFsStore = sub: caps: {
-    filesystem = {
-      content_path = "${cfg.nixCache.stateDir}/${sub}/content";
-      temp_path = "${cfg.nixCache.stateDir}/${sub}/temp";
-      eviction_policy.max_bytes = caps;
-    };
-  };
+  # ── nix_cache config: marshal the module options into a Dhall `Params` ──────
+  # The store composition (verify / completeness / fast_slow / R2), the R2 store
+  # shape, and the service rendering live ONCE in the typed Dhall
+  # (data/{schema,render,nix-cache}.dhall) — shared with the RE fleet. Here we
+  # only turn the per-host NixOS options into a Dhall record and render it via
+  # IFD (below), exactly like the RE config, so the two can't drift.
+  dq = s: "\"" + s + "\""; # our values never contain a quote or backslash
 
-  # The durable NAR store. When R2 is configured (the same bucket + creds the RE
-  # CAS uses), the NAR/body blobs are a fast_slow: a BOUNDED local fast tier so
-  # local disk can never fill, fronting R2 as the durable slow tier — so eviction
-  # from the fast tier never loses data (the blob stays in R2) and the cache does
-  # not duplicate the whole store on local disk. A distinct key_prefix keeps Nix
-  # sha256 NARs out of the RE blake3 keyspace. Without R2 it is the local fs store.
-  nixNarR2Store = {
-    experimental_cloud_object_store = {
-      provider = "r2";
-      account_id = cfg.r2.accountId;
-      bucket = cfg.r2.bucket;
-      access_key_id = "\${R2_ACCESS_KEY_ID}";
-      secret_access_key = "\${R2_SECRET_ACCESS_KEY}";
-      key_prefix = "nix-nar/";
-      retry = {
-        max_retries = 6;
-        delay = 0.3;
-        jitter = 0.5;
-      };
-    };
-  };
-  nixNarBackend =
-    if cfg.r2.enable then
-      {
-        fast_slow = {
-          fast = {
-            filesystem = {
-              content_path = "${cfg.nixCache.stateDir}/nar/content";
-              temp_path = "${cfg.nixCache.stateDir}/nar/temp";
-              eviction_policy.max_bytes = cfg.nixCache.fastCacheBytes;
-            };
-          };
-          slow = nixNarR2Store;
-        };
-      }
+  nixCacheUpstreamsExpr =
+    if cfg.nixCache.upstreamCaches == [ ] then
+      "[] : List { url : Text, trusted_public_keys : List Text }"
     else
-      nixCacheFsStore "nar" cfg.nixCache.maxNarBytes;
+      "[ "
+      + lib.concatMapStringsSep ", " (
+        u:
+        "{ url = ${dq u.url}, trusted_public_keys = [ ${lib.concatMapStringsSep ", " dq u.trustedPublicKeys} ] }"
+      ) cfg.nixCache.upstreamCaches
+      + " ]";
 
-  # NAR blobs are digest-keyed and wrapped in verify (reject corrupt/truncated
-  # uploads at write time). path-info + alias are string-keyed and MUST be
-  # separate stores; path-info is completeness_checking-wrapped so an evicted NAR
-  # reads as a clean 404 miss instead of a dangling narinfo; alias must NOT sit
-  # behind completeness_checking. Keys are slash-free, so filesystem is safe.
-  nixCacheConfig = {
-    stores = [
+  nixCacheR2Expr =
+    if cfg.r2.enable then
+      "Some { account = ${dq cfg.r2.accountId}, bucket = ${dq cfg.r2.bucket} }"
+    else
+      "None { account : Text, bucket : Text }";
+
+  nixCacheProxyExpr =
+    if cfg.nixCache.fetchProxy.enable then
+      "Some { listen = ${dq cfg.nixCache.fetchProxy.listen}, maxFetch = ${toString cfg.nixCache.fetchProxy.maxFetchBytes}, caCert = ${dq "${casWitnessDir}/ca.crt"}, caKey = ${dq "${casWitnessDir}/ca.key"} }"
+    else
+      "None { listen : Text, maxFetch : Natural, caCert : Text, caKey : Text }";
+
+  nixCacheParamsFile = buildPkgs.writeText "nix-cache-params.dhall" ''
+    { stateDir = ${dq cfg.nixCache.stateDir}
+    , storeDir = ${dq cfg.nixCache.storeDir}
+    , instanceName = ${dq cfg.nixCache.instanceName}
+    , listen = ${dq cfg.nixCache.listen}
+    , priority = ${toString cfg.nixCache.priority}
+    , maxNarUpload = ${toString cfg.nixCache.maxNarUploadBytes}
+    , maxNarBytes = ${toString cfg.nixCache.maxNarBytes}
+    , fastBytes = ${toString cfg.nixCache.fastCacheBytes}
+    , r2 = ${nixCacheR2Expr}
+    , signingKeyFile = ${
+      if cfg.nixCache.signingKeyFile != null then "Some ${dq cfg.nixCache.signingKeyFile}" else "None Text"
+    }
+    , upstreams = ${nixCacheUpstreamsExpr}
+    , fetchProxy = ${nixCacheProxyExpr}
+    }
+  '';
+
+  # Rendered from the typed Dhall (data/nix-cache.dhall) via IFD — the same
+  # mechanism, prelude, and buildPkgs as the RE renderedConfig above. `render`
+  # returns the config as JSON text, so we unwrap the string (jq -r) then
+  # re-validate it as JSON.
+  nixCacheConfigFile =
+    buildPkgs.runCommand "nativelink-nix-cache.json"
       {
-        name = "NIX_NAR_STORE";
-
-        verify = {
-          verify_size = true;
-          verify_hash = true;
-          backend = nixNarBackend;
-        };
+        nativeBuildInputs = [
+          buildPkgs.dhall-json
+          buildPkgs.jq
+          buildPkgs.cacert
+        ];
+        LANG = "C.UTF-8";
+        LC_ALL = "C.UTF-8";
+        LOCALE_ARCHIVE = "${buildPkgs.glibcLocales}/lib/locale/locale-archive";
+        SSL_CERT_FILE = "${buildPkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
       }
-      {
-        name = "NIX_PATH_INFO_STORE";
-
-        completeness_checking = {
-          backend = nixCacheFsStore "path-info" 1073741824; # 1 GiB of records
-          cas_store.ref_store.name = "NIX_NAR_STORE";
-        };
-      }
-
-      ({ name = "NIX_ALIAS_STORE"; } // nixCacheFsStore "alias" 1073741824)
-    ]
-    # cas_witness URL index (string-keyed url -> body digest). Its bodies share
-    # NIX_NAR_STORE, so a fetched NAR and a fetched raw URL live in one CAS.
-    ++ lib.optionals cfg.nixCache.fetchProxy.enable [
-      ({ name = "FETCH_ALIAS"; } // nixCacheFsStore "fetch-alias" 1073741824)
-    ];
-
-    servers = [
-      {
-        name = "nix-cache";
-        listener.http.socket_address = cfg.nixCache.listen;
-        services = {
-          health = { };
-
-          nix_cache = [
-            (
-              {
-                instance_name = cfg.nixCache.instanceName;
-                cas_store = "NIX_NAR_STORE";
-                path_info_store = "NIX_PATH_INFO_STORE";
-                alias_store = "NIX_ALIAS_STORE";
-                store_dir = cfg.nixCache.storeDir;
-                priority = cfg.nixCache.priority;
-
-                # Per-upload cap: an upload whose UNCOMPRESSED NAR exceeds this
-                # is rejected with 413 (it also bounds the decompress spool of a
-                # compressed upload — a bomb guard). Raise for large artifacts.
-                max_nar_size_bytes = cfg.nixCache.maxNarUploadBytes;
-              }
-              // lib.optionalAttrs (cfg.nixCache.signingKeyFile != null) {
-                signing_key_files = [ cfg.nixCache.signingKeyFile ];
-              }
-              // lib.optionalAttrs (cfg.nixCache.upstreamCaches != [ ]) {
-                # Read through to these on a local miss; verify + mirror + serve.
-                upstream_caches = map (u: {
-                  url = u.url;
-                  trusted_public_keys = u.trustedPublicKeys;
-                }) cfg.nixCache.upstreamCaches;
-              }
-            )
-          ];
-        };
-      }
-    ]
-    # The cas_witness proxy owns its own listener (it speaks CONNECT), so it is a
-    # second server in the same process, sharing NIX_NAR_STORE as its body CAS.
-    ++ lib.optionals cfg.nixCache.fetchProxy.enable [
-      {
-        name = "cas-witness";
-        listener.http.socket_address = cfg.nixCache.fetchProxy.listen;
-        services.cas_witness = {
-          cas_store = "NIX_NAR_STORE";
-          alias_store = "FETCH_ALIAS";
-          # Generated together on first start if missing (key 0600). Persisted
-          # under the cache state dir; trusted only by this host's nix (below).
-          ca_cert_file = "${cfg.nixCache.stateDir}/cas-witness/ca.crt";
-          ca_key_file = "${cfg.nixCache.stateDir}/cas-witness/ca.key";
-          max_fetch_size_bytes = cfg.nixCache.fetchProxy.maxFetchBytes;
-        };
-      }
-    ];
-    global.max_open_files = 24576;
-  };
-
-  # JSON is valid JSON5; the binary takes the path as its single argument.
-  nixCacheConfigFile = pkgs.writeText "nativelink-nix-cache.json" (builtins.toJSON nixCacheConfig);
+      ''
+        export XDG_CACHE_HOME="$TMPDIR/dhall-cache"
+        export HOME="$TMPDIR"
+        mkdir -p "$XDG_CACHE_HOME"
+        json=$(echo "(${fleetDir}/nix-cache.dhall).render (${nixCacheParamsFile})" \
+                 | dhall-to-json | jq -r .)
+        printf '%s' "$json" | jq . > "$out"
+      '';
 
   nixCachePort = lib.last (lib.splitString ":" cfg.nixCache.listen);
 

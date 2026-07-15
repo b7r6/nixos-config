@@ -42,6 +42,36 @@ let ExecSvc = { instance_name : Text, cas_store : Text, scheduler : Text }
 
 let CapSvc = { instance_name : Text, scheduler : Text }
 
+-- The straylight fork's Nix binary-cache facade + its raw-fetch caching proxy.
+-- Not RE services; carried on their own HTTP servers.
+let UpstreamCache = { url : Text, trusted_public_keys : List Text }
+
+let NixCacheSvc =
+      { Type =
+          { instance_name : Text
+          , cas_store : Text
+          , path_info_store : Text
+          , alias_store : Text
+          , store_dir : Text
+          , priority : Natural
+          , max_nar_size_bytes : Natural
+          , signing_key_files : List Text
+          , upstream_caches : List UpstreamCache
+          }
+      , default =
+        { signing_key_files = [] : List Text
+        , upstream_caches = [] : List UpstreamCache
+        }
+      }
+
+let CasWitnessSvc =
+      { cas_store : Text
+      , alias_store : Text
+      , ca_cert_file : Text
+      , ca_key_file : Text
+      , max_fetch_size_bytes : Natural
+      }
+
 let Tls = { cert_file : Text, key_file : Text }
 
 let Server =
@@ -55,6 +85,8 @@ let Server =
           , capabilities : List CapSvc
           , bytestream : List CasSvc
           , worker_api_scheduler : Optional Text
+          , nix_cache : List NixCacheSvc.Type
+          , cas_witness : Optional CasWitnessSvc
           , admin : Bool
           , health : Bool
           }
@@ -66,6 +98,8 @@ let Server =
         , capabilities = [] : List CapSvc
         , bytestream = [] : List CasSvc
         , worker_api_scheduler = None Text
+        , nix_cache = [] : List NixCacheSvc.Type
+        , cas_witness = None CasWitnessSvc
         , admin = False
         , health = False
         }
@@ -112,6 +146,9 @@ in  { Prelude
     , AcSvc
     , ExecSvc
     , CapSvc
+    , UpstreamCache
+    , NixCacheSvc
+    , CasWitnessSvc
     , Tls
     , Server
     , PlatformProp
