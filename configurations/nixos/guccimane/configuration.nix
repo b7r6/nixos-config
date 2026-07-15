@@ -56,6 +56,20 @@ in
       # artifacts (-g, separateDebugInfo/stripping); until then, this unblocks
       # caching them.
       maxNarUploadBytes = 137438953472; # 128 GiB
+
+      # Mirror everything pulled from upstream into the local CAS: read-through
+      # for store paths, the cas_witness proxy for raw fetchurl bytes.
+      upstreamCaches = [
+        {
+          url = "https://cache.nixos.org";
+          trustedPublicKeys = [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" ];
+        }
+        {
+          url = "https://nix-community.cachix.org";
+          trustedPublicKeys = [ "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=" ];
+        }
+      ];
+      fetchProxy.enable = true;
     };
   };
 

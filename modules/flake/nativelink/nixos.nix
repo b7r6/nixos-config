@@ -178,6 +178,11 @@ let
       }
 
       ({ name = "NIX_ALIAS_STORE"; } // nixCacheFsStore "alias" 1073741824)
+    ]
+    # cas_witness URL index (string-keyed url -> body digest). Its bodies share
+    # NIX_NAR_STORE, so a fetched NAR and a fetched raw URL live in one CAS.
+    ++ lib.optionals cfg.nixCache.fetchProxy.enable [
+      ({ name = "FETCH_ALIAS"; } // nixCacheFsStore "fetch-alias" 1073741824)
     ];
 
     servers = [
@@ -205,8 +210,32 @@ let
               // lib.optionalAttrs (cfg.nixCache.signingKeyFile != null) {
                 signing_key_files = [ cfg.nixCache.signingKeyFile ];
               }
+              // lib.optionalAttrs (cfg.nixCache.upstreamCaches != [ ]) {
+                # Read through to these on a local miss; verify + mirror + serve.
+                upstream_caches = map (u: {
+                  url = u.url;
+                  trusted_public_keys = u.trustedPublicKeys;
+                }) cfg.nixCache.upstreamCaches;
+              }
             )
           ];
+        };
+      }
+    ]
+    # The cas_witness proxy owns its own listener (it speaks CONNECT), so it is a
+    # second server in the same process, sharing NIX_NAR_STORE as its body CAS.
+    ++ lib.optionals cfg.nixCache.fetchProxy.enable [
+      {
+        name = "cas-witness";
+        listener.http.socket_address = cfg.nixCache.fetchProxy.listen;
+        services.cas_witness = {
+          cas_store = "NIX_NAR_STORE";
+          alias_store = "FETCH_ALIAS";
+          # Generated together on first start if missing (key 0600). Persisted
+          # under the cache state dir; trusted only by this host's nix (below).
+          ca_cert_file = "${cfg.nixCache.stateDir}/cas-witness/ca.crt";
+          ca_key_file = "${cfg.nixCache.stateDir}/cas-witness/ca.key";
+          max_fetch_size_bytes = cfg.nixCache.fetchProxy.maxFetchBytes;
         };
       }
     ];
@@ -217,6 +246,15 @@ let
   nixCacheConfigFile = pkgs.writeText "nativelink-nix-cache.json" (builtins.toJSON nixCacheConfig);
 
   nixCachePort = lib.last (lib.splitString ":" cfg.nixCache.listen);
+
+  # cas_witness proxy paths + the nix-only CA trust bundle.
+  casWitnessDir = "${cfg.nixCache.stateDir}/cas-witness";
+  nixCaBundle = "${casWitnessDir}/nix-ca-bundle.crt";
+  fetchProxyUrl = "http://${cfg.nixCache.fetchProxy.listen}";
+  # Substituter CDNs that must bypass the proxy: store-path substitution is
+  # already mirrored (read-through + watch-store), so routing it through the MITM
+  # would only churn narinfo/NAR URLs. The local cache (127.0.0.1) bypasses too.
+  fetchProxyNoProxy = "127.0.0.1,localhost,::1,cache.nixos.org,nix-community.cachix.org,nix-postgres-artifacts.s3.amazonaws.com";
 in
 {
   options.hyper-modern-nixos.nativelink = {
@@ -617,6 +655,97 @@ in
           a dedicated builder with headroom.
         '';
       };
+
+      upstreamCaches = lib.mkOption {
+        type = lib.types.listOf (
+          lib.types.submodule {
+            options = {
+              url = lib.mkOption {
+                type = lib.types.str;
+                description = "Upstream Nix binary-cache base URL.";
+              };
+              trustedPublicKeys = lib.mkOption {
+                type = lib.types.listOf lib.types.str;
+                description = "Public keys this upstream's narinfos must verify against.";
+              };
+            };
+          }
+        );
+        default = [ ];
+
+        example = [
+          {
+            url = "https://cache.nixos.org";
+            trustedPublicKeys = [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" ];
+          }
+        ];
+
+        description = ''
+          Upstream caches to read through on a local narinfo miss. On a miss the
+          server fetches the path from the first upstream that has it, verifies
+          its signature against `trustedPublicKeys` BEFORE storing anything,
+          mirrors the NAR into the CAS, and serves it — so an upstream path is
+          fetched once and then served locally forever. Each entry MUST list at
+          least one key (read-through refuses an unverifiable narinfo, so this
+          can never be a cache-poisoning vector). Empty disables read-through.
+        '';
+      };
+
+      # ── cas_witness: fetchurl-granularity mirror (the raw-fetch gap) ──────────
+      fetchProxy = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+
+          description = ''
+            Run the `cas_witness` caching HTTP forward proxy in the SAME
+            nativelink process, on `listen`. It TLS-intercepts (MITM) a client's
+            fetches and mirrors every fetched body into the nix_cache's NAR CAS,
+            so a fixed-output derivation's download (fetchurl/fetchTarball) is
+            fetched from upstream once and served from the CAS forever — the
+            raw-URL gap the store-path substituter can't cover. Safe because nix
+            re-hashes every fixed-output derivation regardless of what the proxy
+            serves (trusted for availability, never integrity). Requires
+            nixCache.enable (shares the process and the CAS).
+          '';
+        };
+
+        listen = lib.mkOption {
+          type = lib.types.str;
+          default = "127.0.0.1:50080";
+
+          description = ''
+            Proxy listen address. Loopback by default: the proxy is an
+            UNAUTHENTICATED MITM, so it must only be reachable by the local build
+            clients it serves. This host's nix-daemon points HTTP(S)_PROXY here.
+          '';
+        };
+
+        maxFetchBytes = lib.mkOption {
+          type = lib.types.int;
+          default = 10737418240; # 10 GiB
+
+          description = ''
+            Largest response body the proxy caches; a larger one is streamed
+            through uncached. Raised above the fork's 2 GiB default so large
+            release archives still get mirrored.
+          '';
+        };
+
+        wireNixDaemon = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+
+          description = ''
+            Point this host's nix-daemon at the proxy: set HTTP(S)_PROXY to
+            `listen`, trust the proxy's generated CA via a nix-scoped
+            NIX_SSL_CERT_FILE bundle (the MITM CA is trusted ONLY by nix's own
+            fetches, never the system trust store), and no_proxy the substituter
+            CDNs so store-path substitution bypasses the proxy. Turn off to run
+            the proxy for external clients only.
+          '';
+        };
+      };
     };
   };
 
@@ -830,6 +959,57 @@ in
           # to read the store, db.sqlite, and the signing key; grant only that cap.
           AmbientCapabilities = [ "CAP_SYS_ADMIN" ];
           CapabilityBoundingSet = [ "CAP_SYS_ADMIN" ];
+        };
+      };
+    })
+
+    # ── cas_witness proxy: route this host's nix through it ──────────────────
+    (lib.mkIf (cfg.nixCache.enable && cfg.nixCache.fetchProxy.enable && cfg.nixCache.fetchProxy.wireNixDaemon) {
+      systemd.tmpfiles.rules = [
+        "d ${casWitnessDir} 0750 root root - -"
+        # Seed the nix CA bundle with the system CAs so nix TLS never breaks even
+        # before the proxy CA exists; the oneshot below rewrites it with both.
+        "C ${nixCaBundle} 0644 root root - ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+      ];
+
+      # Assemble a nix-ONLY trust bundle = system CAs + the proxy's generated CA,
+      # once the proxy has minted it. NIX_SSL_CERT_FILE points here, so only nix
+      # trusts the interception CA — never the system trust store.
+      systemd.services.nativelink-cas-witness-trust = {
+        description = "Assemble the nix CA bundle trusting the cas_witness proxy CA";
+        wantedBy = [ "multi-user.target" ];
+        after = [ "nativelink-nix-cache.service" ];
+        wants = [ "nativelink-nix-cache.service" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        script = ''
+          for _ in $(seq 1 60); do
+            [ -f ${casWitnessDir}/ca.crt ] && break
+            sleep 1
+          done
+          if [ -f ${casWitnessDir}/ca.crt ]; then
+            cat ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt ${casWitnessDir}/ca.crt > ${nixCaBundle}.tmp
+            mv -f ${nixCaBundle}.tmp ${nixCaBundle}
+          fi
+        '';
+      };
+
+      # Route nix's fetches through the proxy (fixed-output derivations inherit
+      # these via impureEnvVars), trusting the proxy CA via the nix-only bundle.
+      # Substituter CDNs bypass via no_proxy, so only raw FOD fetches are teed.
+      systemd.services.nix-daemon = {
+        after = [ "nativelink-cas-witness-trust.service" ];
+        wants = [ "nativelink-cas-witness-trust.service" ];
+        environment = {
+          http_proxy = fetchProxyUrl;
+          https_proxy = fetchProxyUrl;
+          HTTP_PROXY = fetchProxyUrl;
+          HTTPS_PROXY = fetchProxyUrl;
+          no_proxy = fetchProxyNoProxy;
+          NO_PROXY = fetchProxyNoProxy;
+          NIX_SSL_CERT_FILE = lib.mkForce nixCaBundle;
         };
       };
     })

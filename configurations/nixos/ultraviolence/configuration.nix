@@ -45,10 +45,24 @@ in
   };
 
   # ── nativelink-nix binary cache (local) ────────────────────────────────────
-  # Enabled fleet-wide (modules/nixos/default.nix): a local nativelink nix_cache
-  # populated by a nix copy post-build hook, substituted from first, signed with
-  # the global cache key (public half trusted fleet-wide in nix.nix). Replaces
-  # the old attic replica. Nothing host-specific to declare here.
+  # Enabled + signed + watch-store auto-push are fleet defaults
+  # (modules/nixos/default.nix). Host-specific: read-through to upstream caches
+  # and the cas_witness fetch proxy, so this box mirrors EVERYTHING it pulls from
+  # upstream — store paths (read-through) and raw fetchurl bytes (proxy) — into
+  # the local CAS. First of the two hosts on this; the rest of the fleet later.
+  hyper-modern-nixos.nativelink.nixCache = {
+    upstreamCaches = [
+      {
+        url = "https://cache.nixos.org";
+        trustedPublicKeys = [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" ];
+      }
+      {
+        url = "https://nix-community.cachix.org";
+        trustedPublicKeys = [ "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=" ];
+      }
+    ];
+    fetchProxy.enable = true;
+  };
 
   # ── ClickHouse Keeper (coordination plane) ──────────────────────────────────
 
