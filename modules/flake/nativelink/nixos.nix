@@ -152,6 +152,44 @@ let
     };
   };
 
+  # The durable NAR store. When R2 is configured (the same bucket + creds the RE
+  # CAS uses), the NAR/body blobs are a fast_slow: a BOUNDED local fast tier so
+  # local disk can never fill, fronting R2 as the durable slow tier — so eviction
+  # from the fast tier never loses data (the blob stays in R2) and the cache does
+  # not duplicate the whole store on local disk. A distinct key_prefix keeps Nix
+  # sha256 NARs out of the RE blake3 keyspace. Without R2 it is the local fs store.
+  nixNarR2Store = {
+    experimental_cloud_object_store = {
+      provider = "r2";
+      account_id = cfg.r2.accountId;
+      bucket = cfg.r2.bucket;
+      access_key_id = "\${R2_ACCESS_KEY_ID}";
+      secret_access_key = "\${R2_SECRET_ACCESS_KEY}";
+      key_prefix = "nix-nar/";
+      retry = {
+        max_retries = 6;
+        delay = 0.3;
+        jitter = 0.5;
+      };
+    };
+  };
+  nixNarBackend =
+    if cfg.r2.enable then
+      {
+        fast_slow = {
+          fast = {
+            filesystem = {
+              content_path = "${cfg.nixCache.stateDir}/nar/content";
+              temp_path = "${cfg.nixCache.stateDir}/nar/temp";
+              eviction_policy.max_bytes = cfg.nixCache.fastCacheBytes;
+            };
+          };
+          slow = nixNarR2Store;
+        };
+      }
+    else
+      nixCacheFsStore "nar" cfg.nixCache.maxNarBytes;
+
   # NAR blobs are digest-keyed and wrapped in verify (reject corrupt/truncated
   # uploads at write time). path-info + alias are string-keyed and MUST be
   # separate stores; path-info is completeness_checking-wrapped so an evicted NAR
@@ -165,7 +203,7 @@ let
         verify = {
           verify_size = true;
           verify_hash = true;
-          backend = nixCacheFsStore "nar" cfg.nixCache.maxNarBytes;
+          backend = nixNarBackend;
         };
       }
       {
@@ -576,10 +614,24 @@ in
         default = 214748364800; # 200 GiB
 
         description = ''
-          Total EVICTION cap for the NAR filesystem store (how much the CAS
-          holds before evicting oldest). This is store capacity, not a
-          per-upload limit — see maxNarUploadBytes for that. Raise on a
-          dedicated builder that caches large toolchains.
+          Eviction cap for the NAR store ONLY when R2 is disabled (the store is
+          then a local-only filesystem CAS, so this is its whole capacity and
+          evicting means LOSING the mirror). When r2.enable is set the NAR store
+          is a fast_slow over R2 and this is ignored — `fastCacheBytes` bounds the
+          local tier instead, while R2 holds everything durably.
+        '';
+      };
+
+      fastCacheBytes = lib.mkOption {
+        type = lib.types.int;
+        default = 68719476736; # 64 GiB
+
+        description = ''
+          Eviction cap for the LOCAL fast tier of the R2-backed NAR store (used
+          when r2.enable). Bounds local disk so the cache can never fill the box;
+          anything evicted from the fast tier is still durable in R2, so eviction
+          here costs a re-fetch from R2, never the data. Keep it comfortably below
+          free disk.
         '';
       };
 
@@ -905,6 +957,9 @@ in
           Restart = "on-failure";
           RestartSec = 5;
           StateDirectory = "nativelink-nix-cache";
+          # R2 creds for shellexpand (${R2_ACCESS_KEY_ID} / ${R2_SECRET_ACCESS_KEY})
+          # in the R2-backed NAR store; same env file the RE service uses.
+          EnvironmentFile = lib.mkIf (cfg.r2.enable && cfg.r2.environmentFile != null) cfg.r2.environmentFile;
         };
       };
 
