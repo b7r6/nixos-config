@@ -56,6 +56,38 @@ in
     profile = "replica";
   };
 
+  # ── NativeLink nix_cache substituter (standalone, R2-backed) ────────────────
+  # weyl is NOT a fleet nativelink CAS/worker node (no nativelink.enable); this
+  # only backs the nix_cache substituter's NAR store with R2 so local disk stays
+  # a bounded fast tier while the durable mirror lives in the shared bucket.
+  # enable + watchStore + the signing key are fleet defaults (modules/nixos/default.nix).
+  age.secrets.nativelink-r2-env.file = ../../../secrets/agenix/machines/nativelink-r2-env.age;
+
+  hyper-modern-nixos.nativelink = {
+    r2 = {
+      enable = true;
+      accountId = "6063b6652178f5cf1cfb87e7e41acf1e";
+      bucket = "straylight-nativelink-cas";
+      environmentFile = "/run/agenix/nativelink-r2-env";
+    };
+
+    # Read-through mirror of upstream store paths; the cas_witness proxy mirrors
+    # raw fetchurl bytes. Matches ultraviolence/guccimane.
+    nixCache = {
+      upstreamCaches = [
+        {
+          url = "https://cache.nixos.org";
+          trustedPublicKeys = [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" ];
+        }
+        {
+          url = "https://nix-community.cachix.org";
+          trustedPublicKeys = [ "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=" ];
+        }
+      ];
+      fetchProxy.enable = true;
+    };
+  };
+
   # ── OTel agent (host metrics + journald → watchtower gateway) ──────────────
 
   hyper-modern-nixos.observability.otel.agent = {
