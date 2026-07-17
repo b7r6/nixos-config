@@ -89,13 +89,14 @@ in
   };
 
   # ── NativeLink nix_cache substituter (standalone, R2-backed, aarch64) ───────
-  # gossamer is aarch64; the server now builds thanks to the compiler-rt-musl
-  # overlay in the fork. Standalone (not a fleet CAS/worker node): r2.enable
-  # backs the NAR store so local disk is a bounded fast tier and the durable
-  # mirror lives in the shared bucket, and the fetchProxy tees raw fetchurl
-  # bytes into the CAS. enable/watchStore/signing key are fleet defaults.
-  # Pushing gossamer's aarch64 closures is exactly the aarch64-shard role
-  # shimmer's comment defers.
+  # gossamer is aarch64; the server builds thanks to the compiler-rt-musl overlay
+  # in the fork. Standalone (not a fleet CAS/worker node): r2.enable backs the
+  # NAR store so local disk is a bounded fast tier and the durable mirror lives
+  # in the shared bucket, and the fetchProxy tees raw fetchurl bytes into the CAS.
+  # enable/watchStore/signing key are fleet defaults. Pushing gossamer's aarch64
+  # closures is exactly the aarch64-shard role shimmer's comment defers.
+  # (First deploy required a two-step bootstrap: coredns had to come up before
+  # git.s4.gl — the nativelink-nix input host — would resolve.)
   age.secrets.nativelink-r2-env.file = ../../../secrets/agenix/machines/nativelink-r2-env.age;
 
   hyper-modern-nixos.nativelink = {
