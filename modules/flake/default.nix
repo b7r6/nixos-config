@@ -36,6 +36,7 @@
     ./overlays.nix
     ./devshell.nix
     ./deploy.nix
+    ./cache-push.nix
     ./usb.nix
     ./docs.nix
 
