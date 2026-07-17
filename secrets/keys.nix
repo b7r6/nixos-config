@@ -59,9 +59,11 @@
     shimmer = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAFyVtrt3AmJrLqcdAnZn5hXrvMenOUKGAS182qBnuYN" ];
 
     # ── non-NixOS → NixOS converted ──
-    # gossamer freshly installed via nixos-anywhere 2026-07-06
+    # gossamer reinstalled; host key rotated (fingerprint SHA256:854h4SO…).
+    # Secrets must be rekeyed (agenix -r) after this change so the live key can
+    # decrypt them.
     gossamer = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOVmQ8pwaRwgrDpZMriiMIuFVamndu1OxhbWykeqqTpy root@gossamer"
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFWDDAnBkYQb2Uvl+hqiIWbY90fdhOIrj4y75Co9WERY root@gossamer"
     ];
   };
 }
