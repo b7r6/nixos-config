@@ -1201,11 +1201,11 @@
         "rust-overlay": "rust-overlay_2"
       },
       "locked": {
-        "lastModified": 1784158096,
-        "narHash": "sha256-2qHN+BALZj0ddI3tNRhAzMFasxTNuWS1clFBmA4P8W8=",
+        "lastModified": 1784312626,
+        "narHash": "sha256-/3/NWngXK5sLwgIUaGyuMp3hgn//eXCl84atagXCp6g=",
         "ref": "nix-cache",
-        "rev": "43ec1bc06e38d17a946ce5ee62af7aab040f86cf",
-        "revCount": 1622,
+        "rev": "b5032d38651afd238940b4129f194318e6ca7d9b",
+        "revCount": 1625,
         "type": "git",
         "url": "https://git.s4.gl/straylight/straylight-nativelink"
       },

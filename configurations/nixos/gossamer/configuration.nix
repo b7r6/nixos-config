@@ -88,6 +88,39 @@ in
     profile = "replica";
   };
 
+  # ── NativeLink nix_cache substituter (standalone, R2-backed, aarch64) ───────
+  # gossamer is aarch64; the server now builds thanks to the compiler-rt-musl
+  # overlay in the fork. Standalone (not a fleet CAS/worker node): r2.enable
+  # backs the NAR store so local disk is a bounded fast tier and the durable
+  # mirror lives in the shared bucket, and the fetchProxy tees raw fetchurl
+  # bytes into the CAS. enable/watchStore/signing key are fleet defaults.
+  # Pushing gossamer's aarch64 closures is exactly the aarch64-shard role
+  # shimmer's comment defers.
+  age.secrets.nativelink-r2-env.file = ../../../secrets/agenix/machines/nativelink-r2-env.age;
+
+  hyper-modern-nixos.nativelink = {
+    r2 = {
+      enable = true;
+      accountId = "6063b6652178f5cf1cfb87e7e41acf1e";
+      bucket = "straylight-nativelink-cas";
+      environmentFile = "/run/agenix/nativelink-r2-env";
+    };
+
+    nixCache = {
+      upstreamCaches = [
+        {
+          url = "https://cache.nixos.org";
+          trustedPublicKeys = [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" ];
+        }
+        {
+          url = "https://nix-community.cachix.org";
+          trustedPublicKeys = [ "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=" ];
+        }
+      ];
+      fetchProxy.enable = true;
+    };
+  };
+
   # ── Graceful degradation when secrets aren't available (fresh install) ──────
   # Services that depend on agenix secrets should not block boot if secrets
   # can't be decrypted (e.g. first boot before host key is rekeyed).
