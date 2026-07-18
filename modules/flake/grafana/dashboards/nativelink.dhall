@@ -123,6 +123,81 @@ let dashboard =
             ]
           }
         , T.Row::{
+          , title = "Remote Execution — Throughput"
+          , panels =
+            [ P.timeseries
+                "Actions completed / s"
+                T.Unit.Short
+                (S.rateSimple "execution.completed.count")
+            , P.timeseriesStacked
+                "Client CAS ops / s by result"
+                T.Unit.Short
+                ( S.rateBucketed
+                    "cache.operations"
+                    "Attributes['cache.type'] = 'cas-main'"
+                    "Attributes['cache.operation.result']"
+                    "result"
+                )
+            , P.timeseriesStacked
+                "Client CAS ops / s by kind"
+                T.Unit.Short
+                ( S.rateBucketed
+                    "cache.operations"
+                    "Attributes['cache.type'] = 'cas-main'"
+                    "Attributes['cache.operation.name']"
+                    "kind"
+                )
+            ]
+          }
+        , T.Row::{
+          , title = "CAS — Tier Performance"
+          , panels =
+            [ P.timeseries
+                "Read throughput by tier"
+                T.Unit.BytesPerSec
+                ( S.rateBucketed
+                    "cache.io"
+                    "Attributes['cache.operation.name'] = 'read'"
+                    "Attributes['cache.type']"
+                    "tier"
+                )
+            , P.timeseries
+                "Write throughput by tier"
+                T.Unit.BytesPerSec
+                ( S.rateBucketed
+                    "cache.io"
+                    "Attributes['cache.operation.name'] = 'write'"
+                    "Attributes['cache.type']"
+                    "tier"
+                )
+            , P.timeseries
+                "Blob size (avg) by tier"
+                T.Unit.Bytes
+                "SELECT toStartOfFiveMinutes(TimeUnix) as time, Attributes['cache.type'] as tier, round(avg(Sum / greatest(Count, 1))) as value FROM otel.otel_metrics_histogram WHERE MetricName = 'cache.item.size' AND Count > 0 AND ${S.tf} AND ${S.hostFilter} GROUP BY time, tier ORDER BY time"
+            ]
+          }
+        , T.Row::{
+          , title = "Action Cache"
+          , panels =
+            [ P.stat
+                "AC read hit rate — %"
+                "SELECT round(100 * sumIf(v, res = 'hit') / greatest(sum(v), 1)) as value FROM (SELECT Attributes['cache.operation.result'] as res, max(Value) as v FROM ${S.sum} WHERE MetricName = 'cache.operations' AND Attributes['cache.type'] = 'ac-main' AND Attributes['cache.operation.name'] = 'read' AND ${S.tf} GROUP BY res, ${S.host})"
+            , P.timeseriesStacked
+                "AC read ops / s by result"
+                T.Unit.Short
+                ( S.rateBucketed
+                    "cache.operations"
+                    "Attributes['cache.type'] = 'ac-main' AND Attributes['cache.operation.name'] = 'read'"
+                    "Attributes['cache.operation.result']"
+                    "result"
+                )
+            , P.timeseries
+                "AC op latency by result — ms"
+                T.Unit.Milliseconds
+                "SELECT toStartOfFiveMinutes(TimeUnix) as time, Attributes['cache.operation.result'] as result, round(avg(Sum / greatest(Count, 1)), 2) as value FROM otel.otel_metrics_histogram WHERE MetricName = 'cache.operation.duration' AND Attributes['cache.type'] = 'ac-main' AND Count > 0 AND ${S.tf} AND ${S.hostFilter} GROUP BY time, result ORDER BY time"
+            ]
+          }
+        , T.Row::{
           , title = "Errors (all nativelink units)"
           , panels =
             [ P.table
