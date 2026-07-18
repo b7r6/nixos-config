@@ -1100,6 +1100,10 @@
       scroll-conservatively 101
       scroll-margin 2
       scroll-preserve-screen-position t
+      ;; don't stall mid-repaint computing faces — a jit-lock pause between
+      ;; pty chunks leaves a half-painted frame visible (linewise tearing,
+      ;; worst in tty emacs over ssh); skip fontification while input pends
+      redisplay-skip-fontification-on-input t
       auto-save-default nil
       make-backup-files nil
       create-lockfiles nil
@@ -1111,7 +1115,14 @@
 
 (setq-default
  indent-tabs-mode nil
- tab-width 2)
+ tab-width 2
+ cursor-type 'box)
+
+;; blinking box, forever — stock emacs gives up after `blink-cursor-blinks'
+;; (default 10) blinks and goes solid; 0 means never stop. matches the
+;; blinking-block discipline in the terminals (see modules/home/terminal)
+(setq blink-cursor-blinks 0
+      blink-cursor-interval 0.5)
 
 (menu-bar-mode -1)
 (tool-bar-mode -1)
@@ -1127,131 +1138,151 @@
 ;;                                        // frame // discipline
 ;; ───────────────────────────────────────────────────────────────────
 
-;; ── `shackle`: No popup without permission ──────────────────────────
+;; ── popups: one table, three behaviors, two panes ────────────────────
+;;
+;; The layout is two side-by-side panes and NOTHING may alter it: no
+;; third split, no side windows, no resizing, ever. Every buffer
+;; observes exactly one of three behaviors:
+;;
+;;   never — do not display, ever (async chatter, logs)
+;;   right — take over the right pane (deliberate and persistent:
+;;           magit, gptel, long-form reading)
+;;   pop   — occlude the right pane, popper-tracked: C-\ toggles it
+;;           away and the occluded buffer returns (the display action
+;;           reuses the pane, so `quit-restore' records what was there
+;;           and popper's `quit-window' swaps it back) — rapid access
+;;           and clear
+;;
+;; The final catch-all row routes every other visible buffer to the
+;; right pane, so even unlisted buffers can never split the frame.
+;; Leading-space buffer names are exempt: that's UI machinery
+;; (transient, which-key) that manages its own display. `noselect' on
+;; a row displays without stealing focus.
 
-(use-package shackle
-  :demand t
+(defconst hypermodern/popup-rules
+  ;; (PATTERN CLASS [noselect]) — PATTERN is a regexp or a major-mode
+  ;; symbol; mode symbols match derived modes, so one row covers the
+  ;; family (compilation-mode also catches *Compile-Log*, ...)
+  '(;; ─ never ────────────────────────────────────────────────────────
+    ("\\`\\*Warnings\\*\\'"           never)
+    ("\\*Async Shell Command\\*"      never)
+    ("\\*Async-native-compile-log\\*" never)
+    ("\\*Native-compile-Log\\*"       never)
+    ("\\*straight-process\\*"         never)
+    ("\\*flycheck errors\\*"          never) ; use consult-flycheck
+    ("\\*Flymake diagnostics.*"       never)
+    ("\\*lsp-log\\*"                  never)
+    ("\\*nixd.*"                      never)
+    ("\\*tramp.*"                     never)
+    ("\\*Deletions\\*"                never)
+    ("\\*Quail Completions\\*"        never)
+    ("\\*company-.*"                  never)
 
-  :config
-  (setq shackle-default-rule '(:select nil :inhibit-window-quit nil)
-        shackle-default-size 0.3
-        shackle-default-alignment 'below
-        shackle-rules
-        '(
-          ;; ─ never show these automatically ─────────────────────────
+    ;; ─ pop: occlude the right pane, C-\ to clear ────────────────────
+    (compilation-mode             pop noselect)
+    ("\\*Messages\\*"             pop noselect)
+    ("\\*Backtrace\\*"            pop noselect)
+    ("\\*Shell Command Output\\*" pop noselect)
+    ("\\*Pp Eval Output\\*"       pop noselect)
+    ("\\*Completions\\*"          pop noselect)
+    ("\\*vc-diff\\*"              pop noselect)
+    ("\\*vc-change-log\\*"        pop noselect)
+    (magit-process-mode           pop noselect)
+    ("\\*eldoc\\*"                pop noselect)
+    ("\\*Lean 4.*"                pop noselect)
+    ("\\*Lean Goal.*"             pop noselect) ; *Lean Goal* and *Lean Goals*
+    ("\\*Lean Info\\*"            pop noselect)
+    ("\\*rg\\*"                   pop)
+    ("\\*grep\\*"                 pop)
+    ("\\*xref\\*"                 pop)
+    ("\\*Occur\\*"                pop)
+    (eshell-mode                  pop)
+    (ghostel-mode                 pop)
+    ("\\*ghostel.*"               pop)
+    (vterm-mode                   pop)
+    (term-mode                    pop)
+    ("\\*aider.*"                 pop)
+    ("COMMIT_EDITMSG"             pop)
+    ("\\*Org Select\\*"           pop)
+    (org-capture-mode             pop)
+    (help-mode                    pop)
+    (helpful-mode                 pop)
+    ("\\*Man.*"                   pop)
 
-          ("\\`\\*Warnings\\*\\'"           :ignore t :regexp t)
-          ("\\*Async Shell Command\\*"      :ignore t)
-          ("\\*Async-native-compile-log\\*" :ignore t)
-          ("\\*Native-compile-Log\\*"       :ignore t)
-          ("\\*straight-process\\*"         :ignore t)
-          ("\\*flycheck errors\\*"          :ignore t)  ; use consult-flycheck
-          ("\\*Flymake diagnostics.*"       :ignore t)
-          ("\\*lsp-log\\*"                  :ignore t)
-          ("\\*nixd.*"                      :ignore t)
-          ("\\*tramp.*"                     :ignore t)
-          ("\\*Deletions\\*"                :ignore t)
-          ("\\*Quail Completions\\*"        :ignore t)
+    ;; ─ right: take over the right pane ──────────────────────────────
+    (Info-mode          right)
+    ("\\*devdocs\\*"    right)
+    ("\\*Org Agenda\\*" right)
+    (gptel-mode         right)
+    ("\\*gptel\\*"      right)
+    ("\\*Claude\\*"     right)
+    ("\\*ChatGPT\\*"    right)
+    (magit-status-mode  right)
+    (magit-log-mode     right)
+    (magit-diff-mode    right noselect)
 
-          ;; ─ bottom panel (no steal focus) ──────────────────────────
+    ;; ─ catch-all: unlisted buffers may not touch the layout ─────────
+    ;; must stay LAST — first match wins
+    ("\\`[^ ]"          right noselect))
+  "Single source of truth for buffer display behavior.")
 
-          (compilation-mode             :align below :size 0.25 :select nil :popup t)
-          ("\\*compilation\\*"          :align below :size 0.25 :select nil :popup t)
-          ("\\*Compile-Log\\*"          :align below :size 0.25 :select nil :popup t)
-          ("\\*Messages\\*"             :align below :size 0.25 :select nil :popup t)
-          ("\\*Backtrace\\*"            :align below :size 0.30 :select nil :popup t)
-          ("\\*vc-diff\\*"              :align below :size 0.30 :select nil :popup t)
-          ("\\*vc-change-log\\*"        :align below :size 0.30 :select nil :popup t)
-          ("\\*Shell Command Output\\*" :align below :size 0.25 :select nil :popup t)
-          ("\\*Pp Eval Output\\*"       :align below :size 0.25 :select nil :popup t)
+(defun hypermodern/popup--right-pane ()
+  "Return the right pane of the two-pane layout.
+Splits only when the frame has a single pane (restoring the canonical
+layout); with two or more panes, always the rightmost non-dedicated
+window — the layout is never altered."
+  (let ((all (window-list nil 'no-minibuf)))
+    (if (null (cdr all))
+        ;; a single pane is the only state that may split: it restores
+        ;; the canonical two-pane layout rather than violating it
+        (split-window (car all) nil 'right)
+      ;; otherwise: the rightmost window, unconditionally. dedication is
+      ;; the display fn's problem (it strips it) — preferring some other
+      ;; window here is how layouts get broken
+      (car (seq-sort-by (lambda (w) (car (window-edges w))) #'> all)))))
 
-          ;; ─ bottom panel (select) ──────────────────────────────────
+(defun hypermodern/display-buffer-right-pane (buffer alist)
+  "Display BUFFER in the right pane; the two-pane layout is inviolable.
+This function is total: it strips window dedication rather than fail,
+because a nil return here would send `display-buffer' to its fallback
+action, which splits the frame — the one thing that may never happen."
+  (let ((win (hypermodern/popup--right-pane)))
+    (when (window-dedicated-p win)
+      (set-window-dedicated-p win nil))
+    (window--display-buffer buffer win 'reuse alist)))
 
-          ("\\*rg\\*"                 :align below :size 0.4  :select t :popup t)
-          ("\\*xref\\*"               :align below :size 0.3  :select t :popup t)
-          ("\\*grep\\*"               :align below :size 0.4  :select t :popup t)
-          ("\\*Occur\\*"              :align below :size 0.3  :select t :popup t)
-          ("\\*eshell\\*"             :align below :size 0.3  :select t :popup t)
-          (eshell-mode                :align below :size 0.3  :select t :popup t)
-          (ghostel-mode               :align below :size 0.35 :select t :popup t)
-          ("\\*ghostel.*"             :align below :size 0.35 :select t :popup t)
-          (vterm-mode                 :align below :size 0.35 :select t :popup t)
-          (term-mode                  :align below :size 0.35 :select t :popup t)
+(defun hypermodern/popup--entry (rule)
+  "Compile one popup RULE into a `display-buffer-alist' entry."
+  (pcase-let* ((`(,pattern ,class ,flag) rule)
+               (condition (if (symbolp pattern)
+                              `(derived-mode . ,pattern)
+                            pattern)))
+    (if (eq class 'never)
+        `(,condition (display-buffer-no-window) (allow-no-window . t))
+      `(,condition
+        (display-buffer-reuse-window hypermodern/display-buffer-right-pane)
+        ,@(unless (eq flag 'noselect)
+            '((body-function . select-window)))))))
 
-          ;; ─ right side (reference material) ────────────────────────
+(setq display-buffer-alist
+      (mapcar #'hypermodern/popup--entry hypermodern/popup-rules))
 
-          (help-mode                  :align right :size 0.4  :select t   :popup t)
-          (helpful-mode               :align right :size 0.4  :select t   :popup t)
-          ("\\*Help\\*"               :align right :size 0.4  :select t   :popup t)
-          ("\\*helpful.*"             :align right :size 0.4  :select t   :popup t)
-          (Info-mode                  :align right :size 0.45 :select t   :popup t)
-          ("\\*info\\*"               :align right :size 0.45 :select t   :popup t)
-          ("\\*Man.*"                 :align right :size 0.4  :select t   :popup t)
-          ("\\*eldoc\\*"              :align right :size 0.35 :select nil :popup t)
-          ("\\*devdocs\\*"            :align right :size 0.45 :select t   :popup t)
+;; n.b. the dashboard used to be window-dedicated ("so nothing can
+;; replace it") — protection from the pre-table popup chaos. Under the
+;; three-behavior regime it was actively harmful: with both panes on
+;; the dashboard every window was dedicated, the right-pane action
+;; found nowhere to display, and display-buffer's FALLBACK popped a
+;; third split — the one forbidden thing. Nothing appears unbidden
+;; anymore, so the dashboard needs no bodyguard. Do not reintroduce.
 
-          ;; ─ ai buffers ─────────────────────────────────────────────
-
-          ("\\*gptel\\*"              :align right :size 0.45 :select t :popup t)
-          ("\\*Claude\\*"             :align right :size 0.45 :select t :popup t)
-          ("\\*ChatGPT\\*"            :align right :size 0.45 :select t :popup t)
-          (gptel-mode                 :align right :size 0.45 :select t :popup t)
-          ("\\*aider.*"               :align below :size 0.35 :select t :popup t)
-
-          ;; ─ Magit (special handling) ───────────────────────────────
-          (magit-status-mode          :same t :select t)
-          (magit-log-mode             :same t :select t)
-          (magit-diff-mode            :align below :size 0.5 :select nil :popup t)
-          (magit-process-mode         :align below :size 0.2 :select nil :popup t)
-          ("\\*magit-.*popup\\*"      :align below :size 0.35 :select t :popup t)
-          ("COMMIT_EDITMSG"           :align below :size 0.4 :select t :popup t)
-
-          ;; ─ lean4 ──────────────────────────────────────────────────
-
-          ("\\*Lean 4.*"             :align right :size 0.35 :select nil :popup t)
-          ("\\*Lean Goal\\*"         :align right :size 0.35 :select nil :popup t)
-          ("\\*Lean Info\\*"         :align right :size 0.35 :select nil :popup t)
-
-          ;; ─ Org/capture ────────────────────────────────────────────
-          ("\\*Org Agenda\\*"         :align right :size 0.4 :select t :popup t)
-          ("\\*Org Select\\*"         :align below :size 0.3 :select t :popup t)
-          (org-capture-mode           :align below :size 0.35 :select t :popup t)
-
-          ;; ─ Completion (never steal focus) ─────────────────────────
-          ("\\*Completions\\*"        :align below :size 0.3 :select nil :popup t)
-          ("\\*company-.*"            :ignore t)))
-  (shackle-mode 1))
-
-;; ── dashboard protection ───────────────────────────────────────────
-
-(defun hypermodern/protect-dashboard ()
-  "Mark the dashboard window as dedicated so nothing can replace it."
-
-  (when (and (boundp 'dashboard-buffer-name)
-             (string= (buffer-name) dashboard-buffer-name))
-    (set-window-dedicated-p (selected-window) t)))
-
-(add-hook 'dashboard-after-initialize-hook #'hypermodern/protect-dashboard)
-
-;; When something tries to use a dedicated window, pop a new one
-(setq switch-to-buffer-in-dedicated-window 'pop)
-
-;; Quick toggle for side windows (works with shackle's popups)
-(defun hypermodern/toggle-side-windows ()
-  "Toggle all side windows."
-  (interactive)
-
-  (if (window-with-parameter 'window-side)
-      (window-toggle-side-windows)
-    (message "No side windows to toggle")))
-
-(global-set-key (kbd "C-c w s") #'hypermodern/toggle-side-windows)
+;; n.b. no side-window toggle here anymore — the two-pane regime has no
+;; side windows at all. C-\ (popper) is the one clearing gesture.
 
 ;; ── Popper: Toggle popups with C-\ ─────────────────────────────────
+;; reference list derived from the popup table — never edit it directly
 
 (use-package popper
   :demand t
-  :after shackle
 
   :bind (("C-\\"   . popper-toggle)       ; toggle last popup
          ("C-M-\\" . popper-cycle)        ; cycle through popups
@@ -1259,45 +1290,12 @@
 
   :init
   (setq popper-reference-buffers
-        '(;; By mode
-          compilation-mode
-          help-mode
-          helpful-mode
-          Info-mode
-          ghostel-mode
-          vterm-mode
-          eshell-mode
-          term-mode
-          gptel-mode
-          magit-process-mode
-          magit-diff-mode
-          ;; By name pattern
-          "\\*Messages\\*"
-          "\\*compilation\\*"
-          "\\*Compile-Log\\*"
-          "\\*Backtrace\\*"
-          "\\*rg\\*"
-          "\\*grep\\*"
-          "\\*xref\\*"
-          "\\*Occur\\*"
-          "\\*Help\\*"
-          "\\*helpful.*"
-          "\\*info\\*"
-          "\\*Man.*"
-          "\\*gptel\\*"
-          "\\*Claude\\*"
-          "\\*aider.*"
-          "\\*vc-.*"
-          "\\*Shell Command Output\\*"
-          "\\*Pp Eval Output\\*"
-          "\\*Org Agenda\\*"
-          "\\*Lean 4.*"
-          "\\*Lean Goals\\*"
-          "\\*Lean Info\\*"
-          "COMMIT_EDITMSG"))
+        (cl-loop for (pattern class _flag) in hypermodern/popup-rules
+                 when (eq class 'pop)
+                 collect pattern))
 
   :config
-  (setq popper-display-control nil) ;; n.b. let shackle control placement...
+  (setq popper-display-control nil) ;; placement is display-buffer-alist's job
   (popper-mode 1))
 
 ;; ───────────────────────────────────────────────────────────────────
@@ -1678,8 +1676,9 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
   (setq gptel-use-tools t)
 
   ;; sensible defaults
+  ;; n.b. no gptel-display-buffer-action — gptel placement belongs to the
+  ;; popup table (display-buffer-alist wins over action args anyway)
   (setq gptel-default-mode 'markdown-mode
-        gptel-display-buffer-action '(display-buffer-pop-up-window)
 
         gptel-prompt-prefix-alist '((org-mode . "* ")
                                     (markdown-mode . "## ")

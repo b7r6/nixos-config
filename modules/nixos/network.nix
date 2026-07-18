@@ -115,6 +115,17 @@ in
         description = "Override the hostname this node registers in Tailscale.";
       };
 
+      operator = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        example = "b7r6";
+        description = ''
+          Unix user allowed to operate tailscaled without sudo (up/down,
+          exit nodes, prefs). Needed for tray/GUI control like trayscale;
+          status is readable by anyone regardless.
+        '';
+      };
+
       encryptState = mkOption {
         type = types.bool;
         default = false;
@@ -206,6 +217,10 @@ in
         authKeyFile = mkIf (ts.authKeyFile != null) ts.authKeyFile;
 
         extraDaemonFlags = lib.optional (!ts.encryptState) "--encrypt-state=false";
+
+        # applied by tailscaled-set on every boot — unlike extraUpFlags this
+        # doesn't depend on (re-)enrollment, so operator survives regardless
+        extraSetFlags = lib.optional (ts.operator != null) "--operator=${ts.operator}";
 
         extraUpFlags = lib.flatten [
           (lib.optional ts.acceptRoutes "--accept-routes")

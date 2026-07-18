@@ -60,9 +60,15 @@ in
           config = wezterm.config_builder()
         end
 
-        -- cursor
+        -- cursor: blinking block, owned here at idle — same single-writer
+        -- contract as ghostty (see the tmux config in modules/home/shell).
+        -- n.b. wezterm blinks by *animating a fade* on the animation_fps
+        -- budget, which defaults to 1 — a one-frame-per-second crossfade that
+        -- itself reads as stutter. Constant easing makes blink a hard on/off.
         config.default_cursor_style = 'BlinkingBlock'
         config.cursor_blink_rate = 500
+        config.cursor_blink_ease_in = 'Constant'
+        config.cursor_blink_ease_out = 'Constant'
 
         -- font configuration
         config.font = wezterm.font('${cfg.font.name}', {weight='${cfg.font.weight}'})
@@ -97,12 +103,13 @@ in
         font-size = cfg.font.size;
         font-feature = cfg.font.features;
 
-        # Cursor: ALWAYS a blinking block, everywhere, no exceptions.
-        # cursor-style/-blink set the base style; `no-cursor` shell-integration
-        # stops the shell from emitting cursor-shape escapes (e.g. beam at the
-        # prompt), so neither the shell nor ghostty's own integration overrides
-        # the block. (App-driven DECSCUSR escapes from e.g. vim are a separate
-        # matter handled in those apps; this nails the terminal + shell layer.)
+        # Cursor: blinking block, owned here at idle. Under the single-writer
+        # contract (see the tmux config in modules/home/shell), the terminal's
+        # own config is what rules when no app asserts a style — app DECSCUSR
+        # (e.g. neovim's guicursor) overrides it, and a reset hands control
+        # back here. `no-cursor` stops ghostty's shell integration from
+        # asserting a bar at the prompt, which would make the shell a second
+        # writer.
         cursor-style = "block";
         cursor-style-blink = true;
         shell-integration-features = "no-cursor";

@@ -215,21 +215,38 @@ in
         set -ga terminal-features ",xterm-ghostty:RGB:sixel"
         set -ga terminal-features ",ghostty:RGB:sixel"
 
+        # n.b. do NOT add the `sync` terminal-feature (DECSET 2026 redraw
+        # bracketing). It cures linewise tearing from bursty remote TUIs, but
+        # with tmux 3.7 + ghostty 1.3 the brackets throttle throughput to a
+        # crawl under heavy output and choose-tree redraws arrive with an
+        # unclosed bracket — ghostty withholds the frame and the view goes
+        # blank. Revisit when the pairing handles 2026 under load; tearing
+        # over ssh is better addressed with mosh or local-emacs-over-TRAMP.
+
         # Ensure SSH_TTY is updated in new windows
         set -ag update-environment "SSH_TTY"
 
-        # ── Cursor: always a blinking block, even inside tmux ──────────────────
-        # Inside tmux, TMUX owns the cursor — ghostty's cursor-style never reaches
-        # the screen. Two fixes:
-        #  1. Teach tmux that the outer terminals CAN set the cursor shape, by
-        #     adding the DECSCUSR Ss/Se capabilities to their overrides (the
-        #     tmux-256color terminfo lacks them), so shape escapes pass through.
-        #  2. Pin tmux's OWN cursor to a blinking block (tmux 3.2+ cursor-style),
-        #     so even at the tmux layer with no app driving it, it's a block.
+        # ── Cursor: single-writer discipline ───────────────────────────────────
+        # DECSCUSR (`CSI Ps SP q`) is last-writer-wins, and every sequence the
+        # outer terminal receives restarts its blink timer — so exactly one
+        # layer may speak at a time. The contract across the stack:
+        #
+        #   idle shell → terminal config rules (ghostty/wezterm: blinking
+        #                block), because nothing else speaks
+        #   neovim     → asserts its style via guicursor; tmux passes it
+        #                through via the Ss/Se capabilities below (the
+        #                tmux-256color terminfo lacks them, so without these
+        #                overrides tmux eats the escapes)
+        #   tmux       → stays silent. do NOT set `cursor-style`: it makes tmux
+        #                re-assert the style on every redraw, flapping between
+        #                blinking and steady block (measured: 11 DECSCUSR
+        #                writes in 8s of light output) — each write resets the
+        #                outer blink timer, which reads as stutter
+        #
+        # n.b. the xterm-256color line covers wezterm (its default TERM).
         set -ga terminal-overrides ',xterm-ghostty:Ss=\E[%p1%d q:Se=\E[ q'
         set -ga terminal-overrides ',ghostty:Ss=\E[%p1%d q:Se=\E[ q'
         set -ga terminal-overrides ',xterm-256color:Ss=\E[%p1%d q:Se=\E[ q'
-        set -g cursor-style blinking-block
 
         # Enable passthrough for escape sequences (needed for kitty graphics)
         set -g allow-passthrough all
