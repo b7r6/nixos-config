@@ -223,6 +223,8 @@ let renderDashboard =
 
         let initState = { panels = [] : List FullPanelJSON, nextId = 1, y = 0 }
 
+        let Line = List T.Panel.Type
+
         let processRow =
               \(state : State) ->
               \(r : T.Row.Type) ->
@@ -234,65 +236,143 @@ let renderDashboard =
                       , y = state.y + 1
                       }
 
-                let PState =
-                      { panels : List FullPanelJSON
-                      , nextId : Natural
-                      , x : Natural
-                      , y : Natural
-                      , maxH : Natural
-                      }
+                -- Pass 1: greedily group panels into lines that fit in 24 cols.
+                let GroupAcc = { lines : List Line, cur : Line, curW : Natural }
 
-                let initPS =
-                      { panels = afterRow.panels
-                      , nextId = afterRow.nextId
-                      , x = 0
-                      , y = afterRow.y
-                      , maxH = 0
-                      }
+                let groupInit =
+                      { lines = [] : List Line, cur = [] : Line, curW = 0 }
 
-                let processPanel =
-                      \(ps : PState) ->
+                let groupStep =
+                      \(a : GroupAcc) ->
                       \(p : T.Panel.Type) ->
-                        let wrap =
-                              Prelude.Natural.greaterThan (ps.x + p.width) 24
+                        if    Prelude.Natural.greaterThan (a.curW + p.width) 24
+                        then  { lines = a.lines # [ a.cur ]
+                              , cur = [ p ]
+                              , curW = p.width
+                              }
+                        else  { lines = a.lines
+                              , cur = a.cur # [ p ]
+                              , curW = a.curW + p.width
+                              }
 
-                        let x = if wrap then 0 else ps.x
-
-                        let y = if wrap then ps.y + ps.maxH else ps.y
-
-                        let maxH =
-                              if    wrap
-                              then  p.height
-                              else  if Prelude.Natural.greaterThan
-                                         p.height
-                                         ps.maxH
-                              then  p.height
-                              else  ps.maxH
-
-                        let panelJson =
-                              makePanel
-                                ps.nextId
-                                { x, y, w = p.width, h = p.height }
-                                p
-
-                        in  { panels = ps.panels # [ panelJson ]
-                            , nextId = ps.nextId + 1
-                            , x = x + p.width
-                            , y
-                            , maxH
-                            }
-
-                let finalPS =
+                let grouped =
                       Prelude.List.foldLeft
                         T.Panel.Type
-                        PState
+                        GroupAcc
                         r.panels
-                        initPS
-                        processPanel
+                        groupInit
+                        groupStep
 
-                in  { panels = finalPS.panels
-                    , nextId = finalPS.nextId
-                    , y = finalPS.y + finalPS.maxH
+                let allLines =
+                      grouped.lines
+                      # (       if Natural/isZero
+                                    (List/length T.Panel.Type grouped.cur)
+                          then  [] : List Line
+                          else  [ grouped.cur ]
+                        )
+
+                -- Pass 2: lay each line out at a uniform height (the line's
+                -- tallest panel) and stretch it to fill all 24 cols — the last
+                -- panel absorbs the slack, so no ragged edge, no short-panel gap.
+                let LayoutAcc =
+                      { panels : List FullPanelJSON
+                      , nextId : Natural
+                      , y : Natural
+                      }
+
+                let layoutLine =
+                      \(la : LayoutAcc) ->
+                      \(line : Line) ->
+                        let maxH =
+                              Prelude.List.foldLeft
+                                T.Panel.Type
+                                Natural
+                                line
+                                0
+                                ( \(acc : Natural) ->
+                                  \(p : T.Panel.Type) ->
+                                    if    Prelude.Natural.greaterThan
+                                            p.height
+                                            acc
+                                    then  p.height
+                                    else  acc
+                                )
+
+                        let sumW =
+                              Prelude.List.foldLeft
+                                T.Panel.Type
+                                Natural
+                                line
+                                0
+                                ( \(acc : Natural) ->
+                                  \(p : T.Panel.Type) ->
+                                    acc + p.width
+                                )
+
+                        let slack = Natural/subtract sumW 24
+
+                        let n = List/length T.Panel.Type line
+
+                        let EmitAcc =
+                              { panels : List FullPanelJSON
+                              , nextId : Natural
+                              , x : Natural
+                              , i : Natural
+                              }
+
+                        let emitStep =
+                              \(ea : EmitAcc) ->
+                              \(p : T.Panel.Type) ->
+                                let isLast =
+                                      Natural/isZero
+                                        (Natural/subtract (ea.i + 1) n)
+
+                                let w =
+                                      if isLast then p.width + slack else p.width
+
+                                let panelJson =
+                                      makePanel
+                                        ea.nextId
+                                        { x = ea.x, y = la.y, w, h = maxH }
+                                        p
+
+                                in  { panels = ea.panels # [ panelJson ]
+                                    , nextId = ea.nextId + 1
+                                    , x = ea.x + w
+                                    , i = ea.i + 1
+                                    }
+
+                        let emitted =
+                              Prelude.List.foldLeft
+                                T.Panel.Type
+                                EmitAcc
+                                line
+                                { panels = la.panels
+                                , nextId = la.nextId
+                                , x = 0
+                                , i = 0
+                                }
+                                emitStep
+
+                        in  { panels = emitted.panels
+                            , nextId = emitted.nextId
+                            , y = la.y + maxH
+                            }
+
+                let laidOut =
+                      Prelude.List.foldLeft
+                        Line
+                        LayoutAcc
+                        allLines
+                        { panels = afterRow.panels
+                        , nextId = afterRow.nextId
+                        , y = afterRow.y
+                        }
+                        layoutLine
+
+                in  { panels = laidOut.panels
+                    , nextId = laidOut.nextId
+                    , y = laidOut.y
                     }
 
         let finalState =
