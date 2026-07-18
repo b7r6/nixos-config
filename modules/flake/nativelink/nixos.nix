@@ -97,7 +97,17 @@ let
   # shimmer) doesn't demand an aarch64 dhall build at eval; the config text is
   # host-independent given the host name.
   buildPkgs = pkgs.buildPackages;
-  fleetDir = flake.self + "/modules/flake/nativelink/data";
+
+  # Content-address JUST the dhall data dir, not a sub-path of flake.self.
+  # `flake.self + "/…"` drags the WHOLE flake source into the render's inputs,
+  # so every unrelated commit gives the rendered config a new store path and
+  # `restartIfChanged` bounces nativelink + nix-cache on every switch. This
+  # copy is hashed only by the dhall files, so the config path — and the
+  # restart — is stable unless the fleet definition itself changes.
+  fleetDir = builtins.path {
+    name = "nativelink-fleet-dhall";
+    path = flake.self + "/modules/flake/nativelink/data";
+  };
 
   renderedConfig =
     buildPkgs.runCommand "nativelink-${cfg.dhallHost}.json"
