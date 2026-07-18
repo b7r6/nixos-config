@@ -24,6 +24,7 @@
     ./packages.nix
     ./greetd.nix
     ./kernel.nix
+    ./performance.nix
     ./secrets.nix
     ./state.nix
     ../flake/registry/nixos.nix
