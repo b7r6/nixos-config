@@ -74,6 +74,16 @@ let rateGaugeByHost =
       \(metric : Text) ->
         "SELECT time, node, sum(rate) as value FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, ${host} as node, runningDifference(max(Value)) / 30 as rate FROM ${gauge} WHERE MetricName = '${metric}' AND ${tf} AND ${hostFilter} GROUP BY time, node ORDER BY node, time) WHERE rate >= 0 GROUP BY time, node ORDER BY time"
 
+-- Per-worker scheduler metrics embed a per-connection UUID in the metric NAME
+-- (workers_workers_<uuid>_run_action_successes …) rather than in a label — the
+-- scheduler publishes them all under its own host. Match by LIKE, pull the key
+-- out of the name with a regex capture group, then rate it like rateGaugeByHost.
+let rateGaugeByExtract =
+      \(likePattern : Text) ->
+      \(regex : Text) ->
+      \(keyAlias : Text) ->
+        "SELECT time, ${keyAlias}, sum(rate) as value FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, extractGroups(MetricName, '${regex}')[1] as ${keyAlias}, runningDifference(max(Value)) / 30 as rate FROM ${gauge} WHERE MetricName LIKE '${likePattern}' AND ${tf} AND ${hostFilter} GROUP BY time, ${keyAlias} ORDER BY ${keyAlias}, time) WHERE rate >= 0 GROUP BY time, ${keyAlias} ORDER BY time"
+
 let statLogCount =
       \(unitName : Text) ->
         "SELECT count() as value FROM ${logs} WHERE ${unit} = '${unitName}' AND ${tfLog}"
@@ -112,6 +122,7 @@ in  { gauge
     , statGauge
     , gaugeByHost
     , rateGaugeByHost
+    , rateGaugeByExtract
     , statLogCount
     , statLogErrors
     , logVolume

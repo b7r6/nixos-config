@@ -198,6 +198,30 @@ let dashboard =
             ]
           }
         , T.Row::{
+          , title = "Scheduler & Workers (scraped /metrics)"
+          , panels =
+            [ P.stat
+                "Connected workers"
+                "SELECT count(DISTINCT extractGroups(MetricName, 'workers_workers_([0-9a-f_]+)_connected_timestamp')[1]) as value FROM ${S.gauge} WHERE MetricName LIKE 'nativelink_schedulers_%workers_workers_%_connected_timestamp' AND TimeUnix > now() - INTERVAL 2 MINUTE"
+            , P.timeseries
+                "Actions completed / s by worker"
+                T.Unit.Short
+                ( S.rateGaugeByExtract
+                    "nativelink_schedulers_%_run_action_successes"
+                    "workers_workers_([0-9a-f_]+)_run_action_successes"
+                    "worker"
+                )
+            , P.timeseries
+                "Action failures / s by worker"
+                T.Unit.Short
+                ( S.rateGaugeByExtract
+                    "nativelink_schedulers_%_run_action_failures"
+                    "workers_workers_([0-9a-f_]+)_run_action_failures"
+                    "worker"
+                )
+            ]
+          }
+        , T.Row::{
           , title = "CAS — Fast-Tier Internals (scraped /metrics)"
           , panels =
             [ P.stat
