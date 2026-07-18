@@ -113,12 +113,15 @@ let casServerConfig =
             , name = "CAS_LOCAL"
             , backend =
                 r.fastSlow
-                  ( r.filesystem
-                      "${storeRoot}/content"
-                      "${storeRoot}/tmp"
-                      h.casFastBytes
+                  ( r.cacheMetrics
+                      "cas-fast"
+                      ( r.filesystem
+                          "${storeRoot}/content"
+                          "${storeRoot}/tmp"
+                          h.casFastBytes
+                      )
                   )
-                  (r.r2 r2Account r2Bucket "cas/")
+                  (r.cacheMetrics "cas-slow" (r.r2 r2Account r2Bucket "cas/"))
             }
           , schema.Store::{
             , name = "AC_LOCAL"

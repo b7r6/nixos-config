@@ -106,6 +106,19 @@ let fastSlow =
           ]
         : Backend
 
+let cacheMetrics =
+      \(cacheType : Text) ->
+      \(inner : Backend) ->
+          [ { mapKey = "cache_metrics"
+            , mapValue =
+                obj
+                  [ { mapKey = "cache_type", mapValue = str cacheType }
+                  , { mapKey = "backend", mapValue = wrap inner }
+                  ]
+            }
+          ]
+        : Backend
+
 let r2 =
       \(accountId : Text) ->
       \(bucket : Text) ->
@@ -627,6 +640,7 @@ in  { filesystem
     , grpc
     , ref
     , fastSlow
+    , cacheMetrics
     , r2
     , verify
     , completeness
