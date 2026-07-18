@@ -7,6 +7,10 @@
 }:
 let
   cfg = config.hyper-modern-nixos.nix;
+  # The NativeLink Nix cache client (nl-nix / nl-watch-store) from the fork,
+  # for this host's architecture.
+  nlClient =
+    flake.inputs.nativelink-nix.packages.${pkgs.stdenv.hostPlatform.system}.nativelink-nix-client;
 in
 {
   imports = [
@@ -71,16 +75,23 @@ in
       ];
     };
 
-    home.packages = lib.mkIf cfg.development.enable (
-      with pkgs;
-      [
-        nixd
-        nixfmt
-        manix
-        statix
-        treefmt
-      ]
-    );
+    # nl-nix on PATH — the cache client for the substituter configured above.
+    # `nl-nix flake .` builds a flake and pushes its closures; NL_NIX_CACHE
+    # defaults it at the local cache so no --to is needed interactively.
+    home.packages =
+      [ nlClient ]
+      ++ lib.optionals cfg.development.enable (
+        with pkgs;
+        [
+          nixd
+          nixfmt
+          manix
+          statix
+          treefmt
+        ]
+      );
+
+    home.sessionVariables.NL_NIX_CACHE = "http://127.0.0.1:50071/nix/main";
 
     # nix-index for command-not-found suggestions
     programs.nix-index = lib.mkIf cfg.nix-index.enable {
