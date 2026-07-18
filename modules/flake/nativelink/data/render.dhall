@@ -99,7 +99,12 @@ let fastSlow =
             , mapValue =
                 obj
                   [ { mapKey = "fast", mapValue = wrap fast }
-                  , { mapKey = "fast_direction", mapValue = str "get" }
+                  , -- write-through: populate the local fast tier on WRITE (not
+                    -- just on read). With "get" (write-around) uploaded build
+                    -- outputs land in R2 only, so every cache-hit read-back paid
+                    -- a ~100ms R2 round-trip instead of a local NVMe read. "both"
+                    -- (nativelink's default) makes read-back local and fast.
+                    { mapKey = "fast_direction", mapValue = str "both" }
                   , { mapKey = "slow", mapValue = wrap slow }
                   ]
             }
