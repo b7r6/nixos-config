@@ -89,6 +89,7 @@ let Server =
           , cas_witness : Optional CasWitnessSvc
           , admin : Bool
           , health : Bool
+          , prometheus : Bool
           }
       , default =
         { tls = None Tls
@@ -102,6 +103,7 @@ let Server =
         , cas_witness = None CasWitnessSvc
         , admin = False
         , health = False
+        , prometheus = False
         }
       }
 

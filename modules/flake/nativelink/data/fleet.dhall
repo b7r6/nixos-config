@@ -140,6 +140,7 @@ let casServerConfig =
             , bytestream =
               [ { instance_name = "main", cas_store = "CAS_LOCAL" } ]
             , health = True
+            , prometheus = True
             }
           ]
         }
@@ -204,6 +205,7 @@ let schedulerConfig =
             [ { instance_name = "main", cas_store = "CAS_MAIN_STORE" } ]
           , capabilities =
             [ { instance_name = "main", scheduler = "MAIN_SCHEDULER" } ]
+          , prometheus = True
           }
         , schema.Server::{
           , name = "worker_api"

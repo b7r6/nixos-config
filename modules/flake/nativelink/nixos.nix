@@ -751,6 +751,16 @@ in
         class = "reconstructible";
       };
 
+      # Scrape nativelink's Prometheus /metrics (services.experimental_prometheus,
+      # enabled in the Dhall for the cas + public servers) into the OTel pipeline:
+      # store fill/eviction from the cas server (:50052), scheduler/worker state
+      # from the public server (:50051, only up on the scheduler — a down target
+      # is harmless). The MetricsComponent tree the fork now exports.
+      hyper-modern-nixos.observability.otel.agent.scrapeTargets = [
+        "127.0.0.1:50052"
+        "127.0.0.1:50051"
+      ];
+
       assertions = [
         {
           assertion = cfg.role != "worker" || cfg.workerApiEndpoint != "grpc://127.0.0.1:50061";

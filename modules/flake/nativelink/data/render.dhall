@@ -504,6 +504,14 @@ let serverToJSON =
                         ]
                   else  [] : List (Map/Entry Text JSON.Type)
                 )
+              # ( if    s.prometheus
+                  then  [ { mapKey = "experimental_prometheus"
+                          , mapValue =
+                              obj ([] : List (Map/Entry Text JSON.Type))
+                          }
+                        ]
+                  else  [] : List (Map/Entry Text JSON.Type)
+                )
 
         in  obj
               [ { mapKey = "name", mapValue = str s.name }
