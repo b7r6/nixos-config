@@ -55,7 +55,7 @@ let rateBucketed =
       \(extraFilter : Text) ->
       \(groupKeys : Text) ->
       \(groupAliases : Text) ->
-        "SELECT time, ${groupAliases}, sum(rate) as value FROM (SELECT time, ${groupAliases}, runningDifference(val) / 30 as rate FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, ${groupKeys}, max(Value) as val FROM ${sum} WHERE MetricName = '${metric}' AND ${extraFilter} AND ${tf} AND ${hostFilter} GROUP BY time, ${groupKeys} ORDER BY ${groupKeys}, time)) WHERE rate >= 0 GROUP BY time, ${groupAliases} ORDER BY time"
+        "SELECT time, ${groupAliases}, sum(rate) as value FROM (SELECT time, ${groupAliases}, runningDifference(val) / 30 as rate FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, ${groupKeys} as ${groupAliases}, max(Value) as val FROM ${sum} WHERE MetricName = '${metric}' AND ${extraFilter} AND ${tf} AND ${hostFilter} GROUP BY time, ${groupAliases} ORDER BY ${groupAliases}, time)) WHERE rate >= 0 GROUP BY time, ${groupAliases} ORDER BY time"
 
 let statGauge =
       \(metric : Text) ->
