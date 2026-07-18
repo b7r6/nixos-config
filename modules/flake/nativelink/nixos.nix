@@ -70,11 +70,15 @@ let
   cfg = config.hyper-modern-nixos.nativelink;
   inherit (flake) inputs;
 
+  # The RE server runs the straylight fork (inputs.nativelink-nix), not upstream
+  # TraceMachina, so its fixes reach the CAS/AC/execution path too — e.g. the
+  # transport-error -> Unavailable coding and the widened buf_channel that let
+  # multi-GiB toolchain uploads land instead of resetting mid-stream.
   nativelinkPkg =
     if cfg.package != null then
       cfg.package
     else
-      inputs.nativelink.packages.${pkgs.stdenv.hostPlatform.system}.nativelink;
+      inputs.nativelink-nix.packages.${pkgs.stdenv.hostPlatform.system}.nativelink;
 
   # Local store root (matches storeRoot in nativelink/fleet.dhall); used by the
   # systemd tmpfiles / service wiring below.
@@ -238,9 +242,9 @@ in
       type = lib.types.nullOr lib.types.package;
       default = null;
 
-      defaultText = lib.literalExpression "inputs.nativelink.packages.\${system}.nativelink";
+      defaultText = lib.literalExpression "inputs.nativelink-nix.packages.\${system}.nativelink";
 
-      description = "NativeLink package. Defaults to the flake input for this host's architecture.";
+      description = "NativeLink package. Defaults to the straylight fork (inputs.nativelink-nix) for this host's architecture.";
     };
 
     role = lib.mkOption {
