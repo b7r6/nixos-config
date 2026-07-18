@@ -198,6 +198,32 @@ let dashboard =
             ]
           }
         , T.Row::{
+          , title = "CAS — Fast-Tier Internals (scraped /metrics)"
+          , panels =
+            [ P.stat
+                "CAS fast-tier fill — %"
+                "SELECT round(100 * sum(fill) / greatest(sum(cap), 1), 1) as value FROM (SELECT ${S.host} as h, avgIf(Value, MetricName LIKE '%sum_store_size') as fill, avgIf(Value, MetricName LIKE '%max_bytes') as cap FROM ${S.gauge} WHERE MetricName IN ('nativelink_stores_CAS_LOCAL_fast_store_backend_evicting_map_sum_store_size', 'nativelink_stores_CAS_LOCAL_fast_store_backend_evicting_map_max_bytes') AND TimeUnix > now() - INTERVAL 2 MINUTE GROUP BY h)"
+            , P.timeseries
+                "Fast-tier fill by host"
+                T.Unit.Bytes
+                ( S.gaugeByHost
+                    "nativelink_stores_CAS_LOCAL_fast_store_backend_evicting_map_sum_store_size"
+                )
+            , P.timeseries
+                "Fast-tier inserts by host"
+                T.Unit.BytesPerSec
+                ( S.rateGaugeByHost
+                    "nativelink_stores_CAS_LOCAL_fast_store_backend_evicting_map_lifetime_inserted_bytes"
+                )
+            , P.timeseries
+                "Fast-tier evictions by host"
+                T.Unit.BytesPerSec
+                ( S.rateGaugeByHost
+                    "nativelink_stores_CAS_LOCAL_fast_store_backend_evicting_map_evicted_bytes"
+                )
+            ]
+          }
+        , T.Row::{
           , title = "Errors (all nativelink units)"
           , panels =
             [ P.table
