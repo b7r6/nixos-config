@@ -110,6 +110,29 @@ let
       };
     }
   );
+
+  # THE fix for the GB10 clock cap, on the MODERN kernel (keeps current btrfs
+  # etc. instead of pinning NVIDIA's 6.17). Mainline's cppc_cpufreq never calls
+  # cppc_set_enable(), so GB10's master CPPC Enable register stays off and the
+  # SCP ignores every OS perf request — the big cores free-run at CPPC
+  # lowest_perf (~1.37 GHz, ~36% of rated). This one-liner enables CPPC in
+  # cpu_init; proven live (cores 1.37 -> 3.9 GHz). -EOPNOTSUPP is ignored, so
+  # it's a no-op on platforms without an Enable register. Root cause was NOT
+  # firmware/power/RMA. Full postmortem + repro + red herrings: ./CLOCK-CAP.md
+  cppcDvfsPatches = [
+    {
+      name = "cppc-enable-on-init";
+      patch = ./patches/cppc-0001-enable-cppc-on-init.patch;
+    }
+  ];
+
+  # Standard modern kernel + the CPPC enable fix. The `.override` function form
+  # preserves any kernelPatches nixpkgs already carries.
+  cppcPatchedLatest = pkgs.linuxPackagesFor (
+    pkgs.linux_latest.override (old: {
+      kernelPatches = (old.kernelPatches or [ ]) ++ cppcDvfsPatches;
+    })
+  );
 in
 {
   options.hardware.dgx-spark = {
@@ -131,7 +154,7 @@ in
     # NOTE: The mainline r8169 driver claims the RTL8127 PCI ID but cannot
     # actually drive the PHY. We use the out-of-tree r8127 driver instead and
     # blacklist r8169 to prevent it from binding first.
-    boot.kernelPackages = if cfg.useNvidiaKernel then nvidiaKernel else pkgs.linuxPackages_latest;
+    boot.kernelPackages = if cfg.useNvidiaKernel then nvidiaKernel else cppcPatchedLatest;
 
     # Out-of-tree Realtek RTL8127 10GbE driver
     boot.extraModulePackages = [

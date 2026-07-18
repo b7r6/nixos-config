@@ -1,0 +1,34 @@
+From: straylight <b7r6@straylight>
+Date: Sat, 18 Jul 2026 00:00:00 +0000
+Subject: [PATCH] cpufreq: CPPC: set the master CPPC Enable register on init
+
+Mainline's cppc_cpufreq never calls cppc_set_enable(), so on platforms
+with a CPPC Enable register (NVIDIA GB10 / Grace-Blackwell), the platform
+ignores every OS desired/min/max/EPP request and free-runs the cores at
+lowest_perf (~36% of rated). Enable CPPC in cpu_init so cppc_set_perf()
+below actually takes effect. -EOPNOTSUPP (no Enable register) is ignored,
+so this is a no-op on platforms that don't need it.
+
+Proven on GB10: cores 1.37 GHz -> 3.9 GHz after cppc_set_enable(true).
+---
+--- a/drivers/cpufreq/cppc_cpufreq.c	2026-07-18 14:38:18.650195653 -0400
++++ b/drivers/cpufreq/cppc_cpufreq.c	2026-07-18 14:38:18.669688710 -0400
+@@ -704,6 +704,18 @@
+ 	if (caps->highest_perf > caps->nominal_perf)
+ 		policy->boost_supported = true;
+ 
++	/*
++	 * Enable CPPC on the CPU. Platforms with a CPPC Enable register
++	 * (e.g. NVIDIA GB10 / Grace-Blackwell) ignore all OS-requested
++	 * performance (desired/min/max/EPP) until this master enable is set,
++	 * leaving the cores pinned at lowest_perf. Mainline never sets it.
++	 * Best-effort: -EOPNOTSUPP just means there is no Enable register,
++	 * which is the common case and not an error.
++	 */
++	ret = cppc_set_enable(cpu, true);
++	if (ret && ret != -EOPNOTSUPP)
++		pr_debug("Failed to enable CPPC on CPU:%d, ret:%d\n", cpu, ret);
++
+ 	/* Set policy->cur to max now. The governors will adjust later. */
+ 	policy->cur = cppc_perf_to_khz(caps, caps->highest_perf);
+ 	cpu_data->perf_ctrls.desired_perf =  caps->highest_perf;
