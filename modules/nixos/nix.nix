@@ -83,7 +83,8 @@ in
         "nix-postgres-artifacts:dGZlQOvKcNEjvT7QEeBMKja1bMnGqCiQ5vzg4IZ4Qbk="
         # NativeLink Nix cache on guccimane (hyper-modern-nixos.nativelink.nixCache);
         # trusted fleet-wide so any host can substitute its signed paths.
-        "nativelink-nix-cache-1:ccYfraJDD/wVIFzw6LJ7psrYahwv4Wztad4XHJcdG4M="
+        # Rotated 2026-07-18 (retired ccYf… after the same-name signature poison).
+        "nativelink-nix-cache-1:6CNnYJCDa/l4YiJ+LFEsvytfymk6vo5p8O4AsmgkkBw="
       ];
     };
 

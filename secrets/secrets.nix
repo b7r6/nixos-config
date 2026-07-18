@@ -167,7 +167,8 @@ in
   # nixCache.signingKeyFile). One line: `<name>:<base64>`. The server signs every
   # narinfo with it; the public half is trusted fleet-wide in modules/nixos/nix.nix
   # so require-sigs consumers can substitute. Public key:
-  #   nativelink-nix-cache-1:ccYfraJDD/wVIFzw6LJ7psrYahwv4Wztad4XHJcdG4M=
+  #   nativelink-nix-cache-1:6CNnYJCDa/l4YiJ+LFEsvytfymk6vo5p8O4AsmgkkBw=
+  # Rotated 2026-07-18 (retired ccYf… after the same-name signature poison bug).
   # Regenerate:  nix key generate-secret --key-name nativelink-nix-cache-1
   "agenix/machines/nativelink-nix-cache-key.age".publicKeys = mkGlobalSecret;
 
