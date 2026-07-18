@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                                       // hyper-modern-nixos // performance
+#                                           // hypermodern // nix // performance
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # We do performance here. This module makes the whole fleet a first-class
@@ -90,19 +90,24 @@ in
       ]
       ++ (with pkgs; [
         perf
+
         # BPF-based tracing/observability
         bpftrace
         bcc
+
         # syscall / library-call tracers
         strace
         ltrace
+
         # sampling + memory profilers
         valgrind
         heaptrack
         flamegraph
         hotspot
+
         # kernel function tracing
         trace-cmd
+
         # system stats, NUMA + topology (Grace is NUMA — hwloc/numactl matter)
         sysstat
         numactl

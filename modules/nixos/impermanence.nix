@@ -93,6 +93,11 @@ in
       type = lib.types.listOf lib.types.str;
       default = [
         "/etc/machine-id"
+        # Host key that systemd-creds uses to decrypt LoadCredentialEncrypted=
+        # credentials (no TPM on these hosts). libvirtd persists its *encrypted*
+        # secrets-encryption-key under /var/lib/libvirt; without persisting this
+        # host key the two drift on a root wipe and libvirtd fails 243/CREDENTIALS.
+        "/var/lib/systemd/credential.secret"
       ];
       description = "System files to persist";
     };
