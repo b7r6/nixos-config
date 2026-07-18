@@ -126,7 +126,9 @@ let casServerConfig =
           , schema.Store::{
             , name = "AC_LOCAL"
             , backend =
-                r.fastSlow (r.memory 67108864) (r.r2 r2Account r2Bucket "ac/")
+                r.fastSlow
+                  (r.cacheMetrics "ac-fast" (r.memory 67108864))
+                  (r.cacheMetrics "ac-slow" (r.r2 r2Account r2Bucket "ac/"))
             }
           ]
         , servers =
@@ -171,8 +173,14 @@ let acShardRing =
 let schedulerConfig =
       schema.Config::{
       , stores =
-        [ schema.Store::{ name = "CAS_MAIN_STORE", backend = casShardRing }
-        , schema.Store::{ name = "AC_MAIN_STORE", backend = acShardRing }
+        [ schema.Store::{
+          , name = "CAS_MAIN_STORE"
+          , backend = r.cacheMetrics "cas-main" casShardRing
+          }
+        , schema.Store::{
+          , name = "AC_MAIN_STORE"
+          , backend = r.cacheMetrics "ac-main" acShardRing
+          }
         ]
       , schedulers =
         [ schema.Scheduler::{
