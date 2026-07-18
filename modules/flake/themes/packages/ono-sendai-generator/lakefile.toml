@@ -5,6 +5,6 @@ defaultTargets = ["OnoSendaiGen"]
 [[lean_lib]]
 name = "OnoSendaiGen"
 
-[[executable]]
+[[lean_exe]]
 name = "ono-sendai-gen"
 root = "Main"
