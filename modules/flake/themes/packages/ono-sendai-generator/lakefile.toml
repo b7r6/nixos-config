@@ -1,6 +1,6 @@
 name = "ono-sendai-gen"
 version = "1.0.0"
-defaultTargets = ["OnoSendaiGen"]
+defaultTargets = ["OnoSendaiGen", "ono-sendai-gen"]
 
 [[lean_lib]]
 name = "OnoSendaiGen"

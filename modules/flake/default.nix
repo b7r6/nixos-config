@@ -69,11 +69,16 @@
     };
 
     # n.b. cross-cutting checks (`x86_64-linux` VM tests)...
-    checks = inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
-      state-audit = import ../../checks/state-audit.nix { inherit pkgs inputs; };
-      supabase-native = import ../../checks/supabase-native.nix { inherit pkgs inputs; };
-      clickhouse-keeper = import ../../checks/clickhouse-keeper.nix { inherit pkgs; };
-      clickhouse-server = import ../../checks/clickhouse-server.nix { inherit pkgs; };
-    };
+    checks =
+      inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
+        state-audit = import ../../checks/state-audit.nix { inherit pkgs inputs; };
+        supabase-native = import ../../checks/supabase-native.nix { inherit pkgs inputs; };
+        clickhouse-keeper = import ../../checks/clickhouse-keeper.nix { inherit pkgs; };
+        clickhouse-server = import ../../checks/clickhouse-server.nix { inherit pkgs; };
+      }
+      // {
+        # Pure computation (no VM) — runs on every system
+        ono-sendai-parity = import ../../checks/ono-sendai-parity.nix { inherit pkgs; };
+      };
   };
 }
