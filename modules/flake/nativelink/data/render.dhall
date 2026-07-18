@@ -323,6 +323,28 @@ let serverToJSON =
         let httpInner
             : List (Map/Entry Text JSON.Type)
             =   [ { mapKey = "socket_address", mapValue = str s.socket_address }
+                , -- HTTP/2 flow control for large CAS ByteStream uploads. The
+                  -- default per-stream window (~64 KiB) drains in a frame or two
+                  -- of a multi-GiB blob; with a slow downstream shard that stalls
+                  -- the stream to a mid-stream reset. Enable adaptive windows and
+                  -- raise the initial stream/connection windows so a toolchain
+                  -- upload lands in one shot.
+                  { mapKey = "advanced_http"
+                  , mapValue =
+                      obj
+                        [ { mapKey =
+                              "experimental_http2_initial_stream_window_size"
+                          , mapValue = nat 16777216
+                          }
+                        , { mapKey =
+                              "experimental_http2_initial_connection_window_size"
+                          , mapValue = nat 67108864
+                          }
+                        , { mapKey = "experimental_http2_adaptive_window"
+                          , mapValue = bool True
+                          }
+                        ]
+                  }
                 ]
               # Opt/fold
                   schema.Tls
