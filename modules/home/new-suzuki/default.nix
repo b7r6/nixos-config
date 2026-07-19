@@ -227,6 +227,10 @@ let
   ];
 
   azonixFont = pkgs.callPackage ./azonix.nix { };
+
+  # The reconciler daemon/CLI from the continuity monorepo (theorem-carrying
+  # core; the shell's ThemeService spawns `wintermute preset|set`).
+  wintermute = flake.inputs.continuity.packages.${pkgs.system}.wintermute;
 in
 {
   options.hyper-modern-nixos.new-suzuki = {
@@ -268,7 +272,29 @@ in
           nerd-fonts.symbols-only # Nerd Font icon glyphs for the vendored shell
           orbitron # geometric sci-fi display font
         ]
-        ++ [ azonixFont ];
+        ++ [
+          azonixFont
+          wintermute
+        ];
+
+      # ── Wintermute daemon ──────────────────────────────────────────────
+      # The hot-reload control loop: watches theme.state, reconciles, pushes
+      # to every live channel and rewrites theme.json for the shell. The
+      # daemon is crash-only (adapters are best-effort by construction);
+      # systemd supplies the uptime.
+      systemd.user.services.wintermute = {
+        Unit = {
+          Description = "wintermute theme reconciler";
+          After = [ "graphical-session.target" ];
+          PartOf = [ "graphical-session.target" ];
+        };
+        Service = {
+          ExecStart = "${wintermute}/bin/wintermute daemon";
+          Restart = "always";
+          RestartSec = 1;
+        };
+        Install.WantedBy = [ "graphical-session.target" ];
+      };
 
       # ── Font configuration ─────────────────────────────────────────────
       fonts.fontconfig.enable = true;

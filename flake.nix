@@ -25,6 +25,12 @@
     agenix-shell.url = "github:aciceri/agenix-shell";
     agenix-shell.inputs.nixpkgs.follows = "nixpkgs";
 
+    # continuity: the verified Lean4 monorepo — pulled for the wintermute
+    # theme reconciler (src/apps/wintermute). Deliberately does NOT follow
+    # our nixpkgs: continuity pins its own lean4-nix toolchain and its
+    # packages should build exactly as its own CI builds them.
+    continuity.url = "git+ssh://git@git.s4.gl/continuity/continuity.git?ref=b7r6/wintermute-0x01";
+
     devshell.url = "github:numtide/devshell";
     devshell.inputs.nixpkgs.follows = "nixpkgs";
 
