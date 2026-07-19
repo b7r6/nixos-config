@@ -135,7 +135,7 @@
         terminal = "ghostty";
         launcher = "wofi --show drun";
         browser = "firefox";
-        fileManager = "nemo";
+        fileManager = "nautilus";
         lockScreen = "swaylock";
       };
 

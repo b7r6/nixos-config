@@ -3,6 +3,8 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
+import qs.services
 
 Singleton {
     id: root
@@ -18,9 +20,51 @@ Singleton {
     // Incremented on each open to force re-evaluation of the app list
     property int _refreshToken: 0
 
+    // Frecency: launch counts persisted through StateService; most-launched
+    // apps float to the top of the unfiltered list and break ties in search.
+    property var _counts: ({})
+
+    // ── Calculator mode: "=<expr>" evaluates via qalc (libqalculate) ────────
+    readonly property bool calcMode: query.startsWith("=")
+    property string calcResult: ""
+
+    Process {
+        id: calcProc
+        stdout: SplitParser {
+            onRead: data => {
+                const line = data.trim();
+                if (line !== "")
+                    root.calcResult = line;
+            }
+        }
+    }
+
+    Timer {
+        id: calcDebounce
+        interval: 120
+        onTriggered: {
+            calcProc.command = ["qalc", "-t", root.query.slice(1)];
+            calcProc.running = true;
+        }
+    }
+
     // Filtered app list
     readonly property var filteredApps: {
         void root._refreshToken;
+
+        // Calculator mode short-circuits the app list: one synthetic entry
+        // carrying the result (enter copies it).
+        if (calcMode) {
+            if (calcResult === "" || query.length < 2)
+                return [];
+            return [{
+                name: calcResult,
+                comment: "⏎ copy to clipboard",
+                icon: "accessories-calculator",
+                isCalc: true
+            }];
+        }
+
         let apps = DesktopEntries.applications.values;
 
         const seen = new Set();
@@ -32,8 +76,14 @@ Singleton {
             return true;
         });
 
-        // Sort alphabetically
+        const countOf = app => root._counts[app.id || app.name] ?? 0;
+
+        // Frecency first, then alphabetical.
         apps = apps.slice().sort((a, b) => {
+            const ca = countOf(a);
+            const cb = countOf(b);
+            if (ca !== cb)
+                return cb - ca;
             const nameA = (a.name || "").toLowerCase();
             const nameB = (b.name || "").toLowerCase();
             return nameA.localeCompare(nameB);
@@ -71,6 +121,7 @@ Singleton {
 
     function show() {
         _refreshToken++;
+        _counts = StateService.get("launcher.counts", {});
         query = "";
         selectedIndex = 0;
         visible = true;
@@ -79,6 +130,7 @@ Singleton {
     function hide() {
         visible = false;
         query = "";
+        calcResult = "";
         selectedIndex = 0;
     }
 
@@ -93,7 +145,20 @@ Singleton {
         if (!entry)
             return;
 
+        if (entry.isCalc) {
+            Quickshell.execDetached(["wl-copy", root.calcResult]);
+            hide();
+            return;
+        }
+
         console.log("[Launcher] Launching:", entry.name);
+
+        // Frecency bump, persisted.
+        const key = entry.id || entry.name;
+        const counts = Object.assign({}, root._counts);
+        counts[key] = (counts[key] ?? 0) + 1;
+        root._counts = counts;
+        StateService.set("launcher.counts", counts);
 
         // Remove field codes from .desktop (%u, %U, %f, %F, %i, %c, %k, etc)
         let cmd = entry.execString;
@@ -126,8 +191,12 @@ Singleton {
         }
     }
 
-    // Reset selectedIndex when query changes
+    // Reset selectedIndex when query changes; calc mode debounces into qalc.
     onQueryChanged: {
         selectedIndex = 0;
+        if (calcMode && query.length > 1)
+            calcDebounce.restart();
+        else
+            calcResult = "";
     }
 }

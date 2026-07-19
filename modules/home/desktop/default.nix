@@ -20,13 +20,25 @@ in
     fileManager.enable = lib.mkOption {
       type = lib.types.bool;
       default = true;
-      description = "Enable file manager (Nemo)";
+      description = "Enable file management (Nautilus + previews + archives)";
+    };
+
+    viewers.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Wayland-native viewers (images, PDF, video)";
+    };
+
+    utilities.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Daily-driver utilities (calculator, system monitor, disks, annotation, picker)";
     };
 
     audio.enable = lib.mkOption {
       type = lib.types.bool;
       default = true;
-      description = "Enable audio control tools (pavucontrol)";
+      description = "Enable audio control tools (pwvucontrol)";
     };
 
     communication.enable = lib.mkOption {
@@ -102,9 +114,35 @@ in
           firefox
         ])
 
-        (lib.optional cfg.fileManager.enable nemo)
+        # Files: nautilus (GTK4, portal-integrated) + space-bar previews +
+        # archives. nemo retires with the rest of the GTK3 era.
+        (lib.optionals cfg.fileManager.enable [
+          nautilus
+          sushi
+          file-roller
+        ])
 
-        (lib.optional cfg.audio.enable pavucontrol)
+        # Viewers — wayland-native GTK4; all follow the portal color-scheme,
+        # so wintermute's day/night flip reaches every one of them live.
+        (lib.optionals cfg.viewers.enable [
+          loupe # images
+          papers # PDF (the evince successor)
+          celluloid # video (mpv frontend)
+          mpv
+        ])
+
+        # pipewire-native mixer (pavucontrol retired)
+        (lib.optional cfg.audio.enable pwvucontrol)
+
+        # Daily-driver utilities
+        (lib.optionals cfg.utilities.enable [
+          qalculate-gtk # THE calculator; qalc also powers the launcher's = mode
+          libqalculate
+          mission-center # system monitor with real GPU telemetry
+          gnome-disk-utility
+          satty # screenshot annotation, made for grim/slurp flows
+          hyprpicker # color picker
+        ])
 
         (lib.optionals cfg.communication.enable (
           [
