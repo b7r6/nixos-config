@@ -77,8 +77,12 @@
         clickhouse-server = import ../../checks/clickhouse-server.nix { inherit pkgs; };
       }
       // {
-        # Pure computation (no VM) — runs on every system
-        ono-sendai-parity = import ../../checks/ono-sendai-parity.nix { inherit pkgs; };
+        # Pure computation (no VM) — runs on every system. Three-way gate:
+        # Lean generator vs lib.nix vs the wintermute daemon's port.
+        ono-sendai-parity = import ../../checks/ono-sendai-parity.nix {
+          inherit pkgs;
+          wintermute = inputs.continuity.packages.${system}.wintermute or null;
+        };
       };
   };
 }

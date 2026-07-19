@@ -16,7 +16,14 @@
 #
 # Vector ORDER must match Lean's generateVectors: darks hue-major then level;
 # lights hue-major, then level, then ramp.
-{ pkgs }:
+#
+# When the wintermute binary (continuity input) is supplied, the gate goes
+# THREE-way: the daemon's own port of the math is diffed against the same
+# grid via `wintermute vectors`.
+{
+  pkgs,
+  wintermute ? null,
+}:
 let
   lib = pkgs.lib;
   themeLib = import ../modules/flake/themes/lib.nix { inherit lib; };
@@ -74,23 +81,28 @@ let
     import json, sys
 
     lean = json.load(open(sys.argv[1]))
-    nix = json.load(open(sys.argv[2]))
+    others = {name: json.load(open(path))
+              for name, path in (a.split("=", 1) for a in sys.argv[2:])}
     slots = [f"base{n:02X}" for n in range(16)]
 
-    assert len(lean) == len(nix), f"vector count: lean={len(lean)} nix={len(nix)}"
-
     bad = 0
-    for lv, nv in zip(lean, nix):
-        for s in slots:
-            if lv[s] != nv[s]:
-                bad += 1
-                print(
-                    f"MISMATCH {lv['slug']} hero={lv['heroHue']} axis={lv['axisHue']} "
-                    f"ramp={lv['rampHue']} {s}: lean={lv[s]} nix={nv[s]}"
-                )
+    for name, vs in others.items():
+        assert len(lean) == len(vs), f"vector count: lean={len(lean)} {name}={len(vs)}"
+        for lv, ov in zip(lean, vs):
+            for s in slots:
+                if lv[s] != ov[s]:
+                    bad += 1
+                    print(
+                        f"MISMATCH [{name}] {lv['slug']} hero={lv['heroHue']} "
+                        f"axis={lv['axisHue']} ramp={lv['rampHue']} {s}: "
+                        f"lean={lv[s]} {name}={ov[s]}"
+                    )
 
-    total = len(lean) * len(slots)
-    print(f"{total - bad}/{total} slots agree across {len(lean)} vectors")
+    total = len(lean) * len(slots) * len(others)
+    print(
+        f"{total - bad}/{total} slots agree across {len(lean)} vectors x "
+        f"{len(others)} implementations ({', '.join(others)})"
+    )
     sys.exit(1 if bad else 0)
   '';
 in
@@ -99,10 +111,14 @@ pkgs.runCommand "ono-sendai-parity"
     nativeBuildInputs = [
       pkgs.python3
       generator
-    ];
+    ]
+    ++ lib.optional (wintermute != null) wintermute;
   }
   ''
     ono-sendai-gen vectors > lean-vectors.json
-    python3 ${compare} lean-vectors.json ${nixVectors}
+    ${lib.optionalString (wintermute != null) "wintermute vectors > wintermute-vectors.json"}
+    python3 ${compare} lean-vectors.json \
+      nix=${nixVectors} \
+      ${lib.optionalString (wintermute != null) "wintermute=wintermute-vectors.json"}
     touch $out
   ''
