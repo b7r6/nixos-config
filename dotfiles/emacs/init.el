@@ -134,6 +134,64 @@
 (declare-function dashboard-setup-startup-hook "dashboard" ())
 (declare-function color-rgb-to-hex "color" (red green blue &optional digits-per-component))
 (declare-function flymake-mode "flymake" (&optional arg))
+;; consult (installed package)
+(declare-function consult-info "consult" ())
+(declare-function consult-man "consult" ())
+(declare-function consult-fd "consult" ())
+;; dashboard (installed package)
+(declare-function dashboard-open "dashboard" ())
+;; xref (built-in)
+(declare-function xref-goto-xref "xref" (&optional _))
+;; nerd-icons-completion (installed package)
+(declare-function nerd-icons-completion-mode "nerd-icons-completion" (&optional arg))
+(declare-function nerd-icons-completion-marginalia-setup "nerd-icons-completion" ())
+;; password-store (installed package)
+(declare-function password-store-copy "password-store" (entry))
+(declare-function password-store-generate "password-store" (entry &optional length symbols))
+(declare-function password-store-insert "password-store" (entry password))
+;; f.el (installed package, used in pass :config)
+(declare-function f-join "f" (&rest args))
+(declare-function f-directory? "f" (path))
+(declare-function f-filename "f" (path))
+(declare-function f-entries "f" (path &optional fn recursive))
+(declare-function f-ext "f" (path &optional period))
+;; ghostel (installed package)
+(declare-function ghostel-send-key "ghostel" (key &optional modifiers))
+;; prescient / vertico-prescient / company-prescient (installed packages)
+(declare-function prescient-persist-mode "prescient" (&optional arg))
+(declare-function vertico-prescient-mode "vertico-prescient" (&optional arg))
+(declare-function company-prescient-mode "company-prescient" (&optional arg))
+;; gptel (installed package)
+(declare-function gptel-make-openai "gptel-openai" (&rest args))
+(declare-function gptel-make-tool "gptel-tool" (&rest args))
+;; json.el (built-in, but autoloaded — defvar above covers the dynamic vars;
+;; declare-function covers the call-site warnings)
+(declare-function json-read "json" ())
+(declare-function json-encode "json" (object))
+;; straight.el (bootstrapped dynamically)
+(declare-function straight-use-package "straight" (melpa-style-recipe &rest args))
+
+;; straight.el / use-package variables set before those packages load
+(defvar straight-package--warning-displayed)   ; suppress straight/pkg.el nag
+(defvar straight-use-package-by-default)       ; per-package fetch default
+(defvar use-package-always-ensure)             ; ensure all use-package forms
+(defvar use-package-verbose)                   ; verbose logging
+(defvar use-package-expand-minimally)          ; minimal macro expansion
+
+;; lsp-mode variables set in config blocks before lsp-mode loads
+(defvar lsp-headerline-breadcrumb-enable-diagnostics) ; hide diag icons
+
+;; url.el / json.el dynamic variables — these are special at runtime
+;; (url-retrieve and json-read bind them), but the byte-compiler can't
+;; see the (require 'url)/(require 'json) calls as proof.
+(defvar url-request-method)
+(defvar url-request-extra-headers)
+(defvar url-request-data)
+(defvar json-object-type)
+(defvar json-array-type)
+
+;; gptel struct accessor
+(defvar gptel-backend)  ; set inside gptel :config; referenced outside it
 
 ;; External package variables
 (defvar lean4-mode-map)
@@ -154,12 +212,28 @@
 (defvar dimmer-fraction)
 (defvar tramp-use-ssh-controlmaster-options)
 
-;; Functions defined later in this file
-(declare-function hypermodern/visit-init "init" ())
-(declare-function hypermodern/goto-definition-or-file "init" ())
-(declare-function hypermodern/kill-buffer "init" ())
-;; (self-declare-function removed: declaring a function this file DEFINES
-;; trips the Emacs 31 byte-compiler into a phantom "defined multiple times")
+;; Functions defined later in this file (inside use-package :config blocks).
+;; File arg = nil: the byte-compiler skips file-validation but suppresses the
+;; "not known to be defined" warning; nil avoids the Emacs-31 phantom
+;; "defined multiple times" that "init" as the file arg would trigger.
+(declare-function hypermodern/visit-init nil ())
+(declare-function hypermodern/goto-definition-or-file nil ())
+(declare-function hypermodern/kill-buffer nil ())
+(declare-function hypermodern/show-current-file nil ())
+;; gptel spinner / hook functions (defined in gptel :config block)
+(declare-function hypermodern/gptel--spinner-start nil ())
+(declare-function hypermodern/gptel--spinner-stop nil ())
+(declare-function hypermodern/gptel--before-send nil (&rest _))
+(declare-function hypermodern/gptel--after-response nil (beg end))
+(declare-function hypermodern/gptel--format-response nil (beg end))
+;; pass override helpers (defined in pass :config block)
+(declare-function hypermodern/pass--tree nil (&optional subdir))
+(declare-function hypermodern/password-store--file-to-entry nil (file))
+(declare-function hypermodern/password-store--entry-to-file nil (entry))
+;; compile helpers (defined in ghostel-compile :config block)
+(declare-function hypermodern/compile-root nil (&optional dir))
+(declare-function hypermodern/compile--pin-to-root nil ())
+(declare-function hypermodern/compile--truename nil (orig marker filename &rest args))
 
 ;; ───────────────────────────────────────────────────────────────────
 ;;                                                             // PGTK

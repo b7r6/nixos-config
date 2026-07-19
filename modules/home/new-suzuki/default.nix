@@ -376,19 +376,25 @@ in
 
       # ── Compositor glass ───────────────────────────────────────────────
       # Real backdrop blur for the shell's layer surfaces: the launcher gets
-      # heavy glass, the bar a subtle one. ignorealpha keeps fully
+      # heavy glass, the bar a subtle one. ignore_alpha keeps fully
       # transparent regions from blurring the whole screen.
+      #
+      # Syntax note: this Hyprland (0.55, Desktop::Rule engine) takes rules
+      # as comma-separated `effect value` / `match:prop value` pairs —
+      # grammar read from src/desktop/rule/ and every line verified `ok`
+      # against the live compositor via `hyprctl keyword`.
       wayland.windowManager.hyprland.settings.layerrule = [
-        "blur, qs_launcher"
-        "ignorealpha 0.15, qs_launcher"
-        "blur, qs_modules"
-        "ignorealpha 0.25, qs_modules"
+        "blur 1, match:namespace qs_launcher"
+        "ignore_alpha 0.15, match:namespace qs_launcher"
+        "blur 1, match:namespace qs_modules"
+        "ignore_alpha 0.25, match:namespace qs_modules"
       ];
 
       # Floating windows live in the glass: noticeably translucent (blur
       # carries legibility), snapping solid when focused enough to read.
-      wayland.windowManager.hyprland.settings.windowrulev2 = lib.mkAfter [
-        "opacity 0.92 0.78, floating:1"
+      # (windowrulev2 is deprecated; the prop is `float`, not `floating`.)
+      wayland.windowManager.hyprland.settings.windowrule = lib.mkAfter [
+        "opacity 0.92 0.78, match:float 1"
       ];
     }
 

@@ -83,6 +83,9 @@
           inherit pkgs;
           wintermute = inputs.continuity.packages.${system}.wintermute or null;
         };
+        # Batch-loads and byte-compiles the full emacs config; fails on any
+        # Warning or Error so regressions are caught at `nix flake check` time.
+        emacs-config = import ../../checks/emacs-config.nix { inherit pkgs; };
       };
   };
 }
