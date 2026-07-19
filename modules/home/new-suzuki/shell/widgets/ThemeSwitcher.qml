@@ -37,8 +37,9 @@ Item {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
         hoverEnabled: true
-        onClicked: {
-            Quickshell.execDetached(["hyprctl", "dispatch", "global", "quickshell:control_panel"])
-        }
+        // Direct in-process toggle — the old path spawned hyprctl to hit
+        // this shell's OWN global shortcut (a process per click, silent
+        // failure if the global was unregistered).
+        onClicked: ThemeService.togglePanel()
     }
 }

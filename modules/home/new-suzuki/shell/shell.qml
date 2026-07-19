@@ -205,6 +205,15 @@ ShellRoot {
     }
 
     // ── Preset Control Panel ───────────────────────────────────────────────
+    // THE theme selector; ThemeService.togglePanel is how every entry point
+    // (bar switcher, quickSettings tile, Super+Shift+P) reaches it.
+    Connections {
+        target: ThemeService
+        function onTogglePanel() {
+            controlPanelLoader.toggle();
+        }
+    }
+
     Loader {
         id: controlPanelLoader
         active: false

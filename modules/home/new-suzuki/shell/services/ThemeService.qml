@@ -101,6 +101,11 @@ Singleton {
         return (xdg && xdg.length > 0) ? xdg : Quickshell.env("HOME") + "/.local/state";
     }
 
+    // The ONE theme selector is the orbital pad (PresetControlPanel);
+    // every entry point (bar switcher, quickSettings tile, keybind) opens
+    // it through this signal — shell.qml owns the loader.
+    signal togglePanel
+
     function color(key, fallback) {
         return palette[key] ?? fallback;
     }

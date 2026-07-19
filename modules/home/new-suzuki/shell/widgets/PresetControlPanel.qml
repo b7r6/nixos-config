@@ -246,13 +246,48 @@ PanelWindow {
                             anchors.rightMargin: -14
                         }
 
-                        // The draggable dot
+                        // The draggable dot.
+                        //
+                        // Position comes from Binding elements with `when`
+                        // guards, NOT plain bindings: the drag handlers write
+                        // x/y imperatively, which severs a plain binding on
+                        // first touch — the reason the dot stopped tracking
+                        // wintermute round-trips after one drag.
                         Item {
                             id: dot
                             width: 16
                             height: 16
-                            x: ThemeService.polarity * (padArea.width - width)
-                            y: ThemeService.luminance * (padArea.height - height)
+
+                            Binding {
+                                target: dot
+                                property: "x"
+                                value: ThemeService.polarity * (padArea.width - dot.width)
+                                when: !dragHandler.active && !padMouse.pressed
+                                restoreMode: Binding.RestoreNone
+                            }
+
+                            Binding {
+                                target: dot
+                                property: "y"
+                                value: ThemeService.luminance * (padArea.height - dot.height)
+                                when: !dragHandler.active && !padMouse.pressed
+                                restoreMode: Binding.RestoreNone
+                            }
+
+                            Behavior on x {
+                                enabled: !dragHandler.active && !padMouse.pressed
+                                NumberAnimation {
+                                    duration: Config.animDuration
+                                    easing.type: Easing.OutQuint
+                                }
+                            }
+                            Behavior on y {
+                                enabled: !dragHandler.active && !padMouse.pressed
+                                NumberAnimation {
+                                    duration: Config.animDuration
+                                    easing.type: Easing.OutQuint
+                                }
+                            }
 
                             Rectangle {
                                 anchors.centerIn: parent
@@ -299,6 +334,7 @@ PanelWindow {
 
                         // Click-to-move (in addition to drag)
                         MouseArea {
+                            id: padMouse
                             anchors.fill: parent
                             acceptedButtons: Qt.LeftButton
                             onPressed: mouse => {

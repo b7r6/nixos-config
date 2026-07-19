@@ -13,6 +13,7 @@ Item {
     id: root
 
     signal closeWindow
+    signal openThemePanel
 
     Layout.fillWidth: true
     implicitHeight: main.implicitHeight
@@ -47,7 +48,7 @@ Item {
 
                 Text {
                     anchors.centerIn: parent
-                    text: "󰣇"
+                    text: ""
                     font.family: Config.font
                     font.pixelSize: Config.fontSizeIconLarge
                     color: Config.accentColor
@@ -122,7 +123,7 @@ Item {
                 icon: "󰏘"
                 textColor: Config.accentColor
                 hoverTextColor: Config.accentColor
-                onClicked: pageStack.currentIndex = 5
+                onClicked: root.openThemePanel()
             }
 
             // Power Menu

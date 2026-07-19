@@ -27,6 +27,12 @@ QsPopupWindow {
         // ==========================
         DashboardPage {
             onCloseWindow: root.closeWindow()
+            // ONE theme selector: the orbital pad. The dashboard tile closes
+            // this popup and opens it.
+            onOpenThemePanel: {
+                root.closeWindow();
+                ThemeService.togglePanel();
+            }
         }
 
         // ==========================
@@ -66,11 +72,5 @@ QsPopupWindow {
             onBackRequested: pageStack.currentIndex = 0
         }
 
-        // ==========================
-        // PAGE 5: THEME
-        // ==========================
-        ThemePage {
-            onBackRequested: pageStack.currentIndex = 0
-        }
     }
 }
