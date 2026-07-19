@@ -60,9 +60,37 @@ let
         cp ${greeterConfig} $out/config.json
       '';
 
+  # The greeter compositor is HYPRLAND, not cage: cage has no output
+  # configuration, so on a 4K panel it greets at preferred-mode/scale-1 —
+  # wrong resolution posture before you even log in. A minimal build-time
+  # hyprland config renders the SAME per-host monitor lines the session uses
+  # (lib/monitors.nix, single source of truth), then chains quickshell and
+  # exits when it closes (greetd starts the real session after the greeter
+  # process tree exits).
+  greeterMonitors = (import ../../lib/monitors.nix).${config.networking.hostName} or [ ];
+
+  greeterHyprConf = pkgs.writeText "greeter-hyprland.conf" ''
+    ${lib.concatMapStringsSep "\n" (m: "monitor = ${m}") greeterMonitors}
+    monitor = , preferred, auto, 1
+
+    misc {
+      disable_hyprland_logo = true
+      disable_splash_rendering = true
+    }
+    animations {
+      enabled = false
+    }
+    decoration {
+      blur { enabled = false }
+    }
+
+    exec-once = ${pkgs.quickshell}/bin/quickshell -p ${greeterShell}; hyprctl dispatch exit
+  '';
+
   greeter-cmd = pkgs.writeShellScriptBin "hypermodern-greeter" ''
     export QT_QPA_PLATFORM=wayland
-    exec ${pkgs.cage}/bin/cage -s -- ${pkgs.quickshell}/bin/quickshell -p ${greeterShell}
+    export XDG_SESSION_TYPE=wayland
+    exec ${pkgs.hyprland}/bin/Hyprland --config ${greeterHyprConf}
   '';
 in
 {
