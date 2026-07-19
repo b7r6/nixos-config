@@ -3,7 +3,7 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # The single NixOS module every host imports. It pulls in:
-#   - always-on essentials (base, nix, packages, greetd, users, network…)
+#   - always-on essentials (base, nix, packages, sddm, users, network…)
 #   - every gated service/hardware module (attic, backup, nativelink, postgres,
 #     docker, libvirt, nvidia, radeon, …) which stay INERT until a host sets the
 #     corresponding hyper-modern-nixos.<x>.enable = true
@@ -22,7 +22,7 @@
     ./base.nix
     ./nix.nix
     ./packages.nix
-    ./greetd.nix
+    ./sddm
     ./kernel.nix
     ./performance.nix
     ./secrets.nix
