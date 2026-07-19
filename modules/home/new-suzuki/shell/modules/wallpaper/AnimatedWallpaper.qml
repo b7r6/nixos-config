@@ -43,6 +43,7 @@ Variants {
             anchors.fill: parent
 
             property real time: 0
+            property real sweep: -1
             property real reg: ThemeService.register
             property real grain: ThemeService.aestheticProp("grain", 0.02)
             property real aspect: height > 0 ? width / height : 1.777
@@ -77,6 +78,25 @@ Variants {
                 repeat: true
                 running: win.visible && !LockService.locked
                 onTriggered: fx.time = (fx.time + 0.033) % 86400
+            }
+
+            // The reconcile sweep: one pass down the screen per wintermute
+            // generation — theme commits are VISIBLE.
+            Connections {
+                target: ThemeService
+                function onGenerationChanged() {
+                    sweepAnim.restart();
+                }
+            }
+
+            NumberAnimation {
+                id: sweepAnim
+                target: fx
+                property: "sweep"
+                from: -0.15
+                to: 1.15
+                duration: 900
+                easing.type: Easing.OutQuad
             }
         }
     }

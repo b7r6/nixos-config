@@ -15,13 +15,17 @@ let
     export XDG_CURRENT_DESKTOP=Hyprland
     exec systemd-cat --identifier=hyprland Hyprland "$@"
   '';
+  # Frame zero of the rice: blue-on-black ono-sendai posture at the VT.
+  # tuigreet themes take ANSI names only (raw TTY, default VGA palette) —
+  # blue/cyan on black is as close to 211° as a console gets.
+  tuigreet-theme = "border=blue;text=cyan;prompt=blue;time=white;action=blue;button=cyan;container=black;input=white";
 in
 {
   services.greetd = {
     enable = true;
     settings = {
       default_session = {
-        command = "${pkgs.tuigreet}/bin/tuigreet --time --cmd ${start-hyprland}/bin/start-hyprland";
+        command = ''${pkgs.tuigreet}/bin/tuigreet --time --remember --asterisks --greeting "// straylight //" --theme "${tuigreet-theme}" --cmd ${start-hyprland}/bin/start-hyprland'';
         user = "greeter";
       };
     };

@@ -28,6 +28,7 @@ layout(std140, binding = 0) uniform buf {
     float reg;
     float grain;
     float aspect;
+    float sweep;
     vec4 surface;
     vec4 paper;
     vec4 accent;
@@ -78,6 +79,17 @@ void main() {
         col -= reg * 0.020 * lines;
         float drift = fract(uv.y - time * 0.125);
         col += reg * 0.030 * smoothstep(0.012, 0.0, min(drift, 1.0 - drift)) * accent.rgb;
+    }
+
+    // ── The reconcile sweep ────────────────────────────────────────────────
+    // A wintermute generation bump fires one bright pass down the screen —
+    // the control loop, made visible. QML animates `sweep` -0.15 → 1.15 on
+    // generationChanged; parked outside [0,1] it costs nothing.
+    if (sweep > -0.5) {
+        float d = uv.y - sweep;
+        float line = smoothstep(0.005, 0.0, abs(d));
+        float trail = smoothstep(0.15, 0.0, -d) * step(d, 0.0);
+        col += (0.22 * line + 0.05 * trail) * accent.rgb;
     }
 
     // Grain rides the affluent token (ThemeService scales it).

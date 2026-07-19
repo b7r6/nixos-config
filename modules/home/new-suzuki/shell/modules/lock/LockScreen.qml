@@ -25,6 +25,49 @@ WlSessionLock {
     WlSessionLockSurface {
         color: Config.backgroundColor
 
+        // ====================================================================
+        // BACKDROP — the wallpaper shader at forced full-facility register:
+        // locked is the machine's SECURED posture whatever the desktop
+        // register. One sweep fires on lock. (The desktop wallpaper's own
+        // timer pauses behind the lock, so the GPU renders one field.)
+        // ====================================================================
+        ShaderEffect {
+            id: lockField
+
+            anchors.fill: parent
+
+            property real time: 0
+            property real sweep: -1
+            property real reg: 1.0
+            property real grain: 0.03
+            property real aspect: height > 0 ? width / height : 1.777
+            property color surface: Config.backgroundColor
+            property color paper: Config.surface0Color
+            property color accent: Config.accentColor
+            property color accentD: ThemeService.color("accent-d", "#80d2ff")
+
+            fragmentShader: Qt.resolvedUrl("../wallpaper/wallpaper.frag.qsb")
+
+            Timer {
+                interval: 33
+                repeat: true
+                running: true
+                onTriggered: lockField.time = (lockField.time + 0.033) % 86400
+            }
+
+            NumberAnimation {
+                id: lockSweep
+                target: lockField
+                property: "sweep"
+                from: -0.15
+                to: 1.15
+                duration: 1100
+                easing.type: Easing.OutQuad
+            }
+
+            Component.onCompleted: lockSweep.start()
+        }
+
         // Capture clicks to refocus the hidden password input
         MouseArea {
             anchors.fill: parent
@@ -53,13 +96,14 @@ WlSessionLock {
                 easing.type: Easing.OutCubic
             }
 
-            // Clock
+            // Clock — display face, tracked out
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: TimeService.format("HH:mm")
-                font.family: Config.font
+                font.family: Config.displayFont
                 font.pixelSize: 64
-                font.bold: true
+                font.bold: !Config.facility
+                font.letterSpacing: Config.facility ? 6 : 0
                 color: Config.accentColor
             }
 
@@ -70,6 +114,18 @@ WlSessionLock {
                 font.family: Config.font
                 font.pixelSize: Config.fontSizeNormal
                 color: Config.subtextColor
+            }
+
+            // Posture line
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "▞ SECURED — GEN " + ThemeService.generation
+                font.family: Config.font
+                font.pixelSize: 9
+                font.letterSpacing: 2
+                font.capitalization: Font.AllUppercase
+                color: Config.mutedColor
+                topPadding: 6
             }
 
             Item {

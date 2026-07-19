@@ -62,11 +62,18 @@ Item {
                 height: root.itemHeight
 
                 Rectangle {
+                    id: pip
+
+                    readonly property bool isActive: parent.isActive
+                    readonly property int wsId: parent.modelData
+
                     anchors.centerIn: parent
-                    width: parent.isActive ? root.activeWidth : root.itemWidth
-                    height: root.itemHeight
-                    radius: 3
-                    color: parent.isActive ? Config.accentColor : Config.mutedColor
+                    width: isActive ? root.activeWidth : root.itemWidth
+                    // The active pip grows enough to carry its numeral at the
+                    // facility pole; square corners everywhere.
+                    height: isActive && Config.facility ? root.itemHeight + 6 : root.itemHeight
+                    radius: 0
+                    color: isActive ? Config.accentColor : Config.mutedColor
 
                     Behavior on width {
                         NumberAnimation {
@@ -74,8 +81,24 @@ Item {
                             easing.type: Config.animPopupEasing
                         }
                     }
+                    Behavior on height {
+                        NumberAnimation {
+                            duration: Config.animDurationShort
+                        }
+                    }
                     Behavior on color {
                         ColorAnimation { duration: Config.animDuration }
+                    }
+
+                    // Facility: the active workspace is numbered, console-style.
+                    Text {
+                        anchors.centerIn: parent
+                        text: pip.wsId
+                        visible: pip.isActive && Config.facility
+                        font.family: Config.font
+                        font.pixelSize: 8
+                        font.bold: true
+                        color: Config.backgroundColor
                     }
                 }
 

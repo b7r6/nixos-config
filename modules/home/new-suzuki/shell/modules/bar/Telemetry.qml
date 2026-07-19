@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Quickshell.Io
 import qs.config
 import qs.services
 
@@ -19,6 +20,32 @@ RowLayout {
     spacing: 12
     visible: Config.telemetryDensity > 0.08
 
+    // Fabric link speed (the Mellanox flex): fastest carrier-up interface,
+    // /sys/class/net/*/speed. 200000 → "200G" on a ConnectX. Polled slowly —
+    // link speed is not weather.
+    property string linkSpeed: ""
+
+    Process {
+        id: linkProc
+        command: ["bash", "-c",
+            "for d in /sys/class/net/*/; do n=$(basename \"$d\"); [ \"$n\" = lo ] && continue; s=$(cat \"$d/speed\" 2>/dev/null); case $s in ''|*[!0-9]*) ;; *) echo \"$s\";; esac; done | sort -rn | head -1"]
+        stdout: SplitParser {
+            onRead: data => {
+                const mb = parseInt(data.trim());
+                if (!isNaN(mb) && mb > 0)
+                    root.linkSpeed = mb >= 1000 ? (mb / 1000) + "G" : mb + "M";
+            }
+        }
+    }
+
+    Timer {
+        interval: 30000
+        repeat: true
+        running: root.visible
+        triggeredOnStart: true
+        onTriggered: linkProc.running = true
+    }
+
     component Readout: RowLayout {
         id: readout
 
@@ -33,6 +60,13 @@ RowLayout {
         opacity: reveal
         spacing: 4
 
+        // Facility-mode section flicker: crossing the hot threshold blips
+        // the value — the razorgirl glitch, earned by an actual event.
+        onHotChanged: {
+            if (Config.facility)
+                hotFlick.restart();
+        }
+
         Text {
             text: readout.label
             font.family: Config.font
@@ -43,6 +77,8 @@ RowLayout {
         }
 
         Text {
+            id: readoutValue
+
             text: readout.value
             font.family: Config.font
             font.pixelSize: Config.fontSizeSmall
@@ -51,6 +87,35 @@ RowLayout {
             Behavior on color {
                 ColorAnimation {
                     duration: Config.animDurationShort
+                }
+            }
+
+            SequentialAnimation {
+                id: hotFlick
+
+                NumberAnimation {
+                    target: readoutValue
+                    property: "opacity"
+                    to: 0.3
+                    duration: 45
+                }
+                NumberAnimation {
+                    target: readoutValue
+                    property: "opacity"
+                    to: 1.0
+                    duration: 45
+                }
+                NumberAnimation {
+                    target: readoutValue
+                    property: "opacity"
+                    to: 0.55
+                    duration: 40
+                }
+                NumberAnimation {
+                    target: readoutValue
+                    property: "opacity"
+                    to: 1.0
+                    duration: 110
                 }
             }
         }
@@ -88,5 +153,12 @@ RowLayout {
         label: "net"
         value: SystemMonitorService.networkDown
         threshold: 0.82
+    }
+
+    Readout {
+        label: "link"
+        value: root.linkSpeed
+        threshold: 0.92
+        visible: reveal > 0.01 && root.linkSpeed !== ""
     }
 }
