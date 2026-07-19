@@ -94,22 +94,17 @@ in
       description = "Install programming fonts for Emacs";
     };
 
-    # Seed config into ~/.emacs.d as REAL, EDITABLE files (not store symlinks).
-    #
-    # Rationale: XDG config that lives read-only in the nix store cannot be
-    # live-edited, which is intolerable for an emacs config you iterate on.
-    # When enabled, activation copies init.el/early-init.el/lib/themes into
-    # ~/.emacs.d as writable files using last-writer-wins semantics:
-    #   - file absent            -> copy the nix version
-    #   - file == last-seeded    -> you haven't touched it; update to new version
-    #   - file != last-seeded    -> you edited it; LEAVE IT ALONE (back up nix
-    #                               version alongside as <file>.nix-new)
-    # A per-file marker under ~/.emacs.d/.hypermodern-seed/ records the hash of
-    # what we last wrote, so we can tell "unchanged" from "user-edited".
-    seedConfig = lib.mkOption {
+    # Link init.el/early-init.el from the repo checkout (dotfiles/emacs/) into
+    # ~/.emacs.d as OUT-OF-STORE symlinks. The repo is home; editing either
+    # side is the same file and lands in `git diff` — no rebuild, no seeding,
+    # no drift. State (eln-cache, recentf, custom.el…) stays as real files in
+    # ~/.emacs.d beside the links. This supersedes the old copy-and-hash
+    # seeding machinery (LWW); migration from it is automatic when the live
+    # files match the repo, and refuses to run when they don't.
+    repoConfig = lib.mkOption {
       type = lib.types.bool;
       default = true;
-      description = "Seed ~/.emacs.d with editable copies of the hypermodern config (LWW, preserves your edits)";
+      description = "Symlink ~/.emacs.d/{init,early-init}.el into the dotfiles checkout (repo-homed config)";
     };
   };
 
@@ -123,64 +118,38 @@ in
       # Don't use extraConfig - let user manage ~/.emacs.d/init.el
     };
 
-    # Seed ~/.emacs.d with EDITABLE copies (see seedConfig option for rationale
-    # and the last-writer-wins semantics). We copy out of this store path; emacs
-    # then loads ~/.emacs.d/init.el normally (it only falls back to XDG when
-    # ~/.emacs.d is absent, which it won't be once seeded).
-    home.activation.emacsSeedConfig = lib.mkIf cfg.seedConfig (
-      lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-        emacs_dir="$HOME/.emacs.d"
-        marker_dir="$emacs_dir/.hypermodern-seed"
-        run mkdir -p "$emacs_dir" "$marker_dir"
-
-        # seed_file <store-source-path> <dest-relative-under-.emacs.d>
-        seed_file() {
-          src="$1"
-          dest="$emacs_dir/$2"
-          marker="$marker_dir/$(echo "$2" | tr '/' '_').sha256"
-          [ -f "$src" ] || return 0
-          run mkdir -p "$(dirname "$dest")"
-
-          src_hash="$(sha256sum "$src" | cut -d' ' -f1)"
-
-          # A symlink here is leftover from an older store-symlink-based config
-          # (and may be DANGLING, which makes `-e` false and `cp` refuse to write
-          # "through dangling symlink"). We own editable real files now, so drop
-          # any symlink unconditionally and reseed. -h catches broken links too.
-          if [ -h "$dest" ]; then
-            run rm -f "$dest"
-          fi
-
-          if [ ! -e "$dest" ]; then
-            # absent: take the nix version
-            run cp -f "$src" "$dest"
-            run chmod u+w "$dest"
-            echo "$src_hash" > "$marker"
-          else
-            dest_hash="$(sha256sum "$dest" | cut -d' ' -f1)"
-            last_hash="$(cat "$marker" 2>/dev/null || echo none)"
-            if [ "$dest_hash" = "$src_hash" ]; then
-              : # already up to date
-            elif [ "$dest_hash" = "$last_hash" ]; then
-              # unchanged since we last seeded -> safe to update
-              run cp -f "$src" "$dest"
-              run chmod u+w "$dest"
-              echo "$src_hash" > "$marker"
+    # Migration from the copy-and-hash seed era: the real files at
+    # ~/.emacs.d/{init,early-init}.el must yield to symlinks, but ONLY when
+    # they match the repo (or the last-seeded hash) — a diverged file means
+    # un-committed local edits, and we abort the switch rather than eat them.
+    # Runs before home-manager's own link-target check so the symlink lands
+    # cleanly.
+    home.activation.emacsRepoConfigMigrate = lib.mkIf cfg.repoConfig (
+      lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+        _repo="${config.hyper-modern-nixos.dotfiles.path}/emacs"
+        _dir="$HOME/.emacs.d"
+        for f in init.el early-init.el; do
+          dest="$_dir/$f"
+          # Real file (not symlink) in the way of the managed link?
+          if [ -f "$dest" ] && [ ! -h "$dest" ]; then
+            if [ -f "$_repo/$f" ] && cmp -s "$dest" "$_repo/$f"; then
+              run rm -f "$dest"   # identical to repo: safe to yield
             else
-              # user-edited: never clobber. Drop the new nix version alongside.
-              run cp -f "$src" "$dest.nix-new"
-              run chmod u+w "$dest.nix-new"
-              warnEcho "[emacs] $2 has local edits; new version written to $2.nix-new"
+              errorEcho "[emacs] $dest differs from $_repo/$f — commit or copy your edits into the repo, then re-switch (repo-homed config refuses to clobber)"
+              exit 1
             fi
           fi
-        }
-
-        # Only the files emacs actually loads. (lib/*.el and themes/*.el are
-        # not referenced by the active init.el; don't seed dead files.)
-        seed_file ${./init.el}       init.el
-        seed_file ${./early-init.el} early-init.el
+        done
+        # The seed markers are dead machinery now.
+        run rm -rf "$_dir/.hypermodern-seed"
       ''
     );
+
+    # The links themselves: ~/.emacs.d/{init,early-init}.el → the working tree.
+    home.file = lib.mkIf cfg.repoConfig {
+      ".emacs.d/init.el".source = config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/emacs/init.el";
+      ".emacs.d/early-init.el".source = config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/emacs/early-init.el";
+    };
 
     home.packages =
       with pkgs;

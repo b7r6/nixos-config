@@ -9,6 +9,9 @@
     # user identity
     ./me.nix
 
+    # repo-homed dotfiles (XDG symlinks into the working tree)
+    ./dotfiles.nix
+
     # baseline toolchain presets
     ./cloud
     ./dev
@@ -104,7 +107,7 @@
     # Editors
     emacs = {
       enable = true;
-      seedConfig = true;
+      repoConfig = true;
       rust.enable = true;
 
       # Heavy language servers - enable explicitly when needed:
