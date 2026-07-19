@@ -67,10 +67,16 @@ let
   # (lib/monitors.nix, single source of truth), then chains quickshell and
   # exits when it closes (greetd starts the real session after the greeter
   # process tree exits).
-  greeterMonitors = (import ../../lib/monitors.nix).${config.networking.hostName} or [ ];
+  greeterMonitors = (import ../../lib/monitors.nix).${config.networking.hostName} or { };
+
+  # Mirror of the home hyprland module's mkMonitorConfig — attrset descriptors
+  # rendered to the same `desc:…,res@rate,pos,scale` lines the session uses.
+  renderMonitor =
+    _name: mon:
+    "monitor = desc:${mon.description},${mon.resolution}@${toString mon.refreshRate},${mon.position},${toString mon.scale}";
 
   greeterHyprConf = pkgs.writeText "greeter-hyprland.conf" ''
-    ${lib.concatMapStringsSep "\n" (m: "monitor = ${m}") greeterMonitors}
+    ${lib.concatStringsSep "\n" (lib.mapAttrsToList renderMonitor greeterMonitors)}
     monitor = , preferred, auto, 1
 
     misc {
