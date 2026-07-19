@@ -20,14 +20,27 @@
   ...
 }:
 let
-  # Session launcher. Two jobs beyond bare `Hyprland`:
+  # Session launcher. Three jobs beyond bare `Hyprland`:
   #   - seed the session identity vars greeters don't set
   #   - route the compositor's stdout/stderr into the journal — otherwise
   #     Hyprland's log output from a greetd session goes nowhere
+  #   - TEAR DOWN the systemd user session state after the compositor exits,
+  #     HOWEVER it exits. A killed/crashed Hyprland never runs its own
+  #     shutdown hooks, which leaves hyprland-session.target and
+  #     graphical-session.target active and a stale WAYLAND_DISPLAY/
+  #     HYPRLAND_INSTANCE_SIGNATURE parked in the user manager — so the NEXT
+  #     login inherits dead sockets (wedged portals, wintermute flapping,
+  #     "weird state"). No `exec`: the wrapper must survive Hyprland to
+  #     clean up.
   start-hyprland = pkgs.writeShellScriptBin "start-hyprland" ''
     export XDG_SESSION_TYPE=wayland
     export XDG_CURRENT_DESKTOP=Hyprland
-    exec systemd-cat --identifier=hyprland Hyprland "$@"
+    systemd-cat --identifier=hyprland Hyprland "$@"
+    status=$?
+    systemctl --user stop hyprland-session.target graphical-session.target 2>/dev/null || true
+    systemctl --user unset-environment \
+      WAYLAND_DISPLAY DISPLAY HYPRLAND_INSTANCE_SIGNATURE 2>/dev/null || true
+    exit $status
   '';
 
   color-lib = import ../flake/themes/lib.nix { inherit lib; };
