@@ -202,8 +202,11 @@ Singleton {
                 "anim-easing": "expo_out",
                 "entrance-direction": "fade-up",
                 "entrance-offset": fac ? 8 : 14,
+                // scanline-idle is SECONDS until the drift starts: aggressive
+                // at full facility (5s), a whisper mid-register (30s), never
+                // at the affluent pole (0 = disabled).
                 "scanlines": t.scanline > 0.05,
-                "scanline-idle": t.scanline,
+                "scanline-idle": t.scanline > 0.05 ? Math.round(5 + 25 * (1 - t.scanline)) : 0,
                 "opacity": 0.90 + 0.04 * t.glassBlur,
                 "border-weight": 1,
                 "border-alpha": 0.10 + 0.08 * reg,

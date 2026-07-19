@@ -64,9 +64,22 @@ Singleton {
     readonly property int padding: ThemeService.aestheticProp("gaps-outer", 12)
 
     // ========================================================================
+    // REGISTER AXIS — the affluent ↔ facility scalars (wintermute tokens)
+    // ========================================================================
+    readonly property real register: ThemeService.register
+    readonly property bool facility: ThemeService.facility
+    readonly property real bracketScale: ThemeService.tokens.bracketSize ?? 1.0
+    readonly property real telemetryDensity: ThemeService.tokens.telemetryDensity ?? 0.0
+    readonly property real glassBlur: ThemeService.tokens.glassBlur ?? 0.0
+
+    // ========================================================================
     // TYPOGRAPHY
     // ========================================================================
     readonly property string font: getState("typography.font", "Berkeley Mono")
+
+    // Display face flips with the register: Azonix UPPERCASE at the facility
+    // pole, Cormorant Garamond lowercase at the affluent pole.
+    readonly property string displayFont: facility ? "Azonix" : "Cormorant Garamond"
 
     readonly property int fontSizeSmall: getState("typography.sizeSmall", 12)
     readonly property int fontSizeNormal: getState("typography.sizeNormal", 13)

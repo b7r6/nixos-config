@@ -275,6 +275,8 @@ in
         ++ [
           azonixFont
           wintermute
+          # Affluent-pole display serif (subset — google-fonts is enormous)
+          (pkgs.google-fonts.override { fonts = [ "Cormorant Garamond" ]; })
         ];
 
       # ── Wintermute daemon ──────────────────────────────────────────────

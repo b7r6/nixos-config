@@ -107,6 +107,10 @@ Scope {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: root.gapIn
 
+                    Telemetry {
+                        Layout.rightMargin: 8
+                    }
+
                     TrayWidget {}
                     ThemeSwitcher {}
                     QuickSettingsButton {}

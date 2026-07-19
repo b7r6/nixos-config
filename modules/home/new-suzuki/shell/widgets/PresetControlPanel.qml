@@ -163,9 +163,10 @@ PanelWindow {
                             }
                         }
 
-                        // Corner labels
+                        // Corner labels — the four canonical corners of the
+                        // preset space: x = affluent → facility, y = day → night.
                         Text {
-                            text: "villa straylight"
+                            text: "tessier"
                             color: Config.mutedColor
                             font.family: Config.font
                             font.pixelSize: 9
@@ -175,7 +176,7 @@ PanelWindow {
                             anchors.margins: 6
                         }
                         Text {
-                            text: "bunker"
+                            text: "bioptic"
                             color: Config.mutedColor
                             font.family: Config.font
                             font.pixelSize: 9
@@ -185,7 +186,7 @@ PanelWindow {
                             anchors.margins: 6
                         }
                         Text {
-                            text: "razorgirl"
+                            text: "villa straylight"
                             color: Config.mutedColor
                             font.family: Config.font
                             font.pixelSize: 9
@@ -195,7 +196,7 @@ PanelWindow {
                             anchors.margins: 6
                         }
                         Text {
-                            text: "yorha"
+                            text: "razorgirl"
                             color: Config.mutedColor
                             font.family: Config.font
                             font.pixelSize: 9

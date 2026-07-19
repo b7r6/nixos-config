@@ -14,7 +14,9 @@ Rectangle {
 
     implicitWidth: (contentItem?.implicitWidth ?? 0) + (Config.padding * 2)
     implicitHeight: Config.barHeight - 10
-    radius: height / 2
+    // Square. Both poles of the design language are rectilinear — the pill
+    // was the blande.
+    radius: Config.radius
 
     color: (active || hovered) ? Config.surface1Color : Qt.alpha(Config.surface1Color, 0)
 
@@ -22,6 +24,10 @@ Rectangle {
         ColorAnimation {
             duration: Config.animDuration
         }
+    }
+
+    CornerBrackets {
+        active: root.hovered || root.active
     }
 
     MouseArea {
