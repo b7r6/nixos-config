@@ -247,12 +247,18 @@ Singleton {
     // ── Watchers ────────────────────────────────────────────────────────────
 
     // The live contract: wintermute's durable output (or the Nix seed).
+    //
+    // THE TRAP (root cause of "spotty theme switching", found live at
+    // gen 33-vs-40): onFileChanged fires on every atomic replace, but
+    // text() returns the CACHED buffer — re-parsing the same stale JSON
+    // forever while the daemon-direct channels moved on. onFileChanged
+    // must call reload(); fresh content then arrives via onLoaded.
     FileView {
         path: root.stateHome + "/wintermute/theme.json"
         watchChanges: true
         preload: true
         onLoaded: root._load(text())
-        onFileChanged: root._load(text())
+        onFileChanged: reload()
     }
 
     // Build-time corner previews, computed by the same palette math in Nix.
