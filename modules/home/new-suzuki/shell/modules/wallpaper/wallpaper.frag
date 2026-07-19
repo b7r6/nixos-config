@@ -95,7 +95,15 @@ void main() {
     float neb = fbm2(p * 1.6 + vec2(time * 0.008, -time * 0.005));
     neb = neb * neb;
     col += night * aff * 0.045 * neb * mix(accent.rgb, accentD.rgb, 0.5);
-    col -= (1.0 - night) * aff * 0.020 * neb;
+
+    // Day wash: much livelier than night's — visible ink clouds drifting,
+    // an accent-tinted counter-current underneath.
+    float dayNeb = fbm2(p * 1.3 + vec2(time * 0.020, -time * 0.012));
+    dayNeb = dayNeb * dayNeb;
+    float dayNeb2 = fbm2(p * 2.4 - vec2(time * 0.014, time * 0.009) + 31.7);
+    col -= (1.0 - night) * (0.050 * dayNeb + 0.022 * dayNeb2 * dayNeb2);
+    col = mix(col, col * mix(vec3(1.0), accent.rgb * 1.35, 0.10),
+              (1.0 - night) * dayNeb);
 
     float vig = dot(p, p);
     col *= 1.0 - mix(0.20, 0.35, night) * vig;
@@ -180,6 +188,39 @@ void main() {
         float rain = trail * core2 * glyph * step(0.72, ch);
         col += night * reg * 0.050 * rain * accent.rgb;
         col -= (1.0 - night) * reg * 0.032 * rain;
+    }
+
+    // ── Day signature: the MAAS BIOCHIP ────────────────────────────────────
+    // Maas Biolabs makes biochips. The paper carries a living circuit:
+    // sparse horizontal traces printed in ink, accent-colored signal pulses
+    // running the lanes (per-lane speed and direction), via dots at the
+    // junction grid. Present at BOTH registers — brand identity, not
+    // register effect — but trace density leans facility.
+    if (night < 0.5) {
+        float laneRow = floor(uv.y * 30.0);
+        float lh = hash(vec2(laneRow, 11.3));
+        float laneGate = step(0.60 - 0.15 * reg, lh);
+        float lineD = abs(fract(uv.y * 30.0) - 0.5);
+        float trace = smoothstep(0.10, 0.03, lineD) * laneGate;
+
+        // printed trace
+        col -= 0.030 * trace;
+
+        // the signal: an accent pulse with an ink trail
+        float dir = lh > 0.80 ? 1.0 : -1.0;
+        float speed = 0.06 + 0.18 * hash(vec2(laneRow, 5.1));
+        float along = fract(p.x * 0.5 / aspect + 0.5 - dir * time * speed + lh * 9.0);
+        float pulse = smoothstep(0.020, 0.004, along);
+        float tail = smoothstep(0.16, 0.0, along) * 0.30;
+        col = mix(col, accent.rgb, trace * pulse * 0.85);
+        col = mix(col, accent.rgb, trace * tail * 0.30);
+
+        // vias where lanes meet the column grid
+        float colX = floor(p.x * 22.0);
+        float vh = hash(vec2(colX, laneRow));
+        vec2 cellUV = vec2(fract(p.x * 22.0) - 0.5, fract(uv.y * 30.0) - 0.5);
+        float via = step(0.88, vh) * laneGate * smoothstep(0.14, 0.06, length(cellUV));
+        col -= 0.045 * via;
     }
 
     // ── The reconcile sweep ────────────────────────────────────────────────

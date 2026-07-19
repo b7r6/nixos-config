@@ -81,13 +81,17 @@ PanelWindow {
     }
 
     // ── Centered panel ───────────────────────────────────────────────────
+    // Tripartite: readout column left, pad CENTER, preset list right — the
+    // balanced layout puts the pad itself at screen center (the old
+    // pad-left/list-right split parked it well left of where the eye wants
+    // the control). Glass: compositor blur via qs_control_panel layerrule.
     Rectangle {
         id: panel
-        width: 640
+        width: 820
         height: 420
         anchors.centerIn: parent
-        color: Config.backgroundTransparentColor
-        border.color: Config.surface2Color
+        color: Qt.alpha(Config.backgroundColor, 0.62)
+        border.color: Qt.alpha(Config.accentColor, 0.25)
         border.width: 1
         radius: 0
         scale: root.shown ? 1.0 : 0.97
@@ -120,6 +124,58 @@ PanelWindow {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 spacing: 24
+
+                // ── Vector readout (left balance column) ─────────────────
+                ColumnLayout {
+                    Layout.preferredWidth: 150
+                    Layout.fillHeight: true
+                    spacing: 8
+
+                    Text {
+                        text: "vector"
+                        color: Config.mutedColor
+                        font.family: Config.font
+                        font.pixelSize: 9
+                        Layout.bottomMargin: 4
+                    }
+
+                    Repeater {
+                        model: [
+                            { k: "slug", v: ThemeService.currentThemeName },
+                            { k: "gen", v: String(ThemeService.generation) },
+                            { k: "register", v: ThemeService.register.toFixed(2) },
+                            { k: "polarity", v: ThemeService.colorScheme },
+                            { k: "scanline", v: (ThemeService.tokens.scanline ?? 0).toFixed(2) },
+                            { k: "bloom", v: (ThemeService.tokens.bloom ?? 0).toFixed(2) }
+                        ]
+
+                        RowLayout {
+                            required property var modelData
+                            spacing: 6
+
+                            Text {
+                                text: modelData.k
+                                color: Config.mutedColor
+                                font.family: Config.font
+                                font.pixelSize: 9
+                                font.letterSpacing: 1.2
+                                font.capitalization: Font.AllUppercase
+                                Layout.preferredWidth: 62
+                            }
+
+                            Text {
+                                text: modelData.v
+                                color: Config.subtextColor
+                                font.family: Config.font
+                                font.pixelSize: Config.fontSizeSmall
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+                        }
+                    }
+
+                    Item { Layout.fillHeight: true }
+                }
 
                 // ── 2D Pad ────────────────────────────────────────────────
                 Item {

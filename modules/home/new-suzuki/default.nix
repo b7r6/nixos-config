@@ -388,6 +388,8 @@ in
         "ignore_alpha 0.15, match:namespace qs_launcher"
         "blur 1, match:namespace qs_modules"
         "ignore_alpha 0.25, match:namespace qs_modules"
+        "blur 1, match:namespace qs_control_panel"
+        "ignore_alpha 0.15, match:namespace qs_control_panel"
       ];
 
       # Floating windows live in the glass: noticeably translucent (blur
