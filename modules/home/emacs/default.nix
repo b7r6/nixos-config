@@ -128,7 +128,7 @@ in
       lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
         _repo="${config.hyper-modern-nixos.dotfiles.path}/emacs"
         _dir="$HOME/.emacs.d"
-        for f in init.el early-init.el; do
+        for f in init.el early-init.el hypermodern-palette.el; do
           dest="$_dir/$f"
           # Real file (not symlink) in the way of the managed link?
           if [ -f "$dest" ] && [ ! -h "$dest" ]; then
@@ -145,10 +145,21 @@ in
       ''
     );
 
-    # The links themselves: ~/.emacs.d/{init,early-init}.el → the working tree.
+    # The links themselves: ~/.emacs.d/{init,early-init,hypermodern-palette}.el
+    # → the working tree.
     home.file = lib.mkIf cfg.repoConfig {
       ".emacs.d/init.el".source = config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/emacs/init.el";
       ".emacs.d/early-init.el".source = config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/emacs/early-init.el";
+      ".emacs.d/hypermodern-palette.el".source = config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/emacs/hypermodern-palette.el";
+    };
+
+    # Emacs daemon: the socket wintermute's emacsclient adapter lands on
+    # ((ono-sendai-set-hero …) today, (ono-sendai-sync) once the adapter is
+    # bumped). Standalone `emacs` sessions are unaffected.
+    services.emacs = {
+      enable = true;
+      inherit (cfg) package;
+      client.enable = true;
     };
 
     home.packages =

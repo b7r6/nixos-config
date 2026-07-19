@@ -3403,8 +3403,20 @@ Moves to end of current line, deletes newline, and collapses whitespace."
 (add-hook 'after-make-frame-functions
           (lambda (_) (hypermodern/ui-apply)))
 
+;; Computed palettes + the wintermute live channel (hypermodern-palette.el,
+;; beside this file). Loading it defines ono-sendai-set-hero/-set-axis/
+;; -set-level/-set-polarity and ono-sendai-sync; sync reads wintermute's
+;; theme.state when present, so startup lands on whatever the desktop is
+;; wearing. Absent the file (or the daemon), the hand-tuned palettes above
+;; still work — nix pre-loads, nothing breaks without it.
+(load (expand-file-name "hypermodern-palette" user-emacs-directory) 'noerror 'nomessage)
+
 (defun hypermodern/initialization-hook ()
   (hypermodern/apply-theme 'ono-sendai-sprawl)
+  ;; The computed vector wins over the static default when wintermute has
+  ;; state to sync (no-op otherwise).
+  (when (fboundp 'ono-sendai-sync)
+    (ono-sendai-sync))
   (hypermodern/ui-apply)
   (hypermodern/css-reset)
   (global-clipetty-mode))

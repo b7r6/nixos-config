@@ -176,11 +176,11 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1784475997,
-        "narHash": "sha256-V9qtKGh93GUW5aBl91MO8zv1mD1hIa+xLz8ZkDcJOYA=",
+        "lastModified": 1784477706,
+        "narHash": "sha256-JZfajRYZicq9uP3wZ7sz4oi/n1qZIbppWxX3XcszlfM=",
         "ref": "b7r6/wintermute-0x01",
-        "rev": "196247364421b6850f4cbe919337d10a22b79920",
-        "revCount": 278,
+        "rev": "3aaba61666fd9e9b6aa14401764590c696a450aa",
+        "revCount": 279,
         "type": "git",
         "url": "ssh://git@git.s4.gl/continuity/continuity.git"
       },
