@@ -69,6 +69,56 @@ RowLayout {
         onTriggered: ngcProc.running = true
     }
 
+    // ── Sparkline histories: 16-sample rings fed by the existing pollers ────
+    property var cpuHist: []
+    property var gpuHist: []
+
+    Connections {
+        target: SystemMonitorService
+
+        function onCpuUsageChanged() {
+            root.cpuHist = [...root.cpuHist.slice(-15), SystemMonitorService.cpuUsage];
+        }
+
+        function onGpuUsageChanged() {
+            root.gpuHist = [...root.gpuHist.slice(-15), SystemMonitorService.gpuUsage];
+        }
+    }
+
+    // Tiny history trace: accent stroke, warn when hot.
+    component Spark: Canvas {
+        id: spark
+
+        property var history: []
+        property bool hot: false
+
+        width: 36
+        height: 12
+
+        onHistoryChanged: requestPaint()
+        onHotChanged: requestPaint()
+
+        onPaint: {
+            const ctx = getContext("2d");
+            ctx.clearRect(0, 0, width, height);
+            const h = history;
+            if (!h || h.length < 2)
+                return;
+            ctx.strokeStyle = String(hot ? Config.warningColor : Config.accentColor);
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            const step = width / (h.length - 1);
+            for (let i = 0; i < h.length; i++) {
+                const y = height - 1 - (Math.min(100, Math.max(0, h[i])) / 100) * (height - 2);
+                if (i === 0)
+                    ctx.moveTo(0, y);
+                else
+                    ctx.lineTo(i * step, y);
+            }
+            ctx.stroke();
+        }
+    }
+
     component Readout: RowLayout {
         id: readout
 
@@ -76,6 +126,7 @@ RowLayout {
         property string value
         property real threshold: 0.12
         property bool hot: false
+        property var spark: null
 
         readonly property real reveal: Math.max(0, Math.min(1, (Config.telemetryDensity - threshold) / 0.12))
 
@@ -142,6 +193,12 @@ RowLayout {
                 }
             }
         }
+
+        Spark {
+            visible: readout.spark !== null && (readout.spark?.length ?? 0) > 1
+            history: readout.spark ?? []
+            hot: readout.hot
+        }
     }
 
     Readout {
@@ -149,6 +206,7 @@ RowLayout {
         value: SystemMonitorService.cpuUsage + "%"
         threshold: 0.10
         hot: SystemMonitorService.cpuUsage > 85
+        spark: root.cpuHist
     }
 
     Readout {
@@ -163,6 +221,7 @@ RowLayout {
         value: SystemMonitorService.gpuUsage + "%"
         threshold: 0.46
         hot: SystemMonitorService.gpuUsage > 92
+        spark: root.gpuHist
     }
 
     Readout {
