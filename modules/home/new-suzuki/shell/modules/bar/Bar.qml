@@ -156,6 +156,45 @@ Scope {
                             running: Config.facility && barContent.visible
                         }
                     }
+
+                    // Generation echo: a wintermute commit fires one fast
+                    // bright pass along the rail — the bar's answer to the
+                    // wallpaper's reconcile sweep, at BOTH poles.
+                    Rectangle {
+                        id: echoBlip
+                        width: 140
+                        height: parent.height
+                        x: -140
+                        opacity: 0
+                        gradient: Gradient {
+                            orientation: Gradient.Horizontal
+                            GradientStop { position: 0.0; color: "transparent" }
+                            GradientStop { position: 0.5; color: Config.accentColor }
+                            GradientStop { position: 1.0; color: "transparent" }
+                        }
+
+                        Connections {
+                            target: ThemeService
+                            function onGenerationChanged() {
+                                echoAnim.restart();
+                            }
+                        }
+
+                        SequentialAnimation {
+                            id: echoAnim
+
+                            PropertyAction { target: echoBlip; property: "opacity"; value: 1 }
+                            NumberAnimation {
+                                target: echoBlip
+                                property: "x"
+                                from: -140
+                                to: barContent.width
+                                duration: 450
+                                easing.type: Easing.OutQuad
+                            }
+                            PropertyAction { target: echoBlip; property: "opacity"; value: 0 }
+                        }
+                    }
                 }
 
                 // --- LEFT ---
@@ -164,6 +203,13 @@ Scope {
                     anchors.leftMargin: root.gapOut
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: root.gapIn
+
+                    // Machine identity — facility register only. On a fleet
+                    // of Sparks, which console is this?
+                    HostBadge {
+                        opacity: Config.register
+                        visible: Config.register > 0.05
+                    }
 
                     CalendarButton {}
                     SystemMonitorButton {}
@@ -185,6 +231,12 @@ Scope {
                     anchors.rightMargin: root.gapOut
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: root.gapIn
+
+                    // Same slot, opposite poles: telemetry fades out toward
+                    // the villa, the lounge fades in.
+                    Lounge {
+                        Layout.rightMargin: 8
+                    }
 
                     Telemetry {
                         Layout.rightMargin: 8

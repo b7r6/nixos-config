@@ -54,10 +54,22 @@ Item {
         }
     }
 
+    readonly property string windowClass: Hyprland.activeToplevel?.lastIpcObject?.class ?? ""
+
     RowLayout {
         id: content
         spacing: 6
         anchors.fill: parent
+
+        // Facility: the process readout — CLASS in accent, console-style.
+        Text {
+            visible: Config.facility && root.windowClass !== ""
+            text: "▞ " + root.windowClass.toUpperCase()
+            color: Config.accentColor
+            font.family: Config.font
+            font.pixelSize: 9
+            font.letterSpacing: 1.2
+        }
 
         Text {
             id: titleText
