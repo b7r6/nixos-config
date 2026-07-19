@@ -263,6 +263,15 @@ in
         width = 3840;
         height = 2160;
       };
+
+      # ── The rice ─────────────────────────────────────────────────────────
+      # new-suzuki quickshell shell + wintermute reconciler; exclusive mode
+      # replaces waybar/wofi/mako and takes the keybinds. Seed register 1.0 =
+      # razorgirl (night-facility) — the daemon owns it after generation 0.
+      new-suzuki = {
+        enable = true;
+        exclusive = true;
+      };
     };
   };
 
