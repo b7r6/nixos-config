@@ -158,7 +158,8 @@
 (declare-function hypermodern/visit-init "init" ())
 (declare-function hypermodern/goto-definition-or-file "init" ())
 (declare-function hypermodern/kill-buffer "init" ())
-(declare-function hypermodern/format-buffer "init" ())
+;; (self-declare-function removed: declaring a function this file DEFINES
+;; trips the Emacs 31 byte-compiler into a phantom "defined multiple times")
 
 ;; ───────────────────────────────────────────────────────────────────
 ;;                                                             // PGTK
@@ -948,6 +949,11 @@
              (pulse-color (hypermodern/ui--color-blend accent bg 0.15)))
 
         (when pulse-color
+          ;; pulse.el must be loaded BEFORE the let: its entry point is
+          ;; autoloaded, and binding not-yet-special vars is lexical — the
+          ;; iterations/delay were silently ignored on the first pulse of
+          ;; every session.
+          (require 'pulse)
           (let ((pulse-iterations 8)
                 (pulse-delay 0.04))
             (set-face-background 'pulse-highlight-face pulse-color)
@@ -1706,26 +1712,26 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
 
     (let* ((choice (completing-read "Prompt: " (mapcar #'car hypermodern/gptel-prompts) nil t))
            (prompt (cdr (assoc choice hypermodern/gptel-prompts))))
-      (setq gptel--system-message prompt)
+      (setq gptel-system-prompt prompt)
       (message "Prompt: %s" (if prompt choice "Default"))))
 
   (defun hypermodern/gptel-rewrite-region (start end)
     "Rewrite selected region to be clearer."
     (interactive "r")
 
-    (let ((gptel--system-message "Rewrite the following to be clearer and more concise. Output only the rewritten text, no explanation."))
+    (let ((gptel-system-prompt "Rewrite the following to be clearer and more concise. Output only the rewritten text, no explanation."))
       (gptel-send start end)))
 
   (defun hypermodern/gptel-explain-region (start end)
     "Explain selected code/text."
     (interactive "r")
-    (let ((gptel--system-message "Explain the following clearly and concisely."))
+    (let ((gptel-system-prompt "Explain the following clearly and concisely."))
       (gptel-send start end)))
 
   (defun hypermodern/gptel-code-region (start end)
     "Generate/improve code for selected region."
     (interactive "r")
-    (let ((gptel--system-message "You are an expert programmer. Write clean, idiomatic code. No markdown fences unless necessary."))
+    (let ((gptel-system-prompt "You are an expert programmer. Write clean, idiomatic code. No markdown fences unless necessary."))
       (gptel-send start end)))
 
   (defun hypermodern/gptel-send-buffer ()
@@ -2182,7 +2188,7 @@ Opens a new gptel buffer with agent mode enabled and tools available."
       (with-current-buffer buf
         (setq-local hypermodern/gptel-agent-mode t)
         (setq-local gptel-confirm-tool-calls 'confirm-dangerous)
-        (setq-local gptel--system-message
+        (setq-local gptel-system-prompt
                     "You are an expert software engineer with access to tools.
 Use tools to explore the codebase, make edits, and run commands.
 Work step by step. After each tool call, analyze the result and decide the next action.
@@ -2377,48 +2383,10 @@ When you've completed the task or need clarification, say so clearly.")
   :config (yas-global-mode 1))
 
 ;; ───────────────────────────────────────────────────────────────────
-;; // codeium - AI code completion (FIM)
-;; ───────────────────────────────────────────────────────────────────
-
-(use-package codeium
-  :straight '(:host github :repo "Exafunction/codeium.el")
-  :defer t
-  :commands (codeium-complete codeium-install codeium-diagnose)
-  :init
-  ;; Mode line indicator
-  (setq codeium-mode-line-enable
-        (lambda (api) (not (memq api '(CancelRequest Heartbeat AcceptCompletion)))))
-
-  ;; Get codeium status
-  (defun hypermodern/codeium-status ()
-    "Show codeium connection status."
-    (interactive)
-    (require 'codeium)
-    (codeium-diagnose))
-
-  ;; Auto-install language server if missing
-  (defun hypermodern/codeium-ensure-installed ()
-    "Install codeium language server if not present."
-    (interactive)
-    (require 'codeium)
-    (unless (file-exists-p (expand-file-name "~/.emacs.d/codeium/codeium_language_server"))
-      (codeium-install)))
-
-  ;; Setup keybindings after codeium loads
-  (with-eval-after-load 'codeium
-    (when (boundp 'codeium-completion-map)
-      (define-key codeium-completion-map (kbd "TAB") #'codeium-completion-accept)
-      (define-key codeium-completion-map (kbd "<tab>") #'codeium-completion-accept)
-      (define-key codeium-completion-map (kbd "M-]") #'codeium-completion-next)
-      (define-key codeium-completion-map (kbd "M-[") #'codeium-completion-prev)
-      (define-key codeium-completion-map (kbd "C-g") #'codeium-completion-cancel))
-    ;; Add mode line after load
-    (add-to-list 'mode-line-format '(:eval (car-safe codeium-mode-line)) t))
-
-  :bind
-  ("C-c a c" . codeium-complete)           ; Trigger completion
-  ("C-c a i" . hypermodern/codeium-ensure-installed)  ; Install/check
-  ("C-c a s" . hypermodern/codeium-status))
+;; // codeium block removed: it declared :straight (no straight in the
+;; nix model) so the whole use-package form failed to PARSE and errored
+;; on every load. Reintroduce via mk-hypermodern-emacs if ever wanted;
+;; gptel is the living LLM stack here.
 
 ;; ───────────────────────────────────────────────────────────────────
 ;;                                                      // tree-sitter
@@ -2540,7 +2508,7 @@ When you've completed the task or need clarification, say so clearly.")
      :type-checker rust-analyzer)
 
     (python
-     :mode python-mode
+     :mode python-ts-mode
      :extensions ("\\.py\\'")
      :backend lsp
      :server pyright
@@ -2810,9 +2778,13 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
          ("\\.cuh\\'" . cuda-mode))
   :hook (cuda-mode . lsp-deferred))
 
-(use-package python-mode
-  :mode "\\.py\\'"
-  :hook (python-mode . lsp-deferred))
+;; Built-in python (the external `python-mode' package was never installed —
+;; the require failed silently, so .py buffers ran WITHOUT the lsp hook).
+;; Tree-sitter grammars are store-provided; hook both mode variants.
+(use-package python
+  :mode ("\\.py\\'" . python-ts-mode)
+  :hook ((python-mode . lsp-deferred)
+         (python-ts-mode . lsp-deferred)))
 
 (use-package typescript-ts-mode
   :mode (("\\.ts\\'" . typescript-ts-mode)
@@ -2868,7 +2840,9 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 ;; Starlark for buck2. bazel.el provides `bazel-starlark-mode' for .bzl/BUCK
 ;; files; we attach it to the buck2 LSP (registered above) and let buildifier
 ;; handle formatting/linting via format-all.
-(use-package bazel-starlark-mode
+;; Feature name is `bazel' — requiring `bazel-starlark-mode' (a major mode
+;; inside it, not a feature) failed silently: BUCK/.bzl config never applied.
+(use-package bazel
   :mode (("\\.bzl\\'" . bazel-starlark-mode)
          ("BUCK\\'" . bazel-starlark-mode))
   :hook (bazel-starlark-mode . lsp-deferred))
@@ -3037,12 +3011,12 @@ to a containing directory wins, so a build-system root (`.buckconfig',
     (let ((start (or dir default-directory)))
       (catch 'found
         (dolist (marker hypermodern/compile-root-markers nil)
-          (when-let ((hit (locate-dominating-file start marker)))
+          (when-let* ((hit (locate-dominating-file start marker)))
             (throw 'found (expand-file-name hit)))))))
 
   (defun hypermodern/compile--pin-to-root ()
     "Pin compile buffer's dir to the project root; add it to search path."
-    (when-let ((root (hypermodern/compile-root)))
+    (when-let* ((root (hypermodern/compile-root)))
       (setq-local default-directory root)
       (setq-local compilation-search-path
                   (cons root (bound-and-true-p compilation-search-path)))))
@@ -3314,6 +3288,14 @@ no way human."))
   :config
   (defun hypermodern/visit-init () (interactive) (find-file user-init-file))
   (defun hypermodern/kill-buffer () (interactive) (kill-buffer (current-buffer)))
+
+(defun hypermodern/show-current-file ()
+  "Show (and copy) the current buffer's file path.
+Was keybound on C-c f but never defined — every press errored."
+  (interactive)
+  (if-let* ((f (or buffer-file-name default-directory)))
+      (progn (kill-new f) (message "%s (copied)" f))
+    (message "no file")))
 
   (defun hypermodern/show-current-file ()
     "Print the current buffer filename to the minibuffer."
