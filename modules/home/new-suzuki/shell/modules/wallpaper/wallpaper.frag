@@ -51,6 +51,9 @@ void main() {
     vec3 col = mix(paper.rgb, surface.rgb, grad);
     col *= 1.0 - 0.35 * dot(p, p);
 
+    float lum = dot(surface.rgb, vec3(0.299, 0.587, 0.114));
+    float night = 1.0 - step(0.5, lum);
+
     // ── Affluent pole: paired ambient blooms (~40s / ~50s orbits) ──────────
     float aff = 1.0 - reg;
     if (aff > 0.001) {
@@ -59,6 +62,14 @@ void main() {
         float g1 = exp(-9.0 * dot(p - b1, p - b1));
         float g2 = exp(-7.0 * dot(p - b2, p - b2));
         col += aff * (0.10 * g1 * accent.rgb + 0.07 * g2 * accentD.rgb);
+
+        // The orbital horizon — the Swiss orbital bank's window seat: a
+        // planet limb glowing low in the frame, atmosphere thinning upward.
+        vec2 hc = vec2(0.0, 1.9);
+        float dHor = length(p - hc) - 1.62;
+        float limb = exp(-55.0 * abs(dHor));
+        float atmo = exp(-6.0 * max(0.0, dHor));
+        col += aff * (0.09 * limb + 0.025 * atmo) * mix(accent.rgb, accentD.rgb, 0.35);
     }
 
     // ── Facility pole: constellation + scanline drift ──────────────────────
@@ -79,6 +90,19 @@ void main() {
         col -= reg * 0.020 * lines;
         float drift = fract(uv.y - time * 0.125);
         col += reg * 0.030 * smoothstep(0.012, 0.0, min(drift, 1.0 - drift)) * accent.rgb;
+
+        // Data columns — sparse, slow, barely there. Additive light rain at
+        // night; printed ink on the maas paper by day.
+        float colId = floor(p.x * 26.0);
+        float ch = hash(vec2(colId, 3.7));
+        float head = fract(time * (0.04 + 0.11 * ch) + ch * 7.31);
+        float dCol = head - uv.y;
+        float trail = smoothstep(0.35, 0.0, abs(dCol)) * step(0.0, dCol);
+        float core = smoothstep(0.45, 0.0, abs(fract(p.x * 26.0) - 0.5));
+        float rain = trail * core * (0.35 + 0.65 * hash(vec2(colId, floor(uv.y * 90.0))));
+        float gate = step(0.72, ch);
+        col += night * reg * 0.045 * rain * gate * accent.rgb;
+        col -= (1.0 - night) * reg * 0.030 * rain * gate;
     }
 
     // ── The reconcile sweep ────────────────────────────────────────────────

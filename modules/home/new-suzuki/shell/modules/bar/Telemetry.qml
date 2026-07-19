@@ -46,6 +46,29 @@ RowLayout {
         onTriggered: linkProc.running = true
     }
 
+    // Running containers (the NGC angle: the shell knows its workloads).
+    // Absent/permission-denied docker degrades to 0 → readout hidden.
+    property int containerCount: 0
+
+    Process {
+        id: ngcProc
+        command: ["bash", "-c", "docker ps -q 2>/dev/null | wc -l"]
+        stdout: SplitParser {
+            onRead: data => {
+                const n = parseInt(data.trim());
+                root.containerCount = isNaN(n) ? 0 : n;
+            }
+        }
+    }
+
+    Timer {
+        interval: 10000
+        repeat: true
+        running: root.visible
+        triggeredOnStart: true
+        onTriggered: ngcProc.running = true
+    }
+
     component Readout: RowLayout {
         id: readout
 
@@ -147,6 +170,13 @@ RowLayout {
         value: Math.max(SystemMonitorService.cpuTemp, SystemMonitorService.gpuTemp) + "°"
         threshold: 0.64
         hot: Math.max(SystemMonitorService.cpuTemp, SystemMonitorService.gpuTemp) > 80
+    }
+
+    Readout {
+        label: "ngc"
+        value: root.containerCount
+        threshold: 0.73
+        visible: reveal > 0.01 && root.containerCount > 0
     }
 
     Readout {

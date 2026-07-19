@@ -1,9 +1,9 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import QtQuick
 import qs.config
 import qs.services
+import "../../components/"
 
 Item {
     id: root
@@ -138,6 +138,13 @@ Item {
             height: 3
             width: parent.width * (1.0 - root.progress)
             color: root.isUrgent ? Config.errorColor : Config.accentColor
+        }
+
+        // Geo-hover targeting marks (facility register); urgent cards are
+        // pre-targeted.
+        CornerBrackets {
+            active: mouseArea.containsMouse || root.isUrgent
+            bracketColor: root.isUrgent ? Config.errorColor : Config.accentColor
         }
 
         // Content
