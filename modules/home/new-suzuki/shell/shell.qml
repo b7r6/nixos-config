@@ -48,6 +48,30 @@ ShellRoot {
         }
     }
 
+    // ── Glitch-in ──────────────────────────────────────────────────────────
+    // Facility register: new windows MATERIALIZE — an alpha strobe driven
+    // through hyprctl setprop, riding on top of the normal open animation.
+    // The openwindow event carries "address,workspace,class,title".
+    Connections {
+        target: Hyprland
+
+        function onRawEvent(event) {
+            if (event.name !== "openwindow" || !Config.facility)
+                return;
+            const addr = event.data.split(",")[0];
+            if (!addr)
+                return;
+            Quickshell.execDetached(["bash", "-c",
+                `a="address:0x${addr}"
+                 hyprctl setprop $a alpha 0.25 >/dev/null; sleep 0.045
+                 hyprctl setprop $a alpha 0.85 >/dev/null; sleep 0.035
+                 hyprctl setprop $a alpha 0.40 >/dev/null; sleep 0.045
+                 hyprctl setprop $a alpha 0.95 >/dev/null; sleep 0.035
+                 hyprctl setprop $a alpha 0.60 >/dev/null; sleep 0.045
+                 hyprctl setprop $a alpha 1.00 >/dev/null`]);
+        }
+    }
+
     // ── Idle Monitors ──────────────────────────────────────────────────────
     IdleMonitor {
         timeout: IdleService.lockTimeout

@@ -132,6 +132,12 @@ let
     "$mod SHIFT, BackSpace, exit"
     "$mod SHIFT, L, global, quickshell:lock_screen"
 
+    # ── Alpha scrub: Alt+wheel dials the focused window's transparency,
+    #    Alt+middle-click resets to solid ────────────────────────────────
+    "ALT, mouse_down, exec, wm-alpha down"
+    "ALT, mouse_up, exec, wm-alpha up"
+    "ALT, mouse:274, exec, wm-alpha reset"
+
     # ── Window States ───────────────────────────────────────────────────
     "$mod, F, fullscreen, 0"
     "$mod SHIFT, F, fullscreen, 1"
@@ -228,6 +234,27 @@ let
 
   azonixFont = pkgs.callPackage ./azonix.nix { };
 
+  # Per-window alpha scrub (Alt+wheel). hyprctl setprop alpha is a live
+  # multiplier on top of the normal active/inactive opacity; we track the
+  # current value per window address in XDG_RUNTIME_DIR since hyprland
+  # doesn't read props back. Clamped to [0.25, 1.0].
+  wm-alpha = pkgs.writeShellScriptBin "wm-alpha" ''
+    addr=$(${pkgs.hyprland}/bin/hyprctl activewindow -j | ${pkgs.jq}/bin/jq -r .address)
+    [ -z "$addr" ] || [ "$addr" = "null" ] && exit 0
+    dir="''${XDG_RUNTIME_DIR:-/tmp}/wm-alpha"
+    mkdir -p "$dir"
+    f="$dir/$addr"
+    cur=$(cat "$f" 2>/dev/null || echo 1.0)
+    case "$1" in
+      down)  new=$(${pkgs.gawk}/bin/awk -v c="$cur" 'BEGIN{n=c-0.05; if(n<0.25)n=0.25; printf "%.2f", n}') ;;
+      up)    new=$(${pkgs.gawk}/bin/awk -v c="$cur" 'BEGIN{n=c+0.05; if(n>1.0)n=1.0; printf "%.2f", n}') ;;
+      reset) new=1.00 ;;
+      *)     exit 1 ;;
+    esac
+    ${pkgs.hyprland}/bin/hyprctl setprop "address:$addr" alpha "$new" > /dev/null
+    echo "$new" > "$f"
+  '';
+
   # The reconciler daemon/CLI from the continuity monorepo (theorem-carrying
   # core; the shell's ThemeService spawns `wintermute preset|set`).
   wintermute = flake.inputs.continuity.packages.${pkgs.system}.wintermute;
@@ -275,6 +302,7 @@ in
         ++ [
           azonixFont
           wintermute
+          wm-alpha
           # Affluent-pole display serif (subset — google-fonts is enormous)
           (pkgs.google-fonts.override { fonts = [ "Cormorant Garamond" ]; })
         ];
@@ -355,6 +383,12 @@ in
         "ignorealpha 0.15, qs_launcher"
         "blur, qs_modules"
         "ignorealpha 0.25, qs_modules"
+      ];
+
+      # Floating windows live in the glass: noticeably translucent (blur
+      # carries legibility), snapping solid when focused enough to read.
+      wayland.windowManager.hyprland.settings.windowrulev2 = lib.mkAfter [
+        "opacity 0.92 0.78, floating:1"
       ];
     }
 
