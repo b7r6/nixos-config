@@ -138,7 +138,7 @@ in
         _repo="${config.hyper-modern-nixos.dotfiles.path}/emacs"
         _dir="$HOME/.emacs.d"
         _seed="$_dir/.hypermodern-seed"
-        for f in init.el early-init.el hypermodern-palette.el; do
+        for f in init.el early-init.el hypermodern-palette.el hypermodern-modeline.el; do
           dest="$_dir/$f"
           if [ -f "$dest" ] && [ ! -h "$dest" ]; then
             if [ -f "$_repo/$f" ] && cmp -s "$dest" "$_repo/$f"; then
@@ -163,6 +163,7 @@ in
       ".emacs.d/init.el".source = config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/emacs/init.el";
       ".emacs.d/early-init.el".source = config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/emacs/early-init.el";
       ".emacs.d/hypermodern-palette.el".source = config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/emacs/hypermodern-palette.el";
+      ".emacs.d/hypermodern-modeline.el".source = config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/emacs/hypermodern-modeline.el";
     };
 
     # Emacs daemon: the socket wintermute's emacsclient adapter lands on

@@ -118,6 +118,13 @@
 (defvar hypermodern/polarity 'dark)
 (defvar hypermodern/level 'carbon)
 (defvar hypermodern/ramp 211)
+(defvar hypermodern/register 1000
+  "Register axis position (per-mille), affluent 0 ... facility 1000.")
+(defvar hypermodern/wintermute-generation 0
+  "Generation of the last synced wintermute state.")
+
+(defvar hypermodern/theme-changed-hook nil
+  "Run after the computed theme is (re)applied; modeline etc. subscribe.")
 
 (defun hypermodern/compute-current ()
   (if (eq hypermodern/polarity 'light)
@@ -137,6 +144,7 @@ Uses the init.el face engine when present; no-op under --batch."
         (face-spec-set (car face-spec) (cadr face-spec) 'face-defface-spec))
       (let ((bg (plist-get palette :base00)))
         (modify-all-frames-parameters `((background-color . ,bg))))
+      (run-hooks 'hypermodern/theme-changed-hook)
       (message "// theme // %s // hero %d axis %d //"
                (plist-get palette :name) hypermodern/hero hypermodern/axis))))
 
@@ -196,6 +204,8 @@ config never depends on the daemon, it only listens to it."
             (`("hero" ,v) (setq hypermodern/hero (mod (string-to-number v) 360)))
             (`("axis" ,v) (setq hypermodern/axis (mod (string-to-number v) 360)))
             (`("ramp" ,v) (setq hypermodern/ramp (mod (string-to-number v) 360)))
+            (`("register" ,v) (setq hypermodern/register (string-to-number v)))
+            (`("generation" ,v) (setq hypermodern/wintermute-generation (string-to-number v)))
             (`("polarity" ,v) (setq hypermodern/polarity (intern v)))
             (`("level" ,v)
              (let ((sym (intern v)))

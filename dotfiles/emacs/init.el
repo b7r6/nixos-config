@@ -985,6 +985,17 @@
     (ignore-errors (hypermodern/ui--set-frame-param 'alpha (cons hypermodern/ui-alpha hypermodern/ui-alpha)))))
 
 (defun hypermodern/ui--apply-modeline ()
+  (if (fboundp 'hypermodern/modeline-refresh)
+      (progn
+        (setq hypermodern/modeline-height
+              (pcase hypermodern/ui-density
+                ('tight 18) ('normal 20) ('comfy 22) ('cinema 26) (_ 20)))
+        (hypermodern/modeline-refresh))
+    (hypermodern/ui--apply-doom-modeline)))
+
+(declare-function hypermodern/modeline-refresh "hypermodern-modeline")
+
+(defun hypermodern/ui--apply-doom-modeline ()
   (when (featurep 'doom-modeline)
     (setq doom-modeline-height (pcase hypermodern/ui-density ('tight 18) ('normal 20) ('comfy 22) ('cinema 26) (_ 20)))
     (pcase hypermodern/ui-signal
@@ -1411,15 +1422,25 @@ action, which splits the frame — the one thing that may never happen."
 ;;                                                     // mode // line
 ;; ───────────────────────────────────────────────────────────────────
 
+;; doom-modeline retires to FALLBACK: the svg modeline (hypermodern-
+;; modeline.el, beside this file) draws every pixel from the computed
+;; palette — no theme hole — and morphs with the register. When the file
+;; is absent (bare clone on another distro), doom-modeline steps back in.
 (use-package doom-modeline
-  :demand t
-  :hook (after-init . doom-modeline-mode)
-
+  :defer t
   :config
   (setq doom-modeline-height 20
         doom-modeline-bar-width 3
         doom-modeline-icon nil
         doom-modeline-buffer-encoding nil))
+
+(declare-function hypermodern/modeline-enable "hypermodern-modeline")
+(defvar hypermodern/modeline-height)
+
+(if (load (expand-file-name "hypermodern-modeline" user-emacs-directory)
+          'noerror 'nomessage)
+    (add-hook 'after-init-hook #'hypermodern/modeline-enable 90)
+  (add-hook 'after-init-hook #'doom-modeline-mode))
 
 ;; ───────────────────────────────────────────────────────────────────
 ;;                                   // gptel // passage // openrouter

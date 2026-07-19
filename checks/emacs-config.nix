@@ -89,6 +89,7 @@ pkgs.runCommand "emacs-config"
     cp ${../dotfiles/emacs/early-init.el}          "$TMPDIR/elisp/early-init.el"
     cp ${../dotfiles/emacs/init.el}                "$TMPDIR/elisp/init.el"
     cp ${../dotfiles/emacs/hypermodern-palette.el} "$TMPDIR/elisp/hypermodern-palette.el"
+    cp ${../dotfiles/emacs/hypermodern-modeline.el} "$TMPDIR/elisp/hypermodern-modeline.el"
     cd "$TMPDIR/elisp"
 
     # ── gate 1: batch load ──────────────────────────────────────────────────────
@@ -138,7 +139,7 @@ pkgs.runCommand "emacs-config"
     # The compiler emits all warnings to stderr; any Warning or Error is fatal.
 
     echo "emacs-config: byte-compiling..."
-    for f in early-init.el init.el hypermodern-palette.el; do
+    for f in early-init.el init.el hypermodern-palette.el hypermodern-modeline.el; do
       echo "  compiling $f ..."
       COMPILE_OUT=$(${emacsPkg}/bin/emacs \
         --batch \
