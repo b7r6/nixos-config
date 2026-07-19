@@ -128,13 +128,13 @@ let dashboard =
             [ P.timeseries
                 "Actions completed / s"
                 T.Unit.Short
-                (S.rateSimple "execution.completed.count")
+                "SELECT time, sum(rate) as value FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, extractGroups(MetricName, 'workers_workers_([0-9a-f_]+)_run_action_successes')[1] as w, runningDifference(max(Value)) / 30 as rate FROM ${S.gauge} WHERE MetricName LIKE 'nativelink_schedulers_%_run_action_successes' AND ${S.tf} AND ${S.hostFilter} GROUP BY time, w ORDER BY w, time) WHERE rate >= 0 GROUP BY time ORDER BY time"
             , P.timeseriesStacked
                 "Client CAS ops / s by result"
                 T.Unit.Short
                 ( S.rateBucketed
                     "cache.operations"
-                    "Attributes['cache.type'] = 'cas-main'"
+                    "Attributes['cache.type'] LIKE 'cas-%'"
                     "Attributes['cache.operation.result']"
                     "result"
                 )
@@ -143,7 +143,7 @@ let dashboard =
                 T.Unit.Short
                 ( S.rateBucketed
                     "cache.operations"
-                    "Attributes['cache.type'] = 'cas-main'"
+                    "Attributes['cache.type'] LIKE 'cas-%'"
                     "Attributes['cache.operation.name']"
                     "kind"
                 )
@@ -181,20 +181,20 @@ let dashboard =
           , panels =
             [ P.stat
                 "AC read hit rate — %"
-                "SELECT round(100 * sumIf(v, res = 'hit') / greatest(sum(v), 1)) as value FROM (SELECT Attributes['cache.operation.result'] as res, max(Value) as v FROM ${S.sum} WHERE MetricName = 'cache.operations' AND Attributes['cache.type'] = 'ac-main' AND Attributes['cache.operation.name'] = 'read' AND ${S.tf} GROUP BY res, ${S.host})"
+                "SELECT round(100 * sumIf(v, res = 'hit') / greatest(sum(v), 1)) as value FROM (SELECT Attributes['cache.operation.result'] as res, max(Value) as v FROM ${S.sum} WHERE MetricName = 'cache.operations' AND Attributes['cache.type'] LIKE 'ac-%' AND Attributes['cache.operation.name'] = 'read' AND ${S.tf} GROUP BY res, ${S.host})"
             , P.timeseriesStacked
                 "AC read ops / s by result"
                 T.Unit.Short
                 ( S.rateBucketed
                     "cache.operations"
-                    "Attributes['cache.type'] = 'ac-main' AND Attributes['cache.operation.name'] = 'read'"
+                    "Attributes['cache.type'] LIKE 'ac-%' AND Attributes['cache.operation.name'] = 'read'"
                     "Attributes['cache.operation.result']"
                     "result"
                 )
             , P.timeseries
                 "AC op latency by result — ms"
                 T.Unit.Milliseconds
-                "SELECT toStartOfFiveMinutes(TimeUnix) as time, Attributes['cache.operation.result'] as result, round(avg(Sum / greatest(Count, 1)), 2) as value FROM otel.otel_metrics_histogram WHERE MetricName = 'cache.operation.duration' AND Attributes['cache.type'] = 'ac-main' AND Count > 0 AND ${S.tf} AND ${S.hostFilter} GROUP BY time, result ORDER BY time"
+                "SELECT toStartOfFiveMinutes(TimeUnix) as time, Attributes['cache.operation.result'] as result, round(avg(Sum / greatest(Count, 1)), 2) as value FROM otel.otel_metrics_histogram WHERE MetricName = 'cache.operation.duration' AND Attributes['cache.type'] LIKE 'ac-%' AND Count > 0 AND ${S.tf} AND ${S.hostFilter} GROUP BY time, result ORDER BY time"
             ]
           }
         , T.Row::{
