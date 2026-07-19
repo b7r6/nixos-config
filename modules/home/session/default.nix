@@ -108,11 +108,11 @@ in
           "x-scheme-handler/mailto" = [ "thunderbird.desktop" ];
 
           # Images
-          "image/png" = [ "imv.desktop" ];
-          "image/jpeg" = [ "imv.desktop" ];
-          "image/gif" = [ "imv.desktop" ];
-          "image/webp" = [ "imv.desktop" ];
-          "image/svg+xml" = [ "imv.desktop" ];
+          "image/png" = [ "org.gnome.Loupe.desktop" ];
+          "image/jpeg" = [ "org.gnome.Loupe.desktop" ];
+          "image/gif" = [ "org.gnome.Loupe.desktop" ];
+          "image/webp" = [ "org.gnome.Loupe.desktop" ];
+          "image/svg+xml" = [ "org.gnome.Loupe.desktop" ];
 
           # Video
           "video/mp4" = [ "mpv.desktop" ];
@@ -125,12 +125,12 @@ in
           "audio/flac" = [ "mpv.desktop" ];
 
           # Documents
-          "application/pdf" = [ "org.pwmt.zathura.desktop" ];
-          "application/epub+zip" = [ "org.pwmt.zathura.desktop" ];
+          "application/pdf" = [ "org.gnome.Papers.desktop" ];
+          "application/epub+zip" = [ "org.gnome.Papers.desktop" ];
 
           # Text
-          "text/plain" = [ "nvim.desktop" ];
-          "text/x-shellscript" = [ "nvim.desktop" ];
+          "text/plain" = [ "emacsclient.desktop" ];
+          "text/x-shellscript" = [ "emacsclient.desktop" ];
 
           # Archives
           "application/zip" = [ "org.gnome.FileRoller.desktop" ];
@@ -138,7 +138,7 @@ in
           "application/gzip" = [ "org.gnome.FileRoller.desktop" ];
 
           # File manager
-          "inode/directory" = [ "nemo.desktop" ];
+          "inode/directory" = [ "org.gnome.Nautilus.desktop" ];
         };
       };
     };

@@ -25,7 +25,10 @@ PanelWindow {
         right: true
     }
 
-    WlrLayershell.namespace: "qs_modules"
+    // Own namespace: hyprland layerrule gives this surface REAL backdrop
+    // blur (see new-suzuki default.nix) — the panel is genuine glass over
+    // the wallpaper field, not a painted imitation.
+    WlrLayershell.namespace: "qs_launcher"
     WlrLayershell.layer: WlrLayer.Overlay
     // Release exclusive keyboard grab as soon as the service hides, so the exit
     // animation doesn't block other windows from receiving input.
@@ -38,6 +41,21 @@ PanelWindow {
         // text-input warning: "Try to disable surface X with focusing surface Y"
         launcherPanel.forceActiveFocus();
         LauncherService.hide();
+    }
+
+    // Dim vignette behind the panel — pulls the desktop back while the
+    // picker is up; fades with the popup.
+    Rectangle {
+        anchors.fill: parent
+        color: "#000000"
+        opacity: LauncherService.visible ? 0.35 : 0
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Config.animDuration
+                easing.type: Easing.OutQuint
+            }
+        }
     }
 
     // Click on background closes
@@ -67,9 +85,27 @@ PanelWindow {
 
             height: totalHeight
             radius: Config.radiusLarge
-            color: Config.backgroundTransparentColor
-            border.color: Qt.alpha(Config.accentColor, 0.2)
+            // Deep translucency — the compositor blur underneath carries
+            // legibility, so the panel can be genuinely see-through.
+            color: Qt.alpha(Config.backgroundColor, 0.62)
+            border.color: Qt.alpha(Config.accentColor, 0.25)
             border.width: 1
+
+            // Glass sheen: a whisper of light falling off from the top edge.
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: Qt.alpha("#ffffff", 0.05) }
+                    GradientStop { position: 0.25; color: Qt.alpha("#ffffff", 0.015) }
+                    GradientStop { position: 1.0; color: Qt.alpha("#ffffff", 0.0) }
+                }
+            }
+
+            CornerBrackets {
+                active: true
+                outset: 5
+            }
 
             // Smooth height animation as the app list grows/shrinks
             Behavior on height {
@@ -90,13 +126,21 @@ PanelWindow {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 48
                     radius: Config.radius
-                    color: Config.surface0Color
-                    border.width: searchInput.activeFocus ? 2 : 0
-                    border.color: Config.accentColor
+                    color: Qt.alpha(Config.surface0Color, 0.55)
 
-                    Behavior on border.width {
-                        NumberAnimation {
-                            duration: Config.animDurationShort
+                    // Focus underline: accent sweeps in from the left.
+                    Rectangle {
+                        anchors.bottom: parent.bottom
+                        anchors.left: parent.left
+                        height: 2
+                        width: searchInput.activeFocus ? parent.width : 0
+                        color: Config.accentColor
+
+                        Behavior on width {
+                            NumberAnimation {
+                                duration: Config.animDuration
+                                easing.type: Easing.OutQuint
+                            }
                         }
                     }
 
@@ -290,21 +334,43 @@ PanelWindow {
                         }
                     }
 
-                    // Custom highlight
+                    // Custom highlight: accent glass sliding between rows,
+                    // with a rail on the left edge and brackets at the
+                    // facility register.
                     highlightFollowsCurrentItem: false
-                    highlight: Rectangle {
+                    highlight: Item {
                         width: appList.width
                         height: 56
-                        radius: Config.radius
-                        color: Config.surface2Color
 
                         y: appList.currentItem ? appList.currentItem.y : 0
 
                         Behavior on y {
                             NumberAnimation {
-                                duration: Config.animDurationShort
-                                easing.type: Easing.OutCubic
+                                duration: Config.animDuration
+                                easing.type: Easing.OutQuint
                             }
+                        }
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: Config.radius
+                            gradient: Gradient {
+                                orientation: Gradient.Horizontal
+                                GradientStop { position: 0.0; color: Qt.alpha(Config.accentColor, 0.16) }
+                                GradientStop { position: 1.0; color: Qt.alpha(Config.accentColor, 0.04) }
+                            }
+                        }
+
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 3
+                            height: parent.height - 16
+                            color: Config.accentColor
+                        }
+
+                        CornerBrackets {
+                            active: true
                         }
                     }
 
@@ -319,18 +385,74 @@ PanelWindow {
                         property bool isSelected: index === LauncherService.selectedIndex
                         property bool isHovered: delegateMouse.containsMouse
 
+                        // Cascade entrance: each visible row fades and slides
+                        // in with an index-staggered delay. The outer Loader
+                        // recreates the window per open, so this fires fresh
+                        // every time the picker appears.
+                        opacity: 0
+                        transform: Translate {
+                            id: slide
+                            x: -16
+                        }
+
+                        SequentialAnimation {
+                            id: cascade
+                            running: true
+
+                            PauseAnimation {
+                                duration: Math.min(delegateItem.index, 10) * 24
+                            }
+                            ParallelAnimation {
+                                NumberAnimation {
+                                    target: delegateItem
+                                    property: "opacity"
+                                    to: 1
+                                    duration: Config.animDuration
+                                    easing.type: Easing.OutQuint
+                                }
+                                NumberAnimation {
+                                    target: slide
+                                    property: "x"
+                                    to: 0
+                                    duration: Config.animDuration
+                                    easing.type: Easing.OutQuint
+                                }
+                            }
+                        }
+
+                        // Hover glass under everything but the highlight
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: Config.radius
+                            color: Qt.alpha(Config.surface1Color, delegateItem.isHovered && !delegateItem.isSelected ? 0.45 : 0)
+
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: Config.animDurationShort
+                                }
+                            }
+                        }
+
                         RowLayout {
                             anchors.fill: parent
                             anchors.leftMargin: 12
                             anchors.rightMargin: 12
                             spacing: 14
 
-                            // Icon with background
+                            // Icon tile — translucent, pops on selection
                             Rectangle {
                                 Layout.preferredWidth: 40
                                 Layout.preferredHeight: 40
                                 radius: Config.radiusSmall
-                                color: Config.surface0Color
+                                color: Qt.alpha(Config.surface0Color, 0.5)
+                                scale: delegateItem.isSelected ? 1.1 : 1.0
+
+                                Behavior on scale {
+                                    NumberAnimation {
+                                        duration: Config.animDurationShort
+                                        easing.type: Easing.OutBack
+                                    }
+                                }
 
                                 Image {
                                     anchors.centerIn: parent

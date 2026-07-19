@@ -345,6 +345,17 @@ in
       wayland.windowManager.hyprland.settings.exec-once = lib.mkAfter [
         "hyprctl setcursor capitaine-cursors 24"
       ];
+
+      # ── Compositor glass ───────────────────────────────────────────────
+      # Real backdrop blur for the shell's layer surfaces: the launcher gets
+      # heavy glass, the bar a subtle one. ignorealpha keeps fully
+      # transparent regions from blurring the whole screen.
+      wayland.windowManager.hyprland.settings.layerrule = [
+        "blur, qs_launcher"
+        "ignorealpha 0.15, qs_launcher"
+        "blur, qs_modules"
+        "ignorealpha 0.25, qs_modules"
+      ];
     }
 
     (mkIf cfg.exclusive {
@@ -360,7 +371,12 @@ in
 
       # ── Autostart ──────────────────────────────────────────────────────
       # No hyprpaper: the shell's AnimatedWallpaper layer IS the wallpaper.
+      # dbus-update-activation-environment MUST stay first: without it,
+      # dbus-activated portal services (OpenURI — "click a link, nothing
+      # happens" — Screenshot, FileChooser) and graphical-session units
+      # never see WAYLAND_DISPLAY/XDG_CURRENT_DESKTOP.
       hyper-modern-nixos.hyprland.autostart = lib.mkForce [
+        "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE"
         "blueman-applet"
         "nm-applet"
         "tailscale-systray"
