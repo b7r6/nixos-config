@@ -209,6 +209,8 @@
 (defvar lsp-ui-sideline-show-diagnostics)
 (defvar lsp-ui-sideline-show-code-actions)
 (defvar ansi-color-names-vector)
+(defvar hypermodern/modeline-height)
+(declare-function doom-modeline-mode "doom-modeline")
 (defvar doom-modeline-height)
 (defvar doom-modeline-icon)
 (defvar doom-modeline-major-mode-icon)
@@ -1435,7 +1437,6 @@ action, which splits the frame — the one thing that may never happen."
         doom-modeline-buffer-encoding nil))
 
 (declare-function hypermodern/modeline-enable "hypermodern-modeline")
-(defvar hypermodern/modeline-height)
 
 (if (load (expand-file-name "hypermodern-modeline" user-emacs-directory)
           'noerror 'nomessage)
