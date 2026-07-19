@@ -9,6 +9,7 @@ import qs.config
 import "./modules/bar/"
 import "./modules/power/"
 import "./modules/screenshot/"
+import "./modules/wallpaper/"
 import "./components/"
 import "./widgets/"
 
@@ -20,6 +21,11 @@ ShellRoot {
 
     // Ensure GrainOverlay is always present
     property QtObject theme: ThemeService
+
+    // ── Animated Wallpaper (GLSL background field) ─────────────────────────
+    // Mapped first so the scanline overlay (same layer, mapped after) stacks
+    // above it.
+    AnimatedWallpaper {}
 
     // ── Scanline Overlay (idle-triggered in facility mode) ─────────────────
     // Uses Background layer so it sits behind windows — doesn't intercept clicks.

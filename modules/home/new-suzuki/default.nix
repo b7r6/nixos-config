@@ -93,10 +93,18 @@ let
   );
 
   # ── Shell QML Directory ──────────────────────────────────────────────────
-  shellDir = pkgs.runCommand "new-suzuki-shell" { } ''
+  # The wallpaper shader compiles to Qt RHI bytecode (.qsb) at BUILD time —
+  # no vendored binaries, the .frag source is the artifact under review.
+  shellDir = pkgs.runCommand "new-suzuki-shell" {
+    nativeBuildInputs = [ pkgs.qt6.qtshadertools ];
+  } ''
     mkdir -p $out
     cp -r ${./shell}/* $out/
     cp ${presetsJson} $out/presets.json
+    chmod -R u+w $out
+    qsb --glsl "100 es,120,150" --hlsl 50 --msl 12 \
+      -o $out/modules/wallpaper/wallpaper.frag.qsb \
+      $out/modules/wallpaper/wallpaper.frag
   '';
 
   # ── Quickshell global shortcut binds (appended in both modes) ─────────────
@@ -323,8 +331,8 @@ in
       wayland.windowManager.hyprland.settings.bind = lib.mkForce exclusiveBinds;
 
       # ── Autostart ──────────────────────────────────────────────────────
+      # No hyprpaper: the shell's AnimatedWallpaper layer IS the wallpaper.
       hyper-modern-nixos.hyprland.autostart = lib.mkForce [
-        "hyprpaper"
         "blueman-applet"
         "nm-applet"
         "tailscale-systray"
