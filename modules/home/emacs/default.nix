@@ -124,24 +124,36 @@ in
     # un-committed local edits, and we abort the switch rather than eat them.
     # Runs before home-manager's own link-target check so the symlink lands
     # cleanly.
+    # Migration semantics (learned the hard way):
+    #   - live == current repo          → yield to the symlink
+    #   - live == last-SEEDED hash      → user never touched it; the repo
+    #     merely moved ahead. Yield. (Comparing only against the current
+    #     repo file was a false-positive divergence that aborted the WHOLE
+    #     home activation — blank desktop.)
+    #   - genuinely diverged            → preserve to <file>.local, warn,
+    #     and PROCEED. Never abort activation: a theming guard must not be
+    #     able to brick the session. The edits stay on disk, loudly.
     home.activation.emacsRepoConfigMigrate = lib.mkIf cfg.repoConfig (
       lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
         _repo="${config.hyper-modern-nixos.dotfiles.path}/emacs"
         _dir="$HOME/.emacs.d"
+        _seed="$_dir/.hypermodern-seed"
         for f in init.el early-init.el hypermodern-palette.el; do
           dest="$_dir/$f"
-          # Real file (not symlink) in the way of the managed link?
           if [ -f "$dest" ] && [ ! -h "$dest" ]; then
             if [ -f "$_repo/$f" ] && cmp -s "$dest" "$_repo/$f"; then
-              run rm -f "$dest"   # identical to repo: safe to yield
+              run rm -f "$dest"
+            elif [ -f "$_seed/$f.sha256" ] \
+                 && [ "$(sha256sum "$dest" | cut -d' ' -f1)" = "$(cat "$_seed/$f.sha256")" ]; then
+              run rm -f "$dest"   # untouched since last seed; repo moved ahead
             else
-              errorEcho "[emacs] $dest differs from $_repo/$f — commit or copy your edits into the repo, then re-switch (repo-homed config refuses to clobber)"
-              exit 1
+              run mv "$dest" "$dest.local"
+              warnEcho "[emacs] $f had local edits — preserved at $dest.local; the symlink now points at the repo. Merge your changes into $_repo/$f."
             fi
           fi
         done
-        # The seed markers are dead machinery now.
-        run rm -rf "$_dir/.hypermodern-seed"
+        # The seed markers are dead machinery once migration completes.
+        run rm -rf "$_seed"
       ''
     );
 
