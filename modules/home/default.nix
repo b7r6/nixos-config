@@ -27,6 +27,10 @@
     ./session
     ./wayland
     ./vscode
+
+    # quickshell desktop shell (default off; exclusive mode replaces
+    # waybar/wofi/mako wholesale)
+    ./new-suzuki
   ];
 
   # enable all hyper-modern-nixos modules...
