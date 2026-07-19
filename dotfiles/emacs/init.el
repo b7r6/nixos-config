@@ -65,6 +65,15 @@
        (locate-library "vertico"))  ; test for a Nix-provided package
   "Non-nil if running Nix-managed Emacs with preloaded packages.")
 
+;; Declare straight.el / use-package vars as special before we assign them.
+;; These packages load AFTER the setq calls below, so without these declarations
+;; the byte-compiler reports "assignment to free variable".
+(defvar straight-package--warning-displayed)   ; suppress straight/pkg.el nag
+(defvar straight-use-package-by-default)       ; per-package fetch default
+(defvar use-package-always-ensure)             ; ensure all use-package forms
+(defvar use-package-verbose)                   ; verbose logging
+(defvar use-package-expand-minimally)          ; minimal macro expansion
+
 ;; Bootstrap straight.el (always available for ad-hoc packages)
 ;; Suppress warning about package.el - we intentionally use both:
 ;; - package.el for Nix-provided packages (autoloads)
@@ -171,13 +180,6 @@
 ;; straight.el (bootstrapped dynamically)
 (declare-function straight-use-package "straight" (melpa-style-recipe &rest args))
 
-;; straight.el / use-package variables set before those packages load
-(defvar straight-package--warning-displayed)   ; suppress straight/pkg.el nag
-(defvar straight-use-package-by-default)       ; per-package fetch default
-(defvar use-package-always-ensure)             ; ensure all use-package forms
-(defvar use-package-verbose)                   ; verbose logging
-(defvar use-package-expand-minimally)          ; minimal macro expansion
-
 ;; lsp-mode variables set in config blocks before lsp-mode loads
 (defvar lsp-headerline-breadcrumb-enable-diagnostics) ; hide diag icons
 
@@ -192,6 +194,11 @@
 
 ;; gptel struct accessor
 (defvar gptel-backend)  ; set inside gptel :config; referenced outside it
+
+;; pulse.el dynamic variables — special at runtime; let-bound to tune the
+;; pulse animation but the byte-compiler doesn't see them as special yet.
+(defvar pulse-iterations)
+(defvar pulse-delay)
 
 ;; External package variables
 (defvar lean4-mode-map)
@@ -219,7 +226,6 @@
 (declare-function hypermodern/visit-init nil ())
 (declare-function hypermodern/goto-definition-or-file nil ())
 (declare-function hypermodern/kill-buffer nil ())
-(declare-function hypermodern/show-current-file nil ())
 ;; gptel spinner / hook functions (defined in gptel :config block)
 (declare-function hypermodern/gptel--spinner-start nil ())
 (declare-function hypermodern/gptel--spinner-stop nil ())
@@ -1418,6 +1424,15 @@ action, which splits the frame — the one thing that may never happen."
 ;; ───────────────────────────────────────────────────────────────────
 ;;                                   // gptel // passage // openrouter
 ;; ───────────────────────────────────────────────────────────────────
+
+;; Load gptel-request at compile time (and at source-load time — it is a
+;; dependency of gptel and harmless to pre-load).  This gives the byte-compiler
+;; knowledge of the gptel-backend cl-defstruct so it knows the setf expanders
+;; (setf gptel-backend-key) and (setf gptel-backend-models) are valid.
+;; Crucially we load gptel-request, NOT gptel: loading gptel marks the `gptel'
+;; feature as provided, which causes use-package to run :config immediately
+;; (before gptel-openai is loaded), causing void-function errors.
+(eval-when-compile (require 'gptel-request nil t))
 
 (defun hypermodern/gptel--netrc-get (host)
   "Get the password for HOST by parsing ~/.netrc DIRECTLY.
@@ -2725,8 +2740,8 @@ When you've completed the task or need clarification, say so clearly.")
 
 Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
   :mode             - Primary major mode symbol
-  :extensions       - File extension patterns (string or list of (pattern . mode))
-  :backend          - 'lsp, 'eglot, or nil for no LSP
+  :extensions       - File extension patterns (string or (pattern . mode) list)
+  :backend          - `lsp\\=', `eglot\\=', or nil for no LSP
   :server           - LSP server identifier (symbol)
   :formatter        - Preferred formatter command (symbol)
   :format-all-formatter - format-all backend name (symbol)
@@ -2734,7 +2749,7 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
   :type-checker     - Type checker tool (symbol or nil)
   :builtin          - t if mode is built-in to Emacs (no package needed)
   :extra-packages   - List of additional packages to install
-  :extra-modes      - Additional modes to hook (e.g., tsx-ts-mode for typescript)
+  :extra-modes      - Additional modes to hook (e.g. tsx-ts-mode for typescript)
   :extra-config     - Lambda to run for additional configuration
   :notes            - Additional notes about the configuration (string)")
 
@@ -3357,12 +3372,6 @@ no way human."))
 ;;                                                      // keybindings
 ;; ───────────────────────────────────────────────────────────────────
 
-(use-package general
-  :demand t
-  :config
-  (defun hypermodern/visit-init () (interactive) (find-file user-init-file))
-  (defun hypermodern/kill-buffer () (interactive) (kill-buffer (current-buffer)))
-
 (defun hypermodern/show-current-file ()
   "Show (and copy) the current buffer's file path.
 Was keybound on C-c f but never defined — every press errored."
@@ -3371,10 +3380,11 @@ Was keybound on C-c f but never defined — every press errored."
       (progn (kill-new f) (message "%s (copied)" f))
     (message "no file")))
 
-  (defun hypermodern/show-current-file ()
-    "Print the current buffer filename to the minibuffer."
-    (interactive)
-    (message (or (buffer-file-name) "[no file]")))
+(use-package general
+  :demand t
+  :config
+  (defun hypermodern/visit-init () (interactive) (find-file user-init-file))
+  (defun hypermodern/kill-buffer () (interactive) (kill-buffer (current-buffer)))
 
   (defun hypermodern/goto-definition-or-file ()
     "Go to definition of symbol, or open file at point.
