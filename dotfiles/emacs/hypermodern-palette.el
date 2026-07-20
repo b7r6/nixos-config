@@ -213,7 +213,17 @@ config never depends on the daemon, it only listens to it."
                          (assq sym hypermodern/white-levels))
                  (setq hypermodern/level sym))))
             (_ nil))))
-      (hypermodern/apply-computed))))
+      (hypermodern/apply-computed)
+      ;; Accountability: acknowledge the applied generation into the
+      ;; wintermute ack ledger (best-effort, never signals).
+      (ignore-errors
+        (let ((dir (expand-file-name
+                    "wintermute/ack"
+                    (or (getenv "XDG_STATE_HOME")
+                        (expand-file-name "~/.local/state")))))
+          (make-directory dir t)
+          (write-region (format "%d\n" hypermodern/wintermute-generation)
+                        nil (expand-file-name "emacs" dir) nil 'silent))))))
 
 ;; ── conformance vectors (CI: emacs --batch) ────────────────────────
 

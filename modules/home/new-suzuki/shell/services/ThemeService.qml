@@ -223,6 +223,13 @@ Singleton {
             };
 
             root.currentThemeName = d.slug ?? "wintermute";
+
+            // Accountability: acknowledge the applied generation into the
+            // ack ledger `wintermute status` and the audit tick read.
+            Quickshell.execDetached(["sh", "-c",
+                "mkdir -p '" + root.stateHome + "/wintermute/ack' && " +
+                "printf '%s\n' " + String(root.generation) + " > '" +
+                root.stateHome + "/wintermute/ack/quickshell'"]);
             root.colorScheme = light ? "light" : "dark";
             root.polarity = reg;
             root.luminance = light ? 0.25 : 0.78;
