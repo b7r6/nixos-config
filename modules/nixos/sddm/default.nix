@@ -32,6 +32,9 @@ let
     systemctl --user stop hyprland-session.target graphical-session.target 2>/dev/null || true
     systemctl --user unset-environment \
       WAYLAND_DISPLAY DISPLAY HYPRLAND_INSTANCE_SIGNATURE 2>/dev/null || true
+    # sweep dead instance dirs — they accumulate on crashes and poison
+    # signature discovery for everything that trusts newest-first
+    rm -rf "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr" 2>/dev/null || true
     exit $status
   '';
 
