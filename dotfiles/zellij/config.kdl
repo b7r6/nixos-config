@@ -1,0 +1,85 @@
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//                                          // hypermodern // zellij //
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//
+// Repo-homed (dotfiles/zellij), symlinked to ~/.config/zellij/config.kdl;
+// zellij hot-reloads on change — edit and it's live, no reload bind needed.
+//
+// clear-defaults kills zellij's ambient modal layer (stock binds put
+// Ctrl-o/Ctrl-n/Ctrl-p in NORMAL mode — emacs-hostile). What remains is
+// exactly the tmux muscle-memory shape: ONE prefix (Ctrl-o), one table.
+//
+// The theme file (themes/ono-sendai.kdl) is WRITTEN BY WINTERMUTE on every
+// reconcile and seeded by nix at activation — do not edit it by hand.
+
+theme "ono-sendai"
+default_layout "compact"
+pane_frames true
+copy_on_select true
+session_serialization true
+show_startup_tips false
+show_release_notes false
+
+keybinds clear-defaults=true {
+    normal {
+        bind "Ctrl o" { SwitchToMode "tmux"; }
+    }
+
+    // The C-o prefix table — tmux muscle memory, verbatim.
+    tmux {
+        // last-window toggle: C-o C-o
+        bind "Ctrl o" { ToggleTab; SwitchToMode "Normal"; }
+
+        // windows → tabs
+        bind "n" { GoToNextTab; SwitchToMode "Normal"; }
+        bind "p" { GoToPreviousTab; SwitchToMode "Normal"; }
+        bind "c" { NewTab; SwitchToMode "Normal"; }
+
+        // pane cycling
+        bind "Ctrl n" { FocusNextPane; SwitchToMode "Normal"; }
+        bind "Ctrl p" { FocusPreviousPane; SwitchToMode "Normal"; }
+
+        // splits (cwd inherited by default)
+        bind "|" { NewPane "Right"; SwitchToMode "Normal"; }
+        bind "-" { NewPane "Down"; SwitchToMode "Normal"; }
+
+        // the tmux commons
+        bind "d" { Detach; }
+        bind "x" { CloseFocus; SwitchToMode "Normal"; }
+        bind "z" { ToggleFocusFullscreen; SwitchToMode "Normal"; }
+        bind "[" { SwitchToMode "Scroll"; }
+
+        // creature comforts (new verbs, same prefix)
+        bind "f" { ToggleFloatingPanes; SwitchToMode "Normal"; }
+        bind "e" { EditScrollback; SwitchToMode "Normal"; }
+        bind "w" { SwitchToMode "Session"; }
+
+        bind "Esc" { SwitchToMode "Normal"; }
+    }
+
+    scroll {
+        bind "Ctrl p" "Up" "k" { ScrollUp; }
+        bind "Ctrl n" "Down" "j" { ScrollDown; }
+        bind "Ctrl v" "PageDown" { PageScrollDown; }
+        bind "Alt v" "PageUp" { PageScrollUp; }
+        bind "Ctrl s" { SwitchToMode "EnterSearch"; SearchInput 0; }
+        bind "e" { EditScrollback; SwitchToMode "Normal"; }
+        bind "Esc" "q" { SwitchToMode "Normal"; }
+    }
+
+    entersearch {
+        bind "Enter" { SwitchToMode "Search"; }
+        bind "Esc" { SwitchToMode "Scroll"; }
+    }
+
+    search {
+        bind "n" { Search "down"; }
+        bind "p" { Search "up"; }
+        bind "Esc" { SwitchToMode "Normal"; }
+    }
+
+    session {
+        bind "w" { SwitchToMode "Normal"; }
+        bind "Esc" { SwitchToMode "Normal"; }
+    }
+}

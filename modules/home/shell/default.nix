@@ -181,6 +181,40 @@ in
     };
 
     # Tmux configuration
+    # ── zellij: the modern multiplexer, tmux muscle memory intact ──────────
+    # Config is repo-homed (dotfiles/zellij, hot-reloaded by zellij on edit);
+    # the theme file is WRITTEN BY WINTERMUTE on every reconcile and seeded
+    # here only if absent (cold start before the daemon has run). tmux stays
+    # fully configured during the transition — both run side by side.
+    home.file.".config/zellij/config.kdl".source =
+      config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/zellij/config.kdl";
+
+    home.activation.zellijThemeSeed = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      _zj="${config.xdg.configHome}/zellij/themes"
+      if [ ! -f "$_zj/ono-sendai.kdl" ]; then
+        mkdir -p "$_zj"
+        cp ${pkgs.writeText "zellij-ono-sendai-seed.kdl" ''
+          // seeded by nix; wintermute owns this file after first reconcile
+          themes {
+              ono-sendai {
+                  fg "${colors.base05}"
+                  bg "${colors.base00}"
+                  black "${colors.base01}"
+                  red "${colors.base08}"
+                  green "${colors.base0B}"
+                  yellow "${colors.base0A}"
+                  blue "${colors.base0D}"
+                  magenta "${colors.base0E}"
+                  cyan "${colors.base0C}"
+                  white "${colors.base07}"
+                  orange "${colors.base09}"
+              }
+          }
+        ''} "$_zj/ono-sendai.kdl"
+        chmod 644 "$_zj/ono-sendai.kdl"
+      fi
+    '';
+
     programs.tmux = lib.mkIf cfg.tmux.enable {
       enable = true;
       prefix = "C-o";
@@ -361,7 +395,7 @@ in
     programs.tmate = lib.mkIf cfg.cliTools.enable { enable = true; };
 
     # Shell packages
-    home.packages = lib.mkIf cfg.cliTools.enable (
+    home.packages = [ pkgs.zellij ] ++ lib.optionals cfg.cliTools.enable (
       with pkgs;
       [
         bat
