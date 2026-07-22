@@ -132,6 +132,13 @@ let
     "$mod SHIFT, BackSpace, exit"
     "$mod SHIFT, L, global, quickshell:lock_screen"
 
+    # ── The C-M-{n,p} gesture, one layer up: Super+Ctrl+n/p cycles
+    #    compositor windows — same shape as emacs forward/backward-list,
+    #    modifier picks the layer. (C-M-n itself passes through zellij
+    #    untouched and stays emacs's.) ──────────────────────────────────
+    "$mod CTRL, N, cyclenext,"
+    "$mod CTRL, P, cyclenext, prev"
+
     # ── Alpha scrub: Alt+wheel dials the focused window's transparency,
     #    Alt+middle-click resets to solid ────────────────────────────────
     "ALT, mouse_down, exec, wm-alpha down"
