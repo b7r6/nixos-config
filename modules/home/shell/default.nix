@@ -189,6 +189,17 @@ in
     home.file.".config/zellij/config.kdl".source =
       config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/zellij/config.kdl";
 
+    # layouts are repo-homed too (hot-edit like the config)
+    home.file.".config/zellij/layouts".source =
+      config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/zellij/layouts";
+
+    # zjstatus — the bar plugin the hypermodern layout drives (pinned wasm
+    # release; not in the nixpkgs fork)
+    home.file.".config/zellij/plugins/zjstatus.wasm".source = pkgs.fetchurl {
+      url = "https://github.com/dj95/zjstatus/releases/download/v0.24.0/zjstatus.wasm";
+      sha256 = "16v6ascpyl7na6lp3v98haggp9lwsg6r1rlv40zcyqpd3p7dxkhw";
+    };
+
     home.activation.zellijThemeSeed = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       _zj="${config.xdg.configHome}/zellij/themes"
       if [ ! -f "$_zj/ono-sendai.kdl" ]; then

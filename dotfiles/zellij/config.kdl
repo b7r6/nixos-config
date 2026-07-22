@@ -13,8 +13,8 @@
 // reconcile and seeded by nix at activation — do not edit it by hand.
 
 theme "ono-sendai"
-default_layout "compact"
-pane_frames true
+default_layout "hypermodern"
+pane_frames false
 copy_on_select true
 session_serialization true
 show_startup_tips false

@@ -1,0 +1,49 @@
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//                                 // hypermodern // zellij // layout //
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//
+// The zjstatus bar wearing the house language: ▞ session mark left, tracked
+// tabs center, and on the right the LEDGER — the live wintermute generation
+// read from theme.state — beside the clock. Colors are named refs resolved
+// against the active zellij theme, which wintermute rewrites on every
+// reconcile: the bar follows the palette without this file changing.
+//
+// Mode indicator renders NOTHING in normal mode (non-modal cosmetics);
+// the C-o prefix flashes a small mark only while held.
+//
+// Requires ~/.config/zellij/plugins/zjstatus.wasm (nix-provided). Without
+// it, fall back to `zellij -l compact`.
+
+layout {
+    default_tab_template {
+        children
+        pane size=1 borderless=true {
+            plugin location="file:~/.config/zellij/plugins/zjstatus.wasm" {
+                format_left   "{mode}#[fg=blue,bold] ▞ #[fg=white]{session} "
+                format_center "{tabs}"
+                format_right  "#[fg=black]gen #[fg=blue]{command_gen} #[fg=black]· #[fg=white]{datetime}"
+                format_space  ""
+
+                border_enabled  "false"
+                hide_frame_for_single_pane "false"
+
+                mode_normal  ""
+                mode_tmux    "#[bg=blue,fg=black,bold] C-o "
+                mode_scroll  "#[bg=orange,fg=black,bold] SCROLL "
+                mode_search  "#[bg=orange,fg=black,bold] SEARCH "
+
+                tab_normal   "#[fg=black]  {name} "
+                tab_active   "#[fg=blue,bold]  {name} #[fg=blue]▖"
+
+                command_gen_command  "sh -c \"grep '^generation' $HOME/.local/state/wintermute/theme.state 2>/dev/null | cut -d' ' -f2 || echo -\""
+                command_gen_format   "{stdout}"
+                command_gen_interval "10"
+                command_gen_rendermode "static"
+
+                datetime          "{format}"
+                datetime_format   "%H:%M"
+                datetime_timezone "America/Puerto_Rico"
+            }
+        }
+    }
+}
