@@ -52,7 +52,8 @@ keybinds clear-defaults=true {
         // creature comforts (new verbs, same prefix)
         bind "f" { ToggleFloatingPanes; SwitchToMode "Normal"; }
         bind "e" { EditScrollback; SwitchToMode "Normal"; }
-        bind "w" { SwitchToMode "Session"; }
+        // one-shot floating session picker — no sticky mode
+        bind "w" { LaunchOrFocusPlugin "session-manager" { floating true; }; SwitchToMode "Normal"; }
 
         bind "Esc" { SwitchToMode "Normal"; }
     }
@@ -78,8 +79,4 @@ keybinds clear-defaults=true {
         bind "Esc" { SwitchToMode "Normal"; }
     }
 
-    session {
-        bind "w" { SwitchToMode "Normal"; }
-        bind "Esc" { SwitchToMode "Normal"; }
-    }
 }
