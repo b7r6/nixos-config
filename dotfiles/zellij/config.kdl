@@ -35,7 +35,19 @@ keybinds clear-defaults=true {
         bind "p" { GoToPreviousTab; SwitchToMode "Normal"; }
         bind "c" { NewTab; SwitchToMode "Normal"; }
 
-        // pane cycling
+        // directional pane nav — THE joint grammar (mirrors hyprland
+        // Super+hjkl and emacs C-o hjkl): direction-first, same letters
+        // at every layer, modifier picks the layer.
+        bind "h" { MoveFocus "Left"; SwitchToMode "Normal"; }
+        bind "j" { MoveFocus "Down"; SwitchToMode "Normal"; }
+        bind "k" { MoveFocus "Up"; SwitchToMode "Normal"; }
+        bind "l" { MoveFocus "Right"; SwitchToMode "Normal"; }
+        bind "H" { MovePane "Left"; SwitchToMode "Normal"; }
+        bind "J" { MovePane "Down"; SwitchToMode "Normal"; }
+        bind "K" { MovePane "Up"; SwitchToMode "Normal"; }
+        bind "L" { MovePane "Right"; SwitchToMode "Normal"; }
+
+        // pane cycling (secondary, kept for the old reflex)
         bind "Ctrl n" { FocusNextPane; SwitchToMode "Normal"; }
         bind "Ctrl p" { FocusPreviousPane; SwitchToMode "Normal"; }
 

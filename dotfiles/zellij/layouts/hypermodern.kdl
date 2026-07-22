@@ -28,7 +28,7 @@ layout {
                 hide_frame_for_single_pane "false"
 
                 mode_normal  ""
-                mode_tmux    "#[bg=blue,fg=black,bold] C-o "
+                mode_tmux    "#[bg=blue,fg=black,bold] C-o #[fg=black] hjkl focus · HJKL move · n/p tab · |/- split · f float · e edit · w sessions "
                 mode_scroll  "#[bg=orange,fg=black,bold] SCROLL "
                 mode_search  "#[bg=orange,fg=black,bold] SEARCH "
 

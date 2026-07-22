@@ -3485,6 +3485,46 @@ Moves to end of current line, deletes newline, and collapses whitespace."
    ))
 
 ;; ───────────────────────────────────────────────────────────────────
+;;                        // unified navigation // C-o // one grammar
+;; ───────────────────────────────────────────────────────────────────
+;;
+;; The joint grammar across every layer: direction-first, same letters,
+;; the modifier picks the layer. Super+hjkl = compositor (hyprland),
+;; C-o hjkl = multiplexer (zellij), and HERE: C-o hjkl = emacs windows
+;; via windmove. C-o C-o = last window (the tmux toggle, one layer
+;; down); C-o | and C-o - = splits, exactly as in zellij. open-line
+;; retires to C-o o (it was already dead under the tmux prefix for
+;; years).
+
+(declare-function windmove-left "windmove")
+(declare-function windmove-right "windmove")
+(declare-function windmove-up "windmove")
+(declare-function windmove-down "windmove")
+
+(defun hypermodern/last-window ()
+  "Select the most recently used other window — the C-o C-o toggle."
+  (interactive)
+  (let ((mru (get-mru-window nil t t)))
+    (when mru (select-window mru))))
+
+(defvar hypermodern/nav-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "h") #'windmove-left)
+    (define-key map (kbd "j") #'windmove-down)
+    (define-key map (kbd "k") #'windmove-up)
+    (define-key map (kbd "l") #'windmove-right)
+    (define-key map (kbd "C-o") #'hypermodern/last-window)
+    (define-key map (kbd "|") #'split-window-right)
+    (define-key map (kbd "-") #'split-window-below)
+    (define-key map (kbd "x") #'delete-window)
+    (define-key map (kbd "z") #'delete-other-windows)
+    (define-key map (kbd "o") #'open-line)
+    map)
+  "The C-o prefix: the unified navigation table, emacs layer.")
+
+(global-set-key (kbd "C-o") hypermodern/nav-map)
+
+;; ───────────────────────────────────────────────────────────────────
 ;;                                                          // startup
 ;; ───────────────────────────────────────────────────────────────────
 
