@@ -676,6 +676,15 @@ in
       port = 5000;
       # OCI image layers are multi-MB/GB; the default 1m cap → HTTP 413 on push.
       maxBodySize = "0";
+      # A large layer streams nginx → zot → R2 for well over nginx's 60s default
+      # proxy timeout → 502 Bad Gateway mid-push (observed on 500MB+ toolchain
+      # layers). Lift the timeouts and stop buffering the request body so the
+      # upload streams straight through to zot.
+      extraProxyConfig = ''
+        proxy_read_timeout 900s;
+        proxy_send_timeout 900s;
+        proxy_request_buffering off;
+      '';
     };
 
     services.studio.port = 8000; # → Kong → Studio/auth/rest/realtime/storage
