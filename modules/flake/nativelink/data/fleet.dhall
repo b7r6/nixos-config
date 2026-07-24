@@ -67,14 +67,6 @@ let hosts =
         , casFastBytes = 68719476736
         }
       , HostDef::{
-        , name = "shimmer"
-        , fqdn = "shimmer.sju1.s4.gl"
-        , arch = Arch.aarch64
-        , casWeight = 2
-        , casFastBytes = 34359738368
-        , enabled = False
-        }
-      , HostDef::{
         , name = "ultraviolence"
         , fqdn = "ultraviolence.sju1.s4.gl"
         , arch = Arch.x86_64
@@ -205,6 +197,19 @@ let schedulerConfig =
             [ { instance_name = "main", cas_store = "CAS_MAIN_STORE" } ]
           , capabilities =
             [ { instance_name = "main", scheduler = "MAIN_SCHEDULER" } ]
+          , fetch =
+            [ { instance_name = "main"
+              , fetch_store = "CAS_MAIN_STORE"
+              , oci = Some schema.OciFetch::{
+                , registries =
+                  [ schema.OciRegistry::{
+                    , host = "registry.sju1.s4.gl"
+                    , scheme = Some "https"
+                    }
+                  ]
+                }
+              }
+            ]
           , prometheus = True
           }
         , schema.Server::{

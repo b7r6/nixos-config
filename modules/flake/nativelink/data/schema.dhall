@@ -42,6 +42,54 @@ let ExecSvc = { instance_name : Text, cas_store : Text, scheduler : Text }
 
 let CapSvc = { instance_name : Text, scheduler : Text }
 
+-- Remote Asset FetchDirectory + the OCI→REAPI toolchain bridge. `fetch_store`
+-- backs remote-asset lookups; the optional `oci` block turns FetchDirectory
+-- (oci://…) into a projection into CAS. `registries` fully specifies each
+-- registry (scheme/TLS/creds); an unmatched host is anonymous HTTPS.
+let OciRegistry =
+      { Type =
+          { host : Text
+          , scheme : Optional Text
+          , root_certificates : Optional Text
+          , insecure_skip_verify : Bool
+          , username : Optional Text
+          , password : Optional Text
+          , bearer_token : Optional Text
+          }
+      , default =
+        { scheme = None Text
+        , root_certificates = None Text
+        , insecure_skip_verify = False
+        , username = None Text
+        , password = None Text
+        , bearer_token = None Text
+        }
+      }
+
+let OciFetch =
+      { Type =
+          { cas_store : Optional Text
+          , dedup_check : Bool
+          , digest_function : Text
+          , registries : List OciRegistry.Type
+          }
+      , default =
+        { cas_store = None Text
+        , dedup_check = True
+        , digest_function = "BLAKE3"
+        , registries = [] : List OciRegistry.Type
+        }
+      }
+
+let FetchSvc =
+      { Type =
+          { instance_name : Text
+          , fetch_store : Text
+          , oci : Optional OciFetch.Type
+          }
+      , default = { oci = None OciFetch.Type }
+      }
+
 -- The straylight fork's Nix binary-cache facade + its raw-fetch caching proxy.
 -- Not RE services; carried on their own HTTP servers.
 let UpstreamCache = { url : Text, trusted_public_keys : List Text }
@@ -83,6 +131,7 @@ let Server =
           , ac : List AcSvc
           , execution : List ExecSvc
           , capabilities : List CapSvc
+          , fetch : List FetchSvc.Type
           , bytestream : List CasSvc
           , worker_api_scheduler : Optional Text
           , nix_cache : List NixCacheSvc.Type
@@ -97,6 +146,7 @@ let Server =
         , ac = [] : List AcSvc
         , execution = [] : List ExecSvc
         , capabilities = [] : List CapSvc
+        , fetch = [] : List FetchSvc.Type
         , bytestream = [] : List CasSvc
         , worker_api_scheduler = None Text
         , nix_cache = [] : List NixCacheSvc.Type
@@ -148,6 +198,9 @@ in  { Prelude
     , AcSvc
     , ExecSvc
     , CapSvc
+    , OciRegistry
+    , OciFetch
+    , FetchSvc
     , UpstreamCache
     , NixCacheSvc
     , CasWitnessSvc

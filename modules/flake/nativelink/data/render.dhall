@@ -336,6 +336,71 @@ let casWitnessSvcJSON =
 
 let Opt/fold = https://prelude.dhall-lang.org/v23.0.0/Optional/fold.dhall
 
+let optStrField =
+      \(k : Text) ->
+      \(v : Optional Text) ->
+        Opt/fold
+          Text
+          v
+          (List (Map/Entry Text JSON.Type))
+          (\(s : Text) -> [ { mapKey = k, mapValue = str s } ])
+          ([] : List (Map/Entry Text JSON.Type))
+
+let ociRegistryJSON =
+      \(x : schema.OciRegistry.Type) ->
+        obj
+          (   [ { mapKey = "host", mapValue = str x.host } ]
+            # optStrField "scheme" x.scheme
+            # optStrField "root_certificates" x.root_certificates
+            # optStrField "username" x.username
+            # optStrField "password" x.password
+            # optStrField "bearer_token" x.bearer_token
+            # ( if    x.insecure_skip_verify
+                then  [ { mapKey = "insecure_skip_verify"
+                        , mapValue = bool True
+                        }
+                      ]
+                else  [] : List (Map/Entry Text JSON.Type)
+              )
+          )
+
+let ociFetchJSON =
+      \(x : schema.OciFetch.Type) ->
+        obj
+          (   optStrField "cas_store" x.cas_store
+            # [ { mapKey = "dedup_check", mapValue = bool x.dedup_check }
+              , { mapKey = "digest_function"
+                , mapValue = str x.digest_function
+                }
+              , { mapKey = "registries"
+                , mapValue =
+                    arr
+                      ( List/map
+                          schema.OciRegistry.Type
+                          JSON.Type
+                          ociRegistryJSON
+                          x.registries
+                      )
+                }
+              ]
+          )
+
+let fetchSvcJSON =
+      \(x : schema.FetchSvc.Type) ->
+        obj
+          (   [ { mapKey = "instance_name", mapValue = str x.instance_name }
+              , { mapKey = "fetch_store", mapValue = str x.fetch_store }
+              ]
+            # Opt/fold
+                schema.OciFetch.Type
+                x.oci
+                (List (Map/Entry Text JSON.Type))
+                ( \(o : schema.OciFetch.Type) ->
+                    [ { mapKey = "oci", mapValue = ociFetchJSON o } ]
+                )
+                ([] : List (Map/Entry Text JSON.Type))
+          )
+
 let serverToJSON =
       \(s : schema.Server.Type) ->
         let httpInner
@@ -433,6 +498,20 @@ let serverToJSON =
                                     JSON.Type
                                     capSvcJSON
                                     s.capabilities
+                                )
+                          }
+                        ]
+                )
+              # ( if    Prelude.List.null schema.FetchSvc.Type s.fetch
+                  then  [] : List (Map/Entry Text JSON.Type)
+                  else  [ { mapKey = "fetch"
+                          , mapValue =
+                              arr
+                                ( List/map
+                                    schema.FetchSvc.Type
+                                    JSON.Type
+                                    fetchSvcJSON
+                                    s.fetch
                                 )
                           }
                         ]
