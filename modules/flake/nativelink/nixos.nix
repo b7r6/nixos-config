@@ -981,7 +981,11 @@ in
     # ── cas_witness proxy: route this host's nix through it ──────────────────
     (lib.mkIf (cfg.nixCache.enable && cfg.nixCache.fetchProxy.enable && cfg.nixCache.fetchProxy.wireNixDaemon) {
       systemd.tmpfiles.rules = [
-        "d ${casWitnessDir} 0750 root root - -"
+        # 0755 (not 0750): unprivileged nix build users (nixbld*) must be able to
+        # traverse in and read nix-ca-bundle.crt so Go's `go mod download` — which
+        # honours SSL_CERT_FILE, not NIX_SSL_CERT_FILE — trusts the MITM proxy CA.
+        # The interception CA *cert* is public by design; ca.key stays 0600 root.
+        "d ${casWitnessDir} 0755 root root - -"
         # Seed the nix CA bundle with the system CAs so nix TLS never breaks even
         # before the proxy CA exists; the oneshot below rewrites it with both.
         "C ${nixCaBundle} 0644 root root - ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"

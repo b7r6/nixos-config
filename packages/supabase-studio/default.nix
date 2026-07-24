@@ -75,7 +75,10 @@ let
 
       outputHashAlgo = "sha256";
       outputHashMode = "recursive";
-      outputHash = "sha256-LsMe3JK/wLIhssmVJ1ta3EjfGicsJp7bM7Cw4HrJosk=";
+      # Deterministic after the fixup block below strips pnpm's per-fetch
+      # `checkedAt` timestamps + build-dir-specific state. Regenerate by setting
+      # this to lib.fakeHash, building, and copying the reported hash.
+      outputHash = "sha256-Xo6BNFsMzsvdCX3CkXl2R1BSoRhYcaUz6iSunKa+3PM=";
 
       SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
 
@@ -91,6 +94,26 @@ let
 
         # pnpm fetch downloads all deps from the lockfile into the store
         pnpm fetch --store-dir=$out
+
+        # ── Determinism fixups (mirrors nixpkgs fetchPnpmDeps) ──────────────────
+        # `pnpm fetch` is NOT reproducible as-is: it writes a per-run `checkedAt`
+        # timestamp into every store/index/*.json and leaves build-dir-specific
+        # `projects/`/`tmp/` state, so the recursive output hash drifts on every
+        # build. Since this FOD is only ever meant to be substituted from the
+        # cache (never rebuilt to a fresh hash), that drift is what forces the
+        # "hash mismatch" whenever the cache lacks it. Strip the non-deterministic
+        # bits so the hash is stable. (pnpm 10.34 uses v10/; the v3/v11 globs are
+        # harmless version compat — there is no SQLite index.db in this version.)
+        rm -rf $out/v3/tmp $out/v10/tmp $out/v11/tmp
+        rm -rf $out/v3/projects $out/v10/projects $out/v11/projects
+        find $out -name '*.json' -type f -print0 | while IFS= read -r -d "" f; do
+          jq --sort-keys 'del(.. | .checkedAt?)' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+        done
+        # Normalize the executable bit (pnpm names executables with a `-exec`
+        # suffix); guards against environments where pnpm sets perms erratically.
+        find $out -type f -name '*-exec' -print0 | xargs --no-run-if-empty -0 chmod 555
+        find $out -type f -not -name '*-exec' -print0 | xargs --no-run-if-empty -0 chmod 444
+        find $out -type d -print0 | xargs --no-run-if-empty -0 chmod 555
       '';
 
       dontInstall = true;

@@ -66,12 +66,25 @@ in
         "http://127.0.0.1:50071/nix/main"
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
+        # supabase-postgres flake's binary cache (Postgres 17 + extensions).
+        # Kept in sync with the system list (modules/nixos/nix.nix); b7r6 is a
+        # trusted user, so this client list governs `nixos-rebuild` — omitting it
+        # rebuilds every pg extension (pgaudit, postgis, pg_graphql, …) from source.
+        "https://nix-postgres-artifacts.s3.amazonaws.com"
       ];
 
+      # Must match the substituter above: nativelink signs with
+      # nativelink-nix-cache-1. b7r6 is a trusted user, so these client keys
+      # govern substitution during `nixos-rebuild` — omitting the nativelink key
+      # makes nix reject every signed path from 127.0.0.1:50071 ("ignoring
+      # substitute, not signed") and rebuild the whole closure from source.
+      # (Retired the dead attic `hypermodern:` key at the same time.)
       trusted-public-keys = [
-        "hypermodern:x+kBunu5nD1KOhzCIawyZeq8w0LV0GC6A7suIRoHTm8="
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+        "nix-postgres-artifacts:dGZlQOvKcNEjvT7QEeBMKja1bMnGqCiQ5vzg4IZ4Qbk="
+        # Rotated 2026-07-18 (retired ccYf… after the same-name signature poison).
+        "nativelink-nix-cache-1:6CNnYJCDa/l4YiJ+LFEsvytfymk6vo5p8O4AsmgkkBw="
       ];
     };
 
