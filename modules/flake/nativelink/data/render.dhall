@@ -92,24 +92,45 @@ let ref =
           ]
         : Backend
 
-let fastSlow =
+let fastSlowWith =
+      \(writeBack : Bool) ->
       \(fast : Backend) ->
       \(slow : Backend) ->
           [ { mapKey = "fast_slow"
             , mapValue =
                 obj
-                  [ { mapKey = "fast", mapValue = wrap fast }
-                  , -- write-through: populate the local fast tier on WRITE (not
-                    -- just on read). With "get" (write-around) uploaded build
-                    -- outputs land in R2 only, so every cache-hit read-back paid
-                    -- a ~100ms R2 round-trip instead of a local NVMe read. "both"
-                    -- (nativelink's default) makes read-back local and fast.
-                    { mapKey = "fast_direction", mapValue = str "both" }
-                  , { mapKey = "slow", mapValue = wrap slow }
-                  ]
+                  (     [ { mapKey = "fast", mapValue = wrap fast }
+                        , -- write-through: populate the local fast tier on WRITE
+                          -- (not just on read). With "get" (write-around) uploaded
+                          -- build outputs land in R2 only, so every cache-hit
+                          -- read-back paid a ~100ms R2 round-trip instead of a
+                          -- local NVMe read. "both" (nativelink's default) makes
+                          -- read-back local and fast.
+                          { mapKey = "fast_direction", mapValue = str "both" }
+                        , { mapKey = "slow", mapValue = wrap slow }
+                        ]
+                      # ( if    writeBack
+                          then  [ -- write-back: the update returns once the fast
+                                  -- (NVMe) tier holds the blob; fast->slow (R2) is
+                                  -- copied by a background task, so a slow or
+                                  -- stalled R2 can no longer backpressure/freeze the
+                                  -- client upload. Safe here because shard-ring
+                                  -- reads route to the writing node's NVMe; R2 is
+                                  -- the async durability / eviction backstop.
+                                  { mapKey = "slow_store_write_back"
+                                  , mapValue = bool True
+                                  }
+                                ]
+                          else  [] : List (Map/Entry Text JSON.Type)
+                        )
+                  )
             }
           ]
         : Backend
+
+let fastSlow = fastSlowWith False
+
+let fastSlowWriteBack = fastSlowWith True
 
 let cacheMetrics =
       \(cacheType : Text) ->
@@ -732,6 +753,7 @@ in  { filesystem
     , grpc
     , ref
     , fastSlow
+    , fastSlowWriteBack
     , cacheMetrics
     , r2
     , verify

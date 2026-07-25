@@ -111,7 +111,10 @@ let casServerConfig =
           [ schema.Store::{
             , name = "CAS_LOCAL"
             , backend =
-                r.fastSlow
+                -- write-back: buck2 CAS uploads return at NVMe speed; R2 is
+                -- populated by a background task, so a slow/stalled R2 can no
+                -- longer freeze the upload (nativelink #35, fast_slow write-back).
+                r.fastSlowWriteBack
                   ( r.cacheMetrics
                       "cas-fast"
                       ( r.filesystem
