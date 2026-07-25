@@ -676,13 +676,17 @@ in
       port = 5000;
       # OCI image layers are multi-MB/GB; the default 1m cap → HTTP 413 on push.
       maxBodySize = "0";
-      # A large layer streams nginx → zot → R2 for well over nginx's 60s default
-      # proxy timeout → 502 Bad Gateway mid-push (observed on 500MB+ toolchain
-      # layers). Lift the timeouts and stop buffering the request body so the
-      # upload streams straight through to zot.
+      # Large layers stream nginx → zot → R2 (proxy_request_buffering off streams
+      # the body straight through). The actual large-push blocker was zot's own
+      # 60s http.readTimeout (fixed in modules/nixos/registry.nix); these nginx
+      # timeouts are the matching OUTER envelope so nginx never cuts a legitimate
+      # multi-minute layer push/pull first. proxy_read/send cover the upstream
+      # legs; client_body_timeout (nginx's 60s default, NOT covered by proxy_*)
+      # covers reading the slow client body while request buffering is off.
       extraProxyConfig = ''
         proxy_read_timeout 900s;
         proxy_send_timeout 900s;
+        client_body_timeout 900s;
         proxy_request_buffering off;
       '';
     };

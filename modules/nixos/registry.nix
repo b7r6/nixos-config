@@ -48,6 +48,17 @@ let
     http = {
       address = cfg.listenAddress;
       port = toString cfg.port;
+      # zot defaults http.readTimeout AND http.writeTimeout to 60s when omitted
+      # (pkg/cli/server/root.go applyDefaultValues → http.Server.ReadTimeout).
+      # ReadTimeout is the WHOLE-REQUEST deadline INCLUDING the body: a large OCI
+      # layer streaming through zot → R2 (multipart, ~7 MB/s egress from here)
+      # takes well over 60s, so the body read trips the deadline mid-push and the
+      # client sees a 502 (nginx faithfully relays zot's connection reset).
+      # Reproduced: rust's 424MB layer (~57s) squeaks under, ghc/lean (>440MB)
+      # don't. Lift both generously so multi-GB toolchain layers push and pull
+      # through; the strings parse via mapstructure's duration hook.
+      readTimeout = "3600s";
+      writeTimeout = "3600s";
     };
     log.level = cfg.logLevel;
   };
