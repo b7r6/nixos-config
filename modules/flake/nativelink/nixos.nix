@@ -109,6 +109,37 @@ let
     path = flake.self + "/modules/flake/nativelink/data";
   };
 
+  # §12 floor-loader worker entrypoint. Standard OCI Toolchain finalizes a
+  # toolchain's binaries with PT_INTERP = /lib/ld-std-oci-toolchain.so and a
+  # glibc closure under an absolute /cas ("carried, not baked"). A remote worker
+  # must bind that loader + closure just-in-time or floor binaries can't exec
+  # (exit 127). This wrapper scans the action's inputs for floor cells and, when
+  # present, bwraps loader→/lib + cas→/cas (unioned); non-floor actions run
+  # unchanged. Mirrors buck2's local forkserver sandbox (service.rs/local.rs).
+  # The pinned baseline toolchain the sandbox puts on PATH (remote actions get no
+  # usable PATH, and bwrap's fresh root drops the worker's ambient profile).
+  floorBaseline = buildPkgs.symlinkJoin {
+    name = "nativelink-floor-baseline";
+    paths = with buildPkgs; [ bash coreutils findutils gnused gnugrep gawk ];
+  };
+  floorEntrypoint = buildPkgs.runCommand "nativelink-floor-entrypoint" { } ''
+    install -Dm755 ${./floor-entrypoint.sh} $out/bin/nativelink-floor-entrypoint
+    substituteInPlace $out/bin/nativelink-floor-entrypoint \
+      --replace '@bash@' ${buildPkgs.bash}/bin/bash \
+      --replace '@bwrap@' ${buildPkgs.bubblewrap}/bin/bwrap \
+      --replace '@find@' ${buildPkgs.findutils}/bin/find \
+      --replace '@basename@' ${buildPkgs.coreutils}/bin/basename \
+      --replace '@baseline@' ${floorBaseline}/bin
+    ${buildPkgs.bash}/bin/bash -n $out/bin/nativelink-floor-entrypoint
+  '';
+
+  # The wrapper every worker action runs through: the operator override
+  # (`workerEntrypoint`) when set, else the §12 floor entrypoint above.
+  effectiveWorkerEntrypoint =
+    if cfg.workerEntrypoint != null
+    then cfg.workerEntrypoint
+    else "${floorEntrypoint}/bin/nativelink-floor-entrypoint";
+
   renderedConfig =
     buildPkgs.runCommand "nativelink-${cfg.dhallHost}.json"
       {
@@ -133,8 +164,18 @@ let
           echo "nativelink: host '$host' not found in the Dhall fleet (render-all)" >&2
           exit 1
         fi
-        # validate it's well-formed JSON before accepting it
-        printf '%s' "$json" | jq . > "$out"
+        # Inject the §12 floor worker entrypoint into every local executor (the
+        # objects carrying a `local.work_directory`); no-op on non-worker hosts.
+        # Also validates the JSON is well-formed before accepting it.
+        printf '%s' "$json" \
+          | jq --arg ep ${lib.escapeShellArg effectiveWorkerEntrypoint} '
+              walk(
+                if type == "object"
+                   and (.local | type) == "object"
+                   and (.local | has("work_directory"))
+                then .local += { entrypoint: $ep }
+                else . end
+              )' > "$out"
       '';
 
   # Config source: operator escape hatch, else the rendered typed-Dhall config.
