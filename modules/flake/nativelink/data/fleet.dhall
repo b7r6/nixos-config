@@ -59,13 +59,20 @@ let hosts =
         , casFastBytes = 68719476736
         , isScheduler = True
         }
-      , HostDef::{
+      -- guccimane OFFLINE (2026-07-24): pulled from the CAS/AC shard ring so the
+      -- frontend's GetTree/reads don't hang on its dead shard. SAFE to remove —
+      -- the CAS slow tier is a SHARED R2 bucket (straylight-nativelink-cas, cas/
+      -- prefix), so the remaining shards cold-fetch guccimane's former blobs from
+      -- R2; nothing is lost. Restore this entry and redeploy watchtower once
+      -- guccimane is back online.
+      {- , HostDef::{
         , name = "guccimane"
         , fqdn = "guccimane.sju1.s4.gl"
         , arch = Arch.x86_64
         , casWeight = 4
         , casFastBytes = 68719476736
         }
+      -}
       , HostDef::{
         , name = "ultraviolence"
         , fqdn = "ultraviolence.sju1.s4.gl"
