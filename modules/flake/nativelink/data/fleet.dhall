@@ -244,11 +244,20 @@ let workerConfig =
         , stores =
           [ schema.Store::{
             , name = "REMOTE_CAS"
-            , backend = r.grpc "main" "grpc://${h.fqdn}:${casPort}" "cas"
+            -- The worker reads through its own view of the SHARD RING (dialing
+            -- owner nodes' :50052 directly), NOT its own node's CAS. With the
+            -- write-back CAS_LOCAL, a fresh buck2 upload lives on the ring
+            -- owner's NVMe synchronously while the shared-R2 copy is still in
+            -- flight — an own-node read misses both tiers ("Missing CAS inputs
+            -- during prepare_action", FAILED_PRECONDITION) until R2 lands. The
+            -- ring view makes worker reads owner-NVMe-consistent; R2 stays the
+            -- durability floor, not a read dependency.
+            , backend = casShardRing
             }
           , schema.Store::{
             , name = "REMOTE_AC"
-            , backend = r.grpc "main" "grpc://${h.fqdn}:${casPort}" "ac"
+            -- Same consistency argument for action results.
+            , backend = acShardRing
             }
           , schema.Store::{
             , name = "WORKER_FAST_SLOW_STORE"
