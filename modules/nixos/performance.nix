@@ -1,5 +1,5 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#                           // hypermodern // nix // performance
+#                                           // hypermodern // nix // performance
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # We do performance here. This module makes the whole fleet a
@@ -109,6 +109,7 @@ in
 
         # kernel function tracing
         trace-cmd
+        traccar
 
         # system stats, NUMA + topology (Grace is NUMA — hwloc/numactl matter)
         sysstat

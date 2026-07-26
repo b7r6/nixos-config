@@ -200,6 +200,25 @@ in
       sha256 = "16v6ascpyl7na6lp3v98haggp9lwsg6r1rlv40zcyqpd3p7dxkhw";
     };
 
+    # Hand-placed plugin wasm (e.g. dropped in live before a switch) is a
+    # reproducible cache artifact — clear it so linkGeneration never trips
+    # over an unmanaged regular file. Symlinks are home-manager's own.
+    home.activation.zellijPluginMigrate = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+      for _f in "${config.xdg.configHome}/zellij/plugins/zjstatus.wasm" \
+                "${config.xdg.configHome}/zellij/plugins/room.wasm"; do
+        if [ -e "$_f" ] && [ ! -L "$_f" ]; then
+          rm -f "$_f"
+        fi
+      done
+    '';
+
+    # room — floating fuzzy TAB switcher (C-o w). Tabs are the tmux-window
+    # analog here; tmux muscle memory says w = choose-window, s = sessions.
+    home.file.".config/zellij/plugins/room.wasm".source = pkgs.fetchurl {
+      url = "https://github.com/rvcas/room/releases/download/v1.2.0/room.wasm";
+      sha256 = "0k5fy3svjvifsgp0kdvqdx9m9rzrql9cwq6hbvxdgklfnczqz8dp";
+    };
+
     home.activation.zellijThemeSeed = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       _zj="${config.xdg.configHome}/zellij/themes"
       if [ ! -f "$_zj/ono-sendai.kdl" ]; then
