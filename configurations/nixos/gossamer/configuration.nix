@@ -271,6 +271,9 @@ in
       new-suzuki = {
         enable = true;
         exclusive = true;
+        # The field is a CUDA kernel writing the compositor's own pool —
+        # the QML wallpaper stands down (HYPERMODERN_CUDA_FIELD=1).
+        cudaField.enable = true;
       };
     };
   };

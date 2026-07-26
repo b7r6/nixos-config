@@ -17,7 +17,10 @@ import qs.services
 // the lock screen; the compositor withholds frames when occluded so an idle
 // desktop costs nothing.
 Variants {
-    model: Quickshell.screens
+    // When the CUDA presenter owns the field (wintermute-field-daemon on its
+    // own background layer), the QML wallpaper stands down entirely — two
+    // renderers on the same layer would just fight over stacking order.
+    model: Quickshell.env("HYPERMODERN_CUDA_FIELD") === "1" ? [] : Quickshell.screens
 
     PanelWindow {
         id: win

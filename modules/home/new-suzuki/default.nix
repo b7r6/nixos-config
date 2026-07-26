@@ -265,6 +265,29 @@ let
   # The reconciler daemon/CLI from the continuity monorepo (theorem-carrying
   # core; the shell's ThemeService spawns `wintermute preset|set`).
   wintermute = flake.inputs.continuity.packages.${pkgs.system}.wintermute;
+
+  # The wallpaper field as a CUDA kernel (straylight-nvidia-sdk) — CLI plus
+  # the zero-copy wayland presenter. Built against the SDK's own toolchain;
+  # autoAddDriverRunpath in its default.nix resolves the real libcuda.
+  wintermuteField = pkgs.callPackage
+    "${flake.inputs.straylight-nvidia-sdk}/examples/wintermute-field"
+    { cuda = flake.inputs.straylight-nvidia-sdk.packages.${pkgs.system}.cuda; };
+
+  # Daemon launcher: graphical-session units usually inherit WAYLAND_DISPLAY
+  # via dbus-update-activation-environment --systemd, but that races the
+  # target going up — discover the socket ourselves if it lost.
+  wintermuteFieldLauncher = pkgs.writeShellScript "wintermute-field-launch" ''
+    if [ -z "''${WAYLAND_DISPLAY:-}" ]; then
+      WAYLAND_DISPLAY=$(ls "$XDG_RUNTIME_DIR" | grep -m1 '^wayland-[0-9]*$' || true)
+      export WAYLAND_DISPLAY
+    fi
+    exec ${wintermuteField}/bin/wintermute-field-daemon
+  '';
+
+  quickshellLaunch =
+    "env QT_QPA_PLATFORM=wayland QML_XHR_ALLOW_FILE_READ=1"
+    + lib.optionalString cfg.cudaField.enable " HYPERMODERN_CUDA_FIELD=1"
+    + " quickshell -n";
 in
 {
   options.hyper-modern-nixos.new-suzuki = {
@@ -276,6 +299,14 @@ in
       description = ''
         When true, the shell owns the bar/launcher/notification surfaces
         outright and takes over all keybinds.
+      '';
+    };
+
+    cudaField = {
+      enable = lib.mkEnableOption ''
+        the CUDA wallpaper presenter: wintermute-field-daemon renders the
+        field into the compositor's wl_shm pool (zero-copy on GB10) and the
+        QML AnimatedWallpaper stands down (HYPERMODERN_CUDA_FIELD=1)
       '';
     };
 
@@ -334,6 +365,24 @@ in
         Install.WantedBy = [ "graphical-session.target" ];
       };
 
+      # ── CUDA field presenter (optional) ────────────────────────────────
+      # The wallpaper as a kernel: zero-copy into the compositor's pool on
+      # GB10, frame-callback paced (occluded = parked at 0% GPU), watches
+      # theme.json and fires the reconcile sweep on generation bumps.
+      systemd.user.services.wintermute-field = lib.mkIf cfg.cudaField.enable {
+        Unit = {
+          Description = "wintermute-field — CUDA wallpaper presenter";
+          After = [ "graphical-session.target" ];
+          PartOf = [ "graphical-session.target" ];
+        };
+        Service = {
+          ExecStart = "${wintermuteFieldLauncher}";
+          Restart = "on-failure";
+          RestartSec = 2;
+        };
+        Install.WantedBy = [ "graphical-session.target" ];
+      };
+
       # ── Font configuration ─────────────────────────────────────────────
       fonts.fontconfig.enable = true;
 
@@ -374,7 +423,7 @@ in
 
       # ── Hyprland Autostart (non-exclusive) ─────────────────────────────
       hyper-modern-nixos.hyprland.autostart = lib.mkIf (!cfg.exclusive) [
-        "env QT_QPA_PLATFORM=wayland QML_XHR_ALLOW_FILE_READ=1 quickshell -n"
+        quickshellLaunch
       ];
 
       # ── Hyprland cursor config ─────────────────────────────────────────
@@ -425,7 +474,7 @@ in
         "blueman-applet"
         "nm-applet"
         "tailscale-systray"
-        "env QT_QPA_PLATFORM=wayland QML_XHR_ALLOW_FILE_READ=1 quickshell -n"
+        quickshellLaunch
       ];
     })
   ]);

@@ -76,6 +76,11 @@
         clickhouse-keeper = import ../../checks/clickhouse-keeper.nix { inherit pkgs; };
         clickhouse-server = import ../../checks/clickhouse-server.nix { inherit pkgs; };
       }
+      // inputs.nixpkgs.lib.optionalAttrs (system == "aarch64-linux") {
+        # The CUDA wallpaper field builds end-to-end (kernel + presenter) —
+        # the Spark fleet's showpiece stays compilable.
+        wintermute-field = import ../../checks/wintermute-field.nix { inherit pkgs inputs; };
+      }
       // {
         # Pure computation (no VM) — runs on every system. Three-way gate:
         # Lean generator vs lib.nix vs the wintermute daemon's port.
