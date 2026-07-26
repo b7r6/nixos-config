@@ -111,8 +111,8 @@ let
 
       launcher = mkOption {
         type = types.str;
-        default = "wofi --show drun";
-        description = "Application launcher command";
+        default = "";
+        description = "Application launcher command (exclusive shells own launching; empty = no-op bind)";
       };
 
       browser = mkOption {
@@ -425,14 +425,13 @@ in
 
       default = [
         "hyprpaper"
-        "mako"
       ];
 
       description = "Programs to start on login (session daemons, not tray applets)";
     };
 
     # ── Systray daemons ───────────────────────────────────────────────────────
-    # StatusNotifier daemons surfaced by waybar's `tray` module.
+    # StatusNotifier daemons (surfaced by whatever bar hosts a tray).
 
     systray = {
       network.enable = mkOption {

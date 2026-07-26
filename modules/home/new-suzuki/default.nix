@@ -274,7 +274,8 @@ in
       type = types.bool;
       default = false;
       description = ''
-        When true, disables waybar/mako/wofi and takes over all keybinds.
+        When true, the shell owns the bar/launcher/notification surfaces
+        outright and takes over all keybinds.
       '';
     };
 
@@ -408,11 +409,6 @@ in
     }
 
     (mkIf cfg.exclusive {
-      # ── Disable old shell components ───────────────────────────────────
-      hyper-modern-nixos.waybar.enable = lib.mkForce false;
-      hyper-modern-nixos.launchers.enable = lib.mkForce false;
-      hyper-modern-nixos.notifications.enable = lib.mkForce false;
-
       # ── Replace the entire keybind list ────────────────────────────────
       # Same hy3 semantics + navigation as the original, but launcher/lock/
       # screenshot/volume/brightness route through Quickshell globals.

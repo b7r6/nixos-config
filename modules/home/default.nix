@@ -31,8 +31,9 @@
     ./wayland
     ./vscode
 
-    # quickshell desktop shell (default off; exclusive mode replaces
-    # waybar/wofi/mako wholesale)
+    # quickshell desktop shell (default off; exclusive mode owns the
+    # bar/launcher/notifications surfaces outright — the waybar/wofi/mako
+    # generation is deleted, not disabled)
     ./new-suzuki
   ];
 
@@ -133,7 +134,6 @@
 
       apps = {
         terminal = "ghostty";
-        launcher = "wofi --show drun";
         browser = "firefox";
         fileManager = "nautilus";
         lockScreen = "swaylock";
@@ -193,7 +193,6 @@
       autostart = [
         "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE"
         "hyprpaper"
-        "mako"
       ];
 
       windowRules = [ ];
@@ -202,47 +201,6 @@
     };
 
     # ── Supporting Tools ──────────────────────────────────────────────────────
-
-    waybar = {
-      enable = true;
-      position = "top";
-      height = 30;
-      modules = {
-        left = [
-          "hyprland/workspaces"
-          "hyprland/mode"
-        ];
-        center = [ "hyprland/window" ];
-        right = [
-          "pulseaudio"
-          "network"
-          "cpu"
-          "memory"
-          "clock"
-          "tray"
-        ];
-      };
-    };
-
-    launchers = {
-      enable = true;
-      default = "wofi";
-
-      wofi = {
-        enable = true;
-        width = 600;
-        height = 450;
-      };
-
-      rofi.enable = true;
-    };
-
-    notifications = {
-      enable = true;
-      position = "top-right";
-      timeout = 5000;
-      width = 350;
-    };
 
     lockscreen = {
       enable = true;

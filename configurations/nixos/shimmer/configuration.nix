@@ -239,9 +239,13 @@ in
     hyper-modern-nixos = {
       hyprland.monitors = (import ../../../lib/monitors.nix).shimmer;
 
-      # bar font: azonix won the shoot-out (vs orbitron, chakra petch)
-      waybar.font.family = "Azonix";
-      waybar.font.size = 14;
+      # ── The rice ─────────────────────────────────────────────────────────
+      # Same shell as gossamer: new-suzuki + wintermute, exclusive. Fleet
+      # symmetry — one shell story across the Sparks.
+      new-suzuki = {
+        enable = true;
+        exclusive = true;
+      };
 
       themes.display = {
         # pair of ASUS PG32UCDP 4K WOLEDs (see lib/monitors.nix b7r6-desk);

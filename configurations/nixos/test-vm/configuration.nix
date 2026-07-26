@@ -100,17 +100,10 @@ in
     electronOzone = true;
   };
 
-  # Hyprland window manager
-  programs.hyprland.enable = {
-    enable = true;
-
-    # set the flake package
-    package = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
-
-    # make sure to also set the portal package, so that they are in sync
-    portalPackage =
-      inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
-  };
+  # Hyprland window manager — nixpkgs package. (There is no hyprland flake
+  # input; the old block here referenced one that never existed AND assigned
+  # an attrset to `.enable`, so this host never evaluated.)
+  programs.hyprland.enable = true;
 
   # Auto-login to TTY1 for easy testing
   services.getty.autologinUser = "test";

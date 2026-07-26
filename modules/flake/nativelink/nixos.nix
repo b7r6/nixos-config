@@ -242,7 +242,17 @@ let
   # Substituter CDNs that must bypass the proxy: store-path substitution is
   # already mirrored (read-through + watch-store), so routing it through the MITM
   # would only churn narinfo/NAR URLs. The local cache (127.0.0.1) bypasses too.
-  fetchProxyNoProxy = "127.0.0.1,localhost,::1,cache.nixos.org,nix-community.cachix.org,nix-postgres-artifacts.s3.amazonaws.com";
+  #
+  # github.com is bypassed too: git-based FODs (fetchgit, e.g. a `nornagon/crossterm`
+  # fork pulled as a cargo git dep) use git's libcurl, which — unlike the OpenSSL
+  # fetchurl path that trusts nixCaBundle — cannot load the proxy's `NativeLink CAS
+  # Witness CA` cert (curl errors "adding trust anchors from file"), so a MITM'd
+  # github fetch dies with "unable to get local issuer certificate (20)". Curl-based
+  # crate fetches are unaffected; only raw git transport is. Bypassing sends git
+  # straight to github with its real cert, verified by the stock system CAs.
+  # codeload/objects.githubusercontent.com ride along for tarball + LFS/release-
+  # asset FODs from the same origin.
+  fetchProxyNoProxy = "127.0.0.1,localhost,::1,cache.nixos.org,nix-community.cachix.org,nix-postgres-artifacts.s3.amazonaws.com,github.com,codeload.github.com,objects.githubusercontent.com";
 in
 {
   options.hyper-modern-nixos.nativelink = {

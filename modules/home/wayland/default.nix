@@ -8,9 +8,6 @@
 { lib, ... }: {
   imports = [
     ./hyprland
-    ./hyprland/waybar.nix
-    ./hyprland/launchers.nix
-    ./hyprland/notifications.nix
     ./hyprland/lockscreen.nix
   ];
 
