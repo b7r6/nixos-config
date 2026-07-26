@@ -57,13 +57,18 @@ in
   };
 
   # ── NativeLink nix_cache substituter (standalone, R2-backed) ────────────────
-  # weyl is NOT a fleet nativelink CAS/worker node (no nativelink.enable); this
-  # only backs the nix_cache substituter's NAR store with R2 so local disk stays
-  # a bounded fast tier while the durable mirror lives in the shared bucket.
-  # enable + watchStore + the signing key are fleet defaults (modules/nixos/default.nix).
+  # weyl is a fleet nativelink CAS/worker node (2026-07-25): a CAS shard
+  # (weight 2 / 32 GiB fast tier) + an x86_64 worker dialing watchtower's
+  # scheduler over the tailnet. Its role + topology come from the typed Dhall
+  # fleet (nativelink/fleet.dhall -> out/weyl.json). The nixCache substituter
+  # below is a separate concern — it backs the NAR store with R2.
   age.secrets.nativelink-r2-env.file = ../../../secrets/agenix/machines/nativelink-r2-env.age;
 
   hyper-modern-nixos.nativelink = {
+    enable = true;
+    dhallHost = "weyl";
+    openFirewall = true;
+
     r2 = {
       enable = true;
       accountId = "6063b6652178f5cf1cfb87e7e41acf1e";
