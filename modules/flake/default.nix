@@ -98,6 +98,9 @@
         # The repo-homed vscode declared layer parses and keeps its
         # PATH-resolved-server contract (bare names, never store paths).
         vscode-config = import ../../checks/vscode-config.nix { inherit pkgs; };
+        # Every grafana dashboard renders through dhall-to-json (the same
+        # transform watchtower runs) and carries title/uid/panels.
+        grafana-dashboards = import ../../checks/grafana-dashboards.nix { inherit pkgs; };
       };
   };
 }
