@@ -95,6 +95,9 @@
         # ladder (no net, no plugins, no state) — must yield a themed
         # session with zero warnings.
         nvim-config = import ../../checks/nvim-config.nix { inherit pkgs; };
+        # The repo-homed vscode declared layer parses and keeps its
+        # PATH-resolved-server contract (bare names, never store paths).
+        vscode-config = import ../../checks/vscode-config.nix { inherit pkgs; };
       };
   };
 }
