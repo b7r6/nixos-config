@@ -142,8 +142,16 @@ Uses the init.el face engine when present; no-op under --batch."
       (mapc #'disable-theme custom-enabled-themes)
       (dolist (face-spec faces)
         (face-spec-set (car face-spec) (cadr face-spec) 'face-defface-spec))
-      (let ((bg (plist-get palette :base00)))
-        (modify-all-frames-parameters `((background-color . ,bg))))
+      ;; The default face needs the STRONG layer: init.el's startup sets it
+      ;; via set-face-attribute, and a face-defface-spec can never override
+      ;; that — on light palettes the stale dark foreground survived every
+      ;; sync (paper background, pale text; frame params only carried bg).
+      ;; Same-layer writes are idempotent across polarity flips.
+      (let ((bg (plist-get palette :base00))
+            (fg (plist-get palette :base05)))
+        (set-face-attribute 'default nil :background bg :foreground fg)
+        (modify-all-frames-parameters `((background-color . ,bg)
+                                        (foreground-color . ,fg))))
       (run-hooks 'hypermodern/theme-changed-hook)
       (message "// theme // %s // hero %d axis %d //"
                (plist-get palette :name) hypermodern/hero hypermodern/axis))))

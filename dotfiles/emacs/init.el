@@ -3405,6 +3405,10 @@ no way human."))
 ;; engine — ace-window, helpful, expand-region, multiple-cursors); the
 ;; rest join the set now. Everything defers, and nothing REBINDS existing
 ;; muscle memory — remaps and fresh chords only, reach without breakage.
+;; Every NEW package carries `:if (locate-library ...)`: on a box (or a
+;; pre-switch session) without it, the form vanishes instead of erroring —
+;; a bare `require' here once took the whole init down with it, faces
+;; half-applied. Portable-first means absence is a supported state.
 
 (use-package avy
   :bind (("C-;" . avy-goto-char-timer)
@@ -3424,9 +3428,11 @@ no way human."))
 
 ;; consult-ripgrep → embark-export → wgrep: the editable-grep circuit
 (use-package wgrep
+  :if (locate-library "wgrep")
   :custom (wgrep-auto-save-buffer t))
 
 (use-package diff-hl
+  :if (locate-library "diff-hl")
   ;; package.el startup is off (straight model), so autoloads don't exist
   ;; until the feature loads — global modes belong in :config, and :demand
   ;; defeats the :hook-implied deferral. (No magit refresh hooks: diff-hl
@@ -3442,6 +3448,7 @@ no way human."))
     (diff-hl-margin-mode 1)))
 
 (use-package symbol-overlay
+  :if (locate-library "symbol-overlay")
   :hook (prog-mode . symbol-overlay-mode)
   :bind (("M-s i" . symbol-overlay-put)
          :map symbol-overlay-mode-map
@@ -3457,20 +3464,25 @@ no way human."))
          ("C-c m c" . mc/edit-lines)))
 
 (use-package move-dup
+  :if (locate-library "move-dup")
   :config (global-move-dup-mode 1))
 
 (use-package hl-todo
+  :if (locate-library "hl-todo")
   :config (global-hl-todo-mode 1))
 
 (use-package magit-todos
+  :if (locate-library "magit-todos")
   :after magit
   :config (magit-todos-mode 1))
 
 ;; trim only the whitespace THIS edit dirtied — repo-safe by construction
 (use-package ws-butler
+  :if (locate-library "ws-butler")
   :hook (prog-mode . ws-butler-mode))
 
 (use-package diredfl
+  :if (locate-library "diredfl")
   :hook (dired-mode . diredfl-mode))
 
 (use-package dired
