@@ -9,15 +9,45 @@
 
 return {
   {
+    -- the MAIN-branch rewrite: no more nvim-treesitter.configs, no more
+    -- module-level enable flags — setup() + vim.treesitter.start() per
+    -- buffer, parsers installed on demand. Everything pcall'd: a box
+    -- without a C compiler degrades to plain highlighting, silently.
     "nvim-treesitter/nvim-treesitter",
+    branch = "main",
     build = ":TSUpdate",
     event = { "BufReadPost", "BufNewFile" },
-    main = "nvim-treesitter.configs",
-    opts = {
-      auto_install = true,
-      highlight = { enable = true },
-      indent = { enable = true },
-    },
+    config = function()
+      local ts = require("nvim-treesitter")
+      ts.setup({})
+      vim.api.nvim_create_autocmd("FileType", {
+        group = vim.api.nvim_create_augroup("hypermodern-treesitter", { clear = true }),
+        callback = function(ev)
+          local lang = vim.treesitter.language.get_lang(vim.bo[ev.buf].filetype)
+          if not lang then return end
+          if pcall(vim.treesitter.start, ev.buf, lang) then
+            vim.bo[ev.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+            return
+          end
+          local ok, task = pcall(ts.install, lang)
+          if ok and task and task.await then
+            task:await(function()
+              pcall(vim.treesitter.start, ev.buf, lang)
+            end)
+          end
+        end,
+      })
+      -- catch up buffers whose FileType already fired before we loaded.
+      -- ONLY those: exec'ing FileType on a not-yet-detected buffer sets
+      -- did_filetype, and the runtime's later `setf` no-ops against it —
+      -- a blanket retrigger here silently killed ALL filetype detection.
+      for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].filetype ~= "" then
+          vim.api.nvim_exec_autocmds("FileType",
+            { group = "hypermodern-treesitter", buffer = buf })
+        end
+      end
+    end,
   },
 
   {
