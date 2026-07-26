@@ -32,6 +32,9 @@
           LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
         }
         ''
+          export HOME="$TMPDIR"
+          export XDG_CACHE_HOME="$TMPDIR/dhall-cache"
+          mkdir -p "$XDG_CACHE_HOME"
           rendered=$(dhall-to-json --file ${./data}/render-users.dhall \
             | jq -S '[.[] | select(.groups | index("fleet_admins")) | .sshKeys[]] | unique')
           committed=$(jq -S . ${self}/secrets/admin-recipients.json)

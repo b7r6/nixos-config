@@ -8,6 +8,13 @@
 # out-of-store symlink into the working tree — edits land in git diff,
 # no rebuild. Nix contributes the editor and PATH-resolved language
 # servers; nothing breaks without it.
+#
+# Deliberately NOT programs.neovim: home-manager's module generates its
+# own xdg.configFile."nvim/init.lua" whenever it's enabled, which
+# collides with the whole-directory symlink (and for any user whose
+# working tree doesn't exist yet, the dangling intermediate symlink
+# fails the home-files build with "outside $HOME"). The aliases and
+# EDITOR are three lines; the collision surface isn't worth them.
 {
   config,
   lib,
@@ -49,26 +56,23 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    programs.neovim = {
-      enable = true;
-      inherit (cfg) defaultEditor;
-      withRuby = false;
-      withPython3 = false;
-      viAlias = true;
-      vimAlias = true;
-
-      # Cursor discipline (blinking block everywhere, DECSCUSR in the TUI)
-      # lives in dotfiles/nvim/init.lua with the rest of the config; this
-      # fallback only exists for repoConfig = false hosts.
-      extraConfig = lib.mkIf (!cfg.repoConfig) ''
-        set guicursor=a:block-blinkwait500-blinkon500-blinkoff500
-      '';
-    };
-
-    home.packages = lib.mkIf cfg.languageServers.enable [
+    home.packages = [
+      pkgs.neovim
+    ]
+    ++ lib.optionals cfg.languageServers.enable [
       pkgs.nixd
       pkgs.lua-language-server
     ];
+
+    home.shellAliases = {
+      vi = "nvim";
+      vim = "nvim";
+    };
+
+    home.sessionVariables = lib.mkIf cfg.defaultEditor {
+      EDITOR = "nvim";
+      VISUAL = "nvim";
+    };
 
     # Divergence-safe migration, mirroring the emacs pattern: a live
     # unmanaged ~/.config/nvim is preserved to nvim.local and activation
@@ -85,6 +89,14 @@ in
 
     xdg.configFile."nvim" = lib.mkIf cfg.repoConfig {
       source = config.lib.file.mkOutOfStoreSymlink "${dotfiles.path}/nvim";
+    };
+
+    # Cursor discipline for repoConfig = false hosts (with repoConfig the
+    # same setting lives in dotfiles/nvim/init.lua)
+    xdg.configFile."nvim/init.lua" = lib.mkIf (!cfg.repoConfig) {
+      text = ''
+        vim.o.guicursor = "a:block-blinkwait500-blinkon500-blinkoff500"
+      '';
     };
   };
 }

@@ -264,14 +264,14 @@ let
 
   # The reconciler daemon/CLI from the continuity monorepo (theorem-carrying
   # core; the shell's ThemeService spawns `wintermute preset|set`).
-  wintermute = flake.inputs.continuity.packages.${pkgs.system}.wintermute;
+  wintermute = flake.inputs.continuity.packages.${pkgs.stdenv.hostPlatform.system}.wintermute;
 
   # The wallpaper field as a CUDA kernel (straylight-nvidia-sdk) — CLI plus
   # the zero-copy wayland presenter. Built against the SDK's own toolchain;
   # autoAddDriverRunpath in its default.nix resolves the real libcuda.
   wintermuteField = pkgs.callPackage
     "${flake.inputs.straylight-nvidia-sdk}/examples/wintermute-field"
-    { cuda = flake.inputs.straylight-nvidia-sdk.packages.${pkgs.system}.cuda; };
+    { cuda = flake.inputs.straylight-nvidia-sdk.packages.${pkgs.stdenv.hostPlatform.system}.cuda; };
 
   # Daemon launcher: graphical-session units usually inherit WAYLAND_DISPLAY
   # via dbus-update-activation-environment --systemd, but that races the

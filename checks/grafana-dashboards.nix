@@ -17,6 +17,10 @@ pkgs.runCommand "grafana-dashboards"
     ];
   }
   ''
+    # dhall wants a writable cache; the sandbox HOME is /homeless-shelter
+    export HOME="$TMPDIR"
+    export XDG_CACHE_HOME="$TMPDIR/dhall-cache"
+    mkdir -p "$XDG_CACHE_HOME"
     mkdir -p $out
     fail=0
     for f in ${../modules/flake/grafana}/dashboards/*.dhall; do

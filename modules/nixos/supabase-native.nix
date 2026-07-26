@@ -44,7 +44,7 @@ let
   # wrappers installCheck hang). Falls back to the full bundle when the cache is
   # warm. The slim bundle has all the core supabase extensions (pgsodium, pg_net,
   # pgjwt, pg_graphql, pgvector, etc.) minus the heavy FDW wrappers.
-  supabasePg = flake.inputs.supabase-postgres.packages.${pkgs.system}."psql_17_slim/bin";
+  supabasePg = flake.inputs.supabase-postgres.packages.${pkgs.stdenv.hostPlatform.system}."psql_17_slim/bin";
 
   # runtime env dir (same split pattern as the container module)
   runtimeEnvDir = "/run/supabase/env";
