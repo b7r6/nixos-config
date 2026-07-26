@@ -11,14 +11,15 @@
 --
 -- Pure lua, zero nvim/plugin dependencies: require()-able from the
 -- config, dofile()-able from CI, runnable under plain lua 5.1+ (uses
--- only integer-safe // arithmetic on non-negative operands).
+-- 5.1/LuaJIT-safe: math.floor division on non-negative operands
+-- (every operand stays far below 2^53, so doubles are exact).
 
 local M = {}
 
 -- ── integer HSL → RGB (exact port of the Lean reference) ───────────
 
 local function channel(base, m1000)
-  local v = ((base + m1000) * 255 + 500) // 1000
+  local v = math.floor(((base + m1000) * 255 + 500) / 1000)
   return v < 255 and v or 255
 end
 
@@ -30,13 +31,13 @@ function M.hsl_to_hex(h, s, l)
   local s1000, l1000 = s * 10, l * 10
   local diff = l1000 * 2 - 1000
   if diff < 0 then diff = -diff end
-  local c1000 = ((1000 - diff) * s1000) // 1000
-  local sector = h // 60
+  local c1000 = math.floor((1000 - diff) * s1000 / 1000)
+  local sector = math.floor(h / 60)
   local pair = h % 120
   local abs_val = pair - 60
   if abs_val < 0 then abs_val = -abs_val end
-  local x1000 = (c1000 * (60 - abs_val)) // 60
-  local m1000 = l1000 - c1000 // 2
+  local x1000 = math.floor(c1000 * (60 - abs_val) / 60)
+  local m1000 = l1000 - math.floor(c1000 / 2)
   local r, g, b
   if sector == 0 then r, g, b = c1000, x1000, 0
   elseif sector == 1 then r, g, b = x1000, c1000, 0

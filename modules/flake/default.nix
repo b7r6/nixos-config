@@ -91,6 +91,10 @@
         # Batch-loads and byte-compiles the full emacs config; fails on any
         # Warning or Error so regressions are caught at `nix flake check` time.
         emacs-config = import ../../checks/emacs-config.nix { inherit pkgs; };
+        # Boots dotfiles/nvim headless at the bottom of its degradation
+        # ladder (no net, no plugins, no state) — must yield a themed
+        # session with zero warnings.
+        nvim-config = import ../../checks/nvim-config.nix { inherit pkgs; };
       };
   };
 }

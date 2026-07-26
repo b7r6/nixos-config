@@ -21,7 +21,9 @@
 # THREE-way: the daemon's own port of the math is diffed against the same
 # grid via `wintermute vectors`. The elisp port in dotfiles/emacs/
 # (hypermodern-palette.el, the live in-editor theme engine) is the FOURTH
-# implementation, run under `emacs --batch`.
+# implementation, run under `emacs --batch`. The lua port in dotfiles/nvim/
+# (lua/hypermodern/palette.lua, neovim's in-editor engine) is the FIFTH,
+# run under `nvim -l`.
 {
   pkgs,
   wintermute ? null,
@@ -113,6 +115,7 @@ pkgs.runCommand "ono-sendai-parity"
     nativeBuildInputs = [
       pkgs.python3
       pkgs.emacs-nox
+      pkgs.neovim
       generator
     ]
     ++ lib.optional (wintermute != null) wintermute;
@@ -121,10 +124,13 @@ pkgs.runCommand "ono-sendai-parity"
     ono-sendai-gen vectors > lean-vectors.json
     emacs --batch -l ${../dotfiles/emacs/hypermodern-palette.el} \
       --eval '(hypermodern/emit-vectors)' > elisp-vectors.json
+    HOME=$TMPDIR nvim --clean --headless \
+      -l ${../dotfiles/nvim/lua/hypermodern}/vectors.lua > lua-vectors.json
     ${lib.optionalString (wintermute != null) "wintermute vectors > wintermute-vectors.json"}
     python3 ${compare} lean-vectors.json \
       nix=${nixVectors} \
       elisp=elisp-vectors.json \
+      lua=lua-vectors.json \
       ${lib.optionalString (wintermute != null) "wintermute=wintermute-vectors.json"}
     touch $out
   ''
