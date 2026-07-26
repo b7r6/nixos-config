@@ -76,6 +76,16 @@ let hosts =
         , casWeight = 1
         , casFastBytes = 17179869184
         }
+      -- weyl: fourth CAS node for redundancy (2026-07-25). casWeight 2 / 32 GiB
+      -- fast tier keeps the fleet's weight×16GiB convention (30 GiB RAM, ~1 TB
+      -- disk). More shards = more places a blob survives a node loss.
+      , HostDef::{
+        , name = "weyl"
+        , fqdn = "weyl.sju1.s4.gl"
+        , arch = Arch.x86_64
+        , casWeight = 2
+        , casFastBytes = 34359738368
+        }
       ]
 
 let archCpu = \(a : Arch) -> merge { x86_64 = "x86_64", aarch64 = "aarch64" } a
