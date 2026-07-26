@@ -120,7 +120,10 @@ let
   # usable PATH, and bwrap's fresh root drops the worker's ambient profile).
   floorBaseline = buildPkgs.symlinkJoin {
     name = "nativelink-floor-baseline";
-    paths = with buildPkgs; [ bash coreutils findutils gnused gnugrep gawk ];
+    # tar/gzip/xz: the action-time tools shell out to them — hackage-build
+    # untars package sources (observed live as a shelly exec failure: `tar xzf`
+    # with no tar on the baseline PATH).
+    paths = with buildPkgs; [ bash coreutils findutils gnused gnugrep gawk gnutar gzip xz ];
   };
   floorEntrypoint = buildPkgs.runCommand "nativelink-floor-entrypoint" { } ''
     install -Dm755 ${./floor-entrypoint.sh} $out/bin/nativelink-floor-entrypoint
