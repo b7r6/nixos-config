@@ -179,6 +179,13 @@
 (declare-function json-encode "json" (object))
 ;; straight.el (bootstrapped dynamically)
 (declare-function straight-use-package "straight" (melpa-style-recipe &rest args))
+;; the purcell-class long tail (global modes called in :config blocks;
+;; package.el autoloads are off under the straight model)
+(declare-function global-diff-hl-mode "diff-hl" (&optional arg))
+(declare-function diff-hl-margin-mode "diff-hl-margin" (&optional arg))
+(declare-function global-move-dup-mode "move-dup" (&optional arg))
+(declare-function global-hl-todo-mode "hl-todo" (&optional arg))
+(declare-function magit-todos-mode "magit-todos" (&optional arg))
 
 ;; lsp-mode variables set in config blocks before lsp-mode loads
 (defvar lsp-headerline-breadcrumb-enable-diagnostics) ; hide diag icons
@@ -3391,6 +3398,94 @@ no way human."))
   (dashboard-setup-startup-hook))
 
 ;; ───────────────────────────────────────────────────────────────────
+;;                            // the long tail // purcell-class kit //
+;; ───────────────────────────────────────────────────────────────────
+;; The activation pass: several of these were in the nix package set for
+;; years but never configured (avy — whose faces predate it in the theme
+;; engine — ace-window, helpful, expand-region, multiple-cursors); the
+;; rest join the set now. Everything defers, and nothing REBINDS existing
+;; muscle memory — remaps and fresh chords only, reach without breakage.
+
+(use-package avy
+  :bind (("C-;" . avy-goto-char-timer)
+         ("M-g w" . avy-goto-word-1)
+         ("M-g g" . avy-goto-line)))
+
+(use-package ace-window
+  :bind ([remap other-window] . ace-window)
+  :custom (aw-scope 'frame))
+
+(use-package helpful
+  :bind (([remap describe-function] . helpful-callable)
+         ([remap describe-variable] . helpful-variable)
+         ([remap describe-key] . helpful-key)
+         ([remap describe-command] . helpful-command)
+         ("C-h x" . helpful-at-point)))
+
+;; consult-ripgrep → embark-export → wgrep: the editable-grep circuit
+(use-package wgrep
+  :custom (wgrep-auto-save-buffer t))
+
+(use-package diff-hl
+  ;; package.el startup is off (straight model), so autoloads don't exist
+  ;; until the feature loads — global modes belong in :config, and :demand
+  ;; defeats the :hook-implied deferral. (No magit refresh hooks: diff-hl
+  ;; 1.11 obsoleted them, the integration is internal now.)
+  :demand t
+  :hook (dired-mode . diff-hl-dired-mode)
+  :config
+  (global-diff-hl-mode 1)
+  ;; terminal frames have no fringe — fall back to the margin
+  ;; (diff-hl-margin is its own file in the package; no autoloads here)
+  (unless (display-graphic-p)
+    (require 'diff-hl-margin)
+    (diff-hl-margin-mode 1)))
+
+(use-package symbol-overlay
+  :hook (prog-mode . symbol-overlay-mode)
+  :bind (("M-s i" . symbol-overlay-put)
+         :map symbol-overlay-mode-map
+         ("M-n" . symbol-overlay-jump-next)
+         ("M-p" . symbol-overlay-jump-prev)))
+
+(use-package expand-region
+  :bind ("C-=" . er/expand-region))
+
+(use-package multiple-cursors
+  :bind (("C-<" . mc/mark-previous-like-this)
+         ("C->" . mc/mark-next-like-this)
+         ("C-c m c" . mc/edit-lines)))
+
+(use-package move-dup
+  :config (global-move-dup-mode 1))
+
+(use-package hl-todo
+  :config (global-hl-todo-mode 1))
+
+(use-package magit-todos
+  :after magit
+  :config (magit-todos-mode 1))
+
+;; trim only the whitespace THIS edit dirtied — repo-safe by construction
+(use-package ws-butler
+  :hook (prog-mode . ws-butler-mode))
+
+(use-package diredfl
+  :hook (dired-mode . diredfl-mode))
+
+(use-package dired
+  :config
+  (setq dired-dwim-target t
+        dired-recursive-copies 'always
+        dired-recursive-deletes 'top
+        dired-listing-switches "-alh --group-directories-first"
+        dired-kill-when-opening-new-dired-buffer t))
+
+;; builtins that just needed switching on
+(save-place-mode 1)
+(editorconfig-mode 1)
+
+;; ───────────────────────────────────────────────────────────────────
 ;;                                                      // keybindings
 ;; ───────────────────────────────────────────────────────────────────
 
@@ -3442,8 +3537,8 @@ Moves to end of current line, deletes newline, and collapses whitespace."
 
    ;; ─── window navigation  ──────────────────────────────────────────
 
-   "M-N"       #'windmove-right
-   "M-P"       #'windmove-left
+   "M-N"       #'hypermodern/nav-right
+   "M-P"       #'hypermodern/nav-left
    "M-R"       #'hypermodern/rotate-windows
    "C-x 2"     #'hypermodern/vsplit
    "C-x 3"     #'hypermodern/hsplit
@@ -3507,12 +3602,38 @@ Moves to end of current line, deletes newline, and collapses whitespace."
   (let ((mru (get-mru-window nil t t)))
     (when mru (select-window mru))))
 
+(defun hypermodern/nav--edge (dir)
+  "At the frame edge inside a zellij session, hand focus to the multiplexer.
+The vim-tmux-navigator move, one layer up: C-o hjkl walks emacs windows
+until there are none in that direction, then the same gesture keeps
+walking zellij panes. Outside zellij, the edge stays an edge."
+  (if (getenv "ZELLIJ")
+      (call-process "zellij" nil 0 nil "action" "move-focus" dir)
+    (user-error "No window %s" dir)))
+
+(defun hypermodern/nav-left ()
+  "Windmove left; fall through to zellij at the edge."
+  (interactive)
+  (condition-case nil (windmove-left) (error (hypermodern/nav--edge "left"))))
+(defun hypermodern/nav-down ()
+  "Windmove down; fall through to zellij at the edge."
+  (interactive)
+  (condition-case nil (windmove-down) (error (hypermodern/nav--edge "down"))))
+(defun hypermodern/nav-up ()
+  "Windmove up; fall through to zellij at the edge."
+  (interactive)
+  (condition-case nil (windmove-up) (error (hypermodern/nav--edge "up"))))
+(defun hypermodern/nav-right ()
+  "Windmove right; fall through to zellij at the edge."
+  (interactive)
+  (condition-case nil (windmove-right) (error (hypermodern/nav--edge "right"))))
+
 (defvar hypermodern/nav-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "h") #'windmove-left)
-    (define-key map (kbd "j") #'windmove-down)
-    (define-key map (kbd "k") #'windmove-up)
-    (define-key map (kbd "l") #'windmove-right)
+    (define-key map (kbd "h") #'hypermodern/nav-left)
+    (define-key map (kbd "j") #'hypermodern/nav-down)
+    (define-key map (kbd "k") #'hypermodern/nav-up)
+    (define-key map (kbd "l") #'hypermodern/nav-right)
     (define-key map (kbd "C-o") #'hypermodern/last-window)
     (define-key map (kbd "|") #'split-window-right)
     (define-key map (kbd "-") #'split-window-below)

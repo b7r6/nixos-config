@@ -146,7 +146,17 @@ emacsPkgs.emacsWithPackages (
         undo-tree
         expand-region
         multiple-cursors
+        move-dup
+        ws-butler
         format-all
+        wgrep
+        symbol-overlay
+
+        # git decoration / dired
+        diff-hl
+        hl-todo
+        magit-todos
+        diredfl
 
         # tools
         direnv
