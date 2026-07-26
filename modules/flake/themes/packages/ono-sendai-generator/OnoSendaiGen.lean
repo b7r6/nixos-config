@@ -136,6 +136,19 @@ structure Palette where
   base0F : String
   deriving Repr
 
+/-- The manufacturer axis (mirror of the wintermute daemon's type): each
+    family is a night/day pair — straylight = ono-sendai/maas at 211°,
+    hosaka = blackwell/grace at 165° phosphor. The night ramp hue is
+    family-owned; the lock stays the absence of a call-site parameter. -/
+inductive PaletteFamily where
+  | straylight
+  | hosaka
+  deriving Repr, BEq, DecidableEq
+
+def PaletteFamily.darkRampHue : PaletteFamily → Nat
+  | .straylight => 211
+  | .hosaka => 165
+
 private def hsl211 (s l : Nat) : String :=
   (HSL.mk ⟨211, by omega⟩
     (if hs : s ≤ 100 then ⟨s, by omega⟩ else ⟨100, by omega⟩)
@@ -146,16 +159,18 @@ private def hslAt (h s l : Nat) : String :=
     (if hs : s ≤ 100 then ⟨s, by omega⟩ else ⟨100, by omega⟩)
     (if hl : l ≤ 100 then ⟨l, by omega⟩ else ⟨100, by omega⟩)).toRGB.toHex
 
-def makePalette (level : BlackLevel) (heroHue : Nat := 211) (axisHue : Nat := 201) : Palette :=
+def makePalette (family : PaletteFamily) (level : BlackLevel)
+    (heroHue : Nat := 211) (axisHue : Nat := 201) : Palette :=
   let L := level.baseL
-  { base00 := hsl211 12 (L + 0)
-  , base01 := hsl211 16 (L + 3)
-  , base02 := hsl211 17 (L + 8)
-  , base03 := hsl211 15 (L + 17)
-  , base04 := hsl211 12 48
-  , base05 := hsl211 28 81
-  , base06 := hsl211 32 89
-  , base07 := hsl211 36 95
+  let R := family.darkRampHue
+  { base00 := hslAt R 12 (L + 0)
+  , base01 := hslAt R 16 (L + 3)
+  , base02 := hslAt R 17 (L + 8)
+  , base03 := hslAt R 15 (L + 17)
+  , base04 := hslAt R 12 48
+  , base05 := hslAt R 28 81
+  , base06 := hslAt R 32 89
+  , base07 := hslAt R 36 95
   , base08 := hslAt axisHue 100 86
   , base09 := hslAt axisHue 100 75
   , base0A := hslAt heroHue 100 66
@@ -231,7 +246,7 @@ def Palette.toJson (p : Palette) (level : BlackLevel) (heroHue axisHue : Nat) : 
   p.toJsonWith "ono-sendai" level.name "dark" heroHue axisHue 211
 
 def generateJson (level : BlackLevel) (heroHue : Nat := 211) (axisHue : Nat := 201) : String :=
-  let p := makePalette level heroHue axisHue
+  let p := makePalette .straylight level heroHue axisHue
   p.toJson level heroHue axisHue
 
 def generateJsonLight (level : WhiteLevel) (heroHue : Nat := 211) (axisHue : Nat := 201)
@@ -244,7 +259,7 @@ def allWhiteLevels : List WhiteLevel := [.tessier, .neoform, .ghost]
 
 def generateAllLevelsJson (heroHue : Nat := 211) (axisHue : Nat := 201) : String :=
   let darks := allBlackLevels.map fun level =>
-    let p := makePalette level heroHue axisHue
+    let p := makePalette .straylight level heroHue axisHue
     s!"  \"ono-sendai-{level.name}\": {p.toJson level heroHue axisHue}"
   let lights := allWhiteLevels.map fun level =>
     let p := makePaletteLight level heroHue axisHue
@@ -264,14 +279,22 @@ def generateVectors : String :=
   let hues : List (Nat × Nat) := [(211, 201), (36, 26), (0, 350), (120, 110), (262, 252), (300, 290)]
   let darkVecs := hues.flatMap fun (hero, axis) =>
     allBlackLevels.map fun level =>
-      let p := makePalette level hero axis
+      let p := makePalette .straylight level hero axis
       p.toJsonWith "ono-sendai" level.name "dark" hero axis 211
   let lightVecs := hues.flatMap fun (hero, axis) =>
     allWhiteLevels.flatMap fun level =>
       [211, 36].map fun ramp =>
         let p := makePaletteLight level hero axis ramp
         p.toJsonWith "maas" level.name "light" hero axis ramp
-  let all := (darkVecs ++ lightVecs).map fun j =>
+  -- hosaka pins the family-ramp path at its signature pair (hero 78 =
+  -- #76B900's hue, axis 168 plasma teal); blackwell 165, grace 150
+  let hosakaDark := allBlackLevels.map fun level =>
+    let p := makePalette .hosaka level 78 168
+    p.toJsonWith "hosaka-blackwell" level.name "dark" 78 168 165
+  let hosakaLight := allWhiteLevels.map fun level =>
+    let p := makePaletteLight level 78 168 150
+    p.toJsonWith "hosaka-grace" level.name "light" 78 168 150
+  let all := (darkVecs ++ lightVecs ++ hosakaDark ++ hosakaLight).map fun j =>
     -- reindent each palette object to sit inside the array
     String.intercalate "\n  " (j.splitOn "\n")
   "[\n  " ++ String.intercalate ",\n  " all ++ "\n]"
@@ -281,7 +304,7 @@ def generateVectors : String :=
 -- ============================================================
 
 def generateEmacs (defaultLevel : BlackLevel) (defaultHero defaultAxis : Nat) : String :=
-  let p := makePalette defaultLevel defaultHero defaultAxis
+  let p := makePalette .straylight defaultLevel defaultHero defaultAxis
   let colorList := String.intercalate "\n"
     (p.slots.toList.map fun (name, hex) => s!"      ({name} \"{hex}\")")
   -- The elisp template

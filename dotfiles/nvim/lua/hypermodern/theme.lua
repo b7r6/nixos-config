@@ -19,6 +19,7 @@ local M = {}
 M.state = {
   hero = 211,
   axis = 201,
+  family = "straylight",
   polarity = "dark",
   level = "carbon",
   ramp = 211,
@@ -30,7 +31,7 @@ function M.compute()
   if M.state.polarity == "light" then
     return palette.compute_light(M.state.level, M.state.hero, M.state.axis, M.state.ramp)
   end
-  return palette.compute_dark(M.state.level, M.state.hero, M.state.axis)
+  return palette.compute_dark(M.state.level, M.state.hero, M.state.axis, M.state.family)
 end
 
 -- ── the face map ───────────────────────────────────────────────────
@@ -206,6 +207,7 @@ function M.sync()
     elseif k == "ramp" then M.state.ramp = (tonumber(v) or M.state.ramp) % 360
     elseif k == "register" then M.state.register = tonumber(v) or M.state.register
     elseif k == "generation" then M.state.generation = tonumber(v) or M.state.generation
+    elseif k == "family" and palette.family_dark_ramp_hues[v] then M.state.family = v
     elseif k == "polarity" and (v == "dark" or v == "light") then M.state.polarity = v
     elseif k == "level" and (palette.black_levels[v] or palette.white_levels[v]) then
       M.state.level = v

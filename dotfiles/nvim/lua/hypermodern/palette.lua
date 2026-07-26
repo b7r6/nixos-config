@@ -52,27 +52,31 @@ end
 -- ── the slot tables ────────────────────────────────────────────────
 
 M.black_levels = { void = 0, deep = 4, night = 8, carbon = 11, github = 16 }
+-- the manufacturer axis: night surface ramp hue per family (Lean mirror)
+M.family_dark_ramp_hues = { straylight = 211, hosaka = 165 }
 M.white_levels = { tessier = 100, neoform = 97, ghost = 92 }
 M.black_order = { "void", "deep", "night", "carbon", "github" }
 M.white_order = { "tessier", "neoform", "ghost" }
 
---- Ono-sendai palette at black LEVEL (string); ramp hue-locked to 211.
-function M.compute_dark(level, hero, axis)
+--- Night palette at black LEVEL (string); surface ramp hue is FAMILY-owned.
+function M.compute_dark(level, hero, axis, family)
   local L = M.black_levels[level] or 11
   hero = hero or 211
   axis = axis or 201
+  local R = M.family_dark_ramp_hues[family or "straylight"] or 211
   local hex = M.hsl_to_hex
   return {
-    name = "Ono-Sendai " .. level:sub(1, 1):upper() .. level:sub(2),
+    name = (family == "hosaka" and "Hosaka Blackwell " or "Ono-Sendai ")
+      .. level:sub(1, 1):upper() .. level:sub(2),
     variant = "dark",
-    base00 = hex(211, 12, L + 0),
-    base01 = hex(211, 16, L + 3),
-    base02 = hex(211, 17, L + 8),
-    base03 = hex(211, 15, L + 17),
-    base04 = hex(211, 12, 48),
-    base05 = hex(211, 28, 81),
-    base06 = hex(211, 32, 89),
-    base07 = hex(211, 36, 95),
+    base00 = hex(R, 12, L + 0),
+    base01 = hex(R, 16, L + 3),
+    base02 = hex(R, 17, L + 8),
+    base03 = hex(R, 15, L + 17),
+    base04 = hex(R, 12, 48),
+    base05 = hex(R, 28, 81),
+    base06 = hex(R, 32, 89),
+    base07 = hex(R, 36, 95),
     base08 = hex(axis, 100, 86),
     base09 = hex(axis, 100, 75),
     base0A = hex(hero, 100, 66),
@@ -156,6 +160,17 @@ function M.emit_vectors()
           M.compute_light(level, hu[1], hu[2], ramp))
       end
     end
+  end
+  -- hosaka: the family-ramp path at its signature pair (78/168)
+  for _, level in ipairs(M.black_order) do
+    vectors[#vectors + 1] = vector_json(
+      "hosaka-blackwell-" .. level, 78, 168, 165,
+      M.compute_dark(level, 78, 168, "hosaka"))
+  end
+  for _, level in ipairs(M.white_order) do
+    vectors[#vectors + 1] = vector_json(
+      "hosaka-grace-" .. level, 78, 168, 150,
+      M.compute_light(level, 78, 168, 150))
   end
   return "[\n  " .. table.concat(vectors, ",\n  ") .. "\n]\n"
 end

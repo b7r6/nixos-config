@@ -79,7 +79,37 @@ let
     ) whiteLevels
   ) hues;
 
-  nixVectors = pkgs.writeText "nix-vectors.json" (builtins.toJSON (darkVectors ++ lightVectors));
+  # hosaka pins the family-ramp path at its signature pair (78/168);
+  # blackwell night ramp 165 across black levels, grace paper 150 across white
+  hosakaDarkVectors = map (
+    level:
+    themeLib.make-palette {
+      inherit level;
+      family = "hosaka";
+      hero-hue = 78;
+      axis-hue = 168;
+    }
+    // {
+      slug = "hosaka-blackwell-${level}";
+    }
+  ) darkLevels;
+
+  hosakaLightVectors = map (
+    level:
+    themeLib.make-palette-light {
+      inherit level;
+      hero-hue = 78;
+      axis-hue = 168;
+      ramp-hue = 150;
+    }
+    // {
+      slug = "hosaka-grace-${level}";
+    }
+  ) whiteLevels;
+
+  nixVectors = pkgs.writeText "nix-vectors.json" (
+    builtins.toJSON (darkVectors ++ lightVectors ++ hosakaDarkVectors ++ hosakaLightVectors)
+  );
 
   compare = pkgs.writeText "compare.py" ''
     import json, sys

@@ -150,16 +150,25 @@ let
 
   # Generate a complete base16 palette
   # Matches Lean's makePalette in OnoSendaiGen.lean:136-154
+  # The manufacturer axis: the night ramp hue is family-owned (mirror of
+  # the Lean PaletteFamily). straylight = the 211° house; hosaka = 165°
+  # blackwell phosphor.
+  family-dark-ramp-hue = {
+    straylight = 211;
+    hosaka = 165;
+  };
+
   make-palette =
     {
       level ? "carbon",
       hero-hue ? 211,
       axis-hue ? 201,
+      family ? "straylight",
     }:
     let
       L = black-levels.${level} or 11;
-      # 211 hue helpers for grayscale
-      g = hsl-to-hex 211;
+      # family ramp hue helpers for grayscale
+      g = hsl-to-hex (family-dark-ramp-hue.${family} or 211);
       # Hero and axis hue helpers
       hero = hsl-to-hex hero-hue;
       axis = hsl-to-hex axis-hue;

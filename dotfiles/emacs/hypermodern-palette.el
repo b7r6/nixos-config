@@ -59,24 +59,34 @@
 (defconst hypermodern/black-levels
   '((void . 0) (deep . 4) (night . 8) (carbon . 11) (github . 16)))
 
+(defconst hypermodern/family-dark-ramp-hues
+  '((straylight . 211) (hosaka . 165))
+  "The manufacturer axis: night surface ramp hue per family.
+straylight = ono-sendai/maas, the 211° house; hosaka = blackwell/grace,
+165° phosphor.  Mirror of the Lean PaletteFamily.")
+
 (defconst hypermodern/white-levels
   '((tessier . 100) (neoform . 97) (ghost . 92)))
 
-(defun hypermodern/compute-dark (level &optional hero axis)
-  "Ono-sendai palette at black LEVEL; ramp hue-locked to 211."
-  (let ((L (alist-get level hypermodern/black-levels 11))
-        (hero (or hero 211))
-        (axis (or axis 201)))
-    (list :name (format "Ono-Sendai %s" (capitalize (symbol-name level)))
+(defun hypermodern/compute-dark (level &optional hero axis family)
+  "Night palette at black LEVEL; surface ramp hue is FAMILY-owned."
+  (let* ((L (alist-get level hypermodern/black-levels 11))
+         (hero (or hero 211))
+         (axis (or axis 201))
+         (R (alist-get (or family 'straylight)
+                       hypermodern/family-dark-ramp-hues 211)))
+    (list :name (format "%s %s"
+                        (if (eq family 'hosaka) "Hosaka Blackwell" "Ono-Sendai")
+                        (capitalize (symbol-name level)))
           :variant 'dark
-          :base00 (hypermodern/hsl-to-hex 211 12 (+ L 0))
-          :base01 (hypermodern/hsl-to-hex 211 16 (+ L 3))
-          :base02 (hypermodern/hsl-to-hex 211 17 (+ L 8))
-          :base03 (hypermodern/hsl-to-hex 211 15 (+ L 17))
-          :base04 (hypermodern/hsl-to-hex 211 12 48)
-          :base05 (hypermodern/hsl-to-hex 211 28 81)
-          :base06 (hypermodern/hsl-to-hex 211 32 89)
-          :base07 (hypermodern/hsl-to-hex 211 36 95)
+          :base00 (hypermodern/hsl-to-hex R 12 (+ L 0))
+          :base01 (hypermodern/hsl-to-hex R 16 (+ L 3))
+          :base02 (hypermodern/hsl-to-hex R 17 (+ L 8))
+          :base03 (hypermodern/hsl-to-hex R 15 (+ L 17))
+          :base04 (hypermodern/hsl-to-hex R 12 48)
+          :base05 (hypermodern/hsl-to-hex R 28 81)
+          :base06 (hypermodern/hsl-to-hex R 32 89)
+          :base07 (hypermodern/hsl-to-hex R 36 95)
           :base08 (hypermodern/hsl-to-hex axis 100 86)
           :base09 (hypermodern/hsl-to-hex axis 100 75)
           :base0A (hypermodern/hsl-to-hex hero 100 66)
@@ -118,6 +128,8 @@
 (defvar hypermodern/polarity 'dark)
 (defvar hypermodern/level 'carbon)
 (defvar hypermodern/ramp 211)
+(defvar hypermodern/family 'straylight
+  "Palette family: `straylight' or `hosaka' (the 5-vector's fifth axis).")
 (defvar hypermodern/register 1000
   "Register axis position (per-mille), affluent 0 ... facility 1000.")
 (defvar hypermodern/wintermute-generation 0
@@ -131,7 +143,7 @@
       (hypermodern/compute-light hypermodern/level hypermodern/hero
                                  hypermodern/axis hypermodern/ramp)
     (hypermodern/compute-dark hypermodern/level hypermodern/hero
-                              hypermodern/axis)))
+                              hypermodern/axis hypermodern/family)))
 
 (defun hypermodern/apply-computed ()
   "Recompute the palette from the live vector and apply it.
@@ -214,6 +226,9 @@ config never depends on the daemon, it only listens to it."
             (`("ramp" ,v) (setq hypermodern/ramp (mod (string-to-number v) 360)))
             (`("register" ,v) (setq hypermodern/register (string-to-number v)))
             (`("generation" ,v) (setq hypermodern/wintermute-generation (string-to-number v)))
+            (`("family" ,v)
+             (when (assq (intern v) hypermodern/family-dark-ramp-hues)
+               (setq hypermodern/family (intern v))))
             (`("polarity" ,v) (setq hypermodern/polarity (intern v)))
             (`("level" ,v)
              (let ((sym (intern v)))
@@ -268,6 +283,17 @@ config never depends on the daemon, it only listens to it."
                  (format "maas-%s" level) (car hu) (cdr hu) ramp
                  (hypermodern/compute-light level (car hu) (cdr hu) ramp))
                 vectors))))
+    ;; hosaka: the family-ramp path at its signature pair (78/168)
+    (dolist (level (mapcar #'car hypermodern/black-levels))
+      (push (hypermodern/vector-json
+             (format "hosaka-blackwell-%s" level) 78 168 165
+             (hypermodern/compute-dark level 78 168 'hosaka))
+            vectors))
+    (dolist (level (mapcar #'car hypermodern/white-levels))
+      (push (hypermodern/vector-json
+             (format "hosaka-grace-%s" level) 78 168 150
+             (hypermodern/compute-light level 78 168 150))
+            vectors))
     (princ (concat "[\n  " (mapconcat #'identity (nreverse vectors) ",\n  ") "\n]\n"))))
 
 ;; ── startup: follow wintermute if it's there ───────────────────────
