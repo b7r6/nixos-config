@@ -377,7 +377,14 @@ in
         };
         Service = {
           ExecStart = "${wintermuteFieldLauncher}";
-          Restart = "on-failure";
+          # Restart=always, NOT on-failure: the daemon exits CLEANLY (status 0)
+          # when the compositor closes its background layer surface — which
+          # Hyprland does during session-startup output reconfiguration. With
+          # on-failure a clean exit never restarts, so the QML wallpaper (which
+          # has already stood down) leaves a BLANK desktop. always self-heals
+          # (the daemon recreates the surface on the next start). Matches the
+          # reconciler service above.
+          Restart = "always";
           RestartSec = 2;
         };
         Install.WantedBy = [ "graphical-session.target" ];
