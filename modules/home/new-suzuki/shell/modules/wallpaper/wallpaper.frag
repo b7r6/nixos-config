@@ -160,7 +160,7 @@ void main() {
         float cf = fract(uv.x * NCOL);
         float ch2 = hash(vec2(ci, 23.1));
         float wob = 0.5 + 0.5 * sin(time * (0.7 + 1.8 * ch2) + ch2 * 6.2832);
-        float colH = (0.04 + 0.09 * ch2) + load * (0.34 + 0.46 * ch2) * (0.6 + 0.4 * wob);
+        float colH = (0.015 + 0.05 * ch2) + load * (0.40 + 0.48 * ch2) * (0.6 + 0.4 * wob);
         float yUp = 1.0 - uv.y;
         float cwidth = smoothstep(0.5, 0.17, abs(cf - 0.5));
         float body = cwidth * (1.0 - smoothstep(colH - 0.02, colH, yUp))
@@ -168,7 +168,7 @@ void main() {
         float tip = cwidth * smoothstep(0.022, 0.0, abs(yUp - colH));
         // tips heat toward white as the chip pulls power
         vec3 tipCol = mix(accentD.rgb, vec3(1.0), 0.35 * power);
-        float surge = 0.45 + 0.55 * load;
+        float surge = 0.10 + 0.90 * load;   // idle nearly bare, inference ablaze
         col += night * reg * surge * (0.055 * body * accent.rgb + 0.26 * tip * tipCol);
         col -= (1.0 - night) * reg * (0.045 * body + 0.10 * tip);
 
