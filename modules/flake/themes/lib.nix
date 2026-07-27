@@ -155,7 +155,7 @@ let
   # blackwell phosphor.
   family-dark-ramp-hue = {
     straylight = 211;
-    hosaka = 165;
+    hosaka = 211;
   };
 
   make-palette =

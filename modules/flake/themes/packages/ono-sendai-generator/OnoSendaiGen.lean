@@ -147,7 +147,7 @@ inductive PaletteFamily where
 
 def PaletteFamily.darkRampHue : PaletteFamily → Nat
   | .straylight => 211
-  | .hosaka => 165
+  | .hosaka => 211
 
 private def hsl211 (s l : Nat) : String :=
   (HSL.mk ⟨211, by omega⟩
@@ -289,11 +289,11 @@ def generateVectors : String :=
   -- hosaka pins the family-ramp path at its signature pair (hero 78 =
   -- #76B900's hue, axis 168 plasma teal); blackwell 165, grace 150
   let hosakaDark := allBlackLevels.map fun level =>
-    let p := makePalette .hosaka level 78 168
-    p.toJsonWith "hosaka-blackwell" level.name "dark" 78 168 165
+    let p := makePalette .hosaka level 110 168
+    p.toJsonWith "hosaka-blackwell" level.name "dark" 110 168 211
   let hosakaLight := allWhiteLevels.map fun level =>
-    let p := makePaletteLight level 78 168 150
-    p.toJsonWith "hosaka-grace" level.name "light" 78 168 150
+    let p := makePaletteLight level 110 168 211
+    p.toJsonWith "hosaka-grace" level.name "light" 110 168 211
   let all := (darkVecs ++ lightVecs ++ hosakaDark ++ hosakaLight).map fun j =>
     -- reindent each palette object to sit inside the array
     String.intercalate "\n  " (j.splitOn "\n")

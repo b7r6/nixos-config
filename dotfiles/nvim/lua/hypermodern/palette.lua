@@ -53,7 +53,7 @@ end
 
 M.black_levels = { void = 0, deep = 4, night = 8, carbon = 11, github = 16 }
 -- the manufacturer axis: night surface ramp hue per family (Lean mirror)
-M.family_dark_ramp_hues = { straylight = 211, hosaka = 165 }
+M.family_dark_ramp_hues = { straylight = 211, hosaka = 211 }
 M.white_levels = { tessier = 100, neoform = 97, ghost = 92 }
 M.black_order = { "void", "deep", "night", "carbon", "github" }
 M.white_order = { "tessier", "neoform", "ghost" }
@@ -164,13 +164,13 @@ function M.emit_vectors()
   -- hosaka: the family-ramp path at its signature pair (78/168)
   for _, level in ipairs(M.black_order) do
     vectors[#vectors + 1] = vector_json(
-      "hosaka-blackwell-" .. level, 78, 168, 165,
-      M.compute_dark(level, 78, 168, "hosaka"))
+      "hosaka-blackwell-" .. level, 110, 168, 211,
+      M.compute_dark(level, 110, 168, "hosaka"))
   end
   for _, level in ipairs(M.white_order) do
     vectors[#vectors + 1] = vector_json(
-      "hosaka-grace-" .. level, 78, 168, 150,
-      M.compute_light(level, 78, 168, 150))
+      "hosaka-grace-" .. level, 110, 168, 211,
+      M.compute_light(level, 110, 168, 211))
   end
   return "[\n  " .. table.concat(vectors, ",\n  ") .. "\n]\n"
 end

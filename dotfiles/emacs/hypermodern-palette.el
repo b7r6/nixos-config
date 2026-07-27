@@ -60,7 +60,7 @@
   '((void . 0) (deep . 4) (night . 8) (carbon . 11) (github . 16)))
 
 (defconst hypermodern/family-dark-ramp-hues
-  '((straylight . 211) (hosaka . 165))
+  '((straylight . 211) (hosaka . 211))
   "The manufacturer axis: night surface ramp hue per family.
 straylight = ono-sendai/maas, the 211° house; hosaka = blackwell/grace,
 165° phosphor.  Mirror of the Lean PaletteFamily.")
@@ -286,13 +286,13 @@ config never depends on the daemon, it only listens to it."
     ;; hosaka: the family-ramp path at its signature pair (78/168)
     (dolist (level (mapcar #'car hypermodern/black-levels))
       (push (hypermodern/vector-json
-             (format "hosaka-blackwell-%s" level) 78 168 165
-             (hypermodern/compute-dark level 78 168 'hosaka))
+             (format "hosaka-blackwell-%s" level) 110 168 211
+             (hypermodern/compute-dark level 110 168 'hosaka))
             vectors))
     (dolist (level (mapcar #'car hypermodern/white-levels))
       (push (hypermodern/vector-json
-             (format "hosaka-grace-%s" level) 78 168 150
-             (hypermodern/compute-light level 78 168 150))
+             (format "hosaka-grace-%s" level) 110 168 211
+             (hypermodern/compute-light level 110 168 211))
             vectors))
     (princ (concat "[\n  " (mapconcat #'identity (nreverse vectors) ",\n  ") "\n]\n"))))
 

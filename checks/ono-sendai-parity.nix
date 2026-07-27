@@ -86,7 +86,7 @@ let
     themeLib.make-palette {
       inherit level;
       family = "hosaka";
-      hero-hue = 78;
+      hero-hue = 110;
       axis-hue = 168;
     }
     // {
@@ -98,9 +98,9 @@ let
     level:
     themeLib.make-palette-light {
       inherit level;
-      hero-hue = 78;
+      hero-hue = 110;
       axis-hue = 168;
-      ramp-hue = 150;
+      ramp-hue = 211;
     }
     // {
       slug = "hosaka-grace-${level}";
