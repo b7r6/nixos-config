@@ -374,18 +374,23 @@ in
           Description = "wintermute-field — CUDA wallpaper presenter";
           After = [ "graphical-session.target" ];
           PartOf = [ "graphical-session.target" ];
+          # Never give up on the wallpaper: no start-limit ceiling, so even a
+          # burst of surface-closes (an output-reconfiguration storm during
+          # login) can't trip systemd's rate limiter and wedge the desktop
+          # blank. The daemon is cheap to respawn.
+          StartLimitIntervalSec = 0;
         };
         Service = {
           ExecStart = "${wintermuteFieldLauncher}";
           # Restart=always, NOT on-failure: the daemon exits CLEANLY (status 0)
           # when the compositor closes its background layer surface — which
-          # Hyprland does during session-startup output reconfiguration. With
-          # on-failure a clean exit never restarts, so the QML wallpaper (which
-          # has already stood down) leaves a BLANK desktop. always self-heals
-          # (the daemon recreates the surface on the next start). Matches the
-          # reconciler service above.
+          # Hyprland does during output reconfiguration (session startup, an
+          # interactive login, monitor/DPMS events). With on-failure a clean
+          # exit never restarts, so the QML wallpaper (which has already stood
+          # down via HYPERMODERN_CUDA_FIELD=1) leaves a BLANK desktop. always
+          # self-heals: the fresh process recreates the surface. ~1s to respawn.
           Restart = "always";
-          RestartSec = 2;
+          RestartSec = 1;
         };
         Install.WantedBy = [ "graphical-session.target" ];
       };
