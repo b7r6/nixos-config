@@ -164,7 +164,10 @@ in
         update_check = false;
         dialect = "us";
         style = "auto";
-        theme = { };
+        # Theme is WRITTEN BY WINTERMUTE (config/atuin/themes/wintermute.toml)
+        # on every reconcile; atuin re-reads it each `atuin search`, so Ctrl-R
+        # retints live. Seeded below if absent (cold start before the daemon).
+        theme.name = "wintermute";
       };
     };
 
@@ -244,6 +247,51 @@ in
         chmod 644 "$_zj/ono-sendai.kdl"
       fi
     '';
+
+    # fzf + atuin: seed the wintermute-owned color files if absent, so a cold
+    # shell (before the daemon has ever reconciled) is already themed. The
+    # daemon overwrites both on its first reconcile and owns them after.
+    home.activation.fzfThemeSeed = lib.mkIf cfg.cliTools.enable (
+      lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        _fzf="${config.xdg.stateHome}/wintermute/fzf.opts"
+        if [ ! -f "$_fzf" ]; then
+          mkdir -p "${config.xdg.stateHome}/wintermute"
+          cp ${
+            pkgs.writeText "fzf-wintermute-seed.opts"
+              "--color=fg:${colors.base05},bg:${colors.base00},hl:${colors.base0A},fg+:${colors.base07},bg+:${colors.base01},hl+:${colors.base0A},info:${colors.base04},border:${colors.base02},prompt:${colors.base0A},pointer:${colors.base0C},marker:${colors.base0B},spinner:${colors.base0C},header:${colors.base04},gutter:${colors.base00}\n"
+          } "$_fzf"
+          chmod 644 "$_fzf"
+        fi
+      ''
+    );
+
+    home.activation.atuinThemeSeed = lib.mkIf cfg.atuin.enable (
+      lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        _at="${config.xdg.configHome}/atuin/themes"
+        if [ ! -f "$_at/wintermute.toml" ]; then
+          mkdir -p "$_at"
+          cp ${
+            pkgs.writeText "atuin-wintermute-seed.toml" ''
+              # seeded by nix; wintermute owns this file after first reconcile
+              [theme]
+              name = "wintermute"
+
+              [colors]
+              Base = "${colors.base05}"
+              Title = "${colors.base0A}"
+              Guidance = "${colors.base04}"
+              Important = "${colors.base07}"
+              Annotation = "${colors.base03}"
+              AlertInfo = "${colors.base0B}"
+              AlertWarn = "${colors.base0A}"
+              AlertError = "${colors.base08}"
+              Muted = "${colors.base04}"
+            ''
+          } "$_at/wintermute.toml"
+          chmod 644 "$_at/wintermute.toml"
+        fi
+      ''
+    );
 
     programs.tmux = lib.mkIf cfg.tmux.enable {
       enable = true;
@@ -382,6 +430,13 @@ in
       enable = true;
       enableBashIntegration = true;
       enableZshIntegration = true;
+    };
+
+    # fzf reads $FZF_DEFAULT_OPTS_FILE on every launch, so wintermute rewriting
+    # that file (on each reconcile) retints the next fzf with no shell reload —
+    # the live channel the old env-baked FZF_DEFAULT_OPTS could never be.
+    home.sessionVariables = lib.mkIf cfg.cliTools.enable {
+      FZF_DEFAULT_OPTS_FILE = "${config.xdg.stateHome}/wintermute/fzf.opts";
     };
 
     programs.zoxide = lib.mkIf cfg.cliTools.enable {
