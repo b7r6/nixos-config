@@ -50,6 +50,20 @@ Variants {
             property real reg: ThemeService.register
             property real grain: ThemeService.aestheticProp("grain", 0.02)
             property real aspect: height > 0 ? width / height : 1.777
+
+            // Live machine: GPU utilization drives the field's intensity, power
+            // draw heats the beam-curtain tips. Eased so the 2s poll cadence
+            // reads as a smooth breath, not a step. The desktop becomes an
+            // instrument — on the Spark this is the whole point.
+            property real load: Math.max(0, Math.min(1, SystemMonitorService.gpuUsage / 100))
+            property real power: Math.max(0, Math.min(1, SystemMonitorService.gpuPower / 140))
+
+            Behavior on load {
+                NumberAnimation { duration: 1600; easing.type: Easing.OutCubic }
+            }
+            Behavior on power {
+                NumberAnimation { duration: 1600; easing.type: Easing.OutCubic }
+            }
             property color surface: ThemeService.color("surface", "#191c1f")
             property color paper: ThemeService.color("paper", "#1e2329")
             property color accent: ThemeService.color("accent", "#52a5ff")

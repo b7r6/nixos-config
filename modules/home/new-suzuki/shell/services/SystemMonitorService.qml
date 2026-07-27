@@ -25,6 +25,14 @@ Singleton {
     readonly property string gpuIcon: "󰢮"
     readonly property string gpuType: internal.gpuType // "nvidia", "amd", "intel", "unknown"
 
+    // Deeper NVIDIA instruments (the DGX Spark console). power.draw + clocks.sm
+    // are live on GB10; memory is unified (nvidia-smi reports N/A) so it stays 0
+    // and its readout hides — the `mem` readout already covers unified RAM.
+    readonly property int gpuPower: internal.gpuPower   // watts, rounded
+    readonly property int gpuClock: internal.gpuClock   // SM clock, MHz
+    readonly property string gpuName: internal.gpuName  // e.g. "GB10"
+    readonly property int gpuMemUsage: internal.gpuMemUsage // % (discrete GPUs)
+
     // ========================================================================
     // RAM PROPERTIES
     // ========================================================================
@@ -69,6 +77,10 @@ Singleton {
         property int gpuUsage: 0
         property int gpuTemp: 0
         property string gpuType: "unknown"
+        property int gpuPower: 0
+        property int gpuClock: 0
+        property string gpuName: ""
+        property int gpuMemUsage: 0
 
         // CPU calculation state
         property real prevTotal: 0
@@ -378,16 +390,30 @@ Singleton {
 
     Process {
         id: updateNvidiaGpu
-        command: ["nvidia-smi", "--query-gpu=utilization.gpu,temperature.gpu", "--format=csv,noheader,nounits"]
+        // One query, the full instrument row. Fields that read "[N/A]" (unified
+        // memory on GB10, power/clock on some parts) parse to NaN and are left
+        // at their prior value — the dependent readout hides itself.
+        command: ["nvidia-smi", "--query-gpu=utilization.gpu,temperature.gpu,power.draw,clocks.sm,memory.used,memory.total,name", "--format=csv,noheader,nounits"]
         stdout: SplitParser {
             onRead: data => {
                 const parts = data.trim().split(",").map(s => s.trim());
                 if (parts.length >= 2) {
                     const usage = parseInt(parts[0]);
                     const temp = parseInt(parts[1]);
-
                     if (!isNaN(usage)) internal.gpuUsage = usage;
                     if (!isNaN(temp)) internal.gpuTemp = temp;
+                }
+                if (parts.length >= 7) {
+                    const power = parseFloat(parts[2]);
+                    const clock = parseInt(parts[3]);
+                    const memUsed = parseFloat(parts[4]);
+                    const memTotal = parseFloat(parts[5]);
+                    if (!isNaN(power)) internal.gpuPower = Math.round(power);
+                    if (!isNaN(clock)) internal.gpuClock = clock;
+                    if (!isNaN(memUsed) && !isNaN(memTotal) && memTotal > 0)
+                        internal.gpuMemUsage = Math.round((memUsed / memTotal) * 100);
+                    // name is the trailing field(s); GB10 has no comma so parts[6]
+                    if (parts[6]) internal.gpuName = parts[6].replace(/^NVIDIA\s+/, "");
                 }
             }
         }

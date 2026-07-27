@@ -13,7 +13,12 @@
 //   facility (reg → 1)   telemetry constellation (glinting stars + a faint
 //                        mesh linking neighbors) + fine scanlines + an ~8s
 //                        drifting bright line + character-cell data columns
-//                        with glyph churn
+//                        with glyph churn + the SM-OCCUPANCY BEAM CURTAINS
+//
+// LIVE MACHINE: `load` (GPU utilization 0..1) and `power` (draw, normalized)
+// come from SystemMonitorService — the wallpaper is a readout of the box.
+// Idle is calm; under inference the curtains rise, the rain turns torrential,
+// the field warms. On a DGX Spark the background IS the workload.
 //
 // Day (maas) reads the same phenomena as PRINT: ink lines and darkening on
 // paper instead of additive glow. Polarity is inferred from surface luma —
@@ -39,6 +44,8 @@ layout(std140, binding = 0) uniform buf {
     float grain;
     float aspect;
     float sweep;
+    float load;
+    float power;
     vec4 surface;
     vec4 paper;
     vec4 accent;
@@ -108,6 +115,12 @@ void main() {
     float vig = dot(p, p);
     col *= 1.0 - mix(0.20, 0.35, night) * vig;
 
+    // Live warm-up: a working GPU lifts the whole field a touch (additive at
+    // night, a faint ink cool by day) — present at BOTH poles so even the calm
+    // affluent desktop shows the machine breathing.
+    col += night * load * 0.022 * mix(accent.rgb, accentD.rgb, 0.5);
+    col -= (1.0 - night) * load * 0.012;
+
     // ── Affluent: bloom orbits + the orbital horizon ───────────────────────
     if (aff > 0.001) {
         vec2 b1 = 0.42 * vec2(sin(time * 0.157), sin(time * 0.111));
@@ -137,6 +150,28 @@ void main() {
 
     // ── Facility: constellation mesh + scanlines + data columns ────────────
     if (reg > 0.001) {
+        // SM-occupancy beam curtains: columns rising from the floor, one per
+        // notional SM, heights driven by live GPU load. At idle a low
+        // flickering baseline; under work they climb and the tips go
+        // incandescent with power draw. The reference-reel signature, wired to
+        // the actual chip. Night = additive accent glow; day = ink histogram.
+        float NCOL = 54.0;
+        float ci = floor(uv.x * NCOL);
+        float cf = fract(uv.x * NCOL);
+        float ch2 = hash(vec2(ci, 23.1));
+        float wob = 0.5 + 0.5 * sin(time * (0.7 + 1.8 * ch2) + ch2 * 6.2832);
+        float colH = (0.04 + 0.09 * ch2) + load * (0.34 + 0.46 * ch2) * (0.6 + 0.4 * wob);
+        float yUp = 1.0 - uv.y;
+        float cwidth = smoothstep(0.5, 0.17, abs(cf - 0.5));
+        float body = cwidth * (1.0 - smoothstep(colH - 0.02, colH, yUp))
+                   * (0.35 + 0.65 * clamp(yUp / max(colH, 1e-3), 0.0, 1.0));
+        float tip = cwidth * smoothstep(0.022, 0.0, abs(yUp - colH));
+        // tips heat toward white as the chip pulls power
+        vec3 tipCol = mix(accentD.rgb, vec3(1.0), 0.35 * power);
+        float surge = 0.45 + 0.55 * load;
+        col += night * reg * surge * (0.055 * body * accent.rgb + 0.26 * tip * tipCol);
+        col -= (1.0 - night) * reg * (0.045 * body + 0.10 * tip);
+
         // Constellation: glinting stars on a jittered grid, faint mesh
         // linking horizontally/vertically adjacent stars — the telemetry net.
         float GATE = 0.978;
@@ -179,13 +214,13 @@ void main() {
         // read as cells shimmering, not smooth streaks.
         float colId = floor(p.x * 26.0);
         float ch = hash(vec2(colId, 3.7));
-        float head = fract(time * (0.04 + 0.11 * ch) + ch * 7.31);
+        float head = fract(time * (0.04 + 0.11 * ch) * (1.0 + 2.2 * load) + ch * 7.31);
         float dCol = head - uv.y;
         float trail = smoothstep(0.35, 0.0, abs(dCol)) * step(0.0, dCol);
         float core2 = smoothstep(0.45, 0.10, abs(fract(p.x * 26.0) - 0.5));
         float cellY = floor(uv.y * 90.0);
-        float glyph = 0.30 + 0.70 * hash(vec2(colId * 3.1, cellY + floor(time * 6.0) * 0.13));
-        float rain = trail * core2 * glyph * step(0.72, ch);
+        float glyph = 0.30 + 0.70 * hash(vec2(colId * 3.1, cellY + floor(time * (6.0 + 18.0 * load)) * 0.13));
+        float rain = trail * core2 * glyph * step(0.72 - 0.30 * load, ch);
         col += night * reg * 0.050 * rain * accent.rgb;
         col -= (1.0 - night) * reg * 0.032 * rain;
     }
@@ -208,7 +243,7 @@ void main() {
 
         // the signal: an accent pulse with an ink trail
         float dir = lh > 0.80 ? 1.0 : -1.0;
-        float speed = 0.06 + 0.18 * hash(vec2(laneRow, 5.1));
+        float speed = (0.06 + 0.18 * hash(vec2(laneRow, 5.1))) * (1.0 + 1.6 * load);
         float along = fract(p.x * 0.5 / aspect + 0.5 - dir * time * speed + lh * 9.0);
         float pulse = smoothstep(0.020, 0.004, along);
         float tail = smoothstep(0.16, 0.0, along) * 0.30;

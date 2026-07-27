@@ -72,6 +72,10 @@ RowLayout {
     // ── Sparkline histories: 16-sample rings fed by the existing pollers ────
     property var cpuHist: []
     property var gpuHist: []
+    property var pwrHist: []
+
+    // Soft power ceiling for the sparkline's 0..100 scale (GB10 board ~140W).
+    readonly property real powerCeil: 140
 
     Connections {
         target: SystemMonitorService
@@ -82,6 +86,11 @@ RowLayout {
 
         function onGpuUsageChanged() {
             root.gpuHist = [...root.gpuHist.slice(-15), SystemMonitorService.gpuUsage];
+        }
+
+        function onGpuPowerChanged() {
+            const norm = Math.min(100, (SystemMonitorService.gpuPower / root.powerCeil) * 100);
+            root.pwrHist = [...root.pwrHist.slice(-15), norm];
         }
     }
 
@@ -222,6 +231,26 @@ RowLayout {
         threshold: 0.46
         hot: SystemMonitorService.gpuUsage > 92
         spark: root.gpuHist
+    }
+
+    // Power draw — the headline instrument on a compute box. The GB10 idles
+    // ~11W and climbs under inference; the sparkline reads like a load trace.
+    Readout {
+        label: "pwr"
+        value: SystemMonitorService.gpuPower + "W"
+        threshold: 0.52
+        hot: SystemMonitorService.gpuPower > 120
+        spark: root.pwrHist
+        visible: reveal > 0.01 && SystemMonitorService.gpuPower > 0
+    }
+
+    // SM clock — the silicon actually spinning. Hidden where nvidia-smi
+    // reports no clock (N/A parts).
+    Readout {
+        label: "clk"
+        value: SystemMonitorService.gpuClock + "M"
+        threshold: 0.58
+        visible: reveal > 0.01 && SystemMonitorService.gpuClock > 0
     }
 
     Readout {
