@@ -196,6 +196,11 @@ in
     home.file.".config/zellij/layouts".source =
       config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/zellij/layouts";
 
+    # the status bar's machine readout (GPU/load), called by the zjstatus
+    # command widget — repo-homed alongside the layout.
+    home.file.".config/zellij/statusline.sh".source =
+      config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/zellij/statusline.sh";
+
     # zjstatus — the bar plugin the hypermodern layout drives (pinned wasm
     # release; not in the nixpkgs fork)
     home.file.".config/zellij/plugins/zjstatus.wasm".source = pkgs.fetchurl {

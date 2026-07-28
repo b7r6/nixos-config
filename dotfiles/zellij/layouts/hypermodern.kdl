@@ -2,42 +2,72 @@
 //                                 // hypermodern // zellij // layout //
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //
-// The zjstatus bar wearing the house language: ▞ session mark left, tracked
-// tabs center, and on the right the LEDGER — the live wintermute generation
-// read from theme.state — beside the clock. Colors are named refs resolved
-// against the active zellij theme, which wintermute rewrites on every
-// reconcile: the bar follows the palette without this file changing.
+// The zjstatus bar in the house language, three registers:
 //
-// Mode indicator renders NOTHING in normal mode (non-modal cosmetics);
-// the C-o prefix flashes a small mark only while held.
+//   LEFT    ▞ session · host badge — the "which machine" identity (spans
+//           SSH: over the fleet the host is the remote you're on)
+//   CENTER  tabs — bracketed accent on the active, plain index·name otherwise
+//   RIGHT   the CONSOLE — live GPU util + power (the Spark) and load, the
+//           wintermute GENERATION ledger, and the clock, ▞-railed
 //
-// Requires ~/.config/zellij/plugins/zjstatus.wasm (nix-provided). Without
-// it, fall back to `zellij -l compact`.
+// Colours are named refs against the active zellij theme, which wintermute
+// rewrites on every reconcile — the bar follows the palette (hosaka green,
+// straylight blue) without this file changing. Normal mode renders NOTHING
+// (non-modal cosmetics); the C-o prefix flashes a full cheat line while held.
+//
+// POLARITY: `black` (= base01) is a surface tone, near-invisible on LIGHT
+// themes — so all TEXT uses `white` (the foreground, readable on both poles),
+// accents (cyan/blue) mark highlights, and values pop with green/orange +
+// bold. `black` appears only as a filled-badge foreground over an accent bg.
+//
+// Needs ~/.config/zellij/plugins/zjstatus.wasm + statusline.sh (both
+// nix-provided). Without zjstatus, fall back to `zellij -l compact`.
 
 layout {
     default_tab_template {
         children
         pane size=1 borderless=true {
             plugin location="file:~/.config/zellij/plugins/zjstatus.wasm" {
-                format_left   "{mode}#[fg=blue,bold] ▞ #[fg=white]{session} "
+                format_left   "{mode}#[fg=cyan,bold] ▞ #[fg=white,bold]{session}#[fg=white] · #[fg=cyan]{command_host} "
                 format_center "{tabs}"
-                format_right  "#[fg=black]gen #[fg=blue]{command_gen} #[fg=black]· #[fg=white]{datetime}"
+                format_right  "{command_telem} #[fg=cyan]▞ #[fg=white]gen #[fg=blue,bold]{command_gen} #[fg=cyan]▞ #[fg=white,bold]{datetime} "
                 format_space  ""
 
                 border_enabled  "false"
                 hide_frame_for_single_pane "false"
 
+                // non-modal: normal renders nothing, the prefix flashes the full grammar
                 mode_normal  ""
-                mode_tmux    "#[bg=blue,fg=black,bold] C-o #[fg=black] hjkl focus · HJKL move · n/p tab · |/- split · f float · e edit · w sessions "
-                mode_scroll  "#[bg=orange,fg=black,bold] SCROLL "
-                mode_search  "#[bg=orange,fg=black,bold] SEARCH "
+                mode_tmux    "#[bg=cyan,fg=black,bold] ▞ C-o #[bg=black,fg=cyan,bold] hjkl#[fg=white] focus  #[fg=cyan,bold]HJKL#[fg=white] move  #[fg=cyan,bold]n/p#[fg=white] tab  #[fg=cyan,bold]c#[fg=white] new  #[fg=cyan,bold]|/-#[fg=white] split  #[fg=cyan,bold]f#[fg=white] float  #[fg=cyan,bold]e#[fg=white] edit  #[fg=cyan,bold]w#[fg=white] win  #[fg=cyan,bold]s#[fg=white] ses "
+                mode_scroll  "#[bg=orange,fg=black,bold] ▞ SCROLL #[bg=black,fg=orange,bold] k/j#[fg=white] line  #[fg=orange,bold]C-v/M-v#[fg=white] page  #[fg=orange,bold]C-s#[fg=white] search  #[fg=orange,bold]e#[fg=white] edit "
+                mode_entersearch "#[bg=yellow,fg=black,bold] ▞ FIND #[bg=black,fg=white] type a query · #[fg=yellow,bold]Enter#[fg=white] accept "
+                mode_search  "#[bg=orange,fg=black,bold] ▞ SEARCH #[bg=black,fg=orange,bold] n/p#[fg=white] next · prev  #[fg=orange,bold]Esc#[fg=white] done "
 
-                tab_normal   "#[fg=black]  {name} "
-                tab_active   "#[fg=blue,bold]  {name} #[fg=blue]▖"
+                // bracketed accent on the active tab; plain index·name otherwise
+                tab_normal            "#[fg=white] {index}·{name} "
+                tab_active            "#[fg=cyan,bold]⌜ #[fg=blue,bold]{index}·{name} #[fg=cyan,bold]⌟"
+                tab_normal_fullscreen "#[fg=white] {index}·{name} ⛶ "
+                tab_active_fullscreen "#[fg=cyan,bold]⌜ #[fg=blue,bold]{index}·{name} ⛶ #[fg=cyan,bold]⌟"
+                tab_normal_sync       "#[fg=white] {index}·{name} ⟲ "
+                tab_active_sync       "#[fg=cyan,bold]⌜ #[fg=blue,bold]{index}·{name} ⟲ #[fg=cyan,bold]⌟"
 
-                command_gen_command  "sh -c \"grep '^generation' $HOME/.local/state/wintermute/theme.state 2>/dev/null | cut -d' ' -f2 || echo -\""
-                command_gen_format   "{stdout}"
-                command_gen_interval "10"
+                // the host badge (short, cached)
+                command_host_command    "sh -c \"uname -n\""
+                command_host_format     "{stdout}"
+                command_host_interval   "3600"
+                command_host_rendermode "static"
+
+                // the machine: GPU util + power (Spark) and load — statusline.sh
+                // emits the styled segment; nvidia-smi absent → GPU segment gone
+                command_telem_command    "sh -c \"$HOME/.config/zellij/statusline.sh\""
+                command_telem_format     "{stdout}"
+                command_telem_interval   "4"
+                command_telem_rendermode "dynamic"
+
+                // the wintermute ledger: the live generation from theme.state
+                command_gen_command    "sh -c \"grep '^generation' $HOME/.local/state/wintermute/theme.state 2>/dev/null | cut -d' ' -f2 || echo -\""
+                command_gen_format     "{stdout}"
+                command_gen_interval   "5"
                 command_gen_rendermode "static"
 
                 datetime          "{format}"
