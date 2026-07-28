@@ -3675,9 +3675,13 @@ walking zellij panes. Outside zellij, the edge stays an edge."
 (defun hypermodern/initialization-hook ()
   (hypermodern/apply-theme 'ono-sendai-sprawl)
   ;; The computed vector wins over the static default when wintermute has
-  ;; state to sync (no-op otherwise).
+  ;; state to sync (no-op otherwise), and a timer keeps it live thereafter
+  ;; — dragging the orbital pad retints this emacs within a poll. Not in
+  ;; batch: --batch has no live desktop and exits before a timer fires.
   (when (fboundp 'ono-sendai-sync)
     (ono-sendai-sync))
+  (when (and (not noninteractive) (fboundp 'ono-sendai-poll-start))
+    (ono-sendai-poll-start))
   (hypermodern/ui-apply)
   (hypermodern/css-reset)
   (global-clipetty-mode))

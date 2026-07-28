@@ -225,6 +225,50 @@ function M.sync()
   return true
 end
 
+-- ── the live poll — robust pickup on a timer ───────────────────────
+--
+-- Startup sync alone leaves the editor frozen on whatever the desktop
+-- wore at launch. A libuv fs_event watch is fragile here: wintermute
+-- writes theme.state atomically (write-temp + rename), so an inode watch
+-- dies after the first reconcile. Instead poll the persisted GENERATION
+-- counter: monotone, so comparing it never misses a reconcile, never
+-- re-themes on a no-op tick, and self-heals on a failed read. It's one
+-- tiny file read per tick. timer_start runs the callback on the main
+-- loop, so calling the highlight API from M.sync() is safe (no schedule).
+
+M.poll_interval_ms = 2000
+M._poll_timer = nil
+
+local function file_generation()
+  local f = io.open(state_dir() .. "/wintermute/theme.state", "r")
+  if not f then return nil end
+  local gen = nil
+  for line in f:lines() do
+    local v = line:match("^generation%s+(%d+)$")
+    if v then gen = tonumber(v); break end
+  end
+  f:close()
+  return gen
+end
+
+function M.poll()
+  local gen = file_generation()
+  if gen and gen ~= M.state.generation then M.sync() end
+end
+
+function M.poll_start()
+  if M._poll_timer then pcall(vim.fn.timer_stop, M._poll_timer) end
+  M._poll_timer = vim.fn.timer_start(
+    M.poll_interval_ms, function() pcall(M.poll) end, { ["repeat"] = -1 })
+end
+
+function M.poll_stop()
+  if M._poll_timer then
+    pcall(vim.fn.timer_stop, M._poll_timer)
+    M._poll_timer = nil
+  end
+end
+
 -- ── commands (the daemon's remote-send contract) ───────────────────
 
 function M.boot()
@@ -239,7 +283,14 @@ function M.boot()
   vim.api.nvim_create_user_command("OnoSendaiSync", function()
     if not M.sync() then M.apply() end
   end, { desc = "Read wintermute theme.state, apply, ack" })
+  vim.api.nvim_create_user_command("OnoSendaiPollStart", function() M.poll_start() end,
+    { desc = "Start polling wintermute theme.state for live pickup" })
+  vim.api.nvim_create_user_command("OnoSendaiPollStop", function() M.poll_stop() end,
+    { desc = "Stop the wintermute live poll" })
   if not M.sync() then M.apply() end
+  -- keep it live thereafter — the orbital pad retints this nvim within a
+  -- poll. Headless (embedded/CI) runs need no timer and may exit early.
+  if #vim.api.nvim_list_uis() > 0 then M.poll_start() end
 end
 
 return M

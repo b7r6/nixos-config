@@ -248,6 +248,63 @@ config never depends on the daemon, it only listens to it."
           (write-region (format "%d\n" hypermodern/wintermute-generation)
                         nil (expand-file-name "emacs" dir) nil 'silent))))))
 
+;; ── the live poll — robust pickup on a timer ───────────────────────
+;;
+;; Startup sync alone means the editor freezes on whatever the desktop
+;; wore at launch; drag the orbital pad and a day-old emacs stays stale.
+;; A file-notify watch would be tempting but is FRAGILE here: wintermute
+;; writes theme.state atomically (write-temp + rename), which severs an
+;; inode-based watch after the first reconcile.
+;;
+;; So we poll the persisted GENERATION counter instead. It is monotone,
+;; so comparing it is robust by construction: never a missed reconcile
+;; (no inode to lose), never a redundant re-theme (the number is the
+;; whole guard), and self-healing (a failed read just waits a tick). The
+;; read is one tiny file and one regexp — cheap at a 2s cadence.
+
+(defvar hypermodern/wintermute-poll-interval 2
+  "Seconds between wintermute theme.state polls; nil disables the timer.")
+
+(defvar hypermodern/wintermute-poll-timer nil
+  "The repeating poll timer, or nil when not running.")
+
+(defun hypermodern/wintermute-file-generation ()
+  "Read ONLY the generation integer from theme.state, or nil.
+Never signals — an unreadable or malformed file yields nil."
+  (let ((state (hypermodern/wintermute-state-file)))
+    (when (file-readable-p state)
+      (ignore-errors
+        (with-temp-buffer
+          (insert-file-contents state)
+          (goto-char (point-min))
+          (when (re-search-forward "^generation[ \t]+\\([0-9]+\\)" nil t)
+            (string-to-number (match-string 1))))))))
+
+(defun hypermodern/wintermute-poll ()
+  "Re-sync iff wintermute's generation advanced past what we applied."
+  (let ((gen (hypermodern/wintermute-file-generation)))
+    (when (and gen (/= gen hypermodern/wintermute-generation))
+      (ono-sendai-sync))))
+
+(defun ono-sendai-poll-start ()
+  "Begin (or restart) polling theme.state for live wintermute pickup."
+  (interactive)
+  (when (timerp hypermodern/wintermute-poll-timer)
+    (cancel-timer hypermodern/wintermute-poll-timer)
+    (setq hypermodern/wintermute-poll-timer nil))
+  (when hypermodern/wintermute-poll-interval
+    (setq hypermodern/wintermute-poll-timer
+          (run-with-timer hypermodern/wintermute-poll-interval
+                          hypermodern/wintermute-poll-interval
+                          #'hypermodern/wintermute-poll))))
+
+(defun ono-sendai-poll-stop ()
+  "Stop polling theme.state."
+  (interactive)
+  (when (timerp hypermodern/wintermute-poll-timer)
+    (cancel-timer hypermodern/wintermute-poll-timer)
+    (setq hypermodern/wintermute-poll-timer nil)))
+
 ;; ── conformance vectors (CI: emacs --batch) ────────────────────────
 
 (defconst hypermodern/vector-hues
