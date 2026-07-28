@@ -17,16 +17,26 @@ import qs.services
 // the lock screen; the compositor withholds frames when occluded so an idle
 // desktop costs nothing.
 Variants {
-    // When the CUDA presenter owns the field (wintermute-field-daemon on its
-    // own background layer), the QML wallpaper stands down entirely — two
-    // renderers on the same layer would just fight over stacking order.
-    model: Quickshell.env("HYPERMODERN_CUDA_FIELD") === "1" ? [] : Quickshell.screens
+    // ALWAYS draw — this is the safety net. The QML wallpaper never stands
+    // down: it holds the Background layer as a reliable, in-process floor, and
+    // the CUDA presenter (wintermute-field-daemon) draws the premium reel on
+    // the BOTTOM layer, which stacks deterministically ABOVE Background. So the
+    // desktop degrades gracefully instead of blanking: CUDA reel when it's up,
+    // this animated wallpaper if the daemon ever dies, a themed compositor
+    // colour underneath if quickshell itself goes. Never blank.
+    model: Quickshell.screens
 
     PanelWindow {
         id: win
 
         required property var modelData
         screen: modelData
+
+        // When the CUDA field owns the visible layer, this floor renders a
+        // single STATIC frame (timer off) — zero ongoing cost while occluded,
+        // yet instantly present the moment the CUDA layer isn't there.
+        readonly property bool cudaField: Quickshell.env("HYPERMODERN_CUDA_FIELD") === "1"
+
         anchors {
             top: true
             left: true
@@ -93,7 +103,10 @@ Variants {
             Timer {
                 interval: 33
                 repeat: true
-                running: win.visible && !LockService.locked
+                // Animate only when this IS the visible wallpaper. Under the
+                // CUDA field it's an occluded safety net — one static frame,
+                // no 30fps loop burning GPU behind an opaque layer.
+                running: win.visible && !LockService.locked && !win.cudaField
                 onTriggered: fx.time = (fx.time + 0.033) % 86400
             }
 

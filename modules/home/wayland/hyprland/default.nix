@@ -623,6 +623,11 @@ in
 
           misc = {
             force_default_wallpaper = 0;
+            # The ultimate floor: what the compositor paints where NO layer
+            # surface covers. If every wallpaper renderer is gone (quickshell
+            # itself down, not just the CUDA daemon), the desktop shows the
+            # theme's dark surface — never a raw black "broken" blank.
+            background_color = "rgb(${lib.removePrefix "#" colors.base00})";
             animate_mouse_windowdragging = false;
             animate_manual_resizes = false;
             enable_swallow = true;
