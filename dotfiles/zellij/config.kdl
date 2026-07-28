@@ -69,8 +69,14 @@ keybinds clear-defaults=true {
         // picker (tab-picker.sh) that wears wintermute's live palette. Type to
         // filter (name or number), C-n/C-p to move, Enter to jump. The pane
         // closes itself on exit — one-shot, no sticky mode, no plugin.
+        //
+        // NB: this config is an out-of-store symlink (live on edit), but
+        // tab-picker.sh only lands on `nixos-rebuild switch`. So the Run guards
+        // on the script's presence and, if it's missing, says so out loud
+        // instead of flashing a pane shut — a not-yet-deployed picker can never
+        // look like a dead keybind.
         bind "w" {
-            Run "bash" "-c" "exec \"$HOME/.config/zellij/tab-picker.sh\"" {
+            Run "bash" "-c" "s=\"$HOME/.config/zellij/tab-picker.sh\"; if [ -x \"$s\" ]; then exec \"$s\"; else echo; echo '  the tab picker is not deployed yet.'; echo '  run:  sudo nixos-rebuild switch'; echo; echo '  (press any key to close)'; read -rsn1; fi" {
                 floating true
                 close_on_exit true
                 name "tabs"
