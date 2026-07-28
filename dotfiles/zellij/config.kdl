@@ -64,11 +64,23 @@ keybinds clear-defaults=true {
         // creature comforts (new verbs, same prefix)
         bind "f" { ToggleFloatingPanes; SwitchToMode "Normal"; }
         bind "e" { EditScrollback; SwitchToMode "Normal"; }
-        // one-shot floating session picker — no sticky mode
         // tmux verbatim: w = choose-window. Tabs carry the windows-per-session
-        // semantics, so w opens room — floating fuzzy tab picker, type to
-        // filter, Up/Down or C-n/C-p-style cycling, Enter to jump.
-        bind "w" { LaunchOrFocusPlugin "file:~/.config/zellij/plugins/room.wasm" { floating true; ignore_case true; }; SwitchToMode "Normal"; }
+        // semantics, so w opens the house tab-select screen: a floating fzf
+        // picker (tab-picker.sh) that wears wintermute's live palette. Type to
+        // filter (name or number), C-n/C-p to move, Enter to jump. The pane
+        // closes itself on exit — one-shot, no sticky mode, no plugin.
+        bind "w" {
+            Run "bash" "-c" "exec \"$HOME/.config/zellij/tab-picker.sh\"" {
+                floating true
+                close_on_exit true
+                name "tabs"
+                x "28%"
+                y "26%"
+                width "44%"
+                height "44%"
+            }
+            SwitchToMode "Normal"
+        }
         // tmux verbatim: s = choose-session (the one-shot floating picker)
         bind "s" { LaunchOrFocusPlugin "session-manager" { floating true; }; SwitchToMode "Normal"; }
 

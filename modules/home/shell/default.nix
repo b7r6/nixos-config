@@ -201,6 +201,12 @@ in
     home.file.".config/zellij/statusline.sh".source =
       config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/zellij/statusline.sh";
 
+    # the tab-select screen (C-o w) — a floating fzf picker over the tab list,
+    # wintermute-themed via the shared fzf.opts channel. Repo-homed so edits
+    # are live; replaced the room.wasm plugin (dropped below).
+    home.file.".config/zellij/tab-picker.sh".source =
+      config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/zellij/tab-picker.sh";
+
     # zjstatus — the bar plugin the hypermodern layout drives (pinned wasm
     # release; not in the nixpkgs fork)
     home.file.".config/zellij/plugins/zjstatus.wasm".source = pkgs.fetchurl {
@@ -220,12 +226,8 @@ in
       done
     '';
 
-    # room — floating fuzzy TAB switcher (C-o w). Tabs are the tmux-window
-    # analog here; tmux muscle memory says w = choose-window, s = sessions.
-    home.file.".config/zellij/plugins/room.wasm".source = pkgs.fetchurl {
-      url = "https://github.com/rvcas/room/releases/download/v1.2.0/room.wasm";
-      sha256 = "0k5fy3svjvifsgp0kdvqdx9m9rzrql9cwq6hbvxdgklfnczqz8dp";
-    };
+    # (room.wasm removed — the C-o w tab picker is now tab-picker.sh, an fzf
+    # floating picker that inherits wintermute's palette; no plugin binary.)
 
     home.activation.zellijThemeSeed = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       _zj="${config.xdg.configHome}/zellij/themes"
