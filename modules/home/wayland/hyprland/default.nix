@@ -586,14 +586,14 @@ in
               "easeOutExpo,    0.16, 1, 0.3,  1"
             ]
             ++ lib.optionals cfg.appearance.animations.glitch [
-              # A window MATERIALISING through a bad connection: the curve rises
-              # to ~0.7, COLLAPSES back to ~0.28, then snaps to 1 — a jagged,
-              # non-monotonic stutter, not a smooth ease. Drives both the size
-              # (windowsIn) and the alpha (fadeIn) below. (Verified shape: the
-              # two control-point Y's, 2.0 and -1.0, buy one overshoot + one
-              # undershoot within the animation — the most jag a single cubic
-              # bezier can give; a true multi-frame datamosh needs a shader.)
-              "glitch, 0.25, 2.0, 0.45, -1.0"
+              # Overshoot THEN undershoot: the curve snaps to ~1.28 (bigger than
+              # the target) at t≈0.24, whips down to ~-0.28 (smaller) at t≈0.76,
+              # then settles to 1. Paired with a high popin below, the window
+              # appears at almost its final size and JITTERS bigger/smaller once
+              # around it. (Verified: +1.28/-0.28 is the most a single cubic
+              # bezier gives with the overshoot BEFORE the undershoot — the
+              # jaggedest one-shot Hyprland does without a shader.)
+              "glitch, 0.2, 4.0, 0.6, -3.0"
             ];
 
             animation =
@@ -606,16 +606,18 @@ in
               ++ (
                 if cfg.appearance.animations.glitch then
                   [
-                    # NEW WINDOWS GLITCH IN. windowsIn does the size stutter from
-                    # a low popin so the collapse reads; fadeIn runs the same
-                    # jagged curve but SHORTER, so size and alpha desync into a
-                    # compound flicker; borderangle sweeps the gradient once as
-                    # it lands. windowsOut stays clean — only the arrival glitches.
-                    "windowsIn,        1, 5,                   glitch, popin 30%"
+                    # NEW WINDOWS GLITCH IN. windowsIn opens at popin 88% — almost
+                    # the final size — then the glitch curve snaps it bigger
+                    # (~103%) and smaller (~85%) and settles, fast (0.4s). fadeIn
+                    # runs the SAME curve even shorter (0.2s): its undershoot
+                    # clamps alpha to 0, so the window blinks out for a frame,
+                    # desynced from the size jitter. borderangle sweeps the
+                    # gradient once as it lands. windowsOut stays clean.
+                    "windowsIn,        1, 4,                   glitch, popin 88%"
                     "windowsOut,       1, ${toString speed},   easeOutExpo, popin 80%"
                     "border,           1, ${toString (speed + 2)}, easeOutQuint"
                     "borderangle,      1, 4,                   easeOutExpo, once"
-                    "fadeIn,           1, 3,                   glitch"
+                    "fadeIn,           1, 2,                   glitch"
                     "fade,             1, ${toString speed},   easeInOutQuint"
                   ]
                 else
