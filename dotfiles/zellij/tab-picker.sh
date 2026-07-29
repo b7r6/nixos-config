@@ -16,12 +16,21 @@
 
 set -uo pipefail
 
-# wintermute's fzf colour channel. The session normally exports this, but a
-# floating pane spawned in an odd context might not inherit it — point fzf at
-# the live file ourselves so the picker is never left un-themed.
+# wintermute's live colour channel. We do NOT trust the environment for this:
+# fzf lets FZF_DEFAULT_OPTS override the opts FILE, and something (stylix's fzf
+# target, or a stale long-lived session) may still export a static
+# FZF_DEFAULT_OPTS that would win over wintermute. So read the live fzf.opts
+# ourselves and pass its --color on fzf's COMMAND LINE, which beats both env
+# sources — and drop FZF_DEFAULT_OPTS entirely — so the picker always wears
+# exactly what the desktop wears, retinting the instant the orbital pad moves.
 : "${XDG_STATE_HOME:=$HOME/.local/state}"
-if [ -z "${FZF_DEFAULT_OPTS_FILE:-}" ] && [ -r "$XDG_STATE_HOME/wintermute/fzf.opts" ]; then
-  export FZF_DEFAULT_OPTS_FILE="$XDG_STATE_HOME/wintermute/fzf.opts"
+unset FZF_DEFAULT_OPTS
+theme_opts=()
+opts_file="$XDG_STATE_HOME/wintermute/fzf.opts"
+if [ -r "$opts_file" ]; then
+  # one `--color=...` token today; split on whitespace for any future opts
+  # shellcheck disable=SC2207
+  theme_opts=($(cat "$opts_file"))
 fi
 
 # Tab names in position order (line N === tab index N, 1-based — the same
@@ -40,6 +49,7 @@ done
 
 sel=$(
   printf '%s\n' "${rows[@]}" | fzf \
+    ${theme_opts[@]+"${theme_opts[@]}"} \
     --delimiter=$'\t' \
     --with-nth=2 \
     --layout=reverse \

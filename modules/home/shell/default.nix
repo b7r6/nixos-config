@@ -439,6 +439,13 @@ in
       enableZshIntegration = true;
     };
 
+    # Stylix's fzf target bakes a STATIC --color (the build-time palette) into
+    # FZF_DEFAULT_OPTS. fzf reads FZF_DEFAULT_OPTS_FILE first and then
+    # FZF_DEFAULT_OPTS, so that static snapshot silently overrode wintermute's
+    # live file — every fzf wore a frozen palette. Disable the target: the
+    # wintermute fzf.opts (via FZF_DEFAULT_OPTS_FILE) is the sole authority.
+    stylix.targets.fzf.enable = false;
+
     # fzf reads $FZF_DEFAULT_OPTS_FILE on every launch, so wintermute rewriting
     # that file (on each reconcile) retints the next fzf with no shell reload —
     # the live channel the old env-baked FZF_DEFAULT_OPTS could never be.
