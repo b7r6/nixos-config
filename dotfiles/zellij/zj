@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# ── zj // the zellij sessionizer ───────────────────────────────────────────
+# `zj` attaches to (or creates) a session named after the current git repo /
+# directory, so sessions read like the work — "nixos-config", "TensorRT-LLM" —
+# instead of zellij's random "joyous-duck". `zj NAME` forces a name.
+#
+#   zj                 → session named for `git rev-parse --show-toplevel`, or
+#                        the cwd basename outside a repo
+#   zj scratch         → session "scratch"
+#
+# New sessions come up on the default (hypermodern) layout; an existing name
+# re-attaches. Refuses to nest — detach first (C-o d).
+
+set -uo pipefail
+
+if [ -n "${ZELLIJ:-}" ]; then
+  echo "zj: already inside session '${ZELLIJ_SESSION_NAME:-?}' — detach first (C-o d)" >&2
+  exit 1
+fi
+
+name=${1:-}
+if [ -z "$name" ]; then
+  name=$(basename -- "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")
+fi
+# Session names ride attach args and the filesystem — keep them tame, and never
+# let sanitising leave us empty or with a leading dash.
+name=${name//[^A-Za-z0-9_.-]/-}
+name=${name#-}
+name=${name:-zj}
+
+# Attach if it already exists (list -s prints bare names), else create fresh on
+# the default layout. exec so the terminal simply becomes the session.
+if zellij list-sessions -s 2>/dev/null | grep -qxF -- "$name"; then
+  exec zellij attach "$name"
+else
+  exec zellij --session "$name"
+fi

@@ -207,6 +207,12 @@ in
     home.file.".config/zellij/tab-picker.sh".source =
       config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/zellij/tab-picker.sh";
 
+    # zj — the sessionizer. `zj` attaches to / creates a session named for the
+    # git repo or cwd, so sessions read like the work instead of "joyous-duck".
+    # On ~/.local/bin (already on PATH); repo-homed so edits are live.
+    home.file.".local/bin/zj".source =
+      config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/zellij/zj";
+
     # zjstatus — the bar plugin the hypermodern layout drives (pinned wasm
     # release; not in the nixpkgs fork)
     home.file.".config/zellij/plugins/zjstatus.wasm".source = pkgs.fetchurl {

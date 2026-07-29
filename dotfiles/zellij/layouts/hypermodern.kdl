@@ -4,9 +4,12 @@
 //
 // The zjstatus bar in the house language, three registers:
 //
-//   LEFT    ▞ session · host badge — the "which machine" identity (spans
-//           SSH: over the fleet the host is the remote you're on)
-//   CENTER  tabs — bracketed accent on the active, plain index·name otherwise
+//   LEFT    ▞ session · host identity, then ALL TABS flowing right — a filled
+//           accent pill on the active, subtle index·name on the rest. Tabs
+//           live on the left (not centred) so they're never clipped: with many
+//           tabs the right-hand console yields first, the tab strip never does.
+//   CENTER  the transient MODE hint — empty in normal, the C-o cheat line while
+//           the prefix is held (so it never fights the tab strip).
 //   RIGHT   the CONSOLE — live GPU util + power (the Spark) and load, the
 //           wintermute GENERATION ledger, and the clock, ▞-railed
 //
@@ -28,8 +31,8 @@ layout {
         children
         pane size=1 borderless=true {
             plugin location="file:~/.config/zellij/plugins/zjstatus.wasm" {
-                format_left   "{mode}#[fg=cyan,bold] ▞ #[fg=white,bold]{session}#[fg=white] · #[fg=cyan]{command_host} "
-                format_center "{tabs}"
+                format_left   "#[fg=cyan,bold] ▞ #[fg=white,bold]{session}#[fg=cyan] · #[fg=white]{command_host} #[fg=cyan,bold]▞ {tabs}"
+                format_center "{mode}"
                 format_right  "{command_telem} #[fg=cyan]▞ #[fg=white]gen #[fg=blue,bold]{command_gen} #[fg=cyan]▞ #[fg=white,bold]{datetime} "
                 format_space  ""
 
@@ -38,18 +41,22 @@ layout {
 
                 // non-modal: normal renders nothing, the prefix flashes the full grammar
                 mode_normal  ""
-                mode_tmux    "#[bg=cyan,fg=black,bold] ▞ C-o #[bg=black,fg=cyan,bold] hjkl#[fg=white] focus  #[fg=cyan,bold]HJKL#[fg=white] move  #[fg=cyan,bold]n/p#[fg=white] tab  #[fg=cyan,bold]c#[fg=white] new  #[fg=cyan,bold]|/-#[fg=white] split  #[fg=cyan,bold]f#[fg=white] float  #[fg=cyan,bold]e#[fg=white] edit  #[fg=cyan,bold]w#[fg=white] win  #[fg=cyan,bold]s#[fg=white] ses "
+                mode_tmux    "#[bg=cyan,fg=black,bold] ▞ C-o #[bg=black,fg=cyan,bold] hjkl#[fg=white] focus  #[fg=cyan,bold]HJKL#[fg=white] move  #[fg=cyan,bold]n/p#[fg=white] tab  #[fg=cyan,bold]c#[fg=white] new  #[fg=cyan,bold]|/-#[fg=white] split  #[fg=cyan,bold]f#[fg=white] float  #[fg=cyan,bold]e#[fg=white] edit  #[fg=cyan,bold]w#[fg=white] win  #[fg=cyan,bold]s#[fg=white] ses  #[fg=cyan,bold],/$#[fg=white] name "
                 mode_scroll  "#[bg=orange,fg=black,bold] ▞ SCROLL #[bg=black,fg=orange,bold] k/j#[fg=white] line  #[fg=orange,bold]C-v/M-v#[fg=white] page  #[fg=orange,bold]C-s#[fg=white] search  #[fg=orange,bold]e#[fg=white] edit "
                 mode_entersearch "#[bg=yellow,fg=black,bold] ▞ FIND #[bg=black,fg=white] type a query · #[fg=yellow,bold]Enter#[fg=white] accept "
                 mode_search  "#[bg=orange,fg=black,bold] ▞ SEARCH #[bg=black,fg=orange,bold] n/p#[fg=white] next · prev  #[fg=orange,bold]Esc#[fg=white] done "
 
-                // bracketed accent on the active tab; plain index·name otherwise
-                tab_normal            "#[fg=white] {index}·{name} "
-                tab_active            "#[fg=cyan,bold]⌜ #[fg=blue,bold]{index}·{name} #[fg=cyan,bold]⌟"
-                tab_normal_fullscreen "#[fg=white] {index}·{name} ⛶ "
-                tab_active_fullscreen "#[fg=cyan,bold]⌜ #[fg=blue,bold]{index}·{name} ⛶ #[fg=cyan,bold]⌟"
-                tab_normal_sync       "#[fg=white] {index}·{name} ⟲ "
-                tab_active_sync       "#[fg=cyan,bold]⌜ #[fg=blue,bold]{index}·{name} ⟲ #[fg=cyan,bold]⌟"
+                // the active tab pops in bold blue, framed by ▐ ▌ half-blocks
+                // (a pill outline in the accent) — fg only, so no background
+                // bleeds into the tabs that follow. The rest are a subtle cyan
+                // index + white name. Rename the "Tab #N" defaults with C-o ,
+                // and the strip reads like real work.
+                tab_normal            "#[fg=cyan] {index} #[fg=white]{name} "
+                tab_active            "#[fg=blue,bold]▐ {index} · {name} ▌"
+                tab_normal_fullscreen "#[fg=cyan] {index} #[fg=white]{name} #[fg=cyan]⛶ "
+                tab_active_fullscreen "#[fg=blue,bold]▐ {index} · {name} ⛶ ▌"
+                tab_normal_sync       "#[fg=cyan] {index} #[fg=white]{name} #[fg=cyan]⟲ "
+                tab_active_sync       "#[fg=blue,bold]▐ {index} · {name} ⟲ ▌"
 
                 // the host badge (short, cached)
                 command_host_command    "sh -c \"uname -n\""
