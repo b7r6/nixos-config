@@ -213,6 +213,12 @@ in
     home.file.".local/bin/zj".source =
       config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/zellij/zj";
 
+    # gibson — the Sprawl slug generator (chiba-icebreaker, zion-flatline …).
+    # `zj -n` names scratch sessions with it; usable standalone anywhere a
+    # "joyous-duck" would go (branches, temp dirs). Repo-homed, live.
+    home.file.".local/bin/gibson".source =
+      config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/zellij/gibson";
+
     # zjstatus — the bar plugin the hypermodern layout drives (pinned wasm
     # release; not in the nixpkgs fork)
     home.file.".config/zellij/plugins/zjstatus.wasm".source = pkgs.fetchurl {

@@ -7,6 +7,8 @@
 #   zj                 → session named for `git rev-parse --show-toplevel`, or
 #                        the cwd basename outside a repo
 #   zj scratch         → session "scratch"
+#   zj -n              → a FRESH session with a Sprawl handle (gibson), never
+#                        "joyous-duck" — for scratch work not tied to a repo
 #
 # New sessions come up on the default (hypermodern) layout; an existing name
 # re-attaches. Refuses to nest — detach first (C-o d).
@@ -16,6 +18,16 @@ set -uo pipefail
 if [ -n "${ZELLIJ:-}" ]; then
   echo "zj: already inside session '${ZELLIJ_SESSION_NAME:-?}' — detach first (C-o d)" >&2
   exit 1
+fi
+
+# -n / --new: a fresh scratch session under a Gibson slug (never a repo name).
+if [ "${1:-}" = "-n" ] || [ "${1:-}" = "--new" ]; then
+  for _ in 1 2 3 4 5; do
+    name=$(gibson 2>/dev/null) || name=""
+    [ -n "$name" ] || name="scratch-$$"
+    zellij list-sessions -s 2>/dev/null | grep -qxF -- "$name" || break
+  done
+  exec zellij --session "$name"
 fi
 
 name=${1:-}
