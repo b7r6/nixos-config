@@ -14,6 +14,11 @@
 # house: ▞-railed prompt, bracketed border label, index badges, and the
 # current row highlighted full-width (--highlight-line).
 #
+# Latency: list-panes resolves each pane's command/cwd from /proc (~130ms on a
+# busy session), so we STREAM it into fzf rather than block — the picker frame
+# is up instantly and the list fills a beat later. The cursor starts on the tab
+# you opened from (load:pos, which needs no --sync so it doesn't delay paint).
+#
 # Enter jumps (by index, so duplicate tab names are unambiguous); Esc cancels.
 # Everything degrades quietly: no jq/list-panes falls back to bare tab names;
 # no tabs, no fzf, or a cancelled pick all just close the pane with no switch.
@@ -37,13 +42,25 @@ if [ -r "$opts_file" ]; then
   theme_opts=($(cat "$opts_file"))
 fi
 
-# Rows are <idx>\t<display>: fzf shows and searches the display column (line N
-# === tab index N, 1-based — the order go-to-tab counts in); the hidden idx
-# column is what we act on.
-#
-# Enriched path: group list-panes by tab, drop plugins and floating panes (the
-# latter includes THIS picker's own pane), and per tab pick the most telling
-# pane — a real title over a bare shell — for the label.
+# Cursor starts on the tab we were opened from. list-tabs' `active` field is the
+# reliable signal — a floating picker doesn't change the active tab, and the
+# per-pane is_focused flag is per-TAB, not global. It's a cheap call (~8ms), so
+# we do it up front; the ordinal is position+1 (one row per tab, in order).
+active_pos=""
+command -v jq >/dev/null 2>&1 && active_pos=$(
+  zellij action list-tabs -j 2>/dev/null \
+    | jq -r 'first(.[] | select(.active) | .position) // empty' 2>/dev/null
+)
+# load:pos (not start:pos) fires AFTER the streamed list is read, so it needs no
+# --sync and doesn't hold up the first paint — the whole point below.
+pos_bind=()
+[ -n "$active_pos" ] && pos_bind=(--bind "load:pos($((active_pos + 1)))")
+
+# The per-tab enrichment: group list-panes by tab, drop plugins and floating
+# panes (the latter includes THIS picker's own pane), and per tab pick the most
+# telling pane — a real title over a bare shell — for the label. Rows are
+# <idx>\t<display>: fzf shows and searches the display column, the hidden idx
+# drives go-to-tab (idx N === tab index N, 1-based, the go-to-tab order).
 read -r -d '' tabs_filter <<'JQ'
 [ .[] | select(.is_plugin == false and .is_floating == false) ]
 | group_by(.tab_position)
@@ -60,67 +77,48 @@ read -r -d '' tabs_filter <<'JQ'
 | "\($idx)\t \($idx) · \($primary)  · \($cwd) · \($n)p"
 JQ
 
-rows=()
+# The chrome, built once so the enriched and fallback paths share it.
+fzf_args=(
+  ${theme_opts[@]+"${theme_opts[@]}"}
+  ${pos_bind[@]+"${pos_bind[@]}"}
+  --delimiter=$'\t'
+  --with-nth=2
+  --layout=reverse
+  --height=100%
+  --min-height=6
+  --highlight-line
+  --info=inline:'  ▞ '
+  --no-scrollbar
+  --cycle
+  --pointer='▸'
+  --marker='▹'
+  --border=rounded
+  --border-label=' ▞ tabs '
+  --border-label-pos=3
+  --prompt='jump ❯ '
+  --header='enter jump · C-n/C-p move · esc cancel'
+)
+
 if command -v jq >/dev/null 2>&1; then
-  while IFS= read -r line; do rows+=("$line"); done < <(
-    zellij action list-panes -a -j 2>/dev/null | jq -r "$tabs_filter" 2>/dev/null
-  )
-fi
-# Fallback: bare tab names, still index-badged, if jq/list-panes gave nothing.
-if [ "${#rows[@]}" -eq 0 ]; then
+  # STREAM the slow part straight into fzf. list-panes resolves each pane's
+  # command/cwd from /proc (~130ms on a busy session), so instead of blocking on
+  # it and leaving the screen empty, we let fzf paint its frame IMMEDIATELY and
+  # fill the list as rows arrive. The picker is up instantly; the enrichment
+  # lands a beat later; load:pos then jumps the cursor to the active tab.
+  sel=$(zellij action list-panes -a -j 2>/dev/null | jq -r "$tabs_filter" 2>/dev/null | fzf "${fzf_args[@]}") || exit 0
+else
+  # Fallback (no jq): bare tab names, still index-badged. Small and instant.
+  names=()
+  while IFS= read -r n; do names+=("$n"); done < <(zellij action query-tab-names 2>/dev/null)
+  [ "${#names[@]}" -gt 0 ] || exit 0
+  rows=()
   idx=0
-  while IFS= read -r n; do
+  for n in "${names[@]}"; do
     idx=$((idx + 1))
     rows+=("$(printf '%d\t %2d · %s' "$idx" "$idx" "$n")")
-  done < <(zellij action query-tab-names 2>/dev/null)
+  done
+  sel=$(printf '%s\n' "${rows[@]}" | fzf "${fzf_args[@]}") || exit 0
 fi
-[ "${#rows[@]}" -gt 0 ] || exit 0
-
-# Start the cursor on the tab we were opened from. list-tabs' `active` field is
-# the reliable signal — a floating picker doesn't change the active tab, and
-# per-pane is_focused is per-TAB, not global. Map that tab's index to its row
-# ordinal (rows are in tab order) and hand fzf a start:pos() bind. Best-effort:
-# no jq, no active tab, or no matching row just leaves the cursor at the top.
-start_bind=()
-if command -v jq >/dev/null 2>&1; then
-  active_idx=$(zellij action list-tabs -j 2>/dev/null \
-    | jq -r 'first(.[] | select(.active) | .position) // empty | . + 1' 2>/dev/null)
-  if [ -n "${active_idx:-}" ]; then
-    ord=0
-    for r in "${rows[@]}"; do
-      ord=$((ord + 1))
-      if [ "${r%%$'\t'*}" = "$active_idx" ]; then
-        # --sync is REQUIRED: without it the `start` event fires before the
-        # list is loaded and pos() is a no-op. The tab list is tiny, so
-        # loading up front before first paint is imperceptible.
-        start_bind=(--sync --bind "start:pos($ord)")
-        break
-      fi
-    done
-  fi
-fi
-
-sel=$(
-  printf '%s\n' "${rows[@]}" | fzf \
-    ${theme_opts[@]+"${theme_opts[@]}"} \
-    ${start_bind[@]+"${start_bind[@]}"} \
-    --delimiter=$'\t' \
-    --with-nth=2 \
-    --layout=reverse \
-    --height=100% \
-    --min-height=6 \
-    --highlight-line \
-    --info=inline:'  ▞ ' \
-    --no-scrollbar \
-    --cycle \
-    --pointer='▸' \
-    --marker='▹' \
-    --border=rounded \
-    --border-label=' ▞ tabs ' \
-    --border-label-pos=3 \
-    --prompt='jump ❯ ' \
-    --header='enter jump · C-n/C-p move · esc cancel'
-) || exit 0
 
 [ -n "$sel" ] || exit 0
 tab_idx=${sel%%$'\t'*}
