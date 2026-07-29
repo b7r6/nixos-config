@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
 # ── zellij // the tab select screen ────────────────────────────────────────
 # Bound to C-o w (config.kdl), opened in a floating pane. The house
-# "choose-window": tab names in position order, index-badged, fuzzy-picked
-# through fzf.
+# "choose-window": one row per tab, ENRICHED — not a useless "Tab #N" list.
 #
-# There is no theming here on purpose. fzf already wears wintermute's LIVE
-# palette via FZF_DEFAULT_OPTS_FILE — the exact channel Ctrl-R (atuin) and
-# every other fzf ride — so this screen is palette-exact for free and follows
-# the orbital pad the instant it moves. All this script adds is the house
-# CHROME: the ▞-railed prompt, the bracketed border label, the index badges.
+# Per tab we read list-panes and surface the most telling pane: its title when
+# it has a real one (an editor buffer, a running task like a model download or
+# a build), else the command name; plus the cwd basename and the pane count.
+# You fuzzy-filter across all of it — a title word, a command, a directory.
+#
+# There is no theming here on purpose. fzf wears wintermute's LIVE palette,
+# passed on the command line from the fzf.opts channel, so this screen is
+# palette-exact and follows the orbital pad the instant it moves. The chrome is
+# house: ▞-railed prompt, bracketed border label, index badges, and the
+# current row highlighted full-width (--highlight-line).
 #
 # Enter jumps (by index, so duplicate tab names are unambiguous); Esc cancels.
-# Everything degrades quietly: no tabs, no fzf, or a cancelled pick all just
-# close the floating pane with no switch and no error.
+# Everything degrades quietly: no jq/list-panes falls back to bare tab names;
+# no tabs, no fzf, or a cancelled pick all just close the pane with no switch.
 
 set -uo pipefail
 
@@ -33,19 +37,44 @@ if [ -r "$opts_file" ]; then
   theme_opts=($(cat "$opts_file"))
 fi
 
-# Tab names in position order (line N === tab index N, 1-based — the same
-# order zellij's go-to-tab counts in).
-mapfile -t names < <(zellij action query-tab-names 2>/dev/null)
-[ "${#names[@]}" -gt 0 ] || exit 0
+# Rows are <idx>\t<display>: fzf shows and searches the display column (line N
+# === tab index N, 1-based — the order go-to-tab counts in); the hidden idx
+# column is what we act on.
+#
+# Enriched path: group list-panes by tab, drop plugins and floating panes (the
+# latter includes THIS picker's own pane), and per tab pick the most telling
+# pane — a real title over a bare shell — for the label.
+read -r -d '' tabs_filter <<'JQ'
+[ .[] | select(.is_plugin == false and .is_floating == false) ]
+| group_by(.tab_position)
+| sort_by(.[0].tab_position)
+| .[]
+| (.[0].tab_position + 1) as $idx
+| length                   as $n
+| ( [ .[] | select((.title|test("^Pane #")|not) and .title != "") ] ) as $named
+| ( ([$named[]|select(.is_focused)][0]) // $named[0] // ([.[]|select(.is_focused)][0]) // .[0] ) as $rep
+| ($rep.title // "")                                              as $t
+| (($rep.pane_command // "") | split("/") | last | split(" ")[0]) as $cmd
+| (($rep.pane_cwd // "")     | split("/") | last)                 as $cwd
+| ( if ($t|test("^Pane #")) or ($t=="") then $cmd else ($t|sub("^[^A-Za-z0-9/~._-]+";"")) end ) as $primary
+| "\($idx)\t \($idx) · \($primary)  · \($cwd) · \($n)p"
+JQ
 
-# One row per tab: <idx>\t<display>\t<name>. fzf shows and searches the
-# display column; the hidden idx column is what we act on.
 rows=()
-idx=0
-for n in "${names[@]}"; do
-  idx=$((idx + 1))
-  rows+=("$(printf '%d\t %2d · %s\t%s' "$idx" "$idx" "$n" "$n")")
-done
+if command -v jq >/dev/null 2>&1; then
+  while IFS= read -r line; do rows+=("$line"); done < <(
+    zellij action list-panes -a -j 2>/dev/null | jq -r "$tabs_filter" 2>/dev/null
+  )
+fi
+# Fallback: bare tab names, still index-badged, if jq/list-panes gave nothing.
+if [ "${#rows[@]}" -eq 0 ]; then
+  idx=0
+  while IFS= read -r n; do
+    idx=$((idx + 1))
+    rows+=("$(printf '%d\t %2d · %s' "$idx" "$idx" "$n")")
+  done < <(zellij action query-tab-names 2>/dev/null)
+fi
+[ "${#rows[@]}" -gt 0 ] || exit 0
 
 sel=$(
   printf '%s\n' "${rows[@]}" | fzf \
@@ -55,6 +84,7 @@ sel=$(
     --layout=reverse \
     --height=100% \
     --min-height=6 \
+    --highlight-line \
     --info=inline:'  ▞ ' \
     --no-scrollbar \
     --cycle \
