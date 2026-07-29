@@ -76,9 +76,34 @@ if [ "${#rows[@]}" -eq 0 ]; then
 fi
 [ "${#rows[@]}" -gt 0 ] || exit 0
 
+# Start the cursor on the tab we were opened from. list-tabs' `active` field is
+# the reliable signal — a floating picker doesn't change the active tab, and
+# per-pane is_focused is per-TAB, not global. Map that tab's index to its row
+# ordinal (rows are in tab order) and hand fzf a start:pos() bind. Best-effort:
+# no jq, no active tab, or no matching row just leaves the cursor at the top.
+start_bind=()
+if command -v jq >/dev/null 2>&1; then
+  active_idx=$(zellij action list-tabs -j 2>/dev/null \
+    | jq -r 'first(.[] | select(.active) | .position) // empty | . + 1' 2>/dev/null)
+  if [ -n "${active_idx:-}" ]; then
+    ord=0
+    for r in "${rows[@]}"; do
+      ord=$((ord + 1))
+      if [ "${r%%$'\t'*}" = "$active_idx" ]; then
+        # --sync is REQUIRED: without it the `start` event fires before the
+        # list is loaded and pos() is a no-op. The tab list is tiny, so
+        # loading up front before first paint is imperceptible.
+        start_bind=(--sync --bind "start:pos($ord)")
+        break
+      fi
+    done
+  fi
+fi
+
 sel=$(
   printf '%s\n' "${rows[@]}" | fzf \
     ${theme_opts[@]+"${theme_opts[@]}"} \
+    ${start_bind[@]+"${start_bind[@]}"} \
     --delimiter=$'\t' \
     --with-nth=2 \
     --layout=reverse \
