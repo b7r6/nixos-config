@@ -41,7 +41,7 @@ layout {
 
                 // non-modal: normal renders nothing, the prefix flashes the full grammar
                 mode_normal  ""
-                mode_tmux    "#[bg=cyan,fg=black,bold] ▞ C-o #[bg=black,fg=cyan,bold] hjkl#[fg=white] focus  #[fg=cyan,bold]HJKL#[fg=white] move  #[fg=cyan,bold]n/p#[fg=white] tab  #[fg=cyan,bold]c#[fg=white] new  #[fg=cyan,bold]|/-#[fg=white] split  #[fg=cyan,bold]f#[fg=white] float  #[fg=cyan,bold]e#[fg=white] edit  #[fg=cyan,bold]w#[fg=white] win  #[fg=cyan,bold]s#[fg=white] ses  #[fg=cyan,bold],/$#[fg=white] name "
+                mode_tmux    "#[bg=cyan,fg=black,bold] ▞ C-o #[bg=black,fg=cyan,bold] hjkl#[fg=white] focus  #[fg=cyan,bold]HJKL#[fg=white] move  #[fg=cyan,bold]n/p#[fg=white] tab  #[fg=cyan,bold]c#[fg=white] new  #[fg=cyan,bold]|/-#[fg=white] split  #[fg=cyan,bold]f#[fg=white] float  #[fg=cyan,bold]e#[fg=white] edit  #[fg=cyan,bold]w#[fg=white] win  #[fg=cyan,bold]s#[fg=white] ses  #[fg=cyan,bold],#[fg=white] name "
                 mode_scroll  "#[bg=orange,fg=black,bold] ▞ SCROLL #[bg=black,fg=orange,bold] k/j#[fg=white] line  #[fg=orange,bold]C-v/M-v#[fg=white] page  #[fg=orange,bold]C-s#[fg=white] search  #[fg=orange,bold]e#[fg=white] edit "
                 mode_entersearch "#[bg=yellow,fg=black,bold] ▞ FIND #[bg=black,fg=white] type a query · #[fg=yellow,bold]Enter#[fg=white] accept "
                 mode_search  "#[bg=orange,fg=black,bold] ▞ SEARCH #[bg=black,fg=orange,bold] n/p#[fg=white] next · prev  #[fg=orange,bold]Esc#[fg=white] done "

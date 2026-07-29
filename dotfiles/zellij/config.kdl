@@ -90,12 +90,11 @@ keybinds clear-defaults=true {
         // tmux verbatim: s = choose-session (the one-shot floating picker)
         bind "s" { LaunchOrFocusPlugin "session-manager" { floating true; }; SwitchToMode "Normal"; }
 
-        // rename — tmux verbatim: , = rename tab (kills the "Tab #N" defaults),
-        // $ = rename session (kills "joyous-duck"). Native inline input: type,
-        // Enter confirms, Esc cancels. Prefer `zj` to start sessions named for
-        // the repo in the first place.
+        // rename — tmux verbatim: , = rename tab (kills the "Tab #N" defaults).
+        // Native inline input: type, Enter confirms, Esc cancels. Zellij 0.44
+        // has no RenameSession mode — name sessions with `zj` up front, or
+        // rename a live one from the session-manager (s).
         bind "," { SwitchToMode "RenameTab"; TabNameInput 0; }
-        bind "$" { SwitchToMode "RenameSession"; SessionNameInput 0; }
 
         bind "Esc" { SwitchToMode "Normal"; }
     }
@@ -121,15 +120,11 @@ keybinds clear-defaults=true {
         bind "Esc" { SwitchToMode "Normal"; }
     }
 
-    // the rename input modes (reached from the C-o table): type the name,
-    // Enter commits, Esc backs out (tab rename undoes to the prior name).
+    // the rename tab input mode (reached from the C-o table): type the name,
+    // Enter commits, Esc backs out (undoes to the prior name).
     renametab {
         bind "Enter" { SwitchToMode "Normal"; }
         bind "Esc" { UndoRenameTab; SwitchToMode "Normal"; }
-    }
-    renamesession {
-        bind "Enter" { SwitchToMode "Normal"; }
-        bind "Esc" { SwitchToMode "Normal"; }
     }
 
 }
