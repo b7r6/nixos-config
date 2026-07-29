@@ -216,6 +216,16 @@ let
           default = "fast";
           description = "Animation speed preset";
         };
+
+        glitch = mkOption {
+          type = types.bool;
+          default = true;
+          description = ''
+            New windows GLITCH in — a jagged, non-monotonic stutter of size
+            (windowsIn) and alpha (fadeIn), with a one-shot gradient border
+            sweep, instead of a smooth pop. Just slow enough to be legible.
+          '';
+        };
       };
     };
   };
@@ -574,6 +584,16 @@ in
               "easeOutQuint,   0.22, 1, 0.36, 1"
               "easeInOutQuint, 0.83, 0, 0.17, 1"
               "easeOutExpo,    0.16, 1, 0.3,  1"
+            ]
+            ++ lib.optionals cfg.appearance.animations.glitch [
+              # A window MATERIALISING through a bad connection: the curve rises
+              # to ~0.7, COLLAPSES back to ~0.28, then snaps to 1 — a jagged,
+              # non-monotonic stutter, not a smooth ease. Drives both the size
+              # (windowsIn) and the alpha (fadeIn) below. (Verified shape: the
+              # two control-point Y's, 2.0 and -1.0, buy one overshoot + one
+              # undershoot within the animation — the most jag a single cubic
+              # bezier can give; a true multi-frame datamosh needs a shader.)
+              "glitch, 0.25, 2.0, 0.45, -1.0"
             ];
 
             animation =
@@ -582,11 +602,32 @@ in
               in
               [
                 "windows,          1, ${toString speed},       easeOutExpo, popin 80%"
-                "windowsOut,       1, ${toString speed},       easeOutExpo, popin 80%"
-                "border,           1, ${toString (speed + 2)}, easeOutQuint"
-                "fade,             1, ${toString speed},       easeInOutQuint"
-                "workspaces,       1, ${toString speed},       easeOutExpo, slide"
-                "specialWorkspace, 1, ${toString speed},       easeOutExpo, slidevert"
+              ]
+              ++ (
+                if cfg.appearance.animations.glitch then
+                  [
+                    # NEW WINDOWS GLITCH IN. windowsIn does the size stutter from
+                    # a low popin so the collapse reads; fadeIn runs the same
+                    # jagged curve but SHORTER, so size and alpha desync into a
+                    # compound flicker; borderangle sweeps the gradient once as
+                    # it lands. windowsOut stays clean — only the arrival glitches.
+                    "windowsIn,        1, 5,                   glitch, popin 30%"
+                    "windowsOut,       1, ${toString speed},   easeOutExpo, popin 80%"
+                    "border,           1, ${toString (speed + 2)}, easeOutQuint"
+                    "borderangle,      1, 4,                   easeOutExpo, once"
+                    "fadeIn,           1, 3,                   glitch"
+                    "fade,             1, ${toString speed},   easeInOutQuint"
+                  ]
+                else
+                  [
+                    "windowsOut,       1, ${toString speed},   easeOutExpo, popin 80%"
+                    "border,           1, ${toString (speed + 2)}, easeOutQuint"
+                    "fade,             1, ${toString speed},   easeInOutQuint"
+                  ]
+              )
+              ++ [
+                "workspaces,       1, ${toString speed},   easeOutExpo, slide"
+                "specialWorkspace, 1, ${toString speed},   easeOutExpo, slidevert"
               ];
           };
 
