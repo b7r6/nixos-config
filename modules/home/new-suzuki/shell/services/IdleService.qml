@@ -25,7 +25,11 @@ Singleton {
     property bool dpmsEnabled: getState("idle.dpmsEnabled", true)
     property bool mediaInhibit: getState("idle.mediaInhibit", true)
     property int lockTimeout: getState("idle.lockTimeout", 600)
-    property int dpmsTimeout: getState("idle.dpmsTimeout", 300)
+    // The lock IS the screensaver, so hold the panels ON while it runs and only
+    // sleep the display after a few HOURS idle (was 300s — the panel slept
+    // before the screensaver even showed). Wake is mouse/keypress (hyprland
+    // misc:{mouse_move,key_press}_enables_dpms + dpmsOn on resume below).
+    property int dpmsTimeout: getState("idle.dpmsTimeout", 10800)
 
     // True when any MPRIS player reports playing state (browser video, mpv, etc.)
     readonly property bool mediaPlaying: mediaInhibit && MprisService.anyPlaying
@@ -45,7 +49,7 @@ Singleton {
             root.dpmsEnabled = root.getState("idle.dpmsEnabled", true);
             root.mediaInhibit = root.getState("idle.mediaInhibit", true);
             root.lockTimeout = root.getState("idle.lockTimeout", 600);
-            root.dpmsTimeout = root.getState("idle.dpmsTimeout", 300);
+            root.dpmsTimeout = root.getState("idle.dpmsTimeout", 10800);
             console.log("[Idle] Loaded state - caffeine:", root.caffeineEnabled, "dpms:", root.dpmsEnabled, "mediaInhibit:", root.mediaInhibit, "lockTimeout:", root.lockTimeout + "s", "dpmsTimeout:", root.dpmsTimeout + "s");
         }
     }
