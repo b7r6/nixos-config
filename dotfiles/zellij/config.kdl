@@ -20,6 +20,12 @@ session_serialization true
 show_startup_tips false
 show_release_notes false
 
+// Independent clients, not mirrored (default is true = tmux-mirror, which sizes
+// the session to the SMALLEST attached client). false = each client keeps its
+// own size + focus, so a second/stale client never shrinks you — the standing
+// equivalent of `tmux attach -d`, no detach-others flag needed.
+mirror_session false
+
 keybinds clear-defaults=true {
     normal {
         bind "Ctrl o" { SwitchToMode "tmux"; }
