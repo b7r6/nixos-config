@@ -161,14 +161,22 @@ in
         # stylix's frozen build-time palette. reload_config re-reads this theme.
         theme = "wintermute";
 
+        # Font + opacity: disabling stylix.targets.ghostty (to take the theme)
+        # ALSO dropped everything else stylix set here — the SemiBold weight, the
+        # emoji fallback, the 14pt size and the terminal transparency. Restore
+        # them from stylix's own font/opacity config so they stay coupled to it
+        # (only COLOURS defect to wintermute).
+        font-family = [
+          config.stylix.fonts.monospace.name
+          config.stylix.fonts.emoji.name
+        ];
+        font-size = config.stylix.fonts.sizes.terminal;
+        font-feature = cfg.font.features;
+        background-opacity = config.stylix.opacity.terminal;
+
         # Force Wayland backend
         window-decoration = true; # Use client-side decorations
         gtk-single-instance = true;
-
-        # Font settings to match your module
-        font-family = "${cfg.font.name}";
-        font-size = cfg.font.size;
-        font-feature = cfg.font.features;
 
         # Cursor: blinking block, owned here at idle. Under the single-writer
         # contract (see the tmux config in modules/home/shell), the terminal's
