@@ -46,7 +46,9 @@
 (setq initial-frame-alist default-frame-alist)
 
 ;; disable gtk tooltips (cause color issues on PGTK)
-(setq x-gtk-use-system-tooltips nil)
+;; use-system-tooltips is the Emacs 30+ name; keep the old alias for older builds
+(setq use-system-tooltips nil
+      x-gtk-use-system-tooltips nil)
 
 ;; ───────────────────────────────────────────────────────────────────
 ;;                                               // package // loading
@@ -117,7 +119,7 @@
 (declare-function popper-mode "popper" (&optional arg))
 (declare-function marginalia-mode "marginalia" (&optional arg))
 (declare-function company-complete "company" ())
-(declare-function global-clipetty-mode "clippety" (&optional arg))
+(declare-function global-clipetty-mode "clipetty" (&optional arg))
 (declare-function yas-global-mode "yasnippet" (&optional arg))
 (declare-function global-treesit-auto-mode "treesit-auto" (&optional arg))
 (declare-function lsp-register-client "lsp-mode" (client))
@@ -130,7 +132,7 @@
 (declare-function auth-source-pass-enable "auth-source-pass" ())
 (declare-function ffap-file-at-point "ffap" ())
 (declare-function general-define-key "general" (&rest maps))
-(declare-function direnv-mode "direnv" (&optional arg))
+(declare-function envrc-global-mode "envrc" (&optional arg))
 (declare-function dashboard-setup-startup-hook "dashboard" ())
 (declare-function color-rgb-to-hex "color" (red green blue &optional digits-per-component))
 (declare-function flymake-mode "flymake" (&optional arg))
@@ -1132,7 +1134,19 @@
 (global-auto-revert-mode 1)
 (global-hl-line-mode 1)
 (show-paren-mode 1)
-(fset 'yes-or-no-p 'y-or-n-p)
+
+;; ── built-in QoL (Emacs 28+/30+; no packages) ───────────────────────
+(setq use-short-answers t)         ; y/n instead of yes/no (replaces the old fset)
+(save-place-mode 1)                ; reopen a file at the point you left
+(repeat-mode 1)                    ; chord-free repeat: C-x o o o, flymake M-n n n
+(setq isearch-lazy-count t         ; "(3/17)" match counter in isearch
+      lazy-count-prefix-format "(%s/%s) ")
+(when (display-graphic-p)
+  (pixel-scroll-precision-mode 1)) ; smooth GUI scroll (no-op in -nw)
+
+;; LSP subprocess throughput: rust-analyzer / HLS emit multi-MB JSON bursts;
+;; the default read chunk throttles them. 4MB is the standard lsp-mode bump.
+(setq read-process-output-max (* 4 1024 1024))
 
 ;; ───────────────────────────────────────────────────────────────────
 ;;                                        // frame // discipline
@@ -1169,7 +1183,7 @@
     ("\\*Async-native-compile-log\\*" never)
     ("\\*Native-compile-Log\\*"       never)
     ("\\*straight-process\\*"         never)
-    ("\\*flycheck errors\\*"          never) ; use consult-flycheck
+    ("\\*flycheck errors\\*"          never) ; diagnostics via M-g f consult-flymake
     ("\\*Flymake diagnostics.*"       never)
     ("\\*lsp-log\\*"                  never)
     ("\\*nixd.*"                      never)
@@ -1379,7 +1393,7 @@ deterministic and always current."
   "Return the passage store directory from env or default."
 
   (or (getenv "PASSAGE_DIR")
-      (expand-file-name "~/src/nixos-config/secrets/passage-store")))
+      (expand-file-name "~/src/b7r6/nixos-config/secrets/passage-store")))
 
 (defun hypermodern/gptel--passage-insert (entry value)
   "Store VALUE in passage at ENTRY using rage directly.
@@ -2263,14 +2277,25 @@ When you've completed the task or need clarification, say so clearly.")
 
 (use-package consult
   :demand t
+  ;; n.b. no "C-x C-r" here — it's consult-ripgrep in the general block
+  ;; (loads last, wins). consult-recent-file lives on C-x C-d / C-x d there.
   :bind (("C-x b" . consult-buffer)
-         ("C-x C-r" . consult-recent-file)  ; better than recentf-open-files
-         ;; ("C-s" . consult-line)
          ("M-g g" . consult-goto-line)
+         ("M-g f" . consult-flymake)        ; diagnostics list (lsp → flymake)
+         ("M-g i" . consult-imenu)          ; symbols in buffer
+         ("M-g I" . consult-imenu-multi)    ; symbols across buffers
+         ("M-g o" . consult-outline)        ; headings / outline
          ("M-s r" . consult-ripgrep)
          ("M-s l" . consult-line)           ; search in buffer
          ("M-s L" . consult-line-multi)     ; search across buffers
-         ("M-y" . consult-yank-pop)))
+         ("M-y" . consult-yank-pop))
+  :init
+  ;; route xref through consult (minibuffer + live preview) and make its
+  ;; non-LSP search use ripgrep — big speedup for xref-find-references and
+  ;; project-find-regexp in repos without a language server
+  (setq xref-show-xrefs-function #'consult-xref
+        xref-show-definitions-function #'consult-xref
+        xref-search-program 'ripgrep))
 
 (use-package embark
   :bind ("C-." . embark-act))
@@ -2290,8 +2315,10 @@ When you've completed the task or need clarification, say so clearly.")
   (setq
    savehist-file (expand-file-name "savehist" user-emacs-directory)
    savehist-save-minibuffer-history t
-   savehist-additional-variables '(kill-ring
-                                   search-ring
+   ;; n.b. kill-ring is deliberately NOT persisted: password-store-copy
+   ;; (C-c p c) puts passage secrets through it, and savehist's periodic
+   ;; autosave would flush plaintext to ~/.emacs.d/savehist (also bloat).
+   savehist-additional-variables '(search-ring
                                    regexp-search-ring
                                    compile-command
                                    shell-command-history
@@ -2356,10 +2383,12 @@ When you've completed the task or need clarification, say so clearly.")
 (use-package company
   :demand t
   :hook (after-init . global-company-mode)
+  ;; n.b. no "C-c f" here — it's hypermodern/show-current-file in the
+  ;; general block (loads last, wins). company-files stays reachable: it's
+  ;; in company-backends, so M-TAB after ./ completes filenames.
   :bind (("M-TAB" . company-complete-common-or-cycle)
          ("C-M-i" . company-complete-common-or-cycle)
-         ("<M-tab>" . company-complete-common-or-cycle)
-         ("C-c f" . hypermodern/company-files))
+         ("<M-tab>" . company-complete-common-or-cycle))
   :config
   (setq company-idle-delay 0.1
         company-minimum-prefix-length 1
@@ -2427,7 +2456,15 @@ When you've completed the task or need clarification, say so clearly.")
 (use-package treesit-auto
   :demand t
   :config
-  (setq treesit-auto-install 'prompt)
+  ;; Prefer -ts- modes everywhere a grammar exists. Grammar SOURCE is
+  ;; platform-specific: on nix they're prebuilt in the store (never compile —
+  ;; treesit-grammars.with-all-grammars, see mk-hypermodern-emacs.nix); on
+  ;; vanilla emacs there is no store, so compile on demand against the local
+  ;; toolchain. global-treesit-auto-mode installs the major-mode-remap-alist
+  ;; entries (python-mode -> python-ts-mode, etc.) AND a fallback that keeps a
+  ;; classic mode when its grammar is missing — so this is safe when a grammar
+  ;; hasn't been built yet.
+  (setq treesit-auto-install (if hypermodern/nix-emacs-p nil 'prompt))
   (global-treesit-auto-mode 1))
 
 ;; ───────────────────────────────────────────────────────────────────
@@ -2790,9 +2827,12 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 ;;                                                        // languages
 ;; ───────────────────────────────────────────────────────────────────
 
+;; nix: treesit-auto remaps nix-mode -> nix-ts-mode when the grammar is
+;; present, so hook both — whichever the buffer lands in starts LSP.
 (use-package nix-mode
   :mode "\\.nix\\'"
-  :hook (nix-mode . lsp-deferred))
+  :hook ((nix-mode . lsp-deferred)
+         (nix-ts-mode . lsp-deferred)))
 
 (use-package haskell-mode
   :mode "\\.hs\\'"
@@ -2801,18 +2841,24 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 (use-package lsp-haskell
   :after (haskell-mode lsp-mode))
 
+;; rust-ts-mode is built-in but shares no base mode with rust-mode, so hook
+;; both — treesit-auto remaps rust-mode -> rust-ts-mode when the grammar is up.
 (use-package rust-mode
   :mode "\\.rs\\'"
-  :hook (rust-mode . lsp-deferred))
+  :hook ((rust-mode . lsp-deferred)
+         (rust-ts-mode . lsp-deferred)))
 
 (use-package cuda-mode
   :mode (("\\.cu\\'" . cuda-mode)
          ("\\.cuh\\'" . cuda-mode))
   :hook (cuda-mode . lsp-deferred))
 
-(use-package python-mode
-  :mode "\\.py\\'"
-  :hook (python-mode . lsp-deferred))
+;; python-base-mode is the shared parent of python-mode and python-ts-mode,
+;; so one hook on it covers both variants (a derived mode runs its parents'
+;; hooks). This is the built-in python.el mode, not the 3rd-party package.
+(use-package python
+  :mode ("\\.py\\'" . python-mode)
+  :hook (python-base-mode . lsp-deferred))
 
 (use-package typescript-ts-mode
   :mode (("\\.ts\\'" . typescript-ts-mode)
@@ -2951,9 +2997,10 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 
 (use-package ghostel
   :commands (ghostel ghostel-project ghostel-project-list-buffers)
-  ;; C-x m is ghostel's documented launcher key; C-c t t is our mnemonic.
+  ;; C-x m is ghostel's launcher key. (C-c t t used to be a second binding
+  ;; but C-c t … is the theme prefix in the general-define-key block, which
+  ;; loads last and shadowed it — dead key removed.)
   :bind (("C-x m" . ghostel)
-         ("C-c t t" . ghostel)
          :map ghostel-semi-char-mode-map
          ;; keep window motion identical to the old vterm bindings
          ("M-N" . windmove-right)
@@ -3091,7 +3138,7 @@ to a containing directory wins, so a build-system root (`.buckconfig',
   ;; Use passage's directory structure - read from repo, not ~/.passage
   (setq auth-source-pass-filename
         (or (getenv "PASSAGE_DIR")
-            (expand-file-name "~/src/nixos-config/secrets/passage-store"))))
+            (expand-file-name "~/src/b7r6/nixos-config/secrets/passage-store"))))
 
 ;; OTP support (works with passage via pass-otp)
 (use-package password-store-otp
@@ -3163,7 +3210,7 @@ to a containing directory wins, so a build-system root (`.buckconfig',
   :config
   (setq tramp-default-method "ssh"  ; use faster ssh method with ControlMaster
         tramp-use-ssh-controlmaster-options t  ; enable SSH multiplexing
-        tramp-verbose 6  ; enable debug output (set to 0 to disable)
+        tramp-verbose 1  ; errors only (was 6 = full debug trace; slow remote edits)
         tramp-histfile-override t
         tramp-connection-timeout 30
         tramp-shell-prompt-pattern "\\(?:^\\|\r\\)[^]#$%>\n]*[#$%>] *"
@@ -3197,9 +3244,22 @@ to a containing directory wins, so a build-system root (`.buckconfig',
   (which-key-mode 1)
   )
 
-(use-package direnv
+;; helpful: richer *Help* (source, references, values). Installed via nix but
+;; was never bound — remap the describe-* family onto it.
+(use-package helpful
+  :bind (([remap describe-function] . helpful-callable)
+         ([remap describe-variable] . helpful-variable)
+         ([remap describe-key]      . helpful-key)
+         ([remap describe-command]  . helpful-command)
+         ("C-h x" . helpful-command)))
+
+;; envrc: buffer-local direnv. Applies each project's flake devshell env
+;; (ghc/cabal/HLS, rust toolchain, …) before lsp-deferred launches a server,
+;; so language servers get the right per-project toolchain — no restart dance.
+;; Global-mode must load LATE so its hook sits ahead of others.
+(use-package envrc
   :demand t
-  :config (direnv-mode 1))
+  :config (envrc-global-mode 1))
 
 (use-package paredit
   :hook ((emacs-lisp-mode lisp-mode scheme-mode) . paredit-mode))

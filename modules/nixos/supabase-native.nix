@@ -98,6 +98,7 @@ in
     environmentFile = mkOption {
       type = types.str;
       default = "/run/agenix/supabase-env";
+
       description = ''
         Decrypted env file carrying the secret bundle (JWT_SECRET, ANON_KEY,
         SERVICE_ROLE_KEY, POSTGRES_PASSWORD, SECRET_KEY_BASE, VAULT_ENC_KEY,
@@ -108,12 +109,14 @@ in
     selfWireSecret = mkOption {
       type = types.bool;
       default = true;
+
       description = "Self-wire age.secrets.supabase-env from the in-repo .age file.";
     };
 
     publicUrl = mkOption {
       type = types.str;
       default = "http://localhost:8000";
+
       example = "https://studio.sju1.s4.gl";
       description = "Externally-reachable base URL.";
     };
@@ -121,6 +124,7 @@ in
     dataDir = mkOption {
       type = types.str;
       default = "/var/lib/supabase";
+
       description = "Parent of the cluster (db/) and Storage (storage/) state.";
     };
 
@@ -130,32 +134,39 @@ in
         default = 5433;
         description = "Port for the supabase postgres instance (avoids attic's 5432).";
       };
+
       dataDir = mkOption {
         type = types.str;
         default = "/var/lib/supabase/db";
         description = "PGDATA for the supabase cluster.";
       };
+
       socketDir = mkOption {
         type = types.str;
         default = "/run/supabase-db";
         description = "Unix socket directory for the supabase cluster.";
       };
+
       tailnet = {
         enable = mkEnableOption ''
           expose the supabase PG17 cluster on the tailscale interface so
           fleet replicas (attic api-servers, etc.) can connect via md5 auth.
         '';
+
         interface = mkOption {
           type = types.str;
           default = "tailscale0";
+
           description = "Network interface to open the port on.";
         };
+
         cidrs = mkOption {
           type = types.listOf types.str;
           default = [
             "100.64.0.0/10"
             "fd7a:115c:a1e0::/48"
           ];
+
           description = "Tailnet CIDRs allowed md5-auth access.";
         };
       };
@@ -166,33 +177,41 @@ in
         stanza = mkOption {
           type = types.str;
           default = "supabase";
+
           description = "pgbackrest stanza name for this cluster.";
         };
+
         environmentFile = mkOption {
           type = types.nullOr types.str;
           default = "/run/agenix/pgbackrest-r2-env";
+
           description = "Env file with PGBACKREST_REPO1_S3_KEY[_SECRET].";
         };
+
         s3 = {
           bucket = mkOption {
             type = types.str;
             default = "straylight-pg-pitr";
+
             description = "R2 bucket for WAL + base backups.";
           };
           endpoint = mkOption {
             type = types.str;
             default = "https://6063b6652178f5cf1cfb87e7e41acf1e.r2.cloudflarestorage.com";
+
             description = "S3 endpoint.";
           };
           region = mkOption {
             type = types.str;
             default = "us-east-1";
+
             description = "S3 region (R2 ignores but pgbackrest requires).";
           };
         };
       };
 
       # ── additional databases (beyond supabase's own `postgres`) ───────────
+
       # declare databases that should be created in this cluster. Each gets a
       # role of the same name, owns the database, and has its password set from
       # an agenix secret. This is the seam for migrating atticd/forgejo/etc.
@@ -206,16 +225,19 @@ in
                 description = "agenix secret name containing the role password.";
                 example = "atticd-rs256";
               };
+
               passwordVar = mkOption {
                 type = types.str;
                 default = "PGPASSWORD";
                 description = "env var within the secret holding the password.";
               };
+
               rawPassword = mkOption {
                 type = types.bool;
                 default = false;
                 description = "if true, the secret file contains the raw password (not KEY=VAL).";
               };
+
               migrate = mkOption {
                 type = types.submodule {
                   options = {
@@ -227,16 +249,19 @@ in
                         into the supabase PG17 cluster. Sentinel-guarded (runs once).
                       '';
                     };
+
                     sourcePort = mkOption {
                       type = types.port;
                       default = 5432;
                       description = "Port of the old cluster to dump from.";
                     };
+
                     sourceUser = mkOption {
                       type = types.str;
                       default = "postgres";
                       description = "User to connect as on the old cluster (needs peer auth).";
                     };
+
                     sourceSocketDir = mkOption {
                       type = types.str;
                       default = "/run/postgresql";
@@ -244,13 +269,16 @@ in
                     };
                   };
                 };
+
                 default = { };
                 description = "One-time migration settings from an old PG cluster.";
               };
             };
           }
         );
+
         default = { };
+
         example = {
           atticd = {
             passwordSecret = "atticd-rs256";
@@ -258,6 +286,7 @@ in
             migrate.enable = true;
           };
         };
+
         description = ''
           Additional databases to create in the supabase PG17 cluster. Each key
           becomes a database AND a role (with ensureDBOwnership). The role password
@@ -272,6 +301,7 @@ in
       port = mkOption {
         type = types.port;
         default = 9999;
+
         description = "GoTrue API port.";
       };
     };
@@ -280,11 +310,14 @@ in
       port = mkOption {
         type = types.port;
         default = 3000;
+
         description = "PostgREST port.";
       };
+
       adminPort = mkOption {
         type = types.port;
         default = 3001;
+
         description = "PostgREST admin port (health checks).";
       };
     };
@@ -339,6 +372,7 @@ in
           the pinned `supabase` input providing init SQL + config files).
         '';
       }
+
       {
         assertion = !(config.hyper-modern-nixos ? supabase && config.hyper-modern-nixos.supabase.enable);
         message = ''
@@ -364,11 +398,13 @@ in
       ));
 
     # ── State classification ──────────────────────────────────────────────────
+
     hyper-modern-nixos.state.dirs = {
       supabase-db = {
         path = cfg.db.dataDir;
         class = "authoritative";
       };
+
       supabase-storage = {
         path = "${cfg.dataDir}/storage";
         class = "authoritative";
@@ -376,6 +412,7 @@ in
     };
 
     # ── System user for the supabase postgres cluster ─────────────────────────
+
     users.users.${pgUser} = {
       isSystemUser = true;
       group = pgUser;
@@ -385,6 +422,7 @@ in
     users.groups.${pgUser} = { };
 
     # ── Directories ───────────────────────────────────────────────────────────
+
     systemd.tmpfiles.rules = [
       "d ${cfg.dataDir} 0755 root root - -"
       "d ${pgDataDir} 0700 ${pgUser} ${pgUser} - -"
@@ -404,13 +442,16 @@ in
     # point at localhost:${pgPort} (native) instead of the docker `db` alias.
     systemd.services.supabase-env-split = {
       description = "compose supabase per-service env files from the agenix bundle";
+
       after = [ "run-agenix.d.mount" ];
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
       };
+
       restartTriggers = [ cfg.environmentFile ];
+
       script = ''
         set -euo pipefail
         umask 077
@@ -492,6 +533,7 @@ in
 
     systemd.services.supabase-db = {
       description = "supabase postgresql 17 (port ${toString pgPort})";
+
       after = [
         "network.target"
         "supabase-env-split.service"
@@ -652,6 +694,7 @@ in
         # hardening
         ProtectHome = true;
         ProtectSystem = "strict";
+
         ReadWritePaths = [
           pgDataDir
           pgSocket
@@ -661,6 +704,7 @@ in
           "/var/log/pgbackrest"
           "/run/pgbackrest-supabase"
         ];
+
         PrivateTmp = true;
         NoNewPrivileges = true;
       };
@@ -670,6 +714,7 @@ in
     # runs ONCE (sentinel file), ordered after supabase-db is ready.
     systemd.services.supabase-db-init-sql = {
       description = "supabase db: apply init SQL (first boot only)";
+
       after = [ "supabase-db.service" ];
       requires = [ "supabase-db.service" ];
       wantedBy = [ "multi-user.target" ];
@@ -824,6 +869,7 @@ in
     };
 
     # ── one-time data migration from old clusters (sentinel-guarded) ─────────
+
     # For each database with migrate.enable = true: pg_dump from the old cluster,
     # pg_restore into the supabase PG17 cluster. Runs once per database.
     # ConditionPathExists ensures it only runs once (sentinel file in pgDataDir).

@@ -46,7 +46,7 @@ in
 
     secrets.repoPath = lib.mkOption {
       type = lib.types.str;
-      default = "${config.home.homeDirectory}/src/nixos-config";
+      default = "${config.home.homeDirectory}/src/b7r6/nixos-config";
       description = "Path to the nixos-config repository (for passage store)";
     };
 
