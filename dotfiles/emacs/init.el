@@ -28,6 +28,17 @@
 (when (require 'kkp nil t)
   (global-kkp-mode +1))
 
+;; …but zellij's kitty-protocol passthrough drops the "alternate keys" report,
+;; so kkp can't fold shift+punctuation into the shifted glyph: M-< arrives as
+;; M-S-, and M-> as M-S-. — which emacs then shift-falls-back to M-, / M-.
+;; (xref-go-back / xref-find-definitions), NOT beginning/end-of-buffer.
+;; Translate the miscoded events to the real keys (US layout: S-, IS <, S-. IS
+;; >), so M-< / M-> work in every mode. Real M-, / M-. are distinct events,
+;; untouched. (If zellij ever forwards alternate keys, M-< arrives correctly
+;; and these entries simply never fire.)
+(define-key key-translation-map (kbd "M-S-,") (kbd "M-<"))
+(define-key key-translation-map (kbd "M-S-.") (kbd "M->"))
+
 ;; ───────────────────────────────────────────────────────────────────
 ;;                            // memory // performance // optimization
 ;; ───────────────────────────────────────────────────────────────────
