@@ -346,6 +346,14 @@ in
         set -ga terminal-features ",xterm-ghostty:RGB:sixel"
         set -ga terminal-features ",ghostty:RGB:sixel"
 
+        # Kitty KEYBOARD protocol: ghostty sends modified keys as CSI-u, so
+        # without extended-keys tmux can't decode them and copy-mode's M-w
+        # (copy) — plus every Meta-/shifted bind — silently does nothing (the
+        # same root as the emacs M-< bug). Turn it on and advertise the cap so
+        # tmux reads the extended sequences.
+        set -s extended-keys on
+        set -as terminal-features ",*:extkeys"
+
         # n.b. do NOT add the `sync` terminal-feature (DECSET 2026 redraw
         # bracketing). It cures linewise tearing from bursty remote TUIs, but
         # with tmux 3.7 + ghostty 1.3 the brackets throttle throughput to a
