@@ -16,6 +16,19 @@
 (require 'seq)
 
 ;; ───────────────────────────────────────────────────────────────────
+;;                  // terminal keyboard // kitty keyboard protocol
+;; ───────────────────────────────────────────────────────────────────
+;;
+;; emacs -nw runs under Ghostty + zellij, both of which speak the kitty
+;; keyboard protocol. Undecoded, modified keys arrive as raw CSI-u fragments
+;; ("M-[ 44 ; 4 u is undefined") and M-<, M->, C-RET, S-… are lost.
+;; global-kkp-mode negotiates the protocol per terminal frame and decodes it
+;; (queries first, so it's a no-op on terminals — or GUI/pgtk frames — that
+;; don't advertise support). This is what makes M-</M-> reach emacs again.
+(when (require 'kkp nil t)
+  (global-kkp-mode +1))
+
+;; ───────────────────────────────────────────────────────────────────
 ;;                            // memory // performance // optimization
 ;; ───────────────────────────────────────────────────────────────────
 

@@ -54,6 +54,11 @@ emacsPkgs.emacsWithPackages (
         # Core glue (Nix-managed; init.el must not install packages)
         use-package
 
+        # terminal keyboard: decode the kitty keyboard protocol (Ghostty + zellij
+        # both speak it) so modified keys — M-<, M->, C-RET, S-… — reach emacs
+        # -nw instead of arriving as raw CSI-u "undefined" fragments.
+        kkp
+
         # UI / modeline
         doom-modeline
         nerd-icons
