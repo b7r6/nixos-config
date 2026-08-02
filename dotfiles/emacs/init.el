@@ -977,7 +977,7 @@
   (add-to-list 'default-frame-alist (cons key val)))
 
 (defun hypermodern/ui--accent-color ()
-  (let ((palette (hypermodern/get-palette hypermodern/current-theme)))
+  (let ((palette (hypermodern/current-palette)))
     (or (plist-get palette :base0A) "#54aeff")))
 
 (defun hypermodern/ui--glow-alpha ()
@@ -1040,9 +1040,17 @@
                    doom-modeline-minor-modes t doom-modeline-buffer-encoding t doom-modeline-checker-simple-format nil doom-modeline-modal t)))
     (doom-modeline-mode 1) (force-mode-line-update t)))
 
+(defun hypermodern/current-palette ()
+  "The LIVE computed palette when wintermute has synced one, else the named
+theme's static palette. Strong-layer UI faces (fringe, internal-border, cursor)
+read this so they track the desktop's live vector instead of a frozen theme —
+the source of the fringe drift when hero/axis/level retune."
+  (or (and (boundp 'hypermodern/live-palette) hypermodern/live-palette)
+      (hypermodern/get-palette hypermodern/current-theme)))
+
 (defun hypermodern/ui--apply-glow ()
 
-  (let* ((palette (hypermodern/get-palette hypermodern/current-theme))
+  (let* ((palette (hypermodern/current-palette))
          (bg (or (plist-get palette :base00) "#000000"))
          (accent (hypermodern/ui--accent-color))
          (a (hypermodern/ui--glow-alpha))
@@ -1061,13 +1069,18 @@
       (ignore-errors (set-face-background 'cursor cursor) (set-cursor-color cursor))))
   )
 
+;; The glow owns fringe/internal-border/cursor on the STRONG layer, which
+;; apply-computed's face-defface-spec pass can't touch — so it must re-run on
+;; every wintermute sync or those faces drift. (modeline already rides this hook.)
+(add-hook 'hypermodern/theme-changed-hook #'hypermodern/ui--apply-glow)
+
 ;; pulse system
 (defvar hypermodern/ui--pulse-hook-installed nil)
 
 (defun hypermodern/ui--pulse-post-command ()
   (when (and hypermodern/ui-enable-pulse (memq this-command hypermodern/ui-pulse-commands))
     (when (require 'pulse nil 'noerror)
-      (let* ((palette (hypermodern/get-palette hypermodern/current-theme))
+      (let* ((palette (hypermodern/current-palette))
              (bg (plist-get palette :base00))
              (accent (hypermodern/ui--accent-color))
              (pulse-color (hypermodern/ui--color-blend accent bg 0.15)))

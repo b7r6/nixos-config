@@ -138,6 +138,13 @@ straylight = ono-sendai/maas, the 211° house; hosaka = blackwell/grace,
 (defvar hypermodern/theme-changed-hook nil
   "Run after the computed theme is (re)applied; modeline etc. subscribe.")
 
+(defvar hypermodern/live-palette nil
+  "The palette from the last `hypermodern/apply-computed'.
+The UI layer (glow/fringe, cursor, pulse) reads this via
+`hypermodern/current-palette' so it tracks the LIVE wintermute vector, not the
+static `hypermodern/current-theme' — otherwise those faces drift when the
+desktop retunes hero/axis/level out from under the named theme.")
+
 (defun hypermodern/compute-current ()
   (if (eq hypermodern/polarity 'light)
       (hypermodern/compute-light hypermodern/level hypermodern/hero
@@ -164,6 +171,9 @@ Uses the init.el face engine when present; no-op under --batch."
         (set-face-attribute 'default nil :background bg :foreground fg)
         (modify-all-frames-parameters `((background-color . ,bg)
                                         (foreground-color . ,fg))))
+      ;; Publish the live palette so the UI layer's strong-layer faces (fringe,
+      ;; internal-border, cursor) track the same colours as everything else.
+      (setq hypermodern/live-palette palette)
       (run-hooks 'hypermodern/theme-changed-hook)
       (message "// theme // %s // hero %d axis %d //"
                (plist-get palette :name) hypermodern/hero hypermodern/axis))))
