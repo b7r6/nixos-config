@@ -608,16 +608,17 @@ in
                   [
                     # NEW WINDOWS GLITCH IN. windowsIn opens at popin 88% — almost
                     # the final size — then the glitch curve snaps it bigger
-                    # (~103%) and smaller (~85%) and settles, fast (0.4s). fadeIn
-                    # runs the SAME curve even shorter (0.2s): its undershoot
-                    # clamps alpha to 0, so the window blinks out for a frame,
-                    # desynced from the size jitter. borderangle sweeps the
-                    # gradient once as it lands. windowsOut stays clean.
-                    "windowsIn,        1, 4,                   glitch, popin 88%"
+                    # (~103%) and smaller (~85%) and settles, FAST (0.2s) — quick
+                    # enough to read as a glitch, not a bounce. fadeIn runs the
+                    # SAME curve even faster (0.1s): its undershoot clamps alpha
+                    # to 0, so the window blinks out for a frame, desynced from
+                    # the size jitter. borderangle whips the gradient once as it
+                    # lands. windowsOut stays clean.
+                    "windowsIn,        1, 2,                   glitch, popin 88%"
                     "windowsOut,       1, ${toString speed},   easeOutExpo, popin 80%"
                     "border,           1, ${toString (speed + 2)}, easeOutQuint"
-                    "borderangle,      1, 4,                   easeOutExpo, once"
-                    "fadeIn,           1, 2,                   glitch"
+                    "borderangle,      1, 2,                   easeOutExpo, once"
+                    "fadeIn,           1, 1,                   glitch"
                     "fade,             1, ${toString speed},   easeInOutQuint"
                   ]
                 else
