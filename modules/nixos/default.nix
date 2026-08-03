@@ -15,7 +15,7 @@
 #
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-{ lib, ... }: {
+{ lib, flake, ... }: {
   imports = [
     # ── Core system (always-on) ──
 
@@ -59,7 +59,10 @@
     ../flake/media/nixos-pinchflat.nix
     ../flake/media/nixos-torrents.nix
     ../flake/media/nixos.nix
-    ../flake/nativelink/nixos.nix
+    # nativelink's NixOS module lives in the FORK (the fork owns its ops);
+    # the shim wires OUR fleet topology, telemetry, and state registry.
+    flake.inputs.nativelink-nix.nixosModules.nativelink
+    ../flake/nativelink/shim.nix
     ./clickhouse.nix
     ./otel.nix
     ./postgres.nix
