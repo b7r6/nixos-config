@@ -25,7 +25,11 @@ Singleton {
     id: root
 
     // ── The wintermute vector (read-side mirror) ────────────────────────────
-    property int generation: 0
+    // real, not int: wintermute stamps the generation as MICROseconds since the
+    // epoch (~1.78e15) so concurrent `set`s never collide — that overflows a
+    // 32-bit QML int but is exactly representable as a double (< 2^53), so the
+    // ack round-trip and display stay lossless.
+    property real generation: 0
     property real register: 1.0        // 0 affluent … 1 facility
     property bool facility: true
     property var base16: ({})
