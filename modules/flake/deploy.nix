@@ -132,5 +132,31 @@
           }
         );
       };
+
+    # `nix run .#rollback-host -- <host>` — the one-command undo for a bad
+    # roll: flip the host back to its previous system generation (local when
+    # the host is self, over ssh otherwise).
+    apps.rollback-host = {
+      type = "app";
+      program = pkgs.lib.getExe (
+        pkgs.writeShellApplication {
+          name = "rollback-host";
+          runtimeInputs = [
+            pkgs.openssh
+            pkgs.nixos-rebuild
+          ];
+          text = ''
+            host="''${1:?usage: rollback-host <host>}"
+            if [ "$host" = "$(hostname)" ]; then
+              echo "// rollback // $host = self → local rollback"
+              sudo nixos-rebuild switch --rollback
+            else
+              echo "// rollback // $host → remote rollback"
+              ssh "$host" "sudo nixos-rebuild switch --rollback"
+            fi
+          '';
+        }
+      );
+    };
   };
 }
