@@ -67,11 +67,19 @@ let grpc =
       \(instanceName : Text) ->
       \(address : Text) ->
       \(storeType : Text) ->
+      \(rpcTimeoutS : Natural) ->
           [ { mapKey = "grpc"
             , mapValue =
                 obj
                   [ { mapKey = "instance_name", mapValue = str instanceName }
                   , { mapKey = "store_type", mapValue = str storeType }
+                  , -- per-RPC deadline (seconds). 0 = disabled (upstream-compat
+                    -- default); the fleet SETS it — a half-open peer (host up,
+                    -- nativelink wedged/restarting) otherwise queues shard-ring
+                    -- RPCs forever and freezes every CAS call on the frontend
+                    -- (the watchtower wedge). DeadlineExceeded is retryable, so
+                    -- a slow-but-alive peer just retries.
+                    { mapKey = "rpc_timeout_s", mapValue = nat rpcTimeoutS }
                   , { mapKey = "endpoints"
                     , mapValue =
                         arr

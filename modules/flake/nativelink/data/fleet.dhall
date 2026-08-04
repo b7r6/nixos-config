@@ -50,6 +50,13 @@ let workerApiPort = "50061"
 
 let publicPort = "50051"
 
+-- Per-RPC deadline for every shard-ring grpc peer. 60s is generous for
+-- LAN-NVMe unary calls and ByteStream writes (multi-hundred-MB toolchain
+-- layers included) but bounds the half-open-peer case: a peer that accepts
+-- TCP but never answers (wedged/restarting nativelink) times out + retries
+-- instead of hanging every CAS RPC on the frontend.
+let casRpcTimeoutS = 60
+
 let hosts =
       [ HostDef::{
         , name = "watchtower"
@@ -159,7 +166,12 @@ let casShardRing =
             HostDef.Type
             r.ShardEntry
             ( \(h : HostDef.Type) ->
-                { store = r.grpc "main" "grpc://${h.fqdn}:${casPort}" "cas"
+                { store =
+                    r.grpc
+                      "main"
+                      "grpc://${h.fqdn}:${casPort}"
+                      "cas"
+                      casRpcTimeoutS
                 , weight = h.casWeight
                 }
             )
@@ -172,7 +184,12 @@ let acShardRing =
             HostDef.Type
             r.ShardEntry
             ( \(h : HostDef.Type) ->
-                { store = r.grpc "main" "grpc://${h.fqdn}:${casPort}" "ac"
+                { store =
+                    r.grpc
+                      "main"
+                      "grpc://${h.fqdn}:${casPort}"
+                      "ac"
+                      casRpcTimeoutS
                 , weight = h.casWeight
                 }
             )
