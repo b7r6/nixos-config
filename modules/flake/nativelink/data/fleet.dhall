@@ -207,6 +207,34 @@ let schedulerConfig =
           , name = "AC_MAIN_STORE"
           , backend = r.cacheMetrics "ac-main" acShardRing
           }
+        , -- OCI registry digest-alias index (PROD-3): string-keyed
+          -- `oci-digest:sha256:<hex>` -> canonical-identity records, behind
+          -- completeness_checking against the CAS ring so an alias whose
+          -- blob was evicted 404s instead of advertising it. Records are
+          -- content-derived and rebuildable by re-pushing images, so a
+          -- local filesystem store (no R2 tier) is acceptable durability.
+          schema.Store::{
+          , name = "OCI_INDEX_STORE"
+          , backend =
+              r.completeness
+                ( r.filesystem
+                    "${storeRoot}/oci-index/content"
+                    "${storeRoot}/oci-index/tmp"
+                    1073741824
+                )
+                "CAS_MAIN_STORE"
+          }
+        , -- OCI registry tag refs: MUTABLE string-keyed records. Plain
+          -- filesystem — never existence_cache (drops overwrites), never
+          -- verify/size_partitioning (string keys).
+          schema.Store::{
+          , name = "OCI_REF_STORE"
+          , backend =
+              r.filesystem
+                "${storeRoot}/oci-refs/content"
+                "${storeRoot}/oci-refs/tmp"
+                1073741824
+          }
         ]
       , schedulers =
         [ schema.Scheduler::{
@@ -240,7 +268,32 @@ let schedulerConfig =
                     , scheme = Some "https"
                     }
                   ]
+                , -- oci://self short-circuit: FetchDirectory of images the
+                  -- colocated CAS registry holds becomes a local graph walk
+                  -- (no network client, nothing fetched twice).
+                  self_registry = Some
+                  { blob_store = "CAS_MAIN_STORE"
+                  , index_store = "OCI_INDEX_STORE"
+                  , ref_store = "OCI_REF_STORE"
+                  }
                 }
+              }
+            ]
+          , -- The OCI Distribution registry (PROD-3): skopeo/crane push and
+            -- pull straight against the CAS at http://watchtower:50051/v2/.
+            -- Open-push on this listener matches the existing trust model:
+            -- the same tailnet-gated port already accepts arbitrary CAS
+            -- writes over gRPC, so a write token would gate nothing an
+            -- attacker could not already do. Blobs land in CAS_MAIN_STORE
+            -- (the shard ring) under BLAKE3 — ByteStream-readable
+            -- fleet-wide, deduped with REAPI blobs post-projection.
+            oci_registry =
+            [ schema.OciRegistrySvc::{
+              , instance_name = "main"
+              , cas_store = "CAS_MAIN_STORE"
+              , index_store = "OCI_INDEX_STORE"
+              , ref_store = "OCI_REF_STORE"
+              , spool_path = "${storeRoot}/oci-spool"
               }
             ]
           , prometheus = True

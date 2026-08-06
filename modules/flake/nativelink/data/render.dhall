@@ -393,6 +393,14 @@ let ociRegistryJSON =
               )
           )
 
+let ociSelfRegistryJSON =
+      \(x : schema.OciSelfRegistryRefs) ->
+        obj
+          [ { mapKey = "blob_store", mapValue = str x.blob_store }
+          , { mapKey = "index_store", mapValue = str x.index_store }
+          , { mapKey = "ref_store", mapValue = str x.ref_store }
+          ]
+
 let ociFetchJSON =
       \(x : schema.OciFetch.Type) ->
         obj
@@ -412,6 +420,17 @@ let ociFetchJSON =
                       )
                 }
               ]
+            # Opt/fold
+                schema.OciSelfRegistryRefs
+                x.self_registry
+                (List (Map/Entry Text JSON.Type))
+                ( \(sr : schema.OciSelfRegistryRefs) ->
+                    [ { mapKey = "self_registry"
+                      , mapValue = ociSelfRegistryJSON sr
+                      }
+                    ]
+                )
+                ([] : List (Map/Entry Text JSON.Type))
           )
 
 let fetchSvcJSON =
@@ -429,6 +448,19 @@ let fetchSvcJSON =
                 )
                 ([] : List (Map/Entry Text JSON.Type))
           )
+
+let ociRegistrySvcJSON =
+      \(x : schema.OciRegistrySvc.Type) ->
+        obj
+          [ { mapKey = "instance_name", mapValue = str x.instance_name }
+          , { mapKey = "cas_store", mapValue = str x.cas_store }
+          , { mapKey = "index_store", mapValue = str x.index_store }
+          , { mapKey = "ref_store", mapValue = str x.ref_store }
+          , { mapKey = "digest_function", mapValue = str x.digest_function }
+          , { mapKey = "spool_path", mapValue = str x.spool_path }
+          , { mapKey = "read_only", mapValue = bool x.read_only }
+          , { mapKey = "enable_delete", mapValue = bool x.enable_delete }
+          ]
 
 let serverToJSON =
       \(s : schema.Server.Type) ->
@@ -581,6 +613,22 @@ let serverToJSON =
                                     JSON.Type
                                     nixCacheSvcJSON
                                     s.nix_cache
+                                )
+                          }
+                        ]
+                )
+              # ( if    Prelude.List.null
+                          schema.OciRegistrySvc.Type
+                          s.oci_registry
+                  then  [] : List (Map/Entry Text JSON.Type)
+                  else  [ { mapKey = "oci_registry"
+                          , mapValue =
+                              arr
+                                ( List/map
+                                    schema.OciRegistrySvc.Type
+                                    JSON.Type
+                                    ociRegistrySvcJSON
+                                    s.oci_registry
                                 )
                           }
                         ]

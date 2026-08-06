@@ -66,18 +66,23 @@ let OciRegistry =
         }
       }
 
+let OciSelfRegistryRefs =
+      { blob_store : Text, index_store : Text, ref_store : Text }
+
 let OciFetch =
       { Type =
           { cas_store : Optional Text
           , dedup_check : Bool
           , digest_function : Text
           , registries : List OciRegistry.Type
+          , self_registry : Optional OciSelfRegistryRefs
           }
       , default =
         { cas_store = None Text
         , dedup_check = True
         , digest_function = "BLAKE3"
         , registries = [] : List OciRegistry.Type
+        , self_registry = None OciSelfRegistryRefs
         }
       }
 
@@ -112,6 +117,24 @@ let NixCacheSvc =
         }
       }
 
+-- The OCI Distribution registry served from the CAS (PROD-3): blobs stored
+-- once under the canonical digest function with a sha256 alias index; tags
+-- as mutable string-keyed records. Mounted at /v2 on its server's listener.
+let OciRegistrySvc =
+      { Type =
+          { instance_name : Text
+          , cas_store : Text
+          , index_store : Text
+          , ref_store : Text
+          , digest_function : Text
+          , spool_path : Text
+          , read_only : Bool
+          , enable_delete : Bool
+          }
+      , default =
+        { digest_function = "BLAKE3", read_only = False, enable_delete = False }
+      }
+
 let CasWitnessSvc =
       { cas_store : Text
       , alias_store : Text
@@ -135,6 +158,7 @@ let Server =
           , bytestream : List CasSvc
           , worker_api_scheduler : Optional Text
           , nix_cache : List NixCacheSvc.Type
+          , oci_registry : List OciRegistrySvc.Type
           , cas_witness : Optional CasWitnessSvc
           , admin : Bool
           , health : Bool
@@ -150,6 +174,7 @@ let Server =
         , bytestream = [] : List CasSvc
         , worker_api_scheduler = None Text
         , nix_cache = [] : List NixCacheSvc.Type
+        , oci_registry = [] : List OciRegistrySvc.Type
         , cas_witness = None CasWitnessSvc
         , admin = False
         , health = False
@@ -203,6 +228,8 @@ in  { Prelude
     , FetchSvc
     , UpstreamCache
     , NixCacheSvc
+    , OciSelfRegistryRefs
+    , OciRegistrySvc
     , CasWitnessSvc
     , Tls
     , Server
