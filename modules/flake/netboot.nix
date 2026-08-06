@@ -41,7 +41,9 @@ let
     };
   };
 
-  netbootSystem = inputs.nixpkgs.lib.nixosSystem {
+  # nixpkgs-jetson, not the fleet nixpkgs — same CUDA-manifest constraint as
+  # the filament host (see flake.nix)
+  netbootSystem = inputs.nixpkgs-jetson.lib.nixosSystem {
     inherit specialArgs;
     modules = [
       { nixpkgs.hostPlatform = "aarch64-linux"; }

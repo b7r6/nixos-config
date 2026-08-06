@@ -26,6 +26,10 @@
 
   hardware.jetson-thor.enable = true;
 
+  # RAM image: no bootloader — override the platform module's GRUB arrangement,
+  # which only applies to on-disk installs
+  boot.loader.grub.enable = lib.mkForce false;
+
   # ── Installer Identity ─────────────────────────────────────────────────────
 
   networking.hostName = "filament-netboot";

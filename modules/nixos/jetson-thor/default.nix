@@ -80,6 +80,7 @@ in
 
     systemd.services.nvpmodel.wantedBy = lib.mkForce [ ];
 
+    nixpkgs.config.allowUnfree = true;
     nixpkgs.config.cudaSupport = lib.mkForce false;
     nixpkgs.config.allowUnsupportedSystem = true;
   };
