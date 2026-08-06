@@ -307,6 +307,13 @@ let schedulerConfig =
                   -- the ghc/lean/python cells) exceed the 60s hot-path
                   -- ring deadline.
                   cas_store = Some "CAS_MAIN_STORE_BULK"
+                , -- dedup_check=false: the import's has_many falls through
+                  -- fast_slow to the SLOW tier for every fast-tier miss —
+                  -- an R2 existence probe per digest, tens of thousands
+                  -- for the ghc/lean/python cells (>900s; observed wedge).
+                  -- Unconditional uploads are idempotent and land on the
+                  -- write-back NVMe tier at full speed.
+                  dedup_check = False
                 , registries =
                   [ schema.OciRegistry::{
                     , host = "registry.sju1.s4.gl"
