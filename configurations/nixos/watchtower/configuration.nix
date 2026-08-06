@@ -68,16 +68,16 @@ in
   # See docs/infrastructure/backups.md#postgresql-backups.
   hyper-modern-nixos.databases.postgres.backup.pitr.enable = true;
 
-  # ── OCI registry (zot → R2) ─────────────────────────────────────────────────
+  # ── OCI registry ────────────────────────────────────────────────────────────
 
-  # Blobs in the straylight-oci R2 bucket (reconstructible — not restic'd).
-  # Non-daemon systemd service; self-wires the zot-r2-env agenix creds. Now bound
-  # to LOOPBACK and fronted by nginx (below) on registry.sju1.s4.gl with a real
-  # cert — the converged pattern from networking.md.
-  hyper-modern-nixos.registry = {
-    enable = true;
-    listenAddress = "127.0.0.1";
-  };
+  # RETIRED (PROD-3 Gate E): the OCI Distribution API is served from the CAS
+  # by nativelink's oci_registry service on the public listener (:50051/v2).
+  # The former standalone registry daemon, its second storage engine, its R2
+  # bucket (straylight-oci), and the push tunnel are gone;
+  # registry.sju1.s4.gl below now fronts the CAS registry. All images
+  # (9 toolchain cells + pinchflat, digest-verified) were re-pushed before
+  # retirement. The straylight-oci R2 bucket can be deleted manually once
+  # this has soaked.
 
   # ── NativeLink: the fleet SCHEDULER (+ CAS shard + worker) ───────────────────
 
@@ -667,22 +667,20 @@ in
   # ── Reverse proxy + internal ACME (nginx → loopback services) ───────────────
   # nginx terminates TLS on the logical names with a real wildcard cert
   # (*.sju1.s4.gl via DNS-01/Njalla) and proxies to loopback. registry.sju1.s4.gl
-  # → the zot above; studio.sju1.s4.gl → Kong (Supabase's gateway). CoreDNS
+  # → the CAS registry; studio.sju1.s4.gl → Kong (Supabase's gateway). CoreDNS
   # already resolves those names to this host.
   hyper-modern-nixos.reverseProxy = {
     enable = true;
 
     services.registry = {
-      port = 5000;
+      # The CAS registry: nativelink's oci_registry service, mounted at /v2
+      # on the public listener. Same name, same clients, one store.
+      port = 50051;
       # OCI image layers are multi-MB/GB; the default 1m cap → HTTP 413 on push.
       maxBodySize = "0";
-      # Large layers stream nginx → zot → R2 (proxy_request_buffering off streams
-      # the body straight through). The actual large-push blocker was zot's own
-      # 60s http.readTimeout (fixed in modules/nixos/registry.nix); these nginx
-      # timeouts are the matching OUTER envelope so nginx never cuts a legitimate
-      # multi-minute layer push/pull first. proxy_read/send cover the upstream
-      # legs; client_body_timeout (nginx's 60s default, NOT covered by proxy_*)
-      # covers reading the slow client body while request buffering is off.
+      # Large layers stream nginx → nativelink → the CAS shard ring; the
+      # outer envelope matches the ring's bulk deadline so nginx never cuts
+      # a legitimate multi-minute layer push/pull first.
       extraProxyConfig = ''
         proxy_read_timeout 900s;
         proxy_send_timeout 900s;

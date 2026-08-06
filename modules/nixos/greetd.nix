@@ -30,18 +30,12 @@ in
   # also on PATH so a bare TTY login can start the same session by hand
   environment.systemPackages = [ start-hyprland ];
 
-  # greetd holds a logind session for the greeter user (uid 989). that session
-  # needs a functioning user@989.service (with dbus socket) or switch-to-
-  # configuration-ng fails when it tries to reload user units for the greeter.
-  #
-  # ordering:
-  # - wait for multi-user.target (no scribble on the login prompt)
-  # - want user@989.service (keep the greeter's user manager alive)
-  systemd.services.greetd = {
-    after = [
-      "multi-user.target"
-      "user@989.service"
-    ];
-    wants = [ "user@989.service" ];
-  };
+  # greetd holds a logind session for the greeter user. switch-to-
+  # configuration-ng reloads user units for every logind-active user, which
+  # needs that user's manager (and its dbus socket) running — linger keeps
+  # user@<uid>.service alive without hard-coding the dynamically-allocated uid.
+  users.users.greeter.linger = true;
+
+  # wait for multi-user.target (no scribble on the login prompt)
+  systemd.services.greetd.after = [ "multi-user.target" ];
 }

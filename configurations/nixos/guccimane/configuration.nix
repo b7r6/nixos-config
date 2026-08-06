@@ -153,7 +153,7 @@ in
   };
 
   # ── Pinchflat: yt-dlp media manager (queue/subscribe playlists) ────────────
-  # Web UI on :8945 (tailnet-only). Image pulled from the fleet zot registry;
+  # Web UI on :8945 (tailnet-only). Image pulled from the fleet CAS registry;
   # downloads land in the shared /var/lib/media so the tagging pipeline +
   # Navidrome/Jellyfin pick them up. Smoke-testing SoundCloud-source handling.
 

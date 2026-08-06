@@ -16,8 +16,6 @@
 
 _final: prev: {
 
-  # zot OCI registry — not in nixpkgs, packaged in-repo (packages/zot).
-  zot = prev.callPackage ../../packages/zot { };
 
   # coredns-zone — the fleet DNS compiler (modules/flake/registry/packages/coredns-zone):
   # a compiled GHC-9.12 program that renders + semantically validates the topology

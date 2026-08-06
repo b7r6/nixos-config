@@ -68,7 +68,6 @@
     ./postgres.nix
     ./rayfish.nix
     ./rclone-mount.nix
-    ./registry.nix
     ./searxng.nix
     ./supabase-native.nix
     ./supabase.nix

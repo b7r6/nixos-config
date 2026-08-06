@@ -350,7 +350,7 @@ in
       port = mkOption {
         type = types.port;
         default = 5010;
-        description = "Storage API port (5010 to avoid zot on 5000).";
+        description = "Storage API port (5010; port 5000 stays clear by convention).";
       };
     };
 

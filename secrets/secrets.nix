@@ -85,11 +85,6 @@ in
   #   R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY
   "agenix/machines/nativelink-r2-env.age".publicKeys = mkGlobalSecret;
 
-  # zot OCI registry R2 creds (AWS SDK env vars, consumed by the s3 storage
-  # driver via systemd EnvironmentFile):
-  #   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
-  # Dedicated R2 bucket straylight-oci (blobs are reconstructible — not restic'd).
-  "agenix/machines/zot-r2-env.age".publicKeys = mkGlobalSecret;
 
   # Njalla API token for ACME DNS-01 against s4.gl (internal nginx vhost certs).
   # env file: NJALLA_TOKEN=<token>. Consumed by lego via security.acme

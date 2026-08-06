@@ -136,7 +136,7 @@ in
                 description = ''
                   Extra nginx directives injected into this vhost's proxy
                   location. Use for an OCI registry streaming large layer uploads
-                  to a slow backend (zot → R2): lift proxy_read_timeout /
+                  to a slow backend (e.g. R2-tiered stores): lift proxy_read_timeout /
                   proxy_send_timeout and turn off proxy_request_buffering, since
                   the default 60s proxy timeout yields 502 Bad Gateway mid-push
                   once a layer takes longer than a minute to stream.
