@@ -160,6 +160,38 @@ let casServerConfig =
           ]
         }
 
+-- Bulk-transfer deadline for the shard-ring stores that carry whole OCI
+-- layer blobs (the CAS registry ingest and the oci://self projection
+-- reads). GrpcStore applies rpc_timeout_s to an ENTIRE streaming write,
+-- so the deadline caps blob size at (timeout x ring throughput): the
+-- 60s hot-path bound rejects any layer past ~2 GiB at LAN speed (the
+-- cuda cell's 2.69 GB layer, found during PROD-3 phase 2). 900s admits
+-- multi-GB layers at a 3 MB/s floor while still bounding a wedged peer.
+-- The REAL fix is an idle-based (progress-resetting) deadline in
+-- GrpcStore's streaming RPCs — see UPSTREAM-LEDGER in the fork.
+let casBulkRpcTimeoutS = 900
+
+let mkCasShardRing =
+      \(timeoutS : Natural) ->
+        r.shard
+          ( List/map
+              HostDef.Type
+              r.ShardEntry
+              ( \(h : HostDef.Type) ->
+                  { store =
+                      r.grpc
+                        "main"
+                        "grpc://${h.fqdn}:${casPort}"
+                        "cas"
+                        timeoutS
+                  , weight = h.casWeight
+                  }
+              )
+              enabledHosts
+          )
+
+let casShardRingBulk = mkCasShardRing casBulkRpcTimeoutS
+
 let casShardRing =
       r.shard
         ( List/map
@@ -206,6 +238,13 @@ let schedulerConfig =
         , schema.Store::{
           , name = "AC_MAIN_STORE"
           , backend = r.cacheMetrics "ac-main" acShardRing
+          }
+        , -- The bulk-deadline view of the SAME CAS ring, for whole-layer
+          -- blob transfers (see casBulkRpcTimeoutS above). Same members,
+          -- same weights, same bytes — only the per-RPC deadline differs.
+          schema.Store::{
+          , name = "CAS_MAIN_STORE_BULK"
+          , backend = casShardRingBulk
           }
         , -- OCI registry digest-alias index (PROD-3): string-keyed
           -- `oci-digest:sha256:<hex>` -> canonical-identity records, behind
@@ -272,7 +311,7 @@ let schedulerConfig =
                   -- colocated CAS registry holds becomes a local graph walk
                   -- (no network client, nothing fetched twice).
                   self_registry = Some
-                  { blob_store = "CAS_MAIN_STORE"
+                  { blob_store = "CAS_MAIN_STORE_BULK"
                   , index_store = "OCI_INDEX_STORE"
                   , ref_store = "OCI_REF_STORE"
                   }
@@ -290,7 +329,7 @@ let schedulerConfig =
             oci_registry =
             [ schema.OciRegistrySvc::{
               , instance_name = "main"
-              , cas_store = "CAS_MAIN_STORE"
+              , cas_store = "CAS_MAIN_STORE_BULK"
               , index_store = "OCI_INDEX_STORE"
               , ref_store = "OCI_REF_STORE"
               , spool_path = "${storeRoot}/oci-spool"
