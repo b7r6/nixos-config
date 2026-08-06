@@ -51,8 +51,10 @@ let
     };
   };
 
-  # The fleet. system defaults to x86_64-linux; shimmer/gossamer are the aarch64 DGX Sparks.
+  # The fleet. system defaults to x86_64-linux; shimmer/gossamer are the
+  # aarch64 DGX Sparks, filament is the aarch64 Jetson AGX Thor.
   hosts = {
+    filament.system = "aarch64-linux";
     gossamer.system = "aarch64-linux";
     shimmer.system = "aarch64-linux";
 
@@ -89,6 +91,7 @@ in
     nixosModules = {
       default = ../modules/nixos;
       dgx-spark = ../modules/nixos/dgx-spark;
+      jetson-thor = ../modules/nixos/jetson-thor;
       wayland = ../modules/nixos/wayland;
     };
 

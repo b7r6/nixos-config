@@ -32,6 +32,7 @@
 #   shimmer        aarch64 NixOS    DGX Spark (GB10)
 #   shannon        x86_64  NixOS    laptop (frequently powered down, still fleet)
 #   gossamer       aarch64 NixOS    DGX Spark (GB10) — secondary compute node
+#   filament       aarch64 NixOS    Jetson AGX Thor devkit (JetPack 7)
 #
 # Decommissioned & removed from the fleet (do not re-add without a real host):
 #   beratna, flatline, galois, noether, railgun, ultralight
@@ -56,6 +57,8 @@
     shannon = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMbJUUAOq1ZviJYmM9G2i9Mnmcps7UTNKhPm9ILCMeNJ" ];
 
     # ── aarch64-linux ──
+    filament = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKzmR4jHaKhy09zwnMa7q17hDchteU4VFkliW6ESLJ86" ];
+
     shimmer = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAFyVtrt3AmJrLqcdAnZn5hXrvMenOUKGAS182qBnuYN" ];
 
     # ── non-NixOS → NixOS converted ──

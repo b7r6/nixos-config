@@ -38,6 +38,7 @@
     ./deploy.nix
     ./cache-push.nix
     ./usb.nix
+    ./netboot.nix
     ./docs.nix
 
     # ── component flake-modules (future-flake candidates) ────────────────────

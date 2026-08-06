@@ -242,6 +242,31 @@
         "type": "github"
       }
     },
+    "cuda-legacy": {
+      "inputs": {
+        "flake-parts": [
+          "jetpack-nixos",
+          "cuda-legacy"
+        ],
+        "nixpkgs": [
+          "jetpack-nixos",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1779836515,
+        "narHash": "sha256-X/AwJZeTjxetRM7JG2BXeffKa1PIg/uo8AP5TX/+kb0=",
+        "owner": "nixos-cuda",
+        "repo": "cuda-legacy",
+        "rev": "baf22622e1114bb36412e5cebe2303f302edb882",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos-cuda",
+        "repo": "cuda-legacy",
+        "type": "github"
+      }
+    },
     "darwin": {
       "inputs": {
         "nixpkgs": [
@@ -1116,6 +1141,27 @@
         "type": "github"
       }
     },
+    "jetpack-nixos": {
+      "inputs": {
+        "cuda-legacy": "cuda-legacy",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1785439247,
+        "narHash": "sha256-NSwtPEFxHlN7+l/dX0H+9bN/fOol+Tjurdq2P1v1Gyk=",
+        "owner": "anduril",
+        "repo": "jetpack-nixos",
+        "rev": "4d857d6da48c420da39964b6fb7ba23a958abad3",
+        "type": "github"
+      },
+      "original": {
+        "owner": "anduril",
+        "repo": "jetpack-nixos",
+        "type": "github"
+      }
+    },
     "llvm-project": {
       "flake": false,
       "locked": {
@@ -1977,6 +2023,7 @@
         "home-manager": "home-manager_2",
         "impermanence": "impermanence",
         "impurity": "impurity",
+        "jetpack-nixos": "jetpack-nixos",
         "nativelink": "nativelink",
         "nativelink-nix": "nativelink-nix",
         "nix-compile": "nix-compile",

@@ -12,6 +12,7 @@ The live machines, from `secrets/keys.nix` (the authoritative recipient list) an
 | `ultraviolence` | x86_64 | NixOS | primary workstation; attic replica, nativelink (CAS+worker), searxng+torrents, CoreDNS |
 | `guccimane` | x86_64 | NixOS | nvidia workstation; nativelink (CAS+worker), media (pinchflat+navidrome+jellyfin), dropbox, CoreDNS |
 | `shimmer` | aarch64 | NixOS | DGX Spark (GB10); attic client, CoreDNS; `disko` + `dgx-spark` module |
+| `filament` | aarch64 | NixOS | Jetson AGX Thor devkit (JetPack 7); `disko` + `jetson-thor` module; netboot/kexec re-image kit |
 | `shannon` | x86_64 | NixOS | laptop (frequently off); attic client, backup |
 | `weyl` | x86_64 | NixOS | nvidia workstation; attic client, backup |
 | `gossamer` | aarch64 | DGX OS | **not** a `nixosConfiguration`; global Nix; attic client / build node |
