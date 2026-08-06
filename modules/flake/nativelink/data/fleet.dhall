@@ -301,6 +301,12 @@ let schedulerConfig =
             [ { instance_name = "main"
               , fetch_store = "CAS_MAIN_STORE"
               , oci = Some schema.OciFetch::{
+                , -- Bulk deadline for the toolchain-import path: the
+                  -- projected-blob uploads AND the dedup has_many (one
+                  -- FindMissingBlobs over tens of thousands of digests for
+                  -- the ghc/lean/python cells) exceed the 60s hot-path
+                  -- ring deadline.
+                  cas_store = Some "CAS_MAIN_STORE_BULK"
                 , registries =
                   [ schema.OciRegistry::{
                     , host = "registry.sju1.s4.gl"
