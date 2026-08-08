@@ -27,13 +27,16 @@
   networking.firewall.enable = false;
 
   # The whole point: one non-root login named after the box, password to
-  # match. No fleet identity, no ssh keys, no secrets.
+  # match. No fleet identity, no ssh keys, no secrets. root carries the same
+  # password for console/emergency use (SSH stays key-only for root via the
+  # default prohibit-password).
   users.mutableUsers = false;
   users.users.filament = {
     isNormalUser = true;
     password = "filament";
     extraGroups = [ "wheel" ];
   };
+  users.users.root.password = "filament";
 
   # passwordless sudo so remote rebuilds don't need an interactive password
   security.sudo.enable = true;
