@@ -50,9 +50,21 @@ in
   # ── New Suzuki Quickshell prototype ────────────────────────────────────────
   # Runs alongside waybar/mako/wofi for now. Kill with `pkill quickshell`.
   # Set exclusive = true to disable the old shell components.
-  home-manager.users.b7r6.hyper-modern-nixos.new-suzuki = {
-    enable = true;
-    exclusive = true;
+  home-manager.users.b7r6.hyper-modern-nixos = {
+    new-suzuki = {
+      enable = true;
+      exclusive = true;
+    };
+
+    # ── Per-host monitor & display config ────────────────────────────────────
+    hyprland.monitors = (import ../../../lib/monitors.nix).shannon;
+
+    themes.display = {
+      profile = "oled";
+      highDPI = true;
+      width = 2880;
+      height = 1800;
+    };
   };
 
   users.users.b7r6 = {
@@ -71,6 +83,9 @@ in
 
   time.timeZone = "America/New_York";
   services.printing.enable = true;
+
+  # Battery reporting for the new-suzuki shell (BatteryService reads UPower)
+  services.upower.enable = true;
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
 

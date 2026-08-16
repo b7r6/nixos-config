@@ -247,6 +247,11 @@ in
     }
 
     (mkIf cfg.exclusive {
+      # ── Exclusive-mode autostart dependencies ──────────────────────────
+      # The autostart list below references tailscale-systray; ship it so
+      # the entry doesn't silently fail on hosts that don't install it.
+      home.packages = [ pkgs.tailscale-systray ];
+
       # ── Disable old shell components ───────────────────────────────────
       hyper-modern-nixos.waybar.enable = lib.mkForce false;
       hyper-modern-nixos.launchers.enable = lib.mkForce false;
