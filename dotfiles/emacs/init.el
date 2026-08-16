@@ -16,6 +16,30 @@
 (require 'seq)
 
 ;; ───────────────────────────────────────────────────────────────────
+;;                  // terminal keyboard // kitty keyboard protocol
+;; ───────────────────────────────────────────────────────────────────
+;;
+;; emacs -nw runs under Ghostty + zellij, both of which speak the kitty
+;; keyboard protocol. Undecoded, modified keys arrive as raw CSI-u fragments
+;; ("M-[ 44 ; 4 u is undefined") and M-<, M->, C-RET, S-… are lost.
+;; global-kkp-mode negotiates the protocol per terminal frame and decodes it
+;; (queries first, so it's a no-op on terminals — or GUI/pgtk frames — that
+;; don't advertise support). This is what makes M-</M-> reach emacs again.
+(when (require 'kkp nil t)
+  (global-kkp-mode +1))
+
+;; …but zellij's kitty-protocol passthrough drops the "alternate keys" report,
+;; so kkp can't fold shift+punctuation into the shifted glyph: M-< arrives as
+;; M-S-, and M-> as M-S-. — which emacs then shift-falls-back to M-, / M-.
+;; (xref-go-back / xref-find-definitions), NOT beginning/end-of-buffer.
+;; Translate the miscoded events to the real keys (US layout: S-, IS <, S-. IS
+;; >), so M-< / M-> work in every mode. Real M-, / M-. are distinct events,
+;; untouched. (If zellij ever forwards alternate keys, M-< arrives correctly
+;; and these entries simply never fire.)
+(define-key key-translation-map (kbd "M-S-,") (kbd "M-<"))
+(define-key key-translation-map (kbd "M-S-.") (kbd "M->"))
+
+;; ───────────────────────────────────────────────────────────────────
 ;;                            // memory // performance // optimization
 ;; ───────────────────────────────────────────────────────────────────
 
@@ -66,6 +90,15 @@
   (and (getenv "NIX_PROFILES")
        (locate-library "vertico"))  ; test for a Nix-provided package
   "Non-nil if running Nix-managed Emacs with preloaded packages.")
+
+;; Declare straight.el / use-package vars as special before we assign them.
+;; These packages load AFTER the setq calls below, so without these declarations
+;; the byte-compiler reports "assignment to free variable".
+(defvar straight-package--warning-displayed)   ; suppress straight/pkg.el nag
+(defvar straight-use-package-by-default)       ; per-package fetch default
+(defvar use-package-always-ensure)             ; ensure all use-package forms
+(defvar use-package-verbose)                   ; verbose logging
+(defvar use-package-expand-minimally)          ; minimal macro expansion
 
 ;; Bootstrap straight.el (always available for ad-hoc packages)
 ;; Suppress warning about package.el - we intentionally use both:
@@ -136,6 +169,69 @@
 (declare-function dashboard-setup-startup-hook "dashboard" ())
 (declare-function color-rgb-to-hex "color" (red green blue &optional digits-per-component))
 (declare-function flymake-mode "flymake" (&optional arg))
+;; consult (installed package)
+(declare-function consult-info "consult" ())
+(declare-function consult-man "consult" ())
+(declare-function consult-fd "consult" ())
+;; dashboard (installed package)
+(declare-function dashboard-open "dashboard" ())
+;; xref (built-in)
+(declare-function xref-goto-xref "xref" (&optional _))
+;; nerd-icons-completion (installed package)
+(declare-function nerd-icons-completion-mode "nerd-icons-completion" (&optional arg))
+(declare-function nerd-icons-completion-marginalia-setup "nerd-icons-completion" ())
+;; password-store (installed package)
+(declare-function password-store-copy "password-store" (entry))
+(declare-function password-store-generate "password-store" (entry &optional length symbols))
+(declare-function password-store-insert "password-store" (entry password))
+;; f.el (installed package, used in pass :config)
+(declare-function f-join "f" (&rest args))
+(declare-function f-directory? "f" (path))
+(declare-function f-filename "f" (path))
+(declare-function f-entries "f" (path &optional fn recursive))
+(declare-function f-ext "f" (path &optional period))
+;; ghostel (installed package)
+(declare-function ghostel-send-key "ghostel" (key &optional modifiers))
+;; prescient / vertico-prescient / company-prescient (installed packages)
+(declare-function prescient-persist-mode "prescient" (&optional arg))
+(declare-function vertico-prescient-mode "vertico-prescient" (&optional arg))
+(declare-function company-prescient-mode "company-prescient" (&optional arg))
+;; gptel (installed package)
+(declare-function gptel-make-openai "gptel-openai" (&rest args))
+(declare-function gptel-make-tool "gptel-tool" (&rest args))
+;; json.el (built-in, but autoloaded — defvar above covers the dynamic vars;
+;; declare-function covers the call-site warnings)
+(declare-function json-read "json" ())
+(declare-function json-encode "json" (object))
+;; straight.el (bootstrapped dynamically)
+(declare-function straight-use-package "straight" (melpa-style-recipe &rest args))
+;; the purcell-class long tail (global modes called in :config blocks;
+;; package.el autoloads are off under the straight model)
+(declare-function global-diff-hl-mode "diff-hl" (&optional arg))
+(declare-function diff-hl-margin-mode "diff-hl-margin" (&optional arg))
+(declare-function global-move-dup-mode "move-dup" (&optional arg))
+(declare-function global-hl-todo-mode "hl-todo" (&optional arg))
+(declare-function magit-todos-mode "magit-todos" (&optional arg))
+
+;; lsp-mode variables set in config blocks before lsp-mode loads
+(defvar lsp-headerline-breadcrumb-enable-diagnostics) ; hide diag icons
+
+;; url.el / json.el dynamic variables — these are special at runtime
+;; (url-retrieve and json-read bind them), but the byte-compiler can't
+;; see the (require 'url)/(require 'json) calls as proof.
+(defvar url-request-method)
+(defvar url-request-extra-headers)
+(defvar url-request-data)
+(defvar json-object-type)
+(defvar json-array-type)
+
+;; gptel struct accessor
+(defvar gptel-backend)  ; set inside gptel :config; referenced outside it
+
+;; pulse.el dynamic variables — special at runtime; let-bound to tune the
+;; pulse animation but the byte-compiler doesn't see them as special yet.
+(defvar pulse-iterations)
+(defvar pulse-delay)
 
 ;; External package variables
 (defvar lean4-mode-map)
@@ -146,6 +242,8 @@
 (defvar lsp-ui-sideline-show-diagnostics)
 (defvar lsp-ui-sideline-show-code-actions)
 (defvar ansi-color-names-vector)
+(defvar hypermodern/modeline-height)
+(declare-function doom-modeline-mode "doom-modeline")
 (defvar doom-modeline-height)
 (defvar doom-modeline-icon)
 (defvar doom-modeline-major-mode-icon)
@@ -156,11 +254,27 @@
 (defvar dimmer-fraction)
 (defvar tramp-use-ssh-controlmaster-options)
 
-;; Functions defined later in this file
-(declare-function hypermodern/visit-init "init" ())
-(declare-function hypermodern/goto-definition-or-file "init" ())
-(declare-function hypermodern/kill-buffer "init" ())
-(declare-function hypermodern/format-buffer "init" ())
+;; Functions defined later in this file (inside use-package :config blocks).
+;; File arg = nil: the byte-compiler skips file-validation but suppresses the
+;; "not known to be defined" warning; nil avoids the Emacs-31 phantom
+;; "defined multiple times" that "init" as the file arg would trigger.
+(declare-function hypermodern/visit-init nil ())
+(declare-function hypermodern/goto-definition-or-file nil ())
+(declare-function hypermodern/kill-buffer nil ())
+;; gptel spinner / hook functions (defined in gptel :config block)
+(declare-function hypermodern/gptel--spinner-start nil ())
+(declare-function hypermodern/gptel--spinner-stop nil ())
+(declare-function hypermodern/gptel--before-send nil (&rest _))
+(declare-function hypermodern/gptel--after-response nil (beg end))
+(declare-function hypermodern/gptel--format-response nil (beg end))
+;; pass override helpers (defined in pass :config block)
+(declare-function hypermodern/pass--tree nil (&optional subdir))
+(declare-function hypermodern/password-store--file-to-entry nil (file))
+(declare-function hypermodern/password-store--entry-to-file nil (entry))
+;; compile helpers (defined in ghostel-compile :config block)
+(declare-function hypermodern/compile-root nil (&optional dir))
+(declare-function hypermodern/compile--pin-to-root nil ())
+(declare-function hypermodern/compile--truename nil (orig marker filename &rest args))
 
 ;; ───────────────────────────────────────────────────────────────────
 ;;                                                             // PGTK
@@ -865,7 +979,7 @@
   (add-to-list 'default-frame-alist (cons key val)))
 
 (defun hypermodern/ui--accent-color ()
-  (let ((palette (hypermodern/get-palette hypermodern/current-theme)))
+  (let ((palette (hypermodern/current-palette)))
     (or (plist-get palette :base0A) "#54aeff")))
 
 (defun hypermodern/ui--glow-alpha ()
@@ -906,6 +1020,17 @@
     (ignore-errors (hypermodern/ui--set-frame-param 'alpha (cons hypermodern/ui-alpha hypermodern/ui-alpha)))))
 
 (defun hypermodern/ui--apply-modeline ()
+  (if (fboundp 'hypermodern/modeline-refresh)
+      (progn
+        (setq hypermodern/modeline-height
+              (pcase hypermodern/ui-density
+                ('tight 18) ('normal 20) ('comfy 22) ('cinema 26) (_ 20)))
+        (hypermodern/modeline-refresh))
+    (hypermodern/ui--apply-doom-modeline)))
+
+(declare-function hypermodern/modeline-refresh "hypermodern-modeline")
+
+(defun hypermodern/ui--apply-doom-modeline ()
   (when (featurep 'doom-modeline)
     (setq doom-modeline-height (pcase hypermodern/ui-density ('tight 18) ('normal 20) ('comfy 22) ('cinema 26) (_ 20)))
     (pcase hypermodern/ui-signal
@@ -917,9 +1042,17 @@
                    doom-modeline-minor-modes t doom-modeline-buffer-encoding t doom-modeline-checker-simple-format nil doom-modeline-modal t)))
     (doom-modeline-mode 1) (force-mode-line-update t)))
 
+(defun hypermodern/current-palette ()
+  "The LIVE computed palette when wintermute has synced one, else the named
+theme's static palette. Strong-layer UI faces (fringe, internal-border, cursor)
+read this so they track the desktop's live vector instead of a frozen theme —
+the source of the fringe drift when hero/axis/level retune."
+  (or (and (boundp 'hypermodern/live-palette) hypermodern/live-palette)
+      (hypermodern/get-palette hypermodern/current-theme)))
+
 (defun hypermodern/ui--apply-glow ()
 
-  (let* ((palette (hypermodern/get-palette hypermodern/current-theme))
+  (let* ((palette (hypermodern/current-palette))
          (bg (or (plist-get palette :base00) "#000000"))
          (accent (hypermodern/ui--accent-color))
          (a (hypermodern/ui--glow-alpha))
@@ -938,18 +1071,28 @@
       (ignore-errors (set-face-background 'cursor cursor) (set-cursor-color cursor))))
   )
 
+;; The glow owns fringe/internal-border/cursor on the STRONG layer, which
+;; apply-computed's face-defface-spec pass can't touch — so it must re-run on
+;; every wintermute sync or those faces drift. (modeline already rides this hook.)
+(add-hook 'hypermodern/theme-changed-hook #'hypermodern/ui--apply-glow)
+
 ;; pulse system
 (defvar hypermodern/ui--pulse-hook-installed nil)
 
 (defun hypermodern/ui--pulse-post-command ()
   (when (and hypermodern/ui-enable-pulse (memq this-command hypermodern/ui-pulse-commands))
     (when (require 'pulse nil 'noerror)
-      (let* ((palette (hypermodern/get-palette hypermodern/current-theme))
+      (let* ((palette (hypermodern/current-palette))
              (bg (plist-get palette :base00))
              (accent (hypermodern/ui--accent-color))
              (pulse-color (hypermodern/ui--color-blend accent bg 0.15)))
 
         (when pulse-color
+          ;; pulse.el must be loaded BEFORE the let: its entry point is
+          ;; autoloaded, and binding not-yet-special vars is lexical — the
+          ;; iterations/delay were silently ignored on the first pulse of
+          ;; every session.
+          (require 'pulse)
           (let ((pulse-iterations 8)
                 (pulse-delay 0.04))
             (set-face-background 'pulse-highlight-face pulse-color)
@@ -1339,19 +1482,37 @@ action, which splits the frame — the one thing that may never happen."
 ;;                                                     // mode // line
 ;; ───────────────────────────────────────────────────────────────────
 
+;; doom-modeline retires to FALLBACK: the svg modeline (hypermodern-
+;; modeline.el, beside this file) draws every pixel from the computed
+;; palette — no theme hole — and morphs with the register. When the file
+;; is absent (bare clone on another distro), doom-modeline steps back in.
 (use-package doom-modeline
-  :demand t
-  :hook (after-init . doom-modeline-mode)
-
+  :defer t
   :config
   (setq doom-modeline-height 20
         doom-modeline-bar-width 3
         doom-modeline-icon nil
         doom-modeline-buffer-encoding nil))
 
+(declare-function hypermodern/modeline-enable "hypermodern-modeline")
+
+(if (load (expand-file-name "hypermodern-modeline" user-emacs-directory)
+          'noerror 'nomessage)
+    (add-hook 'after-init-hook #'hypermodern/modeline-enable 90)
+  (add-hook 'after-init-hook #'doom-modeline-mode))
+
 ;; ───────────────────────────────────────────────────────────────────
 ;;                                   // gptel // passage // openrouter
 ;; ───────────────────────────────────────────────────────────────────
+
+;; Load gptel-request at compile time (and at source-load time — it is a
+;; dependency of gptel and harmless to pre-load).  This gives the byte-compiler
+;; knowledge of the gptel-backend cl-defstruct so it knows the setf expanders
+;; (setf gptel-backend-key) and (setf gptel-backend-models) are valid.
+;; Crucially we load gptel-request, NOT gptel: loading gptel marks the `gptel'
+;; feature as provided, which causes use-package to run :config immediately
+;; (before gptel-openai is loaded), causing void-function errors.
+(eval-when-compile (require 'gptel-request nil t))
 
 (defun hypermodern/gptel--netrc-get (host)
   "Get the password for HOST by parsing ~/.netrc DIRECTLY.
@@ -1720,26 +1881,26 @@ Filters to only models from `hypermodern/gptel-allowed-providers' if set."
 
     (let* ((choice (completing-read "Prompt: " (mapcar #'car hypermodern/gptel-prompts) nil t))
            (prompt (cdr (assoc choice hypermodern/gptel-prompts))))
-      (setq gptel--system-message prompt)
+      (setq gptel-system-prompt prompt)
       (message "Prompt: %s" (if prompt choice "Default"))))
 
   (defun hypermodern/gptel-rewrite-region (start end)
     "Rewrite selected region to be clearer."
     (interactive "r")
 
-    (let ((gptel--system-message "Rewrite the following to be clearer and more concise. Output only the rewritten text, no explanation."))
+    (let ((gptel-system-prompt "Rewrite the following to be clearer and more concise. Output only the rewritten text, no explanation."))
       (gptel-send start end)))
 
   (defun hypermodern/gptel-explain-region (start end)
     "Explain selected code/text."
     (interactive "r")
-    (let ((gptel--system-message "Explain the following clearly and concisely."))
+    (let ((gptel-system-prompt "Explain the following clearly and concisely."))
       (gptel-send start end)))
 
   (defun hypermodern/gptel-code-region (start end)
     "Generate/improve code for selected region."
     (interactive "r")
-    (let ((gptel--system-message "You are an expert programmer. Write clean, idiomatic code. No markdown fences unless necessary."))
+    (let ((gptel-system-prompt "You are an expert programmer. Write clean, idiomatic code. No markdown fences unless necessary."))
       (gptel-send start end)))
 
   (defun hypermodern/gptel-send-buffer ()
@@ -2196,7 +2357,7 @@ Opens a new gptel buffer with agent mode enabled and tools available."
       (with-current-buffer buf
         (setq-local hypermodern/gptel-agent-mode t)
         (setq-local gptel-confirm-tool-calls 'confirm-dangerous)
-        (setq-local gptel--system-message
+        (setq-local gptel-system-prompt
                     "You are an expert software engineer with access to tools.
 Use tools to explore the codebase, make edits, and run commands.
 Work step by step. After each tool call, analyze the result and decide the next action.
@@ -2406,48 +2567,10 @@ When you've completed the task or need clarification, say so clearly.")
   :config (yas-global-mode 1))
 
 ;; ───────────────────────────────────────────────────────────────────
-;; // codeium - AI code completion (FIM)
-;; ───────────────────────────────────────────────────────────────────
-
-(use-package codeium
-  :straight '(:host github :repo "Exafunction/codeium.el")
-  :defer t
-  :commands (codeium-complete codeium-install codeium-diagnose)
-  :init
-  ;; Mode line indicator
-  (setq codeium-mode-line-enable
-        (lambda (api) (not (memq api '(CancelRequest Heartbeat AcceptCompletion)))))
-
-  ;; Get codeium status
-  (defun hypermodern/codeium-status ()
-    "Show codeium connection status."
-    (interactive)
-    (require 'codeium)
-    (codeium-diagnose))
-
-  ;; Auto-install language server if missing
-  (defun hypermodern/codeium-ensure-installed ()
-    "Install codeium language server if not present."
-    (interactive)
-    (require 'codeium)
-    (unless (file-exists-p (expand-file-name "~/.emacs.d/codeium/codeium_language_server"))
-      (codeium-install)))
-
-  ;; Setup keybindings after codeium loads
-  (with-eval-after-load 'codeium
-    (when (boundp 'codeium-completion-map)
-      (define-key codeium-completion-map (kbd "TAB") #'codeium-completion-accept)
-      (define-key codeium-completion-map (kbd "<tab>") #'codeium-completion-accept)
-      (define-key codeium-completion-map (kbd "M-]") #'codeium-completion-next)
-      (define-key codeium-completion-map (kbd "M-[") #'codeium-completion-prev)
-      (define-key codeium-completion-map (kbd "C-g") #'codeium-completion-cancel))
-    ;; Add mode line after load
-    (add-to-list 'mode-line-format '(:eval (car-safe codeium-mode-line)) t))
-
-  :bind
-  ("C-c a c" . codeium-complete)           ; Trigger completion
-  ("C-c a i" . hypermodern/codeium-ensure-installed)  ; Install/check
-  ("C-c a s" . hypermodern/codeium-status))
+;; // codeium block removed: it declared :straight (no straight in the
+;; nix model) so the whole use-package form failed to PARSE and errored
+;; on every load. Reintroduce via mk-hypermodern-emacs if ever wanted;
+;; gptel is the living LLM stack here.
 
 ;; ───────────────────────────────────────────────────────────────────
 ;;                                                      // tree-sitter
@@ -2577,7 +2700,7 @@ When you've completed the task or need clarification, say so clearly.")
      :type-checker rust-analyzer)
 
     (python
-     :mode python-mode
+     :mode python-ts-mode
      :extensions ("\\.py\\'")
      :backend lsp
      :server pyright
@@ -2720,8 +2843,8 @@ When you've completed the task or need clarification, say so clearly.")
 
 Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
   :mode             - Primary major mode symbol
-  :extensions       - File extension patterns (string or list of (pattern . mode))
-  :backend          - 'lsp, 'eglot, or nil for no LSP
+  :extensions       - File extension patterns (string or (pattern . mode) list)
+  :backend          - `lsp\\=', `eglot\\=', or nil for no LSP
   :server           - LSP server identifier (symbol)
   :formatter        - Preferred formatter command (symbol)
   :format-all-formatter - format-all backend name (symbol)
@@ -2729,7 +2852,7 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
   :type-checker     - Type checker tool (symbol or nil)
   :builtin          - t if mode is built-in to Emacs (no package needed)
   :extra-packages   - List of additional packages to install
-  :extra-modes      - Additional modes to hook (e.g., tsx-ts-mode for typescript)
+  :extra-modes      - Additional modes to hook (e.g. tsx-ts-mode for typescript)
   :extra-config     - Lambda to run for additional configuration
   :notes            - Additional notes about the configuration (string)")
 
@@ -2853,11 +2976,14 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
          ("\\.cuh\\'" . cuda-mode))
   :hook (cuda-mode . lsp-deferred))
 
-;; python-base-mode is the shared parent of python-mode and python-ts-mode,
-;; so one hook on it covers both variants (a derived mode runs its parents'
-;; hooks). This is the built-in python.el mode, not the 3rd-party package.
+;; Built-in python (the external `python-mode' package was never installed —
+;; the require failed silently, so .py buffers ran WITHOUT the lsp hook).
+;; Tree-sitter grammars are store-provided, so .py maps straight to the ts
+;; variant. python-base-mode is the shared parent of python-mode and
+;; python-ts-mode, so one hook on it covers both (a derived mode runs its
+;; parents' hooks).
 (use-package python
-  :mode ("\\.py\\'" . python-mode)
+  :mode ("\\.py\\'" . python-ts-mode)
   :hook (python-base-mode . lsp-deferred))
 
 (use-package typescript-ts-mode
@@ -2914,7 +3040,9 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 ;; Starlark for buck2. bazel.el provides `bazel-starlark-mode' for .bzl/BUCK
 ;; files; we attach it to the buck2 LSP (registered above) and let buildifier
 ;; handle formatting/linting via format-all.
-(use-package bazel-starlark-mode
+;; Feature name is `bazel' — requiring `bazel-starlark-mode' (a major mode
+;; inside it, not a feature) failed silently: BUCK/.bzl config never applied.
+(use-package bazel
   :mode (("\\.bzl\\'" . bazel-starlark-mode)
          ("BUCK\\'" . bazel-starlark-mode))
   :hook (bazel-starlark-mode . lsp-deferred))
@@ -3084,12 +3212,12 @@ to a containing directory wins, so a build-system root (`.buckconfig',
     (let ((start (or dir default-directory)))
       (catch 'found
         (dolist (marker hypermodern/compile-root-markers nil)
-          (when-let ((hit (locate-dominating-file start marker)))
+          (when-let* ((hit (locate-dominating-file start marker)))
             (throw 'found (expand-file-name hit)))))))
 
   (defun hypermodern/compile--pin-to-root ()
     "Pin compile buffer's dir to the project root; add it to search path."
-    (when-let ((root (hypermodern/compile-root)))
+    (when-let* ((root (hypermodern/compile-root)))
       (setq-local default-directory root)
       (setq-local compilation-search-path
                   (cons root (bound-and-true-p compilation-search-path)))))
@@ -3366,19 +3494,122 @@ no way human."))
   (dashboard-setup-startup-hook))
 
 ;; ───────────────────────────────────────────────────────────────────
+;;                            // the long tail // purcell-class kit //
+;; ───────────────────────────────────────────────────────────────────
+;; The activation pass: several of these were in the nix package set for
+;; years but never configured (avy — whose faces predate it in the theme
+;; engine — ace-window, helpful, expand-region, multiple-cursors); the
+;; rest join the set now. Everything defers, and nothing REBINDS existing
+;; muscle memory — remaps and fresh chords only, reach without breakage.
+;; Every NEW package carries `:if (locate-library ...)`: on a box (or a
+;; pre-switch session) without it, the form vanishes instead of erroring —
+;; a bare `require' here once took the whole init down with it, faces
+;; half-applied. Portable-first means absence is a supported state.
+
+(use-package avy
+  :bind (("C-;" . avy-goto-char-timer)
+         ("M-g w" . avy-goto-word-1)
+         ("M-g g" . avy-goto-line)))
+
+(use-package ace-window
+  :bind ([remap other-window] . ace-window)
+  :custom (aw-scope 'frame))
+
+(use-package helpful
+  :bind (([remap describe-function] . helpful-callable)
+         ([remap describe-variable] . helpful-variable)
+         ([remap describe-key] . helpful-key)
+         ([remap describe-command] . helpful-command)
+         ("C-h x" . helpful-at-point)))
+
+;; consult-ripgrep → embark-export → wgrep: the editable-grep circuit
+(use-package wgrep
+  :if (locate-library "wgrep")
+  :custom (wgrep-auto-save-buffer t))
+
+(use-package diff-hl
+  :if (locate-library "diff-hl")
+  ;; package.el startup is off (straight model), so autoloads don't exist
+  ;; until the feature loads — global modes belong in :config, and :demand
+  ;; defeats the :hook-implied deferral. (No magit refresh hooks: diff-hl
+  ;; 1.11 obsoleted them, the integration is internal now.)
+  :demand t
+  :hook (dired-mode . diff-hl-dired-mode)
+  :config
+  (global-diff-hl-mode 1)
+  ;; terminal frames have no fringe — fall back to the margin
+  ;; (diff-hl-margin is its own file in the package; no autoloads here)
+  (unless (display-graphic-p)
+    (require 'diff-hl-margin)
+    (diff-hl-margin-mode 1)))
+
+(use-package symbol-overlay
+  :if (locate-library "symbol-overlay")
+  :hook (prog-mode . symbol-overlay-mode)
+  :bind (("M-s i" . symbol-overlay-put)
+         :map symbol-overlay-mode-map
+         ("M-n" . symbol-overlay-jump-next)
+         ("M-p" . symbol-overlay-jump-prev)))
+
+(use-package expand-region
+  :bind ("C-=" . er/expand-region))
+
+(use-package multiple-cursors
+  :bind (("C-<" . mc/mark-previous-like-this)
+         ("C->" . mc/mark-next-like-this)
+         ("C-c m c" . mc/edit-lines)))
+
+(use-package move-dup
+  :if (locate-library "move-dup")
+  :config (global-move-dup-mode 1))
+
+(use-package hl-todo
+  :if (locate-library "hl-todo")
+  :config (global-hl-todo-mode 1))
+
+(use-package magit-todos
+  :if (locate-library "magit-todos")
+  :after magit
+  :config (magit-todos-mode 1))
+
+;; trim only the whitespace THIS edit dirtied — repo-safe by construction
+(use-package ws-butler
+  :if (locate-library "ws-butler")
+  :hook (prog-mode . ws-butler-mode))
+
+(use-package diredfl
+  :if (locate-library "diredfl")
+  :hook (dired-mode . diredfl-mode))
+
+(use-package dired
+  :config
+  (setq dired-dwim-target t
+        dired-recursive-copies 'always
+        dired-recursive-deletes 'top
+        dired-listing-switches "-alh --group-directories-first"
+        dired-kill-when-opening-new-dired-buffer t))
+
+;; builtins that just needed switching on
+(save-place-mode 1)
+(editorconfig-mode 1)
+
+;; ───────────────────────────────────────────────────────────────────
 ;;                                                      // keybindings
 ;; ───────────────────────────────────────────────────────────────────
+
+(defun hypermodern/show-current-file ()
+  "Show (and copy) the current buffer's file path.
+Was keybound on C-c f but never defined — every press errored."
+  (interactive)
+  (if-let* ((f (or buffer-file-name default-directory)))
+      (progn (kill-new f) (message "%s (copied)" f))
+    (message "no file")))
 
 (use-package general
   :demand t
   :config
   (defun hypermodern/visit-init () (interactive) (find-file user-init-file))
   (defun hypermodern/kill-buffer () (interactive) (kill-buffer (current-buffer)))
-
-  (defun hypermodern/show-current-file ()
-    "Print the current buffer filename to the minibuffer."
-    (interactive)
-    (message (or (buffer-file-name) "[no file]")))
 
   (defun hypermodern/goto-definition-or-file ()
     "Go to definition of symbol, or open file at point.
@@ -3414,8 +3645,8 @@ Moves to end of current line, deletes newline, and collapses whitespace."
 
    ;; ─── window navigation  ──────────────────────────────────────────
 
-   "M-N"       #'windmove-right
-   "M-P"       #'windmove-left
+   "M-N"       #'hypermodern/nav-right
+   "M-P"       #'hypermodern/nav-left
    "M-R"       #'hypermodern/rotate-windows
    "C-x 2"     #'hypermodern/vsplit
    "C-x 3"     #'hypermodern/hsplit
@@ -3457,14 +3688,96 @@ Moves to end of current line, deletes newline, and collapses whitespace."
    ))
 
 ;; ───────────────────────────────────────────────────────────────────
+;;                        // unified navigation // C-o // one grammar
+;; ───────────────────────────────────────────────────────────────────
+;;
+;; The joint grammar across every layer: direction-first, same letters,
+;; the modifier picks the layer. Super+hjkl = compositor (hyprland),
+;; C-o hjkl = multiplexer (zellij), and HERE: C-o hjkl = emacs windows
+;; via windmove. C-o C-o = last window (the tmux toggle, one layer
+;; down); C-o | and C-o - = splits, exactly as in zellij. open-line
+;; retires to C-o o (it was already dead under the tmux prefix for
+;; years).
+
+(declare-function windmove-left "windmove")
+(declare-function windmove-right "windmove")
+(declare-function windmove-up "windmove")
+(declare-function windmove-down "windmove")
+
+(defun hypermodern/last-window ()
+  "Select the most recently used other window — the C-o C-o toggle."
+  (interactive)
+  (let ((mru (get-mru-window nil t t)))
+    (when mru (select-window mru))))
+
+(defun hypermodern/nav--edge (dir)
+  "At the frame edge inside a zellij session, hand focus to the multiplexer.
+The vim-tmux-navigator move, one layer up: C-o hjkl walks emacs windows
+until there are none in that direction, then the same gesture keeps
+walking zellij panes. Outside zellij, the edge stays an edge."
+  (if (getenv "ZELLIJ")
+      (call-process "zellij" nil 0 nil "action" "move-focus" dir)
+    (user-error "No window %s" dir)))
+
+(defun hypermodern/nav-left ()
+  "Windmove left; fall through to zellij at the edge."
+  (interactive)
+  (condition-case nil (windmove-left) (error (hypermodern/nav--edge "left"))))
+(defun hypermodern/nav-down ()
+  "Windmove down; fall through to zellij at the edge."
+  (interactive)
+  (condition-case nil (windmove-down) (error (hypermodern/nav--edge "down"))))
+(defun hypermodern/nav-up ()
+  "Windmove up; fall through to zellij at the edge."
+  (interactive)
+  (condition-case nil (windmove-up) (error (hypermodern/nav--edge "up"))))
+(defun hypermodern/nav-right ()
+  "Windmove right; fall through to zellij at the edge."
+  (interactive)
+  (condition-case nil (windmove-right) (error (hypermodern/nav--edge "right"))))
+
+(defvar hypermodern/nav-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "h") #'hypermodern/nav-left)
+    (define-key map (kbd "j") #'hypermodern/nav-down)
+    (define-key map (kbd "k") #'hypermodern/nav-up)
+    (define-key map (kbd "l") #'hypermodern/nav-right)
+    (define-key map (kbd "C-o") #'hypermodern/last-window)
+    (define-key map (kbd "|") #'split-window-right)
+    (define-key map (kbd "-") #'split-window-below)
+    (define-key map (kbd "x") #'delete-window)
+    (define-key map (kbd "z") #'delete-other-windows)
+    (define-key map (kbd "o") #'open-line)
+    map)
+  "The C-o prefix: the unified navigation table, emacs layer.")
+
+(global-set-key (kbd "C-o") hypermodern/nav-map)
+
+;; ───────────────────────────────────────────────────────────────────
 ;;                                                          // startup
 ;; ───────────────────────────────────────────────────────────────────
 
 (add-hook 'after-make-frame-functions
           (lambda (_) (hypermodern/ui-apply)))
 
+;; Computed palettes + the wintermute live channel (hypermodern-palette.el,
+;; beside this file). Loading it defines ono-sendai-set-hero/-set-axis/
+;; -set-level/-set-polarity and ono-sendai-sync; sync reads wintermute's
+;; theme.state when present, so startup lands on whatever the desktop is
+;; wearing. Absent the file (or the daemon), the hand-tuned palettes above
+;; still work — nix pre-loads, nothing breaks without it.
+(load (expand-file-name "hypermodern-palette" user-emacs-directory) 'noerror 'nomessage)
+
 (defun hypermodern/initialization-hook ()
   (hypermodern/apply-theme 'ono-sendai-sprawl)
+  ;; The computed vector wins over the static default when wintermute has
+  ;; state to sync (no-op otherwise), and a timer keeps it live thereafter
+  ;; — dragging the orbital pad retints this emacs within a poll. Not in
+  ;; batch: --batch has no live desktop and exits before a timer fires.
+  (when (fboundp 'ono-sendai-sync)
+    (ono-sendai-sync))
+  (when (and (not noninteractive) (fboundp 'ono-sendai-poll-start))
+    (ono-sendai-poll-start))
   (hypermodern/ui-apply)
   (hypermodern/css-reset)
   (global-clipetty-mode))

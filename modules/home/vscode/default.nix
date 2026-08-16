@@ -59,118 +59,59 @@ let
   # home-manager's `programs.vscode` writes settings.json as a READ-ONLY nix
   # store symlink, so VS Code/Cursor can never persist a setting and the file
   # collides on activation. Zed's HM module solves the same problem with an
-  # activation-time `jq` deep-merge into the MUTABLE file; we reuse that exact
-  # shape: `$dynamic * $static` — start from whatever the editor wrote
-  # (dynamic), overlay our declared settings (static), static wins on conflict.
-  # The file stays writable, so the editor keeps its own keys and our managed
-  # keys are reasserted every switch. Mirrors home.activation.claudeBypassPermissions.
+  # activation-time `jq` deep-merge into the MUTABLE file; we extend that shape
+  # one layer: `$dynamic * $repo * $computed` — start from whatever the editor
+  # wrote (dynamic), overlay the REPO-HOMED declared settings
+  # (dotfiles/vscode/settings.json, read live from the working tree at
+  # activation — edit them there, no rebuild), then the thin nix-computed
+  # overlay (fonts, theme selection, option-conditional flags). Rightmost wins
+  # on conflict. The target stays writable, so the editor keeps its own keys
+  # and the declared layers are reasserted every switch.
   # Read current content as the dynamic baseline FIRST (works whether the path
   # is a writable file OR a read-only home-manager store symlink — e.g. the one
   # stylix.targets.vscode still writes), THEN drop a symlink / non-writable file
   # so the subsequent write lands a real, editor-writable file. Without the rm,
   # `printf >` follows the symlink into the read-only nix store and fails with
   # EACCES — that's the read-only-config bug this whole change fixes.
-  lwwMergeSettings = path: staticFile: ''
+  repoSettingsPath = "${config.hyper-modern-nixos.dotfiles.path}/vscode/settings.json";
+  repoKeybindingsPath = "${config.hyper-modern-nixos.dotfiles.path}/vscode/keybindings.json";
+
+  lwwMergeSettings = path: computedFile: ''
     ${pkgs.coreutils}/bin/mkdir -p "$(${pkgs.coreutils}/bin/dirname ${lib.escapeShellArg path})"
     dynamic="$(${pkgs.jq}/bin/jq '.' ${lib.escapeShellArg path} 2>/dev/null || echo '{}')"
+    repo="$(${pkgs.jq}/bin/jq '.' ${lib.escapeShellArg repoSettingsPath} 2>/dev/null || echo '{}')"
     if [ -L ${lib.escapeShellArg path} ] || { [ -e ${lib.escapeShellArg path} ] && [ ! -w ${lib.escapeShellArg path} ]; }; then
       ${pkgs.coreutils}/bin/rm -f ${lib.escapeShellArg path}
     fi
-    static="$(${pkgs.coreutils}/bin/cat ${staticFile})"
-    merged="$(${pkgs.jq}/bin/jq -n '$dynamic * $static' \
-      --argjson dynamic "$dynamic" --argjson static "$static")"
+    computed="$(${pkgs.coreutils}/bin/cat ${computedFile})"
+    merged="$(${pkgs.jq}/bin/jq -n '$dynamic * $repo * $computed' \
+      --argjson dynamic "$dynamic" --argjson repo "$repo" --argjson computed "$computed")"
     printf '%s\n' "$merged" > ${lib.escapeShellArg path}
-    unset dynamic static merged
+    unset dynamic repo computed merged
   '';
 
   # Keybindings are a JSON ARRAY, not an object: LWW by `key`+`command` identity
-  # so editor-added bindings survive and our declared ones are reasserted. Same
-  # read-then-replace-symlink dance as settings.
-  lwwMergeKeybindings = path: staticFile: ''
+  # so editor-added bindings survive and the repo-declared ones are reasserted.
+  # Same read-then-replace-symlink dance as settings.
+  lwwMergeKeybindings = path: ''
     ${pkgs.coreutils}/bin/mkdir -p "$(${pkgs.coreutils}/bin/dirname ${lib.escapeShellArg path})"
     dynamic="$(${pkgs.jq}/bin/jq '.' ${lib.escapeShellArg path} 2>/dev/null || echo '[]')"
+    repo="$(${pkgs.jq}/bin/jq '.' ${lib.escapeShellArg repoKeybindingsPath} 2>/dev/null || echo '[]')"
     if [ -L ${lib.escapeShellArg path} ] || { [ -e ${lib.escapeShellArg path} ] && [ ! -w ${lib.escapeShellArg path} ]; }; then
       ${pkgs.coreutils}/bin/rm -f ${lib.escapeShellArg path}
     fi
-    static="$(${pkgs.coreutils}/bin/cat ${staticFile})"
     merged="$(${pkgs.jq}/bin/jq -n \
-      '($dynamic + $static) | unique_by([.key, .command, (.when // "")])' \
-      --argjson dynamic "$dynamic" --argjson static "$static")"
+      '($dynamic + $repo) | unique_by([.key, .command, (.when // "")])' \
+      --argjson dynamic "$dynamic" --argjson repo "$repo")"
     printf '%s\n' "$merged" > ${lib.escapeShellArg path}
-    unset dynamic static merged
+    unset dynamic repo merged
   '';
 
-  # Declared VS Code / Cursor user settings (managed keys; LWW-merged in).
-  userSettings = {
-    # ---- Nix ----
-    "nix.enableLanguageServer" = true;
-    "nix.serverPath" = "nixd";
-
-    "nix.serverSettings".nixd = {
-      formatting.command = [ "nixfmt" ];
-      # Fill these with YOUR flake exprs for option completion:
-      # nixpkgs.expr = "import (builtins.getFlake \"/home/b7r6/cfg\").inputs.nixpkgs {}";
-      # options.home-manager.expr = "(builtins.getFlake \"...\").homeConfigurations.b7r6.options";
-    };
-
-    # ---- direnv: keep LSPs alive across env changes ----
-    "direnv.restart.automatic" = true;
-
-    # ---- C++23 / CUDA host (clangd authoritative; needs compile_commands.json) ----
-    "clangd.path" = "clangd"; # resolves from direnv PATH, NOT a bundled download
-    "clangd.checkUpdates" = false;
-    "clangd.onConfigChanged" = "restart";
-    "clangd.arguments" = [
-      "--background-index"
-      "--clang-tidy"
-      "--header-insertion=never"
-      "--compile-commands-dir=." # buck2/cmake should emit compile_commands.json at root
-      "--completion-style=detailed"
-    ];
-    "C_Cpp.intelliSenseEngine" = "disabled"; # no-op unless MS cpptools sneaks in; prevents clobbering clangd
-
-    # ---- Rust (use nix/direnv binary, not the bundled download) ----
-    "rust-analyzer.server.path" = "rust-analyzer";
-
-    # buck2: set per-project in .vscode/settings.json, NOT globally:
-    #   "rust-analyzer.linkedProjects": ["rust-project.json"]
-    #   "rust-analyzer.cargo.buildScripts.enable": false
-    # generate it with: buck2 bxl prelude//rust/rust-analyzer/check.bxl  (or your team's rust-project gen)
-
-    # ---- Python: kill Pylance, fast checker + ruff ----
-    "python.languageServer" = "None"; # disables Pylance — the slow path on huge repos
-    "ruff.nativeServer" = "on";
-    "[python]" = {
-      "editor.defaultFormatter" = "charliermarsh.ruff";
-      "editor.formatOnSave" = true;
-      "editor.codeActionsOnSave"."source.organizeImports.ruff" = "explicit";
-    };
-
-    # ---- PureScript / Halogen (purs + spago from direnv) ----
-    "purescript.addNpmPath" = false;
-    "purescript.buildCommand" = "spago build --purs-args --json-errors";
-    "purescript.formatter" = "purs-tidy";
-
-    # ---- Lean 4 ----
-    # Lean's elan-vs-nix toolchain tension is the fussiest of the set. If you
-    # provide lean via nix (no elan), point the extension at it explicitly:
-    #   "lean4.toolchainPath" = "${...lean from your devshell...}";
-    # Otherwise leave default and let direnv put `lean` on PATH.
-
-    # ---- visual noise: gone ----
-    "editor.minimap.enabled" = false; # the "miniview" insanity
-    "editor.lineNumbers" = "off";
-    "editor.guides.indentation" = false; # the vertical lines in the whitespace
-    "editor.guides.highlightActiveIndentation" = false;
-    "editor.guides.bracketPairs" = false;
-    "editor.guides.bracketPairsHorizontal" = false;
-
-    # ---- emacs-feel cursor: blinking block + hl-line ----
-    "editor.cursorStyle" = "block";
-    "editor.cursorBlinking" = "blink";
-    "editor.renderLineHighlight" = "all"; # hl-line: full-width current-line highlight
-
-    # ---- fonts ----
+  # Everything DECLARED lives in dotfiles/vscode/{settings,keybindings}.json
+  # (repo-homed, PATH-resolved server paths: nixd/clangd/rust-analyzer as bare
+  # names — checks.vscode-config pins that contract). This overlay is only what
+  # genuinely derives from nix options.
+  computedSettings = {
     "chat.editor.fontFamily" = cfg.font.family;
     "chat.editor.fontSize" = cfg.font.size;
     "debug.console.fontFamily" = cfg.font.family;
@@ -194,70 +135,9 @@ let
   // lib.optionalAttrs cfg.claudeCode.bypassPermissions {
     "claudeCode.initialPermissionMode" = "bypassPermissions";
     "claudeCode.allowDangerouslySkipPermissions" = true;
-  }
-  # ---- FIM: Kilo Code (Codestral via Kilo gateway) ----
-  # Autocomplete config lives in the extension UI, not settings.json: sign in
-  # to Kilo, enable autocomplete (Codestral). No local-endpoint knobs here —
-  # the gateway is cloud + billed, unlike the old continue.dev local setup.
-  // {
-    "kilo-code.autocomplete.enabled" = true;
   };
 
-  # ---- keyboard: bounce editor<->terminal, toggle bars, all from the keys ----
-  # ctrl+alt cluster deliberately avoids the C-x / C-b / C-c prefixes your emacs
-  # extension claims, so nothing fights for the chord. Rebind to taste — the
-  # command IDs are the point.
-  keybindings = [
-    # bounce focus: same key, complementary `when` clauses
-    {
-      key = "ctrl+alt+t";
-      command = "workbench.action.terminal.focus";
-      when = "editorTextFocus";
-    }
-    {
-      key = "ctrl+alt+t";
-      command = "workbench.action.focusActiveEditorGroup";
-      when = "terminalFocus";
-    }
-    # visibility toggles
-    {
-      key = "ctrl+alt+b";
-      command = "workbench.action.toggleSidebarVisibility";
-    }
-    {
-      key = "ctrl+alt+]";
-      command = "workbench.action.toggleAuxiliaryBar";
-    } # right sidebar
-    {
-      key = "ctrl+alt+\\";
-      command = "workbench.action.togglePanel";
-    }
-    {
-      key = "ctrl+alt+0";
-      command = "workbench.action.closeSidebar";
-    }
-    # window navigation (emacs other-window, but reaching every group)
-    {
-      key = "ctrl+alt+o";
-      command = "workbench.action.focusNextGroup";
-    }
-    {
-      key = "ctrl+alt+z";
-      command = "workbench.action.toggleZenMode";
-    }
-    # migrated from the old hand-written ~/.config/Code/User/keybindings.json
-    {
-      key = "ctrl+x ctrl+p";
-      command = "terminal.focus";
-    } # emacs C-x prefix chord
-    {
-      key = "ctrl+g";
-      command = "-workbench.action.gotoLine";
-    } # free C-g for emacs keymap
-  ];
-
-  settingsFile = jsonFormat.generate "vscode-user-settings.json" userSettings;
-  keybindingsFile = jsonFormat.generate "vscode-keybindings.json" keybindings;
+  computedSettingsFile = jsonFormat.generate "vscode-computed-settings.json" computedSettings;
 
   # Editors whose user dirs we LWW-merge into. VS Code (Code/User) and Cursor
   # (Cursor/User) read the same settings.json/keybindings.json schema; the
@@ -409,13 +289,13 @@ in
     # programs.zed-editor module uses for the identical reason.
     home.activation.vscodeSettings = lib.hm.dag.entryAfter [ "linkGeneration" ] (
       lib.concatMapStringsSep "\n" (
-        dir: lwwMergeSettings "${dir}/settings.json" settingsFile
+        dir: lwwMergeSettings "${dir}/settings.json" computedSettingsFile
       ) editorUserDirs
     );
 
     home.activation.vscodeKeybindings = lib.hm.dag.entryAfter [ "linkGeneration" ] (
       lib.concatMapStringsSep "\n" (
-        dir: lwwMergeKeybindings "${dir}/keybindings.json" keybindingsFile
+        dir: lwwMergeKeybindings "${dir}/keybindings.json"
       ) editorUserDirs
     );
 

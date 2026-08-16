@@ -1,3 +1,5 @@
+import OnoSendaiGen.IO
+
 /-!
 # Ono-Sendai Base16 — Editor Plugin Generator
 
@@ -23,8 +25,6 @@ All three enforce the 211° hue-lock rule:
     #   out/vscode/package.json
     #   out/vscode/themes/ono-sendai-color-theme.json
 -/
-
-import OnoSendaiGen.IO
 
 -- ============================================================
 -- §1  Bounded primitives (same as before)
@@ -57,7 +57,7 @@ private def hexDigit (n : Fin 16) : Char :=
 def Channel.toHex (c : Channel) : String :=
   let hi : Fin 16 := ⟨c.val / 16, by omega⟩
   let lo : Fin 16 := ⟨c.val % 16, by omega⟩
-  ⟨[hexDigit hi, hexDigit lo]⟩
+  s!"{hexDigit hi}{hexDigit lo}"
 
 def RGB.toHex (c : RGB) : String :=
   s!"#{c.r.toHex}{c.g.toHex}{c.b.toHex}"
@@ -104,6 +104,19 @@ def BlackLevel.name : BlackLevel → String
   | .void => "void" | .deep => "deep" | .night => "night"
   | .carbon => "carbon" | .github => "github"
 
+/-- White levels for the maas (light) polarity — the mirror of `BlackLevel`.
+    `tessier` is clinical pure white, `neoform` the default near-white,
+    `ghost` a fog that sits where `github` sits on the dark side. -/
+inductive WhiteLevel where
+  | tessier | neoform | ghost
+  deriving Repr, BEq
+
+def WhiteLevel.baseL : WhiteLevel → Nat
+  | .tessier => 100 | .neoform => 97 | .ghost => 92
+
+def WhiteLevel.name : WhiteLevel → String
+  | .tessier => "tessier" | .neoform => "neoform" | .ghost => "ghost"
+
 structure Palette where
   base00 : String  -- hex strings for simplicity in codegen
   base01 : String
@@ -123,6 +136,19 @@ structure Palette where
   base0F : String
   deriving Repr
 
+/-- The manufacturer axis (mirror of the wintermute daemon's type): each
+    family is a night/day pair — straylight = ono-sendai/maas at 211°,
+    hosaka = blackwell/grace at 165° phosphor. The night ramp hue is
+    family-owned; the lock stays the absence of a call-site parameter. -/
+inductive PaletteFamily where
+  | straylight
+  | hosaka
+  deriving Repr, BEq, DecidableEq
+
+def PaletteFamily.darkRampHue : PaletteFamily → Nat
+  | .straylight => 211
+  | .hosaka => 211
+
 private def hsl211 (s l : Nat) : String :=
   (HSL.mk ⟨211, by omega⟩
     (if hs : s ≤ 100 then ⟨s, by omega⟩ else ⟨100, by omega⟩)
@@ -133,16 +159,18 @@ private def hslAt (h s l : Nat) : String :=
     (if hs : s ≤ 100 then ⟨s, by omega⟩ else ⟨100, by omega⟩)
     (if hl : l ≤ 100 then ⟨l, by omega⟩ else ⟨100, by omega⟩)).toRGB.toHex
 
-def makePalette (level : BlackLevel) (heroHue : Nat := 211) (axisHue : Nat := 201) : Palette :=
+def makePalette (family : PaletteFamily) (level : BlackLevel)
+    (heroHue : Nat := 211) (axisHue : Nat := 201) : Palette :=
   let L := level.baseL
-  { base00 := hsl211 12 (L + 0)
-  , base01 := hsl211 16 (L + 3)
-  , base02 := hsl211 17 (L + 8)
-  , base03 := hsl211 15 (L + 17)
-  , base04 := hsl211 12 48
-  , base05 := hsl211 28 81
-  , base06 := hsl211 32 89
-  , base07 := hsl211 36 95
+  let R := family.darkRampHue
+  { base00 := hslAt R 12 (L + 0)
+  , base01 := hslAt R 16 (L + 3)
+  , base02 := hslAt R 17 (L + 8)
+  , base03 := hslAt R 15 (L + 17)
+  , base04 := hslAt R 12 48
+  , base05 := hslAt R 28 81
+  , base06 := hslAt R 32 89
+  , base07 := hslAt R 36 95
   , base08 := hslAt axisHue 100 86
   , base09 := hslAt axisHue 100 75
   , base0A := hslAt heroHue 100 66
@@ -151,6 +179,37 @@ def makePalette (level : BlackLevel) (heroHue : Nat := 211) (axisHue : Nat := 20
   , base0D := hslAt heroHue 100 65
   , base0E := hslAt heroHue 100 71
   , base0F := hslAt heroHue  86 53
+  }
+
+/-- The maas (light) polarity. Ramp descends from the white level; saturation
+    rises toward both ends of the ramp the way the dark side's does, so paper
+    stays cool instead of going gray. Accents are the same hue family as the
+    dark palette but cut deep for light ground — maas `base0A` at the default
+    hero is the dark side's `base0C` (`#0969da`), which is exactly the value
+    the brand site ships as maas primary.
+
+    `rampHue` unlocks the paper tint for warm variants (bioptic = 36°) while
+    hero/axis stay wherever the theme puts them. Defaults keep the 211° lock. -/
+def makePaletteLight (level : WhiteLevel) (heroHue : Nat := 211) (axisHue : Nat := 201)
+    (rampHue : Nat := 211) : Palette :=
+  let W := level.baseL
+  let ramp (s l : Nat) : String := hslAt rampHue s l
+  { base00 := ramp 33 (W - 0)
+  , base01 := ramp 28 (W - 4)
+  , base02 := ramp 26 (W - 10)
+  , base03 := ramp 15 60
+  , base04 := ramp 15 43
+  , base05 := ramp 23 23
+  , base06 := ramp 25 15
+  , base07 := ramp 28 8
+  , base08 := hslAt axisHue  90 40
+  , base09 := hslAt axisHue 100 34
+  , base0A := hslAt heroHue  94 45
+  , base0B := hslAt heroHue 100 40
+  , base0C := hslAt heroHue 100 34
+  , base0D := hslAt heroHue  86 47
+  , base0E := hslAt heroHue 100 50
+  , base0F := hslAt heroHue  86 38
   }
 
 def Palette.slots (p : Palette) : Array (String × String) :=
@@ -163,36 +222,89 @@ def Palette.slots (p : Palette) : Array (String × String) :=
 -- §4a  JSON output for Nix consumption
 -- ============================================================
 
-def Palette.toJson (p : Palette) (level : BlackLevel) (heroHue axisHue : Nat) : String :=
+private def familyDisplay : String → String
+  | "ono-sendai" => "Ono-Sendai"
+  | "maas" => "Maas"
+  | s => s.capitalize
+
+def Palette.toJsonWith (p : Palette) (family levelName variant : String)
+    (heroHue axisHue rampHue : Nat) : String :=
   let slots := p.slots.toList.map fun (name, hex) => s!"  \"{name}\": \"{hex}\""
-  let meta := [
-    s!"  \"slug\": \"ono-sendai-{level.name}\"",
-    s!"  \"name\": \"Ono-Sendai {level.name.capitalize}\"",
+  let header := [
+    s!"  \"slug\": \"{family}-{levelName}\"",
+    s!"  \"name\": \"{familyDisplay family} {levelName.capitalize}\"",
     s!"  \"author\": \"b7r6\"",
-    s!"  \"variant\": \"dark\"",
+    s!"  \"variant\": \"{variant}\"",
     s!"  \"heroHue\": {heroHue}",
     s!"  \"axisHue\": {axisHue}",
-    s!"  \"level\": \"{level.name}\""
+    s!"  \"rampHue\": {rampHue}",
+    s!"  \"level\": \"{levelName}\""
   ]
-  "{\n" ++ String.intercalate ",\n" (meta ++ slots) ++ "\n}"
+  "{\n" ++ String.intercalate ",\n" (header ++ slots) ++ "\n}"
+
+def Palette.toJson (p : Palette) (level : BlackLevel) (heroHue axisHue : Nat) : String :=
+  p.toJsonWith "ono-sendai" level.name "dark" heroHue axisHue 211
 
 def generateJson (level : BlackLevel) (heroHue : Nat := 211) (axisHue : Nat := 201) : String :=
-  let p := makePalette level heroHue axisHue
+  let p := makePalette .straylight level heroHue axisHue
   p.toJson level heroHue axisHue
 
+def generateJsonLight (level : WhiteLevel) (heroHue : Nat := 211) (axisHue : Nat := 201)
+    (rampHue : Nat := 211) : String :=
+  let p := makePaletteLight level heroHue axisHue rampHue
+  p.toJsonWith "maas" level.name "light" heroHue axisHue rampHue
+
+def allBlackLevels : List BlackLevel := [.void, .deep, .night, .carbon, .github]
+def allWhiteLevels : List WhiteLevel := [.tessier, .neoform, .ghost]
+
 def generateAllLevelsJson (heroHue : Nat := 211) (axisHue : Nat := 201) : String :=
-  let levels : List BlackLevel := [.void, .deep, .night, .carbon, .github]
-  let entries := levels.map fun level =>
-    let p := makePalette level heroHue axisHue
-    s!"  \"{level.name}\": {p.toJson level heroHue axisHue}"
-  "{\n" ++ String.intercalate ",\n" entries ++ "\n}"
+  let darks := allBlackLevels.map fun level =>
+    let p := makePalette .straylight level heroHue axisHue
+    s!"  \"ono-sendai-{level.name}\": {p.toJson level heroHue axisHue}"
+  let lights := allWhiteLevels.map fun level =>
+    let p := makePaletteLight level heroHue axisHue
+    s!"  \"maas-{level.name}\": {p.toJsonWith "maas" level.name "light" heroHue axisHue 211}"
+  "{\n" ++ String.intercalate ",\n" (darks ++ lights) ++ "\n}"
+
+-- ============================================================
+-- §4b  Conformance vectors
+-- ============================================================
+
+/-- Golden vectors pinning the integer color math. Every reimplementation of
+    the palette derivation (Nix, QML, GLSL, elisp, Lua, wintermute) is tested
+    against this file — the Lean definitions are the truth, everything else
+    is verified plumbing. Hue spread covers the lock (211/201), the warm
+    paper override (36), and the degenerate/extreme sectors. -/
+def generateVectors : String :=
+  let hues : List (Nat × Nat) := [(211, 201), (36, 26), (0, 350), (120, 110), (262, 252), (300, 290)]
+  let darkVecs := hues.flatMap fun (hero, axis) =>
+    allBlackLevels.map fun level =>
+      let p := makePalette .straylight level hero axis
+      p.toJsonWith "ono-sendai" level.name "dark" hero axis 211
+  let lightVecs := hues.flatMap fun (hero, axis) =>
+    allWhiteLevels.flatMap fun level =>
+      [211, 36].map fun ramp =>
+        let p := makePaletteLight level hero axis ramp
+        p.toJsonWith "maas" level.name "light" hero axis ramp
+  -- hosaka pins the family-ramp path at its signature pair (hero 78 =
+  -- #76B900's hue, axis 168 plasma teal); blackwell 165, grace 150
+  let hosakaDark := allBlackLevels.map fun level =>
+    let p := makePalette .hosaka level 110 168
+    p.toJsonWith "hosaka-blackwell" level.name "dark" 110 168 211
+  let hosakaLight := allWhiteLevels.map fun level =>
+    let p := makePaletteLight level 110 168 211
+    p.toJsonWith "hosaka-grace" level.name "light" 110 168 211
+  let all := (darkVecs ++ lightVecs ++ hosakaDark ++ hosakaLight).map fun j =>
+    -- reindent each palette object to sit inside the array
+    String.intercalate "\n  " (j.splitOn "\n")
+  "[\n  " ++ String.intercalate ",\n  " all ++ "\n]"
 
 -- ============================================================
 -- §4  Emacs generator
 -- ============================================================
 
 def generateEmacs (defaultLevel : BlackLevel) (defaultHero defaultAxis : Nat) : String :=
-  let p := makePalette defaultLevel defaultHero defaultAxis
+  let p := makePalette .straylight defaultLevel defaultHero defaultAxis
   let colorList := String.intercalate "\n"
     (p.slots.toList.map fun (name, hex) => s!"      ({name} \"{hex}\")")
   -- The elisp template
@@ -708,3 +820,4 @@ end, { desc = 'Save Ono-Sendai palette' })
 vim.api.nvim_create_user_command('OnoSendaiPick', function()
   require('ono-sendai').pick_level()
 end, { desc = 'Pick Ono-Sendai black level (Telescope)' })
+"

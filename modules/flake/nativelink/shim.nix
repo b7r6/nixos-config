@@ -45,5 +45,25 @@ in
         class = "reconstructible";
       };
     })
+    (lib.mkIf (cfg.nixCache.enable && cfg.nixCache.fetchProxy.enable && cfg.nixCache.fetchProxy.wireNixDaemon) {
+      # Extend the fork's fetch-proxy bypass list with github: git-based FODs
+      # (fetchgit, e.g. a cargo git dep) use git's libcurl, which — unlike the
+      # OpenSSL fetchurl path that trusts the nix-only CA bundle — cannot load
+      # the proxy's `NativeLink CAS Witness CA` cert (curl errors "adding trust
+      # anchors from file"), so a MITM'd github fetch dies with "unable to get
+      # local issuer certificate (20)". Bypassing sends git straight to github
+      # with its real cert, verified by the stock system CAs. codeload/
+      # objects.githubusercontent.com ride along for tarball + LFS/release-asset
+      # FODs from the same origin.
+      # TODO[b7r6]: upstream into the fork's fetchProxyNoProxy, then delete.
+      systemd.services.nix-daemon.environment =
+        let
+          noProxy = "127.0.0.1,localhost,::1,cache.nixos.org,nix-community.cachix.org,nix-postgres-artifacts.s3.amazonaws.com,github.com,codeload.github.com,objects.githubusercontent.com";
+        in
+        {
+          no_proxy = lib.mkForce noProxy;
+          NO_PROXY = lib.mkForce noProxy;
+        };
+    })
   ];
 }

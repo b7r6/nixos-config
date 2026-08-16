@@ -69,11 +69,38 @@
     };
 
     # n.b. cross-cutting checks (`x86_64-linux` VM tests)...
-    checks = inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
-      state-audit = import ../../checks/state-audit.nix { inherit pkgs inputs; };
-      supabase-native = import ../../checks/supabase-native.nix { inherit pkgs inputs; };
-      clickhouse-keeper = import ../../checks/clickhouse-keeper.nix { inherit pkgs; };
-      clickhouse-server = import ../../checks/clickhouse-server.nix { inherit pkgs; };
-    };
+    checks =
+      inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
+        state-audit = import ../../checks/state-audit.nix { inherit pkgs inputs; };
+        supabase-native = import ../../checks/supabase-native.nix { inherit pkgs inputs; };
+        clickhouse-keeper = import ../../checks/clickhouse-keeper.nix { inherit pkgs; };
+        clickhouse-server = import ../../checks/clickhouse-server.nix { inherit pkgs; };
+      }
+      // inputs.nixpkgs.lib.optionalAttrs (system == "aarch64-linux") {
+        # The CUDA wallpaper field builds end-to-end (kernel + presenter) —
+        # the Spark fleet's showpiece stays compilable.
+        wintermute-field = import ../../checks/wintermute-field.nix { inherit pkgs inputs; };
+      }
+      // {
+        # Pure computation (no VM) — runs on every system. Three-way gate:
+        # Lean generator vs lib.nix vs the wintermute daemon's port.
+        ono-sendai-parity = import ../../checks/ono-sendai-parity.nix {
+          inherit pkgs;
+          wintermute = inputs.continuity.packages.${system}.wintermute or null;
+        };
+        # Batch-loads and byte-compiles the full emacs config; fails on any
+        # Warning or Error so regressions are caught at `nix flake check` time.
+        emacs-config = import ../../checks/emacs-config.nix { inherit pkgs; };
+        # Boots dotfiles/nvim headless at the bottom of its degradation
+        # ladder (no net, no plugins, no state) — must yield a themed
+        # session with zero warnings.
+        nvim-config = import ../../checks/nvim-config.nix { inherit pkgs; };
+        # The repo-homed vscode declared layer parses and keeps its
+        # PATH-resolved-server contract (bare names, never store paths).
+        vscode-config = import ../../checks/vscode-config.nix { inherit pkgs; };
+        # Every grafana dashboard renders through dhall-to-json (the same
+        # transform watchtower runs) and carries title/uid/panels.
+        grafana-dashboards = import ../../checks/grafana-dashboards.nix { inherit pkgs; };
+      };
   };
 }

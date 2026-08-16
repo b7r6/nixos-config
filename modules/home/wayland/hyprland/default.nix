@@ -111,8 +111,8 @@ let
 
       launcher = mkOption {
         type = types.str;
-        default = "wofi --show drun";
-        description = "Application launcher command";
+        default = "";
+        description = "Application launcher command (exclusive shells own launching; empty = no-op bind)";
       };
 
       browser = mkOption {
@@ -215,6 +215,16 @@ let
           ];
           default = "fast";
           description = "Animation speed preset";
+        };
+
+        glitch = mkOption {
+          type = types.bool;
+          default = true;
+          description = ''
+            New windows GLITCH in — a jagged, non-monotonic stutter of size
+            (windowsIn) and alpha (fadeIn), with a one-shot gradient border
+            sweep, instead of a smooth pop. Just slow enough to be legible.
+          '';
         };
       };
     };
@@ -425,14 +435,13 @@ in
 
       default = [
         "hyprpaper"
-        "mako"
       ];
 
       description = "Programs to start on login (session daemons, not tray applets)";
     };
 
     # ── Systray daemons ───────────────────────────────────────────────────────
-    # StatusNotifier daemons surfaced by waybar's `tray` module.
+    # StatusNotifier daemons (surfaced by whatever bar hosts a tray).
 
     systray = {
       network.enable = mkOption {
@@ -575,6 +584,16 @@ in
               "easeOutQuint,   0.22, 1, 0.36, 1"
               "easeInOutQuint, 0.83, 0, 0.17, 1"
               "easeOutExpo,    0.16, 1, 0.3,  1"
+            ]
+            ++ lib.optionals cfg.appearance.animations.glitch [
+              # Overshoot THEN undershoot: the curve snaps to ~1.28 (bigger than
+              # the target) at t≈0.24, whips down to ~-0.28 (smaller) at t≈0.76,
+              # then settles to 1. Paired with a high popin below, the window
+              # appears at almost its final size and JITTERS bigger/smaller once
+              # around it. (Verified: +1.28/-0.28 is the most a single cubic
+              # bezier gives with the overshoot BEFORE the undershoot — the
+              # jaggedest one-shot Hyprland does without a shader.)
+              "glitch, 0.2, 4.0, 0.6, -3.0"
             ];
 
             animation =
@@ -583,11 +602,35 @@ in
               in
               [
                 "windows,          1, ${toString speed},       easeOutExpo, popin 80%"
-                "windowsOut,       1, ${toString speed},       easeOutExpo, popin 80%"
-                "border,           1, ${toString (speed + 2)}, easeOutQuint"
-                "fade,             1, ${toString speed},       easeInOutQuint"
-                "workspaces,       1, ${toString speed},       easeOutExpo, slide"
-                "specialWorkspace, 1, ${toString speed},       easeOutExpo, slidevert"
+              ]
+              ++ (
+                if cfg.appearance.animations.glitch then
+                  [
+                    # NEW WINDOWS GLITCH IN. windowsIn opens at popin 88% — almost
+                    # the final size — then the glitch curve snaps it bigger
+                    # (~103%) and smaller (~85%) and settles, FAST (0.2s) — quick
+                    # enough to read as a glitch, not a bounce. fadeIn runs the
+                    # SAME curve even faster (0.1s): its undershoot clamps alpha
+                    # to 0, so the window blinks out for a frame, desynced from
+                    # the size jitter. borderangle whips the gradient once as it
+                    # lands. windowsOut stays clean.
+                    "windowsIn,        1, 2,                   glitch, popin 88%"
+                    "windowsOut,       1, ${toString speed},   easeOutExpo, popin 80%"
+                    "border,           1, ${toString (speed + 2)}, easeOutQuint"
+                    "borderangle,      1, 2,                   easeOutExpo, once"
+                    "fadeIn,           1, 1,                   glitch"
+                    "fade,             1, ${toString speed},   easeInOutQuint"
+                  ]
+                else
+                  [
+                    "windowsOut,       1, ${toString speed},   easeOutExpo, popin 80%"
+                    "border,           1, ${toString (speed + 2)}, easeOutQuint"
+                    "fade,             1, ${toString speed},   easeInOutQuint"
+                  ]
+              )
+              ++ [
+                "workspaces,       1, ${toString speed},   easeOutExpo, slide"
+                "specialWorkspace, 1, ${toString speed},   easeOutExpo, slidevert"
               ];
           };
 
@@ -624,6 +667,11 @@ in
 
           misc = {
             force_default_wallpaper = 0;
+            # The ultimate floor: what the compositor paints where NO layer
+            # surface covers. If every wallpaper renderer is gone (quickshell
+            # itself down, not just the CUDA daemon), the desktop shows the
+            # theme's dark surface — never a raw black "broken" blank.
+            background_color = "rgb(${lib.removePrefix "#" colors.base00})";
             animate_mouse_windowdragging = false;
             animate_manual_resizes = false;
             enable_swallow = true;

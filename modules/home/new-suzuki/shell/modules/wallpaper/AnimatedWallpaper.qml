@@ -1,0 +1,133 @@
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import Quickshell
+import Quickshell.Wayland
+import qs.services
+
+// AnimatedWallpaper — the GLSL background layer, one surface per screen.
+//
+// The shader is the two-axis design space made visible: palette uniforms come
+// from ThemeService (wintermute's theme.json), the register scalar morphs the
+// field between ambient blooms (affluent) and telemetry/scanline (facility).
+// Theme changes EASE — reg and the colors ride Behaviors with the canonical
+// easeOutQuint, so dragging the orbital pad sweeps the wallpaper live.
+//
+// Cost control: 30 fps timer (slow phenomena don't need 120), paused behind
+// the lock screen; the compositor withholds frames when occluded so an idle
+// desktop costs nothing.
+Variants {
+    // ALWAYS draw — this is the safety net. The QML wallpaper never stands
+    // down: it holds the Background layer as a reliable, in-process floor, and
+    // the CUDA presenter (wintermute-field-daemon) draws the premium reel on
+    // the BOTTOM layer, which stacks deterministically ABOVE Background. So the
+    // desktop degrades gracefully instead of blanking: CUDA reel when it's up,
+    // this animated wallpaper if the daemon ever dies, a themed compositor
+    // colour underneath if quickshell itself goes. Never blank.
+    model: Quickshell.screens
+
+    PanelWindow {
+        id: win
+
+        required property var modelData
+        screen: modelData
+
+        // When the CUDA field owns the visible layer, this floor renders a
+        // single STATIC frame (timer off) — zero ongoing cost while occluded,
+        // yet instantly present the moment the CUDA layer isn't there.
+        readonly property bool cudaField: Quickshell.env("HYPERMODERN_CUDA_FIELD") === "1"
+
+        anchors {
+            top: true
+            left: true
+            right: true
+            bottom: true
+        }
+        exclusiveZone: -1
+        color: "transparent"
+        focusable: false
+        aboveWindows: false
+        WlrLayershell.namespace: "qs_wallpaper"
+        WlrLayershell.layer: WlrLayer.Background
+
+        ShaderEffect {
+            id: fx
+
+            anchors.fill: parent
+
+            property real time: 0
+            property real sweep: -1
+            property real reg: ThemeService.register
+            property real grain: ThemeService.aestheticProp("grain", 0.02)
+            property real aspect: height > 0 ? width / height : 1.777
+
+            // Live machine: GPU utilization drives the field's intensity, power
+            // draw heats the beam-curtain tips. Eased so the 2s poll cadence
+            // reads as a smooth breath, not a step. The desktop becomes an
+            // instrument — on the Spark this is the whole point.
+            property real load: Math.max(0, Math.min(1, SystemMonitorService.gpuUsage / 100))
+            property real power: Math.max(0, Math.min(1, SystemMonitorService.gpuPower / 140))
+
+            Behavior on load {
+                NumberAnimation { duration: 1600; easing.type: Easing.OutCubic }
+            }
+            Behavior on power {
+                NumberAnimation { duration: 1600; easing.type: Easing.OutCubic }
+            }
+            property color surface: ThemeService.color("surface", "#191c1f")
+            property color paper: ThemeService.color("paper", "#1e2329")
+            property color accent: ThemeService.color("accent", "#52a5ff")
+            property color accentD: ThemeService.color("accent-d", "#80d2ff")
+
+            Behavior on reg {
+                NumberAnimation {
+                    duration: 1200
+                    easing.type: Easing.OutQuint
+                }
+            }
+            Behavior on surface {
+                ColorAnimation { duration: 800 }
+            }
+            Behavior on paper {
+                ColorAnimation { duration: 800 }
+            }
+            Behavior on accent {
+                ColorAnimation { duration: 800 }
+            }
+            Behavior on accentD {
+                ColorAnimation { duration: 800 }
+            }
+
+            fragmentShader: Qt.resolvedUrl("wallpaper.frag.qsb")
+
+            Timer {
+                interval: 33
+                repeat: true
+                // Animate only when this IS the visible wallpaper. Under the
+                // CUDA field it's an occluded safety net — one static frame,
+                // no 30fps loop burning GPU behind an opaque layer.
+                running: win.visible && !LockService.locked && !win.cudaField
+                onTriggered: fx.time = (fx.time + 0.033) % 86400
+            }
+
+            // The reconcile sweep: one pass down the screen per wintermute
+            // generation — theme commits are VISIBLE.
+            Connections {
+                target: ThemeService
+                function onGenerationChanged() {
+                    sweepAnim.restart();
+                }
+            }
+
+            NumberAnimation {
+                id: sweepAnim
+                target: fx
+                property: "sweep"
+                from: -0.15
+                to: 1.15
+                duration: 900
+                easing.type: Easing.OutQuad
+            }
+        }
+    }
+}

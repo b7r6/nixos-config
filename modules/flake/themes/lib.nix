@@ -140,18 +140,35 @@ let
     github = 16; # L=16% - matches GitHub dark
   };
 
+  # White level base lightness values for the maas (light) polarity
+  # Matches Lean's WhiteLevel.baseL
+  white-levels = {
+    tessier = 100; # L=100% - clinical pure white
+    neoform = 97; # L=97%  - default near-white
+    ghost = 92; # L=92%  - fog
+  };
+
   # Generate a complete base16 palette
   # Matches Lean's makePalette in OnoSendaiGen.lean:136-154
+  # The manufacturer axis: the night ramp hue is family-owned (mirror of
+  # the Lean PaletteFamily). straylight = the 211° house; hosaka = 165°
+  # blackwell phosphor.
+  family-dark-ramp-hue = {
+    straylight = 211;
+    hosaka = 211;
+  };
+
   make-palette =
     {
       level ? "carbon",
       hero-hue ? 211,
       axis-hue ? 201,
+      family ? "straylight",
     }:
     let
       L = black-levels.${level} or 11;
-      # 211 hue helpers for grayscale
-      g = hsl-to-hex 211;
+      # family ramp hue helpers for grayscale
+      g = hsl-to-hex (family-dark-ramp-hue.${family} or 211);
       # Hero and axis hue helpers
       hero = hsl-to-hex hero-hue;
       axis = hsl-to-hex axis-hue;
@@ -180,6 +197,47 @@ let
       base0F = hero 86 53; # Deprecated (corp blue)
     };
 
+  # Generate a maas (light) base16 palette
+  # Matches Lean's makePaletteLight — same 211 lock, ramp descending from the
+  # white level, accents cut deep for paper. ramp-hue unlocks the paper tint
+  # for warm variants (bioptic = neoform + ramp-hue 36).
+  make-palette-light =
+    {
+      level ? "neoform",
+      hero-hue ? 211,
+      axis-hue ? 201,
+      ramp-hue ? 211,
+    }:
+    let
+      W = white-levels.${level} or 97;
+      g = hsl-to-hex ramp-hue;
+      hero = hsl-to-hex hero-hue;
+      axis = hsl-to-hex axis-hue;
+    in
+    {
+      # Ramp descends from the white level
+      base00 = g 33 (W - 0); # Background (paper)
+      base01 = g 28 (W - 4); # Raised surfaces (card)
+      base02 = g 26 (W - 10); # Selections / borders
+      base03 = g 15 60; # Comments (muted)
+      base04 = g 15 43; # Dark foreground
+      base05 = g 23 23; # Default foreground (ink)
+      base06 = g 25 15; # Darker ink
+      base07 = g 28 8; # Near-black text
+
+      # Axis hue - deepened for light ground
+      base08 = axis 90 40; # Variables
+      base09 = axis 100 34; # Integers
+
+      # Hero hue - the dark side's deep cuts become primary on paper
+      base0A = hero 94 45; # Classes (= dark base0C formula)
+      base0B = hero 100 40; # Strings
+      base0C = hero 100 34; # Support
+      base0D = hero 86 47; # Functions
+      base0E = hero 100 50; # Keywords
+      base0F = hero 86 38; # Deprecated
+    };
+
   # Named palette variants (for quick access)
   variants = {
     # Classic ono-sendai variants at default hues (211/201)
@@ -193,6 +251,15 @@ let
     chiba = make-palette { level = "deep"; }; # L=4%
     razorgirl = make-palette { level = "night"; }; # L=8%
     sprawl = make-palette { level = "carbon"; }; # L=11%
+
+    # Maas (light) variants — the day pole
+    tessier = make-palette-light { level = "tessier"; };
+    neoform = make-palette-light { level = "neoform"; };
+    ghost = make-palette-light { level = "ghost"; };
+    bioptic = make-palette-light {
+      level = "neoform";
+      ramp-hue = 36;
+    }; # warm clinical paper
   };
 
   # Create a theme attrset suitable for stylix
@@ -201,18 +268,34 @@ let
       level,
       hero-hue ? 211,
       axis-hue ? 201,
+      polarity ? "dark",
+      ramp-hue ? 211,
     }:
     let
-      palette = make-palette { inherit level hero-hue axis-hue; };
+      light = polarity == "light";
+      palette =
+        if light then
+          make-palette-light {
+            inherit
+              level
+              hero-hue
+              axis-hue
+              ramp-hue
+              ;
+          }
+        else
+          make-palette { inherit level hero-hue axis-hue; };
       level-name = if builtins.isString level then level else "custom";
+      family = if light then "maas" else "ono-sendai";
+      family-display = if light then "Maas" else "Ono-Sendai";
     in
     {
-      slug = "ono-sendai-${level-name}";
-      name = "Ono-Sendai ${lib.toUpper (builtins.substring 0 1 level-name)}${
+      slug = "${family}-${level-name}";
+      name = "${family-display} ${lib.toUpper (builtins.substring 0 1 level-name)}${
         builtins.substring 1 (-1) level-name
       }";
       author = "b7r6";
-      variant = "dark";
+      variant = polarity;
       inherit
         palette
         hero-hue
@@ -228,7 +311,9 @@ in
     rgb-to-hex
     hsl-to-hex
     black-levels
+    white-levels
     make-palette
+    make-palette-light
     variants
     mk-theme
     ;
