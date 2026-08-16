@@ -235,6 +235,17 @@ in
           "github.com" = {
             User = "git";
           };
+          # ── Fleet forge (Forgejo on watchtower) ──────────────────────────────
+          # Flake inputs (continuity, nativelink-nix) fetch over this alias from
+          # non-interactive nix evals. Pin HostName so the fetch works before
+          # coredns owns resolution (kills the gossamer two-step bootstrap), and
+          # pin the forge key so auth doesn't depend on a live agent.
+          "git.s4.gl" = {
+            User = "git";
+            HostName = fleet.watchtower.ts;
+            IdentityFile = "~/.ssh/id_ed25519_b7r6";
+            IdentitiesOnly = true;
+          };
         }
         // lanBlocks
         // tsBlocks;
