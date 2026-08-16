@@ -25,11 +25,32 @@
     agenix-shell.url = "github:aciceri/agenix-shell";
     agenix-shell.inputs.nixpkgs.follows = "nixpkgs";
 
+    # continuity: the verified Lean4 monorepo — pulled for the wintermute
+    # theme reconciler (src/apps/wintermute). Deliberately does NOT follow
+    # our nixpkgs: continuity pins its own lean4-nix toolchain and its
+    # packages should build exactly as its own CI builds them.
+    continuity.url = "git+ssh://git@git.s4.gl/continuity/continuity.git?ref=b7r6/wintermute-0x01";
+
+    # straylight-nvidia-sdk: modern nv. Pulled for wintermute-field — the
+    # wallpaper field as a CUDA kernel, and the zero-copy wayland presenter
+    # daemon (kernel writes the compositor's wl_shm pool over GB10 coherent
+    # memory). Like continuity, deliberately does NOT follow our nixpkgs.
+    straylight-nvidia-sdk.url = "git+ssh://git@git.s4.gl/straylight/straylight-nvidia-sdk.git";
+
     devshell.url = "github:numtide/devshell";
     devshell.inputs.nixpkgs.follows = "nixpkgs";
 
     disko.url = "github:nix-community/disko";
     disko.inputs.nixpkgs.follows = "nixpkgs";
+
+    # The jetson (filament) rides proven pins, not the fleet nixpkgs: jetpack
+    # HEAD (L4T 39.x) wants CUDA 13.2 manifests and the proven rev wants
+    # 13.0.3 — neither exists in the sensenet-ai fork's cuda-modules. This
+    # pair is exactly the closure verified on hardware 2026-08-06; bump both
+    # together, deliberately.
+    nixpkgs-jetson.url = "github:NixOS/nixpkgs/af84f9d270d404c17699522fab95bbf928a2d92f";
+    jetpack-nixos.url = "github:anduril/jetpack-nixos/55bcdf742a957748a759e5eaf69b86ad9d779330";
+    jetpack-nixos.inputs.nixpkgs.follows = "nixpkgs-jetson";
 
     impermanence.url = "github:nix-community/impermanence";
 

@@ -345,10 +345,62 @@ in
           }
         ];
 
-        # order atticd after the supabase DB ensures the database + role exist
+        # order atticd after the supabase DB ensures the database + role exist,
+        # and after the ownership reassert (below) so migrations + upload-path
+        # run as the rightful owner of the schema objects.
         systemd.services.atticd = {
+          after = [
+            "supabase-db-ensure-dbs.service"
+            "attic-db-reassert-ownership.service"
+          ];
+          wants = [
+            "supabase-db-ensure-dbs.service"
+            "attic-db-reassert-ownership.service"
+          ];
+        };
+
+        # ── reassert atticd ownership of its own schema objects ──────────────
+        # The supabase PG17 cluster was seeded by a pg_dump/restore during the
+        # PG16→PG17 migration, so the atticd database and EVERY table/sequence
+        # ended up owned by `postgres`, not `atticd`. supabase-db-ensure-dbs only
+        # sets OWNER at CREATE DATABASE time (skipped for the already-existing
+        # DB), and its `ALTER DEFAULT PRIVILEGES … GRANT ALL ON TABLES` covers
+        # TABLES only — never SEQUENCES, and default privileges don't touch
+        # pre-existing objects regardless. Net effect: atticd could not
+        # nextval() on nar_id_seq / chunk_id_seq, so every /_api/v1/upload-path
+        # 500'd with "permission denied for sequence" and watch-store's
+        # auto-push silently landed nothing in the cache.
+        #
+        # Reassert ownership of the whole public schema to atticd. Fully
+        # idempotent and scoped strictly to the atticd DB; runs before atticd on
+        # every activation, so a plain `nixos-rebuild switch` repairs it.
+        systemd.services.attic-db-reassert-ownership = {
+          description = "reassert atticd ownership of its supabase-cluster schema objects";
           after = [ "supabase-db-ensure-dbs.service" ];
+          requires = [ "supabase-db.service" ];
           wants = [ "supabase-db-ensure-dbs.service" ];
+          wantedBy = [ "multi-user.target" ];
+          before = [ "atticd.service" ];
+          serviceConfig = {
+            Type = "oneshot";
+            User = "supabase-postgres";
+            RemainAfterExit = true;
+          };
+          script =
+            let
+              supabasePgPort = toString config.hyper-modern-nixos.supabase-native.db.port;
+              supabasePgSocket = config.hyper-modern-nixos.supabase-native.db.socketDir;
+              psql = "${config.services.postgresql.package}/bin/psql -h ${supabasePgSocket} -p ${supabasePgPort} -U postgres -v ON_ERROR_STOP=1";
+            in
+            ''
+              # the database + schema themselves
+              ${psql} -d atticd -c "ALTER DATABASE atticd OWNER TO atticd;"
+              ${psql} -d atticd -c "ALTER SCHEMA public OWNER TO atticd;"
+              # every table / sequence / view in public — generate the ALTERs
+              # from the catalog and pipe them back in (no-op when empty).
+              ${psql} -d atticd -Atc "SELECT format('ALTER TABLE public.%I OWNER TO atticd;', tablename) FROM pg_tables WHERE schemaname='public' UNION ALL SELECT format('ALTER SEQUENCE public.%I OWNER TO atticd;', sequencename) FROM pg_sequences WHERE schemaname='public' UNION ALL SELECT format('ALTER VIEW public.%I OWNER TO atticd;', viewname) FROM pg_views WHERE schemaname='public';" \
+                | ${psql} -d atticd -f -
+            '';
         };
 
         # keypair restore against the supabase cluster

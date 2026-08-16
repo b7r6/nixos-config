@@ -55,6 +55,9 @@ let
         LOCALE_ARCHIVE = "${buildPkgs.glibcLocales}/lib/locale/locale-archive";
       }
       ''
+        export HOME="$TMPDIR"
+        export XDG_CACHE_HOME="$TMPDIR/dhall-cache"
+        mkdir -p "$XDG_CACHE_HOME"
         dhall-to-json --file ${registryDir}/render-users.dhall > $out
       '';
 

@@ -1,0 +1,86 @@
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//                                 // hypermodern // zellij // layout //
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//
+// The zjstatus bar in the house language, three registers:
+//
+//   LEFT    ▞ session · host identity, then ALL TABS flowing right — a filled
+//           accent pill on the active, subtle index·name on the rest. Tabs
+//           live on the left (not centred) so they're never clipped: with many
+//           tabs the right-hand console yields first, the tab strip never does.
+//   CENTER  the transient MODE hint — empty in normal, the C-o cheat line while
+//           the prefix is held (so it never fights the tab strip).
+//   RIGHT   the CONSOLE — live GPU util + power (the Spark) and load, the
+//           wintermute GENERATION ledger, and the clock, ▞-railed
+//
+// Colours are named refs against the active zellij theme, which wintermute
+// rewrites on every reconcile — the bar follows the palette (hosaka green,
+// straylight blue) without this file changing. Normal mode renders NOTHING
+// (non-modal cosmetics); the C-o prefix flashes a full cheat line while held.
+//
+// POLARITY: `black` (= base01) is a surface tone, near-invisible on LIGHT
+// themes — so all TEXT uses `white` (the foreground, readable on both poles),
+// accents (cyan/blue) mark highlights, and values pop with green/orange +
+// bold. `black` appears only as a filled-badge foreground over an accent bg.
+//
+// Needs ~/.config/zellij/plugins/zjstatus.wasm + statusline.sh (both
+// nix-provided). Without zjstatus, fall back to `zellij -l compact`.
+
+layout {
+    default_tab_template {
+        children
+        pane size=1 borderless=true {
+            plugin location="file:~/.config/zellij/plugins/zjstatus.wasm" {
+                format_left   "#[fg=cyan,bold] ▞ #[fg=white,bold]{session}#[fg=cyan] · #[fg=white]{command_host} #[fg=cyan,bold]▞ {tabs}"
+                format_center "{mode}"
+                format_right  "{command_telem} #[fg=cyan]▞ #[fg=white]gen #[fg=blue,bold]{command_gen} #[fg=cyan]▞ #[fg=white,bold]{datetime} "
+                format_space  ""
+
+                border_enabled  "false"
+                hide_frame_for_single_pane "false"
+
+                // non-modal: normal renders nothing, the prefix flashes the full grammar
+                mode_normal  ""
+                mode_tmux    "#[bg=cyan,fg=black,bold] ▞ C-o #[bg=black,fg=cyan,bold] hjkl#[fg=white] focus  #[fg=cyan,bold]HJKL#[fg=white] move  #[fg=cyan,bold]n/p#[fg=white] tab  #[fg=cyan,bold]c#[fg=white] new  #[fg=cyan,bold]|/-#[fg=white] split  #[fg=cyan,bold]f#[fg=white] float  #[fg=cyan,bold]e#[fg=white] edit  #[fg=cyan,bold]w#[fg=white] win  #[fg=cyan,bold]s#[fg=white] ses  #[fg=cyan,bold],#[fg=white] name "
+                mode_scroll  "#[bg=orange,fg=black,bold] ▞ SCROLL #[bg=black,fg=orange,bold] k/j#[fg=white] line  #[fg=orange,bold]C-v/M-v#[fg=white] page  #[fg=orange,bold]C-s#[fg=white] search  #[fg=orange,bold]e#[fg=white] edit "
+                mode_entersearch "#[bg=yellow,fg=black,bold] ▞ FIND #[bg=black,fg=white] type a query · #[fg=yellow,bold]Enter#[fg=white] accept "
+                mode_search  "#[bg=orange,fg=black,bold] ▞ SEARCH #[bg=black,fg=orange,bold] n/p#[fg=white] next · prev  #[fg=orange,bold]Esc#[fg=white] done "
+
+                // the active tab pops in bold blue, framed by ▐ ▌ half-blocks
+                // (a pill outline in the accent) — fg only, so no background
+                // bleeds into the tabs that follow. The rest are a subtle cyan
+                // index + white name. Rename the "Tab #N" defaults with C-o ,
+                // and the strip reads like real work.
+                tab_normal            "#[fg=cyan] {index} #[fg=white]{name} "
+                tab_active            "#[fg=blue,bold]▐ {index} · {name} ▌"
+                tab_normal_fullscreen "#[fg=cyan] {index} #[fg=white]{name} #[fg=cyan]⛶ "
+                tab_active_fullscreen "#[fg=blue,bold]▐ {index} · {name} ⛶ ▌"
+                tab_normal_sync       "#[fg=cyan] {index} #[fg=white]{name} #[fg=cyan]⟲ "
+                tab_active_sync       "#[fg=blue,bold]▐ {index} · {name} ⟲ ▌"
+
+                // the host badge (short, cached)
+                command_host_command    "sh -c \"uname -n\""
+                command_host_format     "{stdout}"
+                command_host_interval   "3600"
+                command_host_rendermode "static"
+
+                // the machine: GPU util + power (Spark) and load — statusline.sh
+                // emits the styled segment; nvidia-smi absent → GPU segment gone
+                command_telem_command    "sh -c \"$HOME/.config/zellij/statusline.sh\""
+                command_telem_format     "{stdout}"
+                command_telem_interval   "4"
+                command_telem_rendermode "dynamic"
+
+                // the wintermute ledger: the live generation from theme.state
+                command_gen_command    "sh -c \"grep '^generation' $HOME/.local/state/wintermute/theme.state 2>/dev/null | cut -d' ' -f2 || echo -\""
+                command_gen_format     "{stdout}"
+                command_gen_interval   "5"
+                command_gen_rendermode "static"
+
+                datetime          "{format}"
+                datetime_format   "%H:%M"
+                datetime_timezone "America/Puerto_Rico"
+            }
+        }
+    }
+}

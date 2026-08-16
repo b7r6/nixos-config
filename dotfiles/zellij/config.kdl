@@ -1,0 +1,136 @@
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//                                          // hypermodern // zellij //
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//
+// Repo-homed (dotfiles/zellij), symlinked to ~/.config/zellij/config.kdl;
+// zellij hot-reloads on change — edit and it's live, no reload bind needed.
+//
+// clear-defaults kills zellij's ambient modal layer (stock binds put
+// Ctrl-o/Ctrl-n/Ctrl-p in NORMAL mode — emacs-hostile). What remains is
+// exactly the tmux muscle-memory shape: ONE prefix (Ctrl-o), one table.
+//
+// The theme file (themes/ono-sendai.kdl) is WRITTEN BY WINTERMUTE on every
+// reconcile and seeded by nix at activation — do not edit it by hand.
+
+theme "ono-sendai"
+default_layout "hypermodern"
+pane_frames false
+copy_on_select true
+session_serialization true
+show_startup_tips false
+show_release_notes false
+
+// Independent clients, not mirrored (default is true = tmux-mirror, which sizes
+// the session to the SMALLEST attached client). false = each client keeps its
+// own size + focus, so a second/stale client never shrinks you — the standing
+// equivalent of `tmux attach -d`, no detach-others flag needed.
+mirror_session false
+
+keybinds clear-defaults=true {
+    normal {
+        bind "Ctrl o" { SwitchToMode "tmux"; }
+    }
+
+    // The C-o prefix table — tmux muscle memory, verbatim.
+    tmux {
+        // last-window toggle: C-o C-o
+        bind "Ctrl o" { ToggleTab; SwitchToMode "Normal"; }
+
+        // windows → tabs
+        bind "n" { GoToNextTab; SwitchToMode "Normal"; }
+        bind "p" { GoToPreviousTab; SwitchToMode "Normal"; }
+        bind "c" { NewTab; SwitchToMode "Normal"; }
+
+        // directional pane nav — THE joint grammar (mirrors hyprland
+        // Super+hjkl and emacs C-o hjkl): direction-first, same letters
+        // at every layer, modifier picks the layer.
+        bind "h" { MoveFocus "Left"; SwitchToMode "Normal"; }
+        bind "j" { MoveFocus "Down"; SwitchToMode "Normal"; }
+        bind "k" { MoveFocus "Up"; SwitchToMode "Normal"; }
+        bind "l" { MoveFocus "Right"; SwitchToMode "Normal"; }
+        bind "H" { MovePane "Left"; SwitchToMode "Normal"; }
+        bind "J" { MovePane "Down"; SwitchToMode "Normal"; }
+        bind "K" { MovePane "Up"; SwitchToMode "Normal"; }
+        bind "L" { MovePane "Right"; SwitchToMode "Normal"; }
+
+        // pane cycling (secondary, kept for the old reflex)
+        bind "Ctrl n" { FocusNextPane; SwitchToMode "Normal"; }
+        bind "Ctrl p" { FocusPreviousPane; SwitchToMode "Normal"; }
+
+        // splits (cwd inherited by default)
+        bind "|" { NewPane "Right"; SwitchToMode "Normal"; }
+        bind "-" { NewPane "Down"; SwitchToMode "Normal"; }
+
+        // the tmux commons
+        bind "d" { Detach; }
+        bind "x" { CloseFocus; SwitchToMode "Normal"; }
+        bind "z" { ToggleFocusFullscreen; SwitchToMode "Normal"; }
+        bind "[" { SwitchToMode "Scroll"; }
+
+        // creature comforts (new verbs, same prefix)
+        bind "f" { ToggleFloatingPanes; SwitchToMode "Normal"; }
+        bind "e" { EditScrollback; SwitchToMode "Normal"; }
+        // tmux verbatim: w = choose-window. Tabs carry the windows-per-session
+        // semantics, so w opens the house tab-select screen: a floating fzf
+        // picker (tab-picker.sh) that wears wintermute's live palette. Type to
+        // filter (name or number), C-n/C-p to move, Enter to jump. The pane
+        // closes itself on exit — one-shot, no sticky mode, no plugin.
+        //
+        // NB: this config is an out-of-store symlink (live on edit), but
+        // tab-picker.sh only lands on `nixos-rebuild switch`. So the Run guards
+        // on the script's presence and, if it's missing, says so out loud
+        // instead of flashing a pane shut — a not-yet-deployed picker can never
+        // look like a dead keybind.
+        bind "w" {
+            Run "bash" "-c" "s=\"$HOME/.config/zellij/tab-picker.sh\"; if [ -x \"$s\" ]; then exec \"$s\"; else echo; echo '  the tab picker is not deployed yet.'; echo '  run:  sudo nixos-rebuild switch'; echo; echo '  (press any key to close)'; read -rsn1; fi" {
+                floating true
+                close_on_exit true
+                name "tabs"
+                x "28%"
+                y "26%"
+                width "44%"
+                height "44%"
+            }
+            SwitchToMode "Normal"
+        }
+        // tmux verbatim: s = choose-session (the one-shot floating picker)
+        bind "s" { LaunchOrFocusPlugin "session-manager" { floating true; }; SwitchToMode "Normal"; }
+
+        // rename — tmux verbatim: , = rename tab (kills the "Tab #N" defaults).
+        // Native inline input: type, Enter confirms, Esc cancels. Zellij 0.44
+        // has no RenameSession mode — name sessions with `zj` up front, or
+        // rename a live one from the session-manager (s).
+        bind "," { SwitchToMode "RenameTab"; TabNameInput 0; }
+
+        bind "Esc" { SwitchToMode "Normal"; }
+    }
+
+    scroll {
+        bind "Ctrl p" "Up" "k" { ScrollUp; }
+        bind "Ctrl n" "Down" "j" { ScrollDown; }
+        bind "Ctrl v" "PageDown" { PageScrollDown; }
+        bind "Alt v" "PageUp" { PageScrollUp; }
+        bind "Ctrl s" { SwitchToMode "EnterSearch"; SearchInput 0; }
+        bind "e" { EditScrollback; SwitchToMode "Normal"; }
+        bind "Esc" "q" { SwitchToMode "Normal"; }
+    }
+
+    entersearch {
+        bind "Enter" { SwitchToMode "Search"; }
+        bind "Esc" { SwitchToMode "Scroll"; }
+    }
+
+    search {
+        bind "n" { Search "down"; }
+        bind "p" { Search "up"; }
+        bind "Esc" { SwitchToMode "Normal"; }
+    }
+
+    // the rename tab input mode (reached from the C-o table): type the name,
+    // Enter commits, Esc backs out (undoes to the prior name).
+    renametab {
+        bind "Enter" { SwitchToMode "Normal"; }
+        bind "Esc" { UndoRenameTab; SwitchToMode "Normal"; }
+    }
+
+}

@@ -164,7 +164,10 @@ in
         update_check = false;
         dialect = "us";
         style = "auto";
-        theme = { };
+        # Theme is WRITTEN BY WINTERMUTE (config/atuin/themes/wintermute.toml)
+        # on every reconcile; atuin re-reads it each `atuin search`, so Ctrl-R
+        # retints live. Seeded below if absent (cold start before the daemon).
+        theme.name = "wintermute";
       };
     };
 
@@ -181,6 +184,134 @@ in
     };
 
     # Tmux configuration
+    # ── zellij: the modern multiplexer, tmux muscle memory intact ──────────
+    # Config is repo-homed (dotfiles/zellij, hot-reloaded by zellij on edit);
+    # the theme file is WRITTEN BY WINTERMUTE on every reconcile and seeded
+    # here only if absent (cold start before the daemon has run). tmux stays
+    # fully configured during the transition — both run side by side.
+    home.file.".config/zellij/config.kdl".source =
+      config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/zellij/config.kdl";
+
+    # layouts are repo-homed too (hot-edit like the config)
+    home.file.".config/zellij/layouts".source =
+      config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/zellij/layouts";
+
+    # the status bar's machine readout (GPU/load), called by the zjstatus
+    # command widget — repo-homed alongside the layout.
+    home.file.".config/zellij/statusline.sh".source =
+      config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/zellij/statusline.sh";
+
+    # the tab-select screen (C-o w) — a floating fzf picker over the tab list,
+    # wintermute-themed via the shared fzf.opts channel. Repo-homed so edits
+    # are live; replaced the room.wasm plugin (dropped below).
+    home.file.".config/zellij/tab-picker.sh".source =
+      config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/zellij/tab-picker.sh";
+
+    # zj — the sessionizer. `zj` attaches to / creates a session named for the
+    # git repo or cwd, so sessions read like the work instead of "joyous-duck".
+    # On ~/.local/bin (already on PATH); repo-homed so edits are live.
+    home.file.".local/bin/zj".source =
+      config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/zellij/zj";
+
+    # gibson — the Sprawl slug generator (chiba-icebreaker, zion-flatline …).
+    # `zj -n` names scratch sessions with it; usable standalone anywhere a
+    # "joyous-duck" would go (branches, temp dirs). Repo-homed, live.
+    home.file.".local/bin/gibson".source =
+      config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/zellij/gibson";
+
+    # zjstatus — the bar plugin the hypermodern layout drives (pinned wasm
+    # release; not in the nixpkgs fork)
+    home.file.".config/zellij/plugins/zjstatus.wasm".source = pkgs.fetchurl {
+      url = "https://github.com/dj95/zjstatus/releases/download/v0.24.0/zjstatus.wasm";
+      sha256 = "16v6ascpyl7na6lp3v98haggp9lwsg6r1rlv40zcyqpd3p7dxkhw";
+    };
+
+    # Hand-placed plugin wasm (e.g. dropped in live before a switch) is a
+    # reproducible cache artifact — clear it so linkGeneration never trips
+    # over an unmanaged regular file. Symlinks are home-manager's own.
+    home.activation.zellijPluginMigrate = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+      for _f in "${config.xdg.configHome}/zellij/plugins/zjstatus.wasm" \
+                "${config.xdg.configHome}/zellij/plugins/room.wasm"; do
+        if [ -e "$_f" ] && [ ! -L "$_f" ]; then
+          rm -f "$_f"
+        fi
+      done
+    '';
+
+    # (room.wasm removed — the C-o w tab picker is now tab-picker.sh, an fzf
+    # floating picker that inherits wintermute's palette; no plugin binary.)
+
+    home.activation.zellijThemeSeed = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      _zj="${config.xdg.configHome}/zellij/themes"
+      if [ ! -f "$_zj/ono-sendai.kdl" ]; then
+        mkdir -p "$_zj"
+        cp ${pkgs.writeText "zellij-ono-sendai-seed.kdl" ''
+          // seeded by nix; wintermute owns this file after first reconcile
+          themes {
+              ono-sendai {
+                  fg "${colors.base05}"
+                  bg "${colors.base00}"
+                  black "${colors.base01}"
+                  red "${colors.base08}"
+                  green "${colors.base0B}"
+                  yellow "${colors.base0A}"
+                  blue "${colors.base0D}"
+                  magenta "${colors.base0E}"
+                  cyan "${colors.base0C}"
+                  white "${colors.base07}"
+                  orange "${colors.base09}"
+              }
+          }
+        ''} "$_zj/ono-sendai.kdl"
+        chmod 644 "$_zj/ono-sendai.kdl"
+      fi
+    '';
+
+    # fzf + atuin: seed the wintermute-owned color files if absent, so a cold
+    # shell (before the daemon has ever reconciled) is already themed. The
+    # daemon overwrites both on its first reconcile and owns them after.
+    home.activation.fzfThemeSeed = lib.mkIf cfg.cliTools.enable (
+      lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        _fzf="${config.xdg.stateHome}/wintermute/fzf.opts"
+        if [ ! -f "$_fzf" ]; then
+          mkdir -p "${config.xdg.stateHome}/wintermute"
+          cp ${
+            pkgs.writeText "fzf-wintermute-seed.opts"
+              "--color=fg:${colors.base05},bg:${colors.base00},hl:${colors.base0A},fg+:${colors.base07},bg+:${colors.base01},hl+:${colors.base0A},info:${colors.base04},border:${colors.base02},prompt:${colors.base0A},pointer:${colors.base0C},marker:${colors.base0B},spinner:${colors.base0C},header:${colors.base04},gutter:${colors.base00}\n"
+          } "$_fzf"
+          chmod 644 "$_fzf"
+        fi
+      ''
+    );
+
+    home.activation.atuinThemeSeed = lib.mkIf cfg.atuin.enable (
+      lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        _at="${config.xdg.configHome}/atuin/themes"
+        if [ ! -f "$_at/wintermute.toml" ]; then
+          mkdir -p "$_at"
+          cp ${
+            pkgs.writeText "atuin-wintermute-seed.toml" ''
+              # seeded by nix; wintermute owns this file after first reconcile
+              [theme]
+              name = "wintermute"
+
+              [colors]
+              Base = "${colors.base05}"
+              Title = "${colors.base0A}"
+              Guidance = "${colors.base04}"
+              Important = "${colors.base07}"
+              Annotation = "${colors.base03}"
+              AlertInfo = "${colors.base0B}"
+              AlertWarn = "${colors.base0A}"
+              AlertError = "${colors.base08}"
+              Muted = "${colors.base04}"
+            ''
+          } "$_at/wintermute.toml"
+          chmod 644 "$_at/wintermute.toml"
+        fi
+      ''
+    );
+
     programs.tmux = lib.mkIf cfg.tmux.enable {
       enable = true;
       prefix = "C-o";
@@ -214,6 +345,14 @@ in
         # Kitty graphics protocol passthrough
         set -ga terminal-features ",xterm-ghostty:RGB:sixel"
         set -ga terminal-features ",ghostty:RGB:sixel"
+
+        # Kitty KEYBOARD protocol: ghostty sends modified keys as CSI-u, so
+        # without extended-keys tmux can't decode them and copy-mode's M-w
+        # (copy) — plus every Meta-/shifted bind — silently does nothing (the
+        # same root as the emacs M-< bug). Turn it on and advertise the cap so
+        # tmux reads the extended sequences.
+        set -s extended-keys on
+        set -as terminal-features ",*:extkeys"
 
         # n.b. do NOT add the `sync` terminal-feature (DECSET 2026 redraw
         # bracketing). It cures linewise tearing from bursty remote TUIs, but
@@ -320,6 +459,20 @@ in
       enableZshIntegration = true;
     };
 
+    # Stylix's fzf target bakes a STATIC --color (the build-time palette) into
+    # FZF_DEFAULT_OPTS. fzf reads FZF_DEFAULT_OPTS_FILE first and then
+    # FZF_DEFAULT_OPTS, so that static snapshot silently overrode wintermute's
+    # live file — every fzf wore a frozen palette. Disable the target: the
+    # wintermute fzf.opts (via FZF_DEFAULT_OPTS_FILE) is the sole authority.
+    stylix.targets.fzf.enable = false;
+
+    # fzf reads $FZF_DEFAULT_OPTS_FILE on every launch, so wintermute rewriting
+    # that file (on each reconcile) retints the next fzf with no shell reload —
+    # the live channel the old env-baked FZF_DEFAULT_OPTS could never be.
+    home.sessionVariables = lib.mkIf cfg.cliTools.enable {
+      FZF_DEFAULT_OPTS_FILE = "${config.xdg.stateHome}/wintermute/fzf.opts";
+    };
+
     programs.zoxide = lib.mkIf cfg.cliTools.enable {
       enable = true;
       enableBashIntegration = true;
@@ -361,7 +514,7 @@ in
     programs.tmate = lib.mkIf cfg.cliTools.enable { enable = true; };
 
     # Shell packages
-    home.packages = lib.mkIf cfg.cliTools.enable (
+    home.packages = [ pkgs.zellij ] ++ lib.optionals cfg.cliTools.enable (
       with pkgs;
       [
         bat

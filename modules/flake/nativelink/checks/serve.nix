@@ -38,6 +38,7 @@ pkgs.testers.runNixOSTest {
   nodes.node = { ... }: {
     imports = [
       ../../../nixos/state.nix
+      ../../../nixos/otel.nix
       ../../registry/nixos.nix
       inputs.nativelink-nix.nixosModules.nativelink
       ../shim.nix

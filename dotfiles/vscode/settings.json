@@ -1,0 +1,54 @@
+{
+  "nix.enableLanguageServer": true,
+  "nix.serverPath": "nixd",
+  "nix.serverSettings": {
+    "nixd": {
+      "formatting": {
+        "command": ["nixfmt"]
+      }
+    }
+  },
+
+  "direnv.restart.automatic": true,
+
+  "clangd.path": "clangd",
+  "clangd.checkUpdates": false,
+  "clangd.onConfigChanged": "restart",
+  "clangd.arguments": [
+    "--background-index",
+    "--clang-tidy",
+    "--header-insertion=never",
+    "--compile-commands-dir=.",
+    "--completion-style=detailed"
+  ],
+  "C_Cpp.intelliSenseEngine": "disabled",
+
+  "rust-analyzer.server.path": "rust-analyzer",
+
+  "python.languageServer": "None",
+  "ruff.nativeServer": "on",
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
+
+  "purescript.addNpmPath": false,
+  "purescript.buildCommand": "spago build --purs-args --json-errors",
+  "purescript.formatter": "purs-tidy",
+
+  "editor.minimap.enabled": false,
+  "editor.lineNumbers": "off",
+  "editor.guides.indentation": false,
+  "editor.guides.highlightActiveIndentation": false,
+  "editor.guides.bracketPairs": false,
+  "editor.guides.bracketPairsHorizontal": false,
+
+  "editor.cursorStyle": "block",
+  "editor.cursorBlinking": "blink",
+  "editor.renderLineHighlight": "all",
+
+  "kilo-code.autocomplete.enabled": true
+}

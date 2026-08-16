@@ -75,6 +75,30 @@ in
   # ── shimmer (DGX Spark): b7r6-desk over HDMI ─────────────────────────────────
   shimmer = b7r6-desk;
 
+  # ── shannon (laptop): Samsung OLED 2880x1800 internal panel ─────────────────
+  shannon = {
+    center = {
+      description = "Samsung Display Corp. ATNA33AA08-0";
+      resolution = "2880x1800";
+      refreshRate = 60;
+      position = "0x0";
+      scale = 2.0;
+      workspaces = [
+        1
+        2
+        3
+        4
+        5
+        6
+        7
+        8
+        9
+        10
+      ];
+      primary = true;
+    };
+  };
+
   # ── gossamer (DGX Spark): single 4K LG OLED ─────────────────────────────────
   gossamer = {
     center = {

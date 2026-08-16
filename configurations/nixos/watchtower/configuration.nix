@@ -339,6 +339,9 @@ in
             nativeBuildInputs = [ pkgs.dhall-json ];
           }
           ''
+            export HOME="$TMPDIR"
+            export XDG_CACHE_HOME="$TMPDIR/dhall-cache"
+            mkdir -p "$XDG_CACHE_HOME"
             dhall-to-json --file ${grafanaDir}/dashboards/${file} > $out
           '';
     in

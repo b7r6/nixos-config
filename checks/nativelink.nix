@@ -39,7 +39,7 @@ pkgs.testers.runNixOSTest {
     imports = [
       ../modules/nixos/state.nix
       ../modules/nixos/topology.nix
-      ../modules/nixos/nativelink.nix
+      inputs.nativelink-nix.nixosModules.nativelink
     ];
 
     # nativelink.nix reads flake.self (to locate nativelink/) + flake.inputs
@@ -51,6 +51,7 @@ pkgs.testers.runNixOSTest {
 
     hyper-modern-nixos.nativelink = {
       enable = true;
+      fleetDir = ../modules/flake/nativelink/data;
       dhallHost = "watchtower"; # scheduler role: CAS + scheduler + worker
       openFirewall = false; # tailnet-only in prod; irrelevant in the VM
       r2 = {

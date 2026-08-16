@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# ── gibson // the Sprawl slug generator ────────────────────────────────────
+# Emits "word-word" handles from William Gibson's Sprawl-trilogy terminology —
+# places and clans on the left, AIs, ice and gear on the right — the house
+# answer to zellij's "joyous-duck". Source: the sprawlgloss (Neuromancer,
+# Count Zero, Mona Lisa Overdrive, Burning Chrome).
+#
+#   gibson               one slug, e.g. "chiba-icebreaker"
+#   gibson -n 5          five slugs, one per line
+#   gibson --seed 1984   deterministic (same seed → same slug)
+#
+# It only writes lowercase [a-z-] to stdout, so it drops straight into a
+# session name, a branch, a scratch dir — anywhere "joyous-duck" would go.
+
+set -uo pipefail
+
+# LEFT — places, clans, corps, qualifiers.
+left=(chiba ninsei freeside straylight zion sprawl chatsubo barrytown kirensk
+      mustique tessier ashpool maas hosaka sendai panther yakuza zaibatsu
+      turing zeiss braun night villa neon)
+
+# RIGHT — AIs, constructs, ice, gear, roles.
+right=(wintermute neuromancer kuang aleph loa icebreaker cyberspace matrix
+       simstim biosoft dermatrode fletcher temperfoam coffin holografix
+       nightwing mycotoxin cluster spindle cowboy jockey flatline ice ghost)
+
+count=1
+seed=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -n | --count) count=${2:-1}; shift 2 || shift ;;
+    -s | --seed)  seed=${2:-};  shift 2 || shift ;;
+    -h | --help)  sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) shift ;;
+  esac
+done
+case "$count" in '' | *[!0-9]*) count=1 ;; esac
+[ -n "$seed" ] && RANDOM=$seed
+
+for ((i = 0; i < count; i++)); do
+  printf '%s-%s\n' "${left[RANDOM % ${#left[@]}]}" "${right[RANDOM % ${#right[@]}]}"
+done

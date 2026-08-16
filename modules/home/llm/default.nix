@@ -24,8 +24,14 @@ let
         return 1
       fi
 
-      # Anthropic API key
-      export ANTHROPIC_API_KEY=$(${readNetrcEntry "api.anthropic.com"})
+      # Anthropic API key — read from netrc into a LOCAL, deliberately NOT
+      # exported as ANTHROPIC_API_KEY: that env var takes precedence over the
+      # claude.ai login and disables Claude Code's claude.ai MCP connectors
+      # (Gmail/Calendar/Linear). The llm CLI + gptel get the value by their own
+      # names below, so they're unaffected. For raw-API use, pass it inline:
+      #   ANTHROPIC_API_KEY=$(grep -A2 'machine api.anthropic.com' ~/.netrc | grep password | awk '{print $2}') yourcmd
+      local _anthropic_key
+      _anthropic_key=$(${readNetrcEntry "api.anthropic.com"})
 
       # OpenAI API key
       export OPENAI_API_KEY=$(${readNetrcEntry "api.openai.com"})
@@ -52,11 +58,11 @@ let
       export OPENROUTER_PROVISIONING_API_KEY=$(${readNetrcEntry "provisioning.openrouter.ai"})
 
       # Configure LLM tool
-      export LLM_ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
+      export LLM_ANTHROPIC_API_KEY=$_anthropic_key
 
       # Set environment variables for gptel (Emacs)
       export GPTEL_API_KEY=$OPENAI_API_KEY
-      export GPTEL_ANTHROPIC_KEY=$ANTHROPIC_API_KEY
+      export GPTEL_ANTHROPIC_KEY=$_anthropic_key
     }
 
     # Only run if we're in an interactive shell

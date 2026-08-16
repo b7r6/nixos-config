@@ -30,6 +30,9 @@ in
   age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;
   hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
 
+  # CoreDNS as this node's own resolver (serves s4.gl — git, auth, grafana, …)
+  hyper-modern-nixos.coredns.enable = true;
+
   # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
 
   # Per-host repo (backups-restic/shannon). FIRST init:  nix run .#restic-init -- shannon
@@ -62,5 +65,30 @@ in
   };
 
   environment.sessionVariables.NIXOS_OZONE_WL = "1";
+
+  # ── Wayland/Hyprland ────────────────────────────────────────────────────────
+  hyper-modern-nixos.wayland.enable = true;
+
+  hyper-modern-nixos.new-suzuki = {
+    enable = true;
+    battery.enable = true;
+  };
+
+  # ── Per-host monitor & display config ──────────────────────────────────────
+  home-manager.users.b7r6 = {
+    hyper-modern-nixos = {
+      hyprland.monitors = (import ../../../lib/monitors.nix).shannon;
+
+      themes.display = {
+        # Samsung OLED internal panel at scale 2.0 → 192dpi logical
+        profile = "oled";
+        highDPI = true;
+        width = 2880;
+        height = 1800;
+      };
+
+    };
+  };
+
   system.stateVersion = "25.05"; # Did you read the comment?
 }

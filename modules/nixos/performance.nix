@@ -1,15 +1,17 @@
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #                                           // hypermodern // nix // performance
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-# We do performance here. This module makes the whole fleet a first-class
-# profiling target by default, no per-host ceremony:
+# We do performance here. This module makes the whole fleet a
+# first-class profiling target by default, no per-host ceremony:
 #
-#   - CPUs run the `performance` governor (max sustained clock, not schedutil's
-#     latency-vs-power tradeoff). Fleet-wide mkDefault, so a battery host can
-#     still override. NB: on GB10/DGX-Spark the delivered clock is gated by the
-#     USB-C PD controller firmware, NOT this governor — keep that firmware
-#     current (fwupd) or the cores park at lowest_perf regardless.
+#   - CPUs run the `performance` governor (max sustained clock,
+#     not schedutil's latency-vs-power tradeoff). Fleet-wide
+#     mkDefault, so a battery host can still override. NB: on
+#     GB10/DGX-Spark the delivered clock is gated by the
+#     USB-C PD controller firmware, NOT this governor — keep
+#     that firmware current (fwupd) or the cores park at
+#     lowest_perf regardless.
 #
 #   - The perf/ptrace paranoia knobs are OPEN: perf_event_paranoid = -1 (full
 #     PMU + kernel + tracepoint access for unprivileged users), kptr_restrict = 0
@@ -24,7 +26,7 @@
 #     (strace/ltrace), the memory profilers (valgrind/heaptrack), FlameGraph,
 #     the sampling GUI (hotspot), and the system-stat/NUMA/topology tools.
 #
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 {
   config,
@@ -107,6 +109,7 @@ in
 
         # kernel function tracing
         trace-cmd
+        traccar
 
         # system stats, NUMA + topology (Grace is NUMA — hwloc/numactl matter)
         sysstat

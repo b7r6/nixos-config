@@ -46,9 +46,13 @@ let
   currentTheme =
     if cfg.mode == "computed" then
       color-lib.mk-theme {
-        inherit (cfg) level;
-        inherit (cfg) hero-hue;
-        inherit (cfg) axis-hue;
+        inherit (cfg)
+          level
+          hero-hue
+          axis-hue
+          polarity
+          ramp-hue
+          ;
       }
     else
       legacyThemes.${cfg.theme}.${cfg.variant};
@@ -109,22 +113,47 @@ in
 
     # ── Computed mode options ──────────────────────────────────────────────────
 
+    polarity = mkOption {
+      type = types.enum [
+        "dark"
+        "light"
+      ];
+      default = "dark";
+      description = ''
+        Luminance polarity (computed mode):
+          dark  - ono-sendai (black levels)
+          light - maas (white levels)
+      '';
+    };
+
     level = mkOption {
       type = types.enum [
+        # dark (ono-sendai) black levels
         "void"
         "deep"
         "night"
         "carbon"
         "github"
+        # light (maas) white levels
+        "tessier"
+        "neoform"
+        "ghost"
       ];
       default = "carbon";
       description = ''
-        Black level variant (computed mode):
-          void   - L=0%  (true black, kills thin fonts)
-          deep   - L=4%  (hand-tuned dark)
-          night  - L=8%  (OLED safe threshold)
-          carbon - L=11% (recommended default)
-          github - L=16% (matches GitHub dark mode)
+        Luminance level variant (computed mode).
+
+        Dark (ono-sendai) black levels:
+          void    - L=0%   (true black, kills thin fonts)
+          deep    - L=4%   (hand-tuned dark)
+          night   - L=8%   (OLED safe threshold)
+          carbon  - L=11%  (recommended default)
+          github  - L=16%  (matches GitHub dark mode)
+
+        Light (maas) white levels:
+          tessier - L=100% (clinical pure white)
+          neoform - L=97%  (recommended light default)
+          ghost   - L=92%  (fog)
       '';
     };
 
@@ -138,6 +167,16 @@ in
       type = types.ints.between 0 359;
       default = 201;
       description = "Axis accent hue (0-359). Controls base08-09.";
+    };
+
+    ramp-hue = mkOption {
+      type = types.ints.between 0 359;
+      default = 211;
+      description = ''
+        Grayscale-ramp hue (light polarity only). Unlocks the paper tint for
+        warm variants — bioptic is neoform + ramp-hue 36. Dark ramps stay
+        locked to 211.
+      '';
     };
 
     # ── Legacy mode options ────────────────────────────────────────────────────
@@ -236,9 +275,31 @@ in
   };
 
   config = mkIf cfg.enable {
+    assertions = [
+      {
+        assertion =
+          cfg.mode != "computed"
+          || (
+            if cfg.polarity == "light" then
+              builtins.elem cfg.level [ "tessier" "neoform" "ghost" ]
+            else
+              builtins.elem cfg.level [ "void" "deep" "night" "carbon" "github" ]
+          );
+        message = ''
+          hyper-modern-nixos.themes: level "${cfg.level}" does not belong to the
+          "${cfg.polarity}" polarity (dark levels: void/deep/night/carbon/github,
+          light levels: tessier/neoform/ghost).
+        '';
+      }
+    ];
+
     stylix = {
       enable = true;
       autoEnable = true;
+
+      # Drives the xdg-desktop-portal color-scheme (the live day/night channel
+      # GTK/Qt apps actually follow) alongside the palette itself.
+      polarity = cfg.polarity;
 
       # Stylix's per-package theming overlay sets `nixpkgs.overlays` inside the
       # home-manager module. Under nixos-unified's `home-manager.useGlobalPkgs`

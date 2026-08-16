@@ -162,6 +162,11 @@ in
     # the same attr, so the session runs this same derivation.
     programs.hyprland.enable = true;
 
+    # Nautilus-era file management needs the storage plumbing: gvfs for
+    # trash/MTP/network mounts, udisks2 for removable media.
+    services.gvfs.enable = true;
+    services.udisks2.enable = true;
+
     # ── XDG Portal Configuration ───────────────────────────────────────────────
 
     #

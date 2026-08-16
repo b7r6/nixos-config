@@ -108,11 +108,11 @@ in
           "x-scheme-handler/mailto" = [ "thunderbird.desktop" ];
 
           # Images
-          "image/png" = [ "imv.desktop" ];
-          "image/jpeg" = [ "imv.desktop" ];
-          "image/gif" = [ "imv.desktop" ];
-          "image/webp" = [ "imv.desktop" ];
-          "image/svg+xml" = [ "imv.desktop" ];
+          "image/png" = [ "org.gnome.Loupe.desktop" ];
+          "image/jpeg" = [ "org.gnome.Loupe.desktop" ];
+          "image/gif" = [ "org.gnome.Loupe.desktop" ];
+          "image/webp" = [ "org.gnome.Loupe.desktop" ];
+          "image/svg+xml" = [ "org.gnome.Loupe.desktop" ];
 
           # Video
           "video/mp4" = [ "mpv.desktop" ];
@@ -125,12 +125,12 @@ in
           "audio/flac" = [ "mpv.desktop" ];
 
           # Documents
-          "application/pdf" = [ "org.pwmt.zathura.desktop" ];
-          "application/epub+zip" = [ "org.pwmt.zathura.desktop" ];
+          "application/pdf" = [ "org.gnome.Papers.desktop" ];
+          "application/epub+zip" = [ "org.gnome.Papers.desktop" ];
 
           # Text
-          "text/plain" = [ "nvim.desktop" ];
-          "text/x-shellscript" = [ "nvim.desktop" ];
+          "text/plain" = [ "emacsclient.desktop" ];
+          "text/x-shellscript" = [ "emacsclient.desktop" ];
 
           # Archives
           "application/zip" = [ "org.gnome.FileRoller.desktop" ];
@@ -138,7 +138,7 @@ in
           "application/gzip" = [ "org.gnome.FileRoller.desktop" ];
 
           # File manager
-          "inode/directory" = [ "nemo.desktop" ];
+          "inode/directory" = [ "org.gnome.Nautilus.desktop" ];
         };
       };
     };
@@ -234,6 +234,17 @@ in
           };
           "github.com" = {
             User = "git";
+          };
+          # ── Fleet forge (Forgejo on watchtower) ──────────────────────────────
+          # Flake inputs (continuity, nativelink-nix) fetch over this alias from
+          # non-interactive nix evals. Pin HostName so the fetch works before
+          # coredns owns resolution (kills the gossamer two-step bootstrap), and
+          # pin the forge key so auth doesn't depend on a live agent.
+          "git.s4.gl" = {
+            User = "git";
+            HostName = fleet.watchtower.ts;
+            IdentityFile = "~/.ssh/id_ed25519_b7r6";
+            IdentitiesOnly = true;
           };
         }
         // lanBlocks

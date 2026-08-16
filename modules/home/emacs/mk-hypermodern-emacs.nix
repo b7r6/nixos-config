@@ -54,6 +54,11 @@ emacsPkgs.emacsWithPackages (
         # Core glue (Nix-managed; init.el must not install packages)
         use-package
 
+        # terminal keyboard: decode the kitty keyboard protocol (Ghostty + zellij
+        # both speak it) so modified keys — M-<, M->, C-RET, S-… — reach emacs
+        # -nw instead of arriving as raw CSI-u "undefined" fragments.
+        kkp
+
         # UI / modeline
         doom-modeline
         nerd-icons
@@ -151,7 +156,17 @@ emacsPkgs.emacsWithPackages (
         undo-tree
         expand-region
         multiple-cursors
+        move-dup
+        ws-butler
         format-all
+        wgrep
+        symbol-overlay
+
+        # git decoration / dired
+        diff-hl
+        hl-todo
+        magit-todos
+        diredfl
 
         # tools
         # envrc (buffer-local direnv) not the `direnv` package: it applies the

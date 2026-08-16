@@ -1,5 +1,28 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": ["./plugin/searxng.ts"],
-  "permission": "allow"
+  "permission": "allow",
+  "provider": {
+    "kimi-k3-local": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Kimi K3 (2x DGX Spark)",
+      // Reached via SSH tunnel: local 127.0.0.1:8002 -> rank-0 loopback 8002.
+      // The rank-0 native server is OpenAI-shaped but partial: it serves
+      // /v1/chat/completions and /v1/completions, has NO /v1/models route,
+      // and rejects the `temperature` field. It is launched with
+      // --sequence-capacity 64 --max-new-tokens 16, so output is capped hard.
+      "options": {
+        "baseURL": "http://127.0.0.1:8002/v1"
+      },
+      "models": {
+        "kimi-k3": {
+          "name": "Kimi K3",
+          "limit": {
+            "context": 64,
+            "output": 16
+          }
+        }
+      }
+    }
+  }
 }

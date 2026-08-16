@@ -3,7 +3,7 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # The single NixOS module every host imports. It pulls in:
-#   - always-on essentials (base, nix, packages, greetd, users, network…)
+#   - always-on essentials (base, nix, packages, sddm, users, network…)
 #   - every gated service/hardware module (attic, backup, nativelink, postgres,
 #     docker, libvirt, nvidia, radeon, …) which stay INERT until a host sets the
 #     corresponding hyper-modern-nixos.<x>.enable = true
@@ -22,9 +22,10 @@
     ./base.nix
     ./nix.nix
     ./packages.nix
-    ./greetd.nix
+    ./sddm
     ./kernel.nix
     ./performance.nix
+    ./new-suzuki.nix
     ./secrets.nix
     ./state.nix
     ../flake/registry/nixos.nix
@@ -121,8 +122,7 @@
   # (`hyper-modern-nixos.nativelink.nixCache.enable = lib.mkForce false`), e.g.
   # a disk-constrained box or the test-vm. Rollout is per-host: this codifies the
   # default; each host adopts it on its next rebuild.
-  age.secrets.nativelink-nix-cache-key.file =
-    ../../secrets/agenix/machines/nativelink-nix-cache-key.age;
+  age.secrets.nativelink-nix-cache-key.file = ../../secrets/agenix/machines/nativelink-nix-cache-key.age;
 
   hyper-modern-nixos.nativelink.nixCache = {
     enable = lib.mkDefault true;
