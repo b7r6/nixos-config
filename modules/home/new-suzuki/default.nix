@@ -48,7 +48,7 @@ let
     # Don't include palette.json — it's managed at runtime by theme-switch
   '';
 
-  # ── Quickshell global shortcut binds (appended in both modes) ─────────────
+  # ── Quickshell global shortcut binds (appended to exclusiveBinds) ─────────
   quickshellBinds = [
     ", Print, global, quickshell:take_screenshot"
     "$mod SHIFT, E, global, quickshell:power_menu"
@@ -260,7 +260,7 @@ in
       # ── Replace the entire keybind list ────────────────────────────────
       # Same hy3 semantics + navigation as the original, but launcher/lock/
       # screenshot/volume/brightness route through Quickshell globals.
-      wayland.windowManager.hyprland.settings.bind = lib.mkForce exclusiveBinds;
+      wayland.windowManager.hyprland.settings.bind = lib.mkForce (exclusiveBinds ++ quickshellBinds);
 
       # ── Autostart ──────────────────────────────────────────────────────
       hyper-modern-nixos.hyprland.autostart = lib.mkForce [
