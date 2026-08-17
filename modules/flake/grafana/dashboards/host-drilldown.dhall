@@ -18,8 +18,7 @@ let hostVar =
       , name = "host"
       , label = "Host"
       , type = T.VariableType.Query
-      , query =
-          "SELECT DISTINCT ${S.host} FROM ${S.gauge} WHERE TimeUnix > now() - INTERVAL 1 HOUR ORDER BY 1"
+      , query = S.hostInventory
       , includeAll = False
       }
 
