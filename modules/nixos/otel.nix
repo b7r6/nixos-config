@@ -384,15 +384,30 @@ in
       settings = otelSettings;
     };
 
-    # journald receiver needs systemd-journal group; filelog needs access to
-    # service log dirs (e.g. pgbackrest owned by supabase-postgres).
-    systemd.services.opentelemetry-collector.serviceConfig = lib.mkIf isAgent {
-      SupplementaryGroups = [
-        "systemd-journal"
-      ]
-      ++ lib.optional (agent.logPaths != [ ]) "supabase-postgres";
-      ReadOnlyPaths = agent.logPaths;
-    };
+    systemd.services.opentelemetry-collector = lib.mkMerge [
+      # journald receiver needs systemd-journal group; filelog needs access to
+      # service log dirs (e.g. pgbackrest owned by supabase-postgres).
+      (lib.mkIf isAgent {
+        serviceConfig = {
+          SupplementaryGroups = [
+            "systemd-journal"
+          ]
+          ++ lib.optional (agent.logPaths != [ ]) "supabase-postgres";
+          ReadOnlyPaths = agent.logPaths;
+        };
+      })
+
+      # The gateway exporter creates/verifies its ClickHouse schema at startup.
+      # Order it after ClickHouse's Type=notify readiness and retry forever if
+      # the database is unavailable, so a cold boot converges without operator
+      # intervention instead of exhausting systemd's default 5-in-10s limit.
+      (lib.mkIf isGateway {
+        after = [ "clickhouse.service" ];
+        wants = [ "clickhouse.service" ];
+        startLimitIntervalSec = 0;
+        serviceConfig.RestartSec = "5s";
+      })
+    ];
 
     # Gateway OTLP listener exposed on the tailnet only.
     networking.firewall.interfaces = lib.mkIf (isGateway && gateway.openTailnet) {
