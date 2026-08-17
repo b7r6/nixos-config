@@ -238,10 +238,6 @@ PanelWindow {
                             {
                                 keys: "Super + M",
                                 action: "Spotify workspace"
-                            },
-                            {
-                                keys: "Super + S",
-                                action: "Magic workspace"
                             }
                         ]
                     }
@@ -268,7 +264,19 @@ PanelWindow {
                             },
                             {
                                 keys: "Print",
-                                action: "Screenshot"
+                                action: "Screenshot picker"
+                            },
+                            {
+                                keys: "Super + S",
+                                action: "Copy screenshot region"
+                            },
+                            {
+                                keys: "Super + Shift + S",
+                                action: "Save screenshot region"
+                            },
+                            {
+                                keys: "Super + Shift + Alt + S",
+                                action: "Copy current screen"
                             },
                             {
                                 keys: "Super + =  /  -",

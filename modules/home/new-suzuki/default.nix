@@ -122,7 +122,8 @@ let
   # ── Complete keybind replacement for exclusive mode ───────────────────────
   # Same hy3 semantics and navigation as the original, but shell components
   # (launcher, lockscreen) route through Quickshell's global dispatcher.
-  # Screenshots go to quickshell's screenshot manager.
+  # Direct screenshot chords keep the original grimblast behavior, while
+  # bare Print routes through Quickshell's screenshot manager.
   exclusiveBinds = [
     # ── Core ────────────────────────────────────────────────────────────
     "$mod, Return, exec, ${config.hyper-modern-nixos.hyprland.apps.terminal}"
@@ -218,8 +219,13 @@ let
     "$mod ALT, period, movecurrentworkspacetomonitor, +1"
     "$mod ALT, S, swapactiveworkspaces, +1 current"
 
-    # ── Screenshots (via quickshell) ────────────────────────────────────
-    "$mod, S, global, quickshell:take_screenshot"
+    # ── Screenshots ─────────────────────────────────────────────────────
+    # Preserve the pre-New-Suzuki muscle memory for immediate captures.
+    # Bare Print still opens Quickshell's richer region/window/screen picker.
+    ", Print, global, quickshell:take_screenshot"
+    "$mod, S, exec, grimblast copy area"
+    "$mod SHIFT, S, exec, grimblast save area ~/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
+    "$mod SHIFT ALT, S, exec, grimblast copy screen"
 
     # ── Media ───────────────────────────────────────────────────────────
     ", XF86AudioPlay, exec, playerctl play-pause"
