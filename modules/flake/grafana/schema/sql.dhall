@@ -27,6 +27,13 @@ let hostFilter = "${host} IN (\$host)"
 
 let hostFilterSingle = "${host} = '\$host'"
 
+-- Dashboard variables must survive an ingestion outage. Discover hosts from a
+-- low-cardinality, universal host metric across the telemetry retention window
+-- instead of only the last hour; otherwise Grafana expands All to IN ('') and
+-- hides valid historical data whenever the gateway has been down for an hour.
+let hostInventory =
+      "SELECT DISTINCT ${host} FROM ${gauge} WHERE MetricName = 'system.cpu.load_average.1m' AND TimeUnix > now() - INTERVAL 30 DAY AND ${host} != '' ORDER BY 1"
+
 let unit = "JSONExtractString(Body, '_SYSTEMD_UNIT')"
 
 let msg = "JSONExtractString(Body, 'MESSAGE')"
@@ -101,6 +108,7 @@ in  { gauge
     , host
     , hostFilter
     , hostFilterSingle
+    , hostInventory
     , unit
     , msg
     , pri
