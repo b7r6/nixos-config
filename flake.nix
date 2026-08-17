@@ -43,6 +43,15 @@
     disko.url = "github:nix-community/disko";
     disko.inputs.nixpkgs.follows = "nixpkgs";
 
+    # The jetson (filament) rides proven pins, not the fleet nixpkgs: jetpack
+    # HEAD (L4T 39.x) wants CUDA 13.2 manifests and the proven rev wants
+    # 13.0.3 — neither exists in the sensenet-ai fork's cuda-modules. This
+    # pair is exactly the closure verified on hardware 2026-08-06; bump both
+    # together, deliberately.
+    nixpkgs-jetson.url = "github:NixOS/nixpkgs/af84f9d270d404c17699522fab95bbf928a2d92f";
+    jetpack-nixos.url = "github:anduril/jetpack-nixos/55bcdf742a957748a759e5eaf69b86ad9d779330";
+    jetpack-nixos.inputs.nixpkgs.follows = "nixpkgs-jetson";
+
     impermanence.url = "github:nix-community/impermanence";
 
     impurity.url = "github:outfoxxed/impurity.nix";

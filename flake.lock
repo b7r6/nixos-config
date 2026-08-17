@@ -289,6 +289,31 @@
         "type": "github"
       }
     },
+    "cuda-legacy": {
+      "inputs": {
+        "flake-parts": [
+          "jetpack-nixos",
+          "cuda-legacy"
+        ],
+        "nixpkgs": [
+          "jetpack-nixos",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1768505959,
+        "narHash": "sha256-oFCx/ApQ+S1/apUKWsvT9vq+Eo1m2vINWEDkW7/nckA=",
+        "owner": "nixos-cuda",
+        "repo": "cuda-legacy",
+        "rev": "86ad7e2c2e314f0234539cbbc66b5cd7746bcd32",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos-cuda",
+        "repo": "cuda-legacy",
+        "type": "github"
+      }
+    },
     "darwin": {
       "inputs": {
         "nixpkgs": [
@@ -1265,6 +1290,28 @@
         "type": "github"
       }
     },
+    "jetpack-nixos": {
+      "inputs": {
+        "cuda-legacy": "cuda-legacy",
+        "nixpkgs": [
+          "nixpkgs-jetson"
+        ]
+      },
+      "locked": {
+        "lastModified": 1770081245,
+        "narHash": "sha256-SMD9gORzvn/m7eJYf4K2l9xVa/yzeoCxr+imiAKqFgg=",
+        "owner": "anduril",
+        "repo": "jetpack-nixos",
+        "rev": "55bcdf742a957748a759e5eaf69b86ad9d779330",
+        "type": "github"
+      },
+      "original": {
+        "owner": "anduril",
+        "repo": "jetpack-nixos",
+        "rev": "55bcdf742a957748a759e5eaf69b86ad9d779330",
+        "type": "github"
+      }
+    },
     "lean4-nix": {
       "inputs": {
         "flake-parts": "flake-parts_4",
@@ -1776,6 +1823,22 @@
         "type": "github"
       }
     },
+    "nixpkgs-jetson": {
+      "locked": {
+        "lastModified": 1765934234,
+        "narHash": "sha256-pJjWUzNnjbIAMIc5gRFUuKCDQ9S1cuh3b2hKgA7Mc4A=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "af84f9d270d404c17699522fab95bbf928a2d92f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "af84f9d270d404c17699522fab95bbf928a2d92f",
+        "type": "github"
+      }
+    },
     "nixpkgs-lib": {
       "locked": {
         "lastModified": 1743296961,
@@ -2248,6 +2311,7 @@
         "home-manager": "home-manager_2",
         "impermanence": "impermanence",
         "impurity": "impurity",
+        "jetpack-nixos": "jetpack-nixos",
         "nativelink": "nativelink",
         "nativelink-nix": "nativelink-nix",
         "nix-compile": "nix-compile",
@@ -2256,6 +2320,7 @@
         "nix4nvchad": "nix4nvchad",
         "nixos-generators": "nixos-generators",
         "nixpkgs": "nixpkgs_5",
+        "nixpkgs-jetson": "nixpkgs-jetson",
         "nvf": "nvf",
         "opencode": "opencode",
         "rayfish": "rayfish",

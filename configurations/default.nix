@@ -22,7 +22,7 @@
   ...
 }:
 let
-  inherit (inputs) nixpkgs home-manager;
+  inherit (inputs) home-manager;
 
   # The argument every module destructures as `{ flake, ... }`, providing
   # flake.inputs / flake.self / flake.config. Identical to nixos-unified's
@@ -49,8 +49,16 @@ let
     };
   };
 
-  # The fleet. system defaults to x86_64-linux; shimmer/gossamer are the aarch64 DGX Sparks.
+  # The fleet. system defaults to x86_64-linux; shimmer/gossamer are the
+  # aarch64 DGX Sparks, filament is the aarch64 Jetson AGX Thor. filament
+  # also rides its own nixpkgs pin: the JetPack CUDA manifests it needs
+  # don't exist in the sensenet-ai fork (see the jetpack-nixos input
+  # comment in flake.nix).
   hosts = {
+    filament = {
+      system = "aarch64-linux";
+      nixpkgs = inputs.nixpkgs-jetson;
+    };
     gossamer.system = "aarch64-linux";
     shimmer.system = "aarch64-linux";
 
@@ -66,6 +74,7 @@ let
     name:
     {
       system ? "x86_64-linux",
+      nixpkgs ? inputs.nixpkgs,
     }:
     nixpkgs.lib.nixosSystem {
       inherit specialArgs;
@@ -87,6 +96,7 @@ in
     nixosModules = {
       default = ../modules/nixos;
       dgx-spark = ../modules/nixos/dgx-spark;
+      jetson-thor = ../modules/nixos/jetson-thor;
       wayland = ../modules/nixos/wayland;
     };
 
