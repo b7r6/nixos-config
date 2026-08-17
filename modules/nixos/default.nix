@@ -15,7 +15,7 @@
 #
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-{ lib, ... }: {
+{ lib, flake, ... }: {
   imports = [
     # ── Core system (always-on) ──
 
@@ -59,13 +59,15 @@
     ../flake/media/nixos-pinchflat.nix
     ../flake/media/nixos-torrents.nix
     ../flake/media/nixos.nix
-    ../flake/nativelink/nixos.nix
+    # nativelink's NixOS module lives in the FORK (the fork owns its ops);
+    # the shim wires OUR fleet topology, telemetry, and state registry.
+    flake.inputs.nativelink-nix.nixosModules.nativelink
+    ../flake/nativelink/shim.nix
     ./clickhouse.nix
     ./otel.nix
     ./postgres.nix
     ./rayfish.nix
     ./rclone-mount.nix
-    ./registry.nix
     ./searxng.nix
     ./supabase-native.nix
     ./supabase.nix
@@ -119,8 +121,7 @@
   # (`hyper-modern-nixos.nativelink.nixCache.enable = lib.mkForce false`), e.g.
   # a disk-constrained box or the test-vm. Rollout is per-host: this codifies the
   # default; each host adopts it on its next rebuild.
-  age.secrets.nativelink-nix-cache-key.file =
-    ../../secrets/agenix/machines/nativelink-nix-cache-key.age;
+  age.secrets.nativelink-nix-cache-key.file = ../../secrets/agenix/machines/nativelink-nix-cache-key.age;
 
   hyper-modern-nixos.nativelink.nixCache = {
     enable = lib.mkDefault true;

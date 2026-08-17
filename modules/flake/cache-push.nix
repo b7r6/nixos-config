@@ -13,11 +13,6 @@
 #
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-{ inputs, ... }:
-{
-  perSystem =
-    { system, ... }:
-    {
-      apps.push-flake = inputs.nativelink-nix.apps.${system}.push-flake;
-    };
+{ inputs, ... }: {
+  perSystem = { system, ... }: { apps.push-flake = inputs.nativelink-nix.apps.${system}.push-flake; };
 }

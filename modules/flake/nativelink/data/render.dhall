@@ -67,11 +67,13 @@ let grpc =
       \(instanceName : Text) ->
       \(address : Text) ->
       \(storeType : Text) ->
+      \(rpcTimeoutS : Natural) ->
           [ { mapKey = "grpc"
             , mapValue =
                 obj
                   [ { mapKey = "instance_name", mapValue = str instanceName }
                   , { mapKey = "store_type", mapValue = str storeType }
+                  , { mapKey = "rpc_timeout_s", mapValue = nat rpcTimeoutS }
                   , { mapKey = "endpoints"
                     , mapValue =
                         arr
@@ -92,24 +94,32 @@ let ref =
           ]
         : Backend
 
-let fastSlow =
+let fastSlowWith =
+      \(writeBack : Bool) ->
       \(fast : Backend) ->
       \(slow : Backend) ->
           [ { mapKey = "fast_slow"
             , mapValue =
                 obj
-                  [ { mapKey = "fast", mapValue = wrap fast }
-                  , -- write-through: populate the local fast tier on WRITE (not
-                    -- just on read). With "get" (write-around) uploaded build
-                    -- outputs land in R2 only, so every cache-hit read-back paid
-                    -- a ~100ms R2 round-trip instead of a local NVMe read. "both"
-                    -- (nativelink's default) makes read-back local and fast.
-                    { mapKey = "fast_direction", mapValue = str "both" }
-                  , { mapKey = "slow", mapValue = wrap slow }
-                  ]
+                  (   [ { mapKey = "fast", mapValue = wrap fast }
+                      , { mapKey = "fast_direction", mapValue = str "both" }
+                      , { mapKey = "slow", mapValue = wrap slow }
+                      ]
+                    # ( if    writeBack
+                        then  [ { mapKey = "slow_store_write_back"
+                                , mapValue = bool True
+                                }
+                              ]
+                        else  [] : List (Map/Entry Text JSON.Type)
+                      )
+                  )
             }
           ]
         : Backend
+
+let fastSlow = fastSlowWith False
+
+let fastSlowWriteBack = fastSlowWith True
 
 let cacheMetrics =
       \(cacheType : Text) ->
@@ -302,7 +312,8 @@ let nixCacheSvcJSON =
                 then  [] : List (Map/Entry Text JSON.Type)
                 else  [ { mapKey = "signing_key_files"
                         , mapValue =
-                            arr (List/map Text JSON.Type str x.signing_key_files)
+                            arr
+                              (List/map Text JSON.Type str x.signing_key_files)
                         }
                       ]
               )
@@ -336,18 +347,107 @@ let casWitnessSvcJSON =
 
 let Opt/fold = https://prelude.dhall-lang.org/v23.0.0/Optional/fold.dhall
 
+let optStrField =
+      \(k : Text) ->
+      \(v : Optional Text) ->
+        Opt/fold
+          Text
+          v
+          (List (Map/Entry Text JSON.Type))
+          (\(s : Text) -> [ { mapKey = k, mapValue = str s } ])
+          ([] : List (Map/Entry Text JSON.Type))
+
+let ociRegistryJSON =
+      \(x : schema.OciRegistry.Type) ->
+        obj
+          (   [ { mapKey = "host", mapValue = str x.host } ]
+            # optStrField "scheme" x.scheme
+            # optStrField "root_certificates" x.root_certificates
+            # optStrField "username" x.username
+            # optStrField "password" x.password
+            # optStrField "bearer_token" x.bearer_token
+            # ( if    x.insecure_skip_verify
+                then  [ { mapKey = "insecure_skip_verify"
+                        , mapValue = bool True
+                        }
+                      ]
+                else  [] : List (Map/Entry Text JSON.Type)
+              )
+          )
+
+let ociSelfRegistryJSON =
+      \(x : schema.OciSelfRegistryRefs) ->
+        obj
+          [ { mapKey = "blob_store", mapValue = str x.blob_store }
+          , { mapKey = "index_store", mapValue = str x.index_store }
+          , { mapKey = "ref_store", mapValue = str x.ref_store }
+          ]
+
+let ociFetchJSON =
+      \(x : schema.OciFetch.Type) ->
+        obj
+          (   optStrField "cas_store" x.cas_store
+            # [ { mapKey = "dedup_check", mapValue = bool x.dedup_check }
+              , { mapKey = "digest_function", mapValue = str x.digest_function }
+              , { mapKey = "registries"
+                , mapValue =
+                    arr
+                      ( List/map
+                          schema.OciRegistry.Type
+                          JSON.Type
+                          ociRegistryJSON
+                          x.registries
+                      )
+                }
+              ]
+            # Opt/fold
+                schema.OciSelfRegistryRefs
+                x.self_registry
+                (List (Map/Entry Text JSON.Type))
+                ( \(sr : schema.OciSelfRegistryRefs) ->
+                    [ { mapKey = "self_registry"
+                      , mapValue = ociSelfRegistryJSON sr
+                      }
+                    ]
+                )
+                ([] : List (Map/Entry Text JSON.Type))
+          )
+
+let fetchSvcJSON =
+      \(x : schema.FetchSvc.Type) ->
+        obj
+          (   [ { mapKey = "instance_name", mapValue = str x.instance_name }
+              , { mapKey = "fetch_store", mapValue = str x.fetch_store }
+              ]
+            # Opt/fold
+                schema.OciFetch.Type
+                x.oci
+                (List (Map/Entry Text JSON.Type))
+                ( \(o : schema.OciFetch.Type) ->
+                    [ { mapKey = "oci", mapValue = ociFetchJSON o } ]
+                )
+                ([] : List (Map/Entry Text JSON.Type))
+          )
+
+let ociRegistrySvcJSON =
+      \(x : schema.OciRegistrySvc.Type) ->
+        obj
+          [ { mapKey = "instance_name", mapValue = str x.instance_name }
+          , { mapKey = "cas_store", mapValue = str x.cas_store }
+          , { mapKey = "index_store", mapValue = str x.index_store }
+          , { mapKey = "ref_store", mapValue = str x.ref_store }
+          , { mapKey = "digest_function", mapValue = str x.digest_function }
+          , { mapKey = "spool_path", mapValue = str x.spool_path }
+          , { mapKey = "read_only", mapValue = bool x.read_only }
+          , { mapKey = "enable_delete", mapValue = bool x.enable_delete }
+          ]
+
 let serverToJSON =
       \(s : schema.Server.Type) ->
         let httpInner
             : List (Map/Entry Text JSON.Type)
             =   [ { mapKey = "socket_address", mapValue = str s.socket_address }
-                , -- HTTP/2 flow control for large CAS ByteStream uploads. The
-                  -- default per-stream window (~64 KiB) drains in a frame or two
-                  -- of a multi-GiB blob; with a slow downstream shard that stalls
-                  -- the stream to a mid-stream reset. Enable adaptive windows and
-                  -- raise the initial stream/connection windows so a toolchain
-                  -- upload lands in one shot.
-                  { mapKey = "advanced_http"
+                , { mapKey = "advanced_http"
                   , mapValue =
                       obj
                         [ { mapKey =
@@ -437,6 +537,20 @@ let serverToJSON =
                           }
                         ]
                 )
+              # ( if    Prelude.List.null schema.FetchSvc.Type s.fetch
+                  then  [] : List (Map/Entry Text JSON.Type)
+                  else  [ { mapKey = "fetch"
+                          , mapValue =
+                              arr
+                                ( List/map
+                                    schema.FetchSvc.Type
+                                    JSON.Type
+                                    fetchSvcJSON
+                                    s.fetch
+                                )
+                          }
+                        ]
+                )
               # ( if    Prelude.List.null schema.CasSvc s.bytestream
                   then  [] : List (Map/Entry Text JSON.Type)
                   else  [ { mapKey = "bytestream"
@@ -473,6 +587,22 @@ let serverToJSON =
                                     JSON.Type
                                     nixCacheSvcJSON
                                     s.nix_cache
+                                )
+                          }
+                        ]
+                )
+              # ( if    Prelude.List.null
+                          schema.OciRegistrySvc.Type
+                          s.oci_registry
+                  then  [] : List (Map/Entry Text JSON.Type)
+                  else  [ { mapKey = "oci_registry"
+                          , mapValue =
+                              arr
+                                ( List/map
+                                    schema.OciRegistrySvc.Type
+                                    JSON.Type
+                                    ociRegistrySvcJSON
+                                    s.oci_registry
                                 )
                           }
                         ]
@@ -653,6 +783,7 @@ in  { filesystem
     , grpc
     , ref
     , fastSlow
+    , fastSlowWriteBack
     , cacheMetrics
     , r2
     , verify

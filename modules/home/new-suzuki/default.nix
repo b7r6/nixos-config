@@ -26,7 +26,22 @@ let
   color-lib = import ../../flake/themes/lib.nix { inherit lib; };
 
   baseSlots = map (n: "base0${n}") [
-    "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F"
+    "0"
+    "1"
+    "2"
+    "3"
+    "4"
+    "5"
+    "6"
+    "7"
+    "8"
+    "9"
+    "A"
+    "B"
+    "C"
+    "D"
+    "E"
+    "F"
   ];
 
   reg = cfg.register;
@@ -80,11 +95,11 @@ let
 
   presetsJson = pkgs.writeText "new-suzuki-presets.json" (
     builtins.toJSON {
-      villa-straylight =
-        cornerPreview "villa-straylight" (color-lib.make-palette { level = "carbon"; }) false;
+      villa-straylight = cornerPreview "villa-straylight" (color-lib.make-palette {
+        level = "carbon";
+      }) false;
       razorgirl = cornerPreview "razorgirl" (color-lib.make-palette { level = "carbon"; }) false;
-      tessier =
-        cornerPreview "tessier" (color-lib.make-palette-light { level = "tessier"; }) true;
+      tessier = cornerPreview "tessier" (color-lib.make-palette-light { level = "tessier"; }) true;
       bioptic = cornerPreview "bioptic" (color-lib.make-palette-light {
         level = "neoform";
         ramp-hue = 36;
@@ -95,9 +110,7 @@ let
   # ── Shell QML Directory ──────────────────────────────────────────────────
   # The wallpaper shader compiles to Qt RHI bytecode (.qsb) at BUILD time —
   # no vendored binaries, the .frag source is the artifact under review.
-  shellDir = pkgs.runCommand "new-suzuki-shell" {
-    nativeBuildInputs = [ pkgs.qt6.qtshadertools ];
-  } ''
+  shellDir = pkgs.runCommand "new-suzuki-shell" { nativeBuildInputs = [ pkgs.qt6.qtshadertools ]; } ''
     mkdir -p $out
     cp -r ${./shell}/* $out/
     cp ${presetsJson} $out/presets.json
@@ -108,21 +121,12 @@ let
   '';
 
   # ── Quickshell global shortcut binds (appended in both modes) ─────────────
-  quickshellBinds = [
-    ", Print, global, quickshell:take_screenshot"
-    "$mod SHIFT, E, global, quickshell:power_menu"
-    "$mod SHIFT, V, global, quickshell:clipboard_history"
-    ", XF86AudioRaiseVolume, global, quickshell:volume_up"
-    ", XF86AudioLowerVolume, global, quickshell:volume_down"
-    ", XF86AudioMute, global, quickshell:volume_mute"
-    ", XF86MonBrightnessUp, global, quickshell:brightness_up"
-    ", XF86MonBrightnessDown, global, quickshell:brightness_down"
-  ];
 
   # ── Complete keybind replacement for exclusive mode ───────────────────────
   # Same hy3 semantics and navigation as the original, but shell components
   # (launcher, lockscreen) route through Quickshell's global dispatcher.
-  # Screenshots go to quickshell's screenshot manager.
+  # Direct screenshot chords keep the original grimblast behavior, while
+  # bare Print routes through Quickshell's screenshot manager.
   exclusiveBinds = [
     # ── Core ────────────────────────────────────────────────────────────
     "$mod, Return, exec, ${config.hyper-modern-nixos.hyprland.apps.terminal}"
@@ -218,8 +222,13 @@ let
     "$mod ALT, period, movecurrentworkspacetomonitor, +1"
     "$mod ALT, S, swapactiveworkspaces, +1 current"
 
-    # ── Screenshots (via quickshell) ────────────────────────────────────
-    "$mod, S, global, quickshell:take_screenshot"
+    # ── Screenshots ─────────────────────────────────────────────────────
+    # Preserve the pre-New-Suzuki muscle memory for immediate captures.
+    # Bare Print still opens Quickshell's richer region/window/screen picker.
+    ", Print, global, quickshell:take_screenshot"
+    "$mod, S, exec, grimblast copy area"
+    "$mod SHIFT, S, exec, grimblast save area ~/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"
+    "$mod SHIFT ALT, S, exec, grimblast copy screen"
 
     # ── Media ───────────────────────────────────────────────────────────
     ", XF86AudioPlay, exec, playerctl play-pause"
@@ -269,9 +278,9 @@ let
   # The wallpaper field as a CUDA kernel (straylight-nvidia-sdk) — CLI plus
   # the zero-copy wayland presenter. Built against the SDK's own toolchain;
   # autoAddDriverRunpath in its default.nix resolves the real libcuda.
-  wintermuteField = pkgs.callPackage
-    "${flake.inputs.straylight-nvidia-sdk}/examples/wintermute-field"
-    { cuda = flake.inputs.straylight-nvidia-sdk.packages.${pkgs.stdenv.hostPlatform.system}.cuda; };
+  wintermuteField =
+    pkgs.callPackage "${flake.inputs.straylight-nvidia-sdk}/examples/wintermute-field"
+      { cuda = flake.inputs.straylight-nvidia-sdk.packages.${pkgs.stdenv.hostPlatform.system}.cuda; };
 
   # Daemon launcher: graphical-session units usually inherit WAYLAND_DISPLAY
   # via dbus-update-activation-environment --systemd, but that races the
@@ -281,7 +290,7 @@ let
       WAYLAND_DISPLAY=$(ls "$XDG_RUNTIME_DIR" | grep -m1 '^wayland-[0-9]*$' || true)
       export WAYLAND_DISPLAY
     fi
-    exec ${wintermuteField}/bin/wintermute-field-daemon
+    exec ${wintermuteField}/bin/wintermute-field-daemon --scene ${cfg.cudaField.scene}
   '';
 
   quickshellLaunch =
@@ -308,6 +317,20 @@ in
         field into the compositor's wl_shm pool (zero-copy on GB10) and the
         QML AnimatedWallpaper stands down (HYPERMODERN_CUDA_FIELD=1)
       '';
+
+      scene = mkOption {
+        type = types.enum [
+          "field"
+          "eyes"
+        ];
+        default = "field";
+        description = ''
+          Which card the kernel renders: "field" is the two-axis design
+          space, "eyes" the reference-reel title card (plasma blades, the
+          CASK6 kernel words, the smeared floor). A "scene" key in
+          theme.json overrides this live.
+        '';
+      };
     };
 
     register = mkOption {
@@ -356,6 +379,16 @@ in
           Description = "wintermute theme reconciler";
           After = [ "graphical-session.target" ];
           PartOf = [ "graphical-session.target" ];
+          # No start-limit ceiling — parity with wintermute-field. A SIGKILL
+          # FLOOD (kill -9 in a tight loop) otherwise trips systemd's default
+          # 5-starts-per-10s ratelimiter, after which Restart=always AND
+          # Upholds= both back off ("tried this too often recently") and the
+          # unit wedges dead. The field survived exactly this because it
+          # already carried the line; the reconciler didn't, and a flood
+          # beheaded it. Interval 0 disables the limiter: every kill is
+          # answered by a restart within RestartSec, forever, no matter the
+          # rate. The daemon is level-triggered and cheap — respawning is free.
+          StartLimitIntervalSec = 0;
         };
         Service = {
           ExecStart = "${wintermute}/bin/wintermute daemon";
@@ -394,6 +427,53 @@ in
         };
         Install.WantedBy = [ "graphical-session.target" ];
       };
+
+      # ── The keeper: level-triggered liveness for the wallpaper stack ─────
+      # Restart=always self-heals crashes and clean exits, but an EXPLICIT
+      # `systemctl --user stop` (observed in the wild: fleet automation with
+      # ssh reach reaping the units, eight confirmed kills) is honored by
+      # systemd as intent and never restarted. The declared state is ON, so
+      # a keeper timer converges to it: every 30s, start whatever is down.
+      # `start` on a running unit is a no-op — the keeper is silent unless
+      # something actually died. To INTENTIONALLY stop the wallpaper, stop
+      # the keeper timer first.
+      systemd.user.services.wintermute-keeper = lib.mkIf cfg.cudaField.enable {
+        Unit.Description = "wintermute keeper — converge theme stack to ON";
+        Service = {
+          Type = "oneshot";
+          ExecStart = "${pkgs.writeShellScript "wintermute-keep" ''
+            ${pkgs.systemd}/bin/systemctl --user start wintermute.service wintermute-field.service
+          ''}";
+        };
+      };
+      systemd.user.timers.wintermute-keeper = lib.mkIf cfg.cudaField.enable {
+        Unit.Description = "wintermute keeper tick";
+        Timer = {
+          OnActiveSec = "30s";
+          OnUnitActiveSec = "30s";
+          AccuracySec = "5s";
+        };
+        Install.WantedBy = [ "graphical-session.target" ];
+      };
+
+      # ── Upholds: the session itself enforces the stack ───────────────────
+      # The keeper timer can be stopped like anything else (chaos test 5:
+      # behead the keeper, then the stack — stays dead). Upholds= is the
+      # systemd primitive built for this: as long as the UPHOLDER is active,
+      # the upheld units are continuously restarted, explicit stops included.
+      # The upholder here is graphical-session.target — stopping THAT means
+      # ending the login session, which is no longer a wallpaper prank. The
+      # keeper timer stays as defense-in-depth (and heals post-reload races).
+      # Intentional off-switch: `systemctl --user stop graphical-session.target`
+      # is logout; short of that, edit this module — which is the point.
+      xdg.configFile."systemd/user/graphical-session.target.d/10-wintermute-upholds.conf" =
+        lib.mkIf cfg.cudaField.enable
+          {
+            text = ''
+              [Unit]
+              Upholds=wintermute.service wintermute-field.service wintermute-keeper.timer
+            '';
+          };
 
       # ── Font configuration ─────────────────────────────────────────────
       fonts.fontconfig.enable = true;
@@ -434,9 +514,7 @@ in
       '';
 
       # ── Hyprland Autostart (non-exclusive) ─────────────────────────────
-      hyper-modern-nixos.hyprland.autostart = lib.mkIf (!cfg.exclusive) [
-        quickshellLaunch
-      ];
+      hyper-modern-nixos.hyprland.autostart = lib.mkIf (!cfg.exclusive) [ quickshellLaunch ];
 
       # ── Hyprland cursor config ─────────────────────────────────────────
       wayland.windowManager.hyprland.settings.exec-once = lib.mkAfter [

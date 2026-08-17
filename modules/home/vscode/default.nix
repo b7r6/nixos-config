@@ -294,9 +294,7 @@ in
     );
 
     home.activation.vscodeKeybindings = lib.hm.dag.entryAfter [ "linkGeneration" ] (
-      lib.concatMapStringsSep "\n" (
-        dir: lwwMergeKeybindings "${dir}/keybindings.json"
-      ) editorUserDirs
+      lib.concatMapStringsSep "\n" (dir: lwwMergeKeybindings "${dir}/keybindings.json") editorUserDirs
     );
 
     # ---- Claude Code: berserk mode ----

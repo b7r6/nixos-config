@@ -154,3 +154,20 @@ nix run .#rekey-secrets        # runs `agenix -r` from secrets/
 A host can only decrypt a secret once its key is in `keys.nix` **and** the secret has been rekeyed
 to include it. See [Adding a host](./adding-a-host.md#3-scan--add-the-host-key-then-rekey-secrets)
 and [Secrets (agenix)](../infrastructure/secrets.md).
+
+______________________________________________________________________
+
+## F — btrfs is too full to delete (ENOSPC deadlock)
+
+`rm` hangs unkillable in `D` state (`wchan = handle_reserve_ticket`) and everything touching `/`
+stalls. On a full btrfs a copy-on-write delete needs a metadata reservation it can't get. Check
+`sudo btrfs filesystem usage /`: if **`Device unallocated`** is ~0 and **Metadata** is ~full, that's
+it. Hand raw space back by balancing empty data chunks — the stuck `rm` then wakes on its own:
+
+```bash
+sudo btrfs balance start -dusage=0  /   # then climb: -dusage=5, -dusage=10
+sudo btrfs balance status /             # watch;  `balance cancel /` to abort
+```
+
+Full diagnosis, the reflink trap (why deleting a 2 TB `buck-out` frees almost nothing), escalation,
+and prevention: [btrfs ENOSPC recovery](./btrfs-enospc-recovery.md).

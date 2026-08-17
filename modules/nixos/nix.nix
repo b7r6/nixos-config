@@ -113,7 +113,7 @@ in
     # opencode-desktop's prebuild script demands bun ^1.3.14 but nixpkgs has
     # 1.3.13. Patch the version check out of the source rather than bumping bun
     # globally (bun 1.3.14 segfaults on aarch64).
-    (final: prev: {
+    (_final: prev: {
       opencode-desktop = prev.opencode-desktop.overrideAttrs (old: {
         postPatch = (old.postPatch or "") + ''
           substituteInPlace packages/script/src/index.ts \

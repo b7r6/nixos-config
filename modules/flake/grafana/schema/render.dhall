@@ -236,7 +236,6 @@ let renderDashboard =
                       , y = state.y + 1
                       }
 
-                -- Pass 1: greedily group panels into lines that fit in 24 cols.
                 let GroupAcc = { lines : List Line, cur : Line, curW : Natural }
 
                 let groupInit =
@@ -264,16 +263,13 @@ let renderDashboard =
                         groupStep
 
                 let allLines =
-                      grouped.lines
-                      # (       if Natural/isZero
-                                    (List/length T.Panel.Type grouped.cur)
+                        grouped.lines
+                      # ( if    Natural/isZero
+                                  (List/length T.Panel.Type grouped.cur)
                           then  [] : List Line
                           else  [ grouped.cur ]
                         )
 
-                -- Pass 2: lay each line out at a uniform height (the line's
-                -- tallest panel) and stretch it to fill all 24 cols — the last
-                -- panel absorbs the slack, so no ragged edge, no short-panel gap.
                 let LayoutAcc =
                       { panels : List FullPanelJSON
                       , nextId : Natural
@@ -328,7 +324,9 @@ let renderDashboard =
                                         (Natural/subtract (ea.i + 1) n)
 
                                 let w =
-                                      if isLast then p.width + slack else p.width
+                                      if    isLast
+                                      then  p.width + slack
+                                      else  p.width
 
                                 let panelJson =
                                       makePanel

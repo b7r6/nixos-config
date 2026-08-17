@@ -139,8 +139,9 @@ validate (Zone z) (Ipv4 self) hs =
         *> check
             (null danglingCnames)
             ("service CNAME target has no A record in zone: " <> commas danglingCnames)
-        -- multi-host service tags are valid: they emit round-robin A records instead of CNAMEs
   where
+    -- multi-host service tags are valid: they emit round-robin A records instead of CNAMEs
+
     aNames = map physical hs
     dupNames = dups aNames
     aNameSet = Map.fromList [(physical h, ()) | h <- hs]
@@ -186,14 +187,14 @@ renderZone z@(Zone zn) self ttl serial hs =
         , section
             ("service aliases: <service>." <> zn <> " (CNAME for unique, round-robin A for shared)")
             -- unique tags → CNAME; multi-host tags → A records (round-robin)
-            (  [ tag <> " IN CNAME " <> host <> "." <> zn <> "."
-               | (tag, host) <- sortOn fst [(tag, physical h) | h <- hs, tag <- services h]
-               , Map.findWithDefault 0 tag tagCounts == 1
-               ]
-            ++ [ tag <> " IN A " <> tailnet_ipv4 h
-               | (tag, h) <- sortOn fst [(tag, h) | h <- hs, tag <- services h]
-               , Map.findWithDefault 0 tag tagCounts > 1
-               ]
+            ( [ tag <> " IN CNAME " <> host <> "." <> zn <> "."
+              | (tag, host) <- sortOn fst [(tag, physical h) | h <- hs, tag <- services h]
+              , Map.findWithDefault 0 tag tagCounts == 1
+              ]
+                ++ [ tag <> " IN A " <> tailnet_ipv4 h
+                   | (tag, h) <- sortOn fst [(tag, h) | h <- hs, tag <- services h]
+                   , Map.findWithDefault 0 tag tagCounts > 1
+                   ]
             )
         ]
   where

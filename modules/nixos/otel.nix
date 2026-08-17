@@ -84,9 +84,7 @@ let
         {
           job_name = "fleet-services";
           scrape_interval = "30s";
-          static_configs = [
-            { targets = agent.scrapeTargets; }
-          ];
+          static_configs = [ { targets = agent.scrapeTargets; } ];
         }
       ];
     }

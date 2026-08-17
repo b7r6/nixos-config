@@ -47,6 +47,12 @@ in
       description = "Enable communication apps (Slack, etc.)";
     };
 
+    music.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable music production (Bitwig Studio)";
+    };
+
     passwordManager.enable = lib.mkOption {
       type = lib.types.bool;
       default = true;
@@ -143,6 +149,15 @@ in
           satty # screenshot annotation, made for grim/slurp flows
           hyprpicker # color picker
         ])
+
+        # Bitwig only ships x86_64-linux binaries (its ARM builds are
+        # Windows-only), so gate on the package's full capability set
+        # (platforms/badPlatforms via availableOn) rather than hard-coding an
+        # architecture: aarch64 hosts like shimmer skip it cleanly today and
+        # pick it up automatically if upstream ever ships arm64.
+        (lib.optional (
+          cfg.music.enable && lib.meta.availableOn pkgs.stdenv.hostPlatform bitwig-studio
+        ) bitwig-studio)
 
         (lib.optionals cfg.communication.enable (
           [

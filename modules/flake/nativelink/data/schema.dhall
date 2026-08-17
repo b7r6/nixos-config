@@ -42,8 +42,55 @@ let ExecSvc = { instance_name : Text, cas_store : Text, scheduler : Text }
 
 let CapSvc = { instance_name : Text, scheduler : Text }
 
--- The straylight fork's Nix binary-cache facade + its raw-fetch caching proxy.
--- Not RE services; carried on their own HTTP servers.
+let OciRegistry =
+      { Type =
+          { host : Text
+          , scheme : Optional Text
+          , root_certificates : Optional Text
+          , insecure_skip_verify : Bool
+          , username : Optional Text
+          , password : Optional Text
+          , bearer_token : Optional Text
+          }
+      , default =
+        { scheme = None Text
+        , root_certificates = None Text
+        , insecure_skip_verify = False
+        , username = None Text
+        , password = None Text
+        , bearer_token = None Text
+        }
+      }
+
+let OciSelfRegistryRefs =
+      { blob_store : Text, index_store : Text, ref_store : Text }
+
+let OciFetch =
+      { Type =
+          { cas_store : Optional Text
+          , dedup_check : Bool
+          , digest_function : Text
+          , registries : List OciRegistry.Type
+          , self_registry : Optional OciSelfRegistryRefs
+          }
+      , default =
+        { cas_store = None Text
+        , dedup_check = True
+        , digest_function = "BLAKE3"
+        , registries = [] : List OciRegistry.Type
+        , self_registry = None OciSelfRegistryRefs
+        }
+      }
+
+let FetchSvc =
+      { Type =
+          { instance_name : Text
+          , fetch_store : Text
+          , oci : Optional OciFetch.Type
+          }
+      , default.oci = None OciFetch.Type
+      }
+
 let UpstreamCache = { url : Text, trusted_public_keys : List Text }
 
 let NixCacheSvc =
@@ -62,6 +109,21 @@ let NixCacheSvc =
         { signing_key_files = [] : List Text
         , upstream_caches = [] : List UpstreamCache
         }
+      }
+
+let OciRegistrySvc =
+      { Type =
+          { instance_name : Text
+          , cas_store : Text
+          , index_store : Text
+          , ref_store : Text
+          , digest_function : Text
+          , spool_path : Text
+          , read_only : Bool
+          , enable_delete : Bool
+          }
+      , default =
+        { digest_function = "BLAKE3", read_only = False, enable_delete = False }
       }
 
 let CasWitnessSvc =
@@ -83,9 +145,11 @@ let Server =
           , ac : List AcSvc
           , execution : List ExecSvc
           , capabilities : List CapSvc
+          , fetch : List FetchSvc.Type
           , bytestream : List CasSvc
           , worker_api_scheduler : Optional Text
           , nix_cache : List NixCacheSvc.Type
+          , oci_registry : List OciRegistrySvc.Type
           , cas_witness : Optional CasWitnessSvc
           , admin : Bool
           , health : Bool
@@ -97,9 +161,11 @@ let Server =
         , ac = [] : List AcSvc
         , execution = [] : List ExecSvc
         , capabilities = [] : List CapSvc
+        , fetch = [] : List FetchSvc.Type
         , bytestream = [] : List CasSvc
         , worker_api_scheduler = None Text
         , nix_cache = [] : List NixCacheSvc.Type
+        , oci_registry = [] : List OciRegistrySvc.Type
         , cas_witness = None CasWitnessSvc
         , admin = False
         , health = False
@@ -148,8 +214,13 @@ in  { Prelude
     , AcSvc
     , ExecSvc
     , CapSvc
+    , OciRegistry
+    , OciFetch
+    , FetchSvc
     , UpstreamCache
     , NixCacheSvc
+    , OciSelfRegistryRefs
+    , OciRegistrySvc
     , CasWitnessSvc
     , Tls
     , Server

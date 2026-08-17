@@ -119,6 +119,6 @@ sel=$(printf '%s\n' "${rows[@]}" | fzf "${fzf_args[@]}") || exit 0
 [ -n "$sel" ] || exit 0
 tab_idx=${sel%%$'\t'*}
 case "$tab_idx" in
-  '' | *[!0-9]*) exit 0 ;; # never pass a non-number to go-to-tab
-  *) zellij action go-to-tab "$tab_idx" ;;
+'' | *[!0-9]*) exit 0 ;; # never pass a non-number to go-to-tab
+*) zellij action go-to-tab "$tab_idx" ;;
 esac

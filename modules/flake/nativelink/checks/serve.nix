@@ -39,7 +39,8 @@ pkgs.testers.runNixOSTest {
     imports = [
       ../../../nixos/state.nix
       ../../registry/nixos.nix
-      ../nixos.nix
+      inputs.nativelink-nix.nixosModules.nativelink
+      ../shim.nix
     ];
 
     # nativelink.nix reads flake.self (to locate nativelink/) + flake.inputs

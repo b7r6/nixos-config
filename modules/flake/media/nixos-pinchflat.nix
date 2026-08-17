@@ -7,7 +7,7 @@
 # new content on a schedule; also does one-off URL downloads. Web UI on :8945.
 #
 # Packaging: oci-containers (docker) wrapping the official image, but pulled
-# from the FLEET zot registry (registry.sju1.s4.gl), not ghcr — so the image is
+# from the FLEET CAS registry (registry.sju1.s4.gl), not ghcr — so the image is
 # R2-backed and reproducible from our own infra. Mirror a new tag with:
 #   skopeo copy --policy <insecure> --override-os linux --override-arch amd64 \
 #     docker://ghcr.io/kieraneglin/pinchflat:<tag> \
@@ -34,7 +34,7 @@ in
       type = lib.types.str;
       default = "registry.sju1.s4.gl/kieraneglin/pinchflat:v2025.6.6-cffi";
       description = ''
-        Pinchflat container image (pinned tag from the fleet zot registry). The
+        Pinchflat container image (pinned tag from the fleet CAS registry). The
         `-cffi` tag is our thin overlay adding curl_cffi to the system Python so
         the bundled yt-dlp gains browser impersonation — required for reliable
         SoundCloud extraction. Built from packages/pinchflat-image/Dockerfile.
@@ -109,7 +109,7 @@ in
 
     virtualisation.oci-containers.containers.pinchflat = {
       inherit (cfg) image;
-      # Pull the pinned tag from zot; never auto-upgrade silently.
+      # Pull the pinned tag from the CAS registry; never auto-upgrade silently.
       pull = "missing";
       ports = [ "${toString cfg.port}:8945" ];
       volumes = [

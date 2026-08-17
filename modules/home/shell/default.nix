@@ -275,10 +275,7 @@ in
         _fzf="${config.xdg.stateHome}/wintermute/fzf.opts"
         if [ ! -f "$_fzf" ]; then
           mkdir -p "${config.xdg.stateHome}/wintermute"
-          cp ${
-            pkgs.writeText "fzf-wintermute-seed.opts"
-              "--color=fg:${colors.base05},bg:${colors.base00},hl:${colors.base0A},fg+:${colors.base07},bg+:${colors.base01},hl+:${colors.base0A},info:${colors.base04},border:${colors.base02},prompt:${colors.base0A},pointer:${colors.base0C},marker:${colors.base0B},spinner:${colors.base0C},header:${colors.base04},gutter:${colors.base00}\n"
-          } "$_fzf"
+          cp ${pkgs.writeText "fzf-wintermute-seed.opts" "--color=fg:${colors.base05},bg:${colors.base00},hl:${colors.base0A},fg+:${colors.base07},bg+:${colors.base01},hl+:${colors.base0A},info:${colors.base04},border:${colors.base02},prompt:${colors.base0A},pointer:${colors.base0C},marker:${colors.base0B},spinner:${colors.base0C},header:${colors.base04},gutter:${colors.base00}\n"} "$_fzf"
           chmod 644 "$_fzf"
         fi
       ''
@@ -289,24 +286,22 @@ in
         _at="${config.xdg.configHome}/atuin/themes"
         if [ ! -f "$_at/wintermute.toml" ]; then
           mkdir -p "$_at"
-          cp ${
-            pkgs.writeText "atuin-wintermute-seed.toml" ''
-              # seeded by nix; wintermute owns this file after first reconcile
-              [theme]
-              name = "wintermute"
+          cp ${pkgs.writeText "atuin-wintermute-seed.toml" ''
+            # seeded by nix; wintermute owns this file after first reconcile
+            [theme]
+            name = "wintermute"
 
-              [colors]
-              Base = "${colors.base05}"
-              Title = "${colors.base0A}"
-              Guidance = "${colors.base04}"
-              Important = "${colors.base07}"
-              Annotation = "${colors.base03}"
-              AlertInfo = "${colors.base0B}"
-              AlertWarn = "${colors.base0A}"
-              AlertError = "${colors.base08}"
-              Muted = "${colors.base04}"
-            ''
-          } "$_at/wintermute.toml"
+            [colors]
+            Base = "${colors.base05}"
+            Title = "${colors.base0A}"
+            Guidance = "${colors.base04}"
+            Important = "${colors.base07}"
+            Annotation = "${colors.base03}"
+            AlertInfo = "${colors.base0B}"
+            AlertWarn = "${colors.base0A}"
+            AlertError = "${colors.base08}"
+            Muted = "${colors.base04}"
+          ''} "$_at/wintermute.toml"
           chmod 644 "$_at/wintermute.toml"
         fi
       ''
@@ -514,7 +509,10 @@ in
     programs.tmate = lib.mkIf cfg.cliTools.enable { enable = true; };
 
     # Shell packages
-    home.packages = [ pkgs.zellij ] ++ lib.optionals cfg.cliTools.enable (
+    home.packages = [
+      pkgs.zellij
+    ]
+    ++ lib.optionals cfg.cliTools.enable (
       with pkgs;
       [
         bat

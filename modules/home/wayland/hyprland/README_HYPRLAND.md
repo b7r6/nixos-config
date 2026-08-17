@@ -136,6 +136,7 @@ Workspaces are persistent and monitor-aware:
    `Super + S`
 
 4. **Mouse usage**: While keyboard-focused, you can still:
+
    - `Super + Left Click`: Move windows
    - `Super + Right Click`: Resize windows
 
@@ -143,6 +144,7 @@ Workspaces are persistent and monitor-aware:
 
 ## Troubleshooting
 
-- **Windows not tiling**: Ensure hy3 autotile is working. Some windows may have minimum size requirements
+- **Windows not tiling**: Ensure hy3 autotile is working. Some windows may have minimum size
+  requirements
 - **Keybindings not working**: Check if another application is capturing the keys first
 - **Performance issues**: Try disabling blur or reducing animation speed in the config

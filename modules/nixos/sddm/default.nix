@@ -16,9 +16,14 @@
   config,
   lib,
   pkgs,
+  flake,
   ...
 }:
 let
+  # The EYES card as frame zero's frame zero: one kernel-rendered still
+  # behind the login prompt, same scene the live wallpaper runs after login.
+  eyesStill = import ../../home/themes/wallpapers/eyes-still.nix { inherit pkgs flake; };
+
   # Session launcher (carried over from the greetd era). Jobs:
   #   - seed the session identity vars
   #   - route the compositor's stdout/stderr into the journal
@@ -67,22 +72,26 @@ let
     ${lib.concatStringsSep "\n" (
       lib.mapAttrsToList (k: v: "${k}=${v}") (
         lib.getAttrs (map (n: "base0${n}") [
-          "0" "1" "2" "3" "4" "9" "A"
+          "0"
+          "1"
+          "2"
+          "3"
+          "4"
+          "9"
+          "A"
         ]) palette
       )
     )}
   '';
 
   hypermodernSddmTheme =
-    pkgs.runCommand "hypermodern-sddm-theme"
-      {
-        nativeBuildInputs = [ pkgs.qt6.qtshadertools ];
-      }
+    pkgs.runCommand "hypermodern-sddm-theme" { nativeBuildInputs = [ pkgs.qt6.qtshadertools ]; }
       ''
         dir=$out/share/sddm/themes/hypermodern
         mkdir -p $dir
         cp ${./Main.qml} $dir/Main.qml
         cp ${themeConf} $dir/theme.conf
+        cp ${eyesStill}/eyes.png $dir/eyes.png
         cp ${../../home/new-suzuki/shell/modules/wallpaper/wallpaper.frag} $dir/wallpaper.frag
         qsb --glsl "100 es,120,150" --hlsl 50 --msl 12 \
           -o $dir/wallpaper.frag.qsb $dir/wallpaper.frag

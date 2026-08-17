@@ -206,6 +206,12 @@ in
     {
       services.openssh = {
         enable = true;
+        # SSH forwards TERM natively but drops COLORTERM, so a truecolor
+        # terminal (ghostty: COLORTERM=truecolor) that SSHes in lands as a
+        # 256-color session — emacs -nw then quantizes the exact ono-sendai
+        # hexes to the nearest xterm-256 and the palette looks muted/off.
+        # Accept it so the client's SendEnv (modules/home/session) lands.
+        settings.AcceptEnv = [ "COLORTERM" ];
       };
 
       services.tailscale = {

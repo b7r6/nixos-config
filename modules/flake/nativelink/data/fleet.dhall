@@ -50,6 +50,8 @@ let workerApiPort = "50061"
 
 let publicPort = "50051"
 
+let casRpcTimeoutS = 60
+
 let hosts =
       [ HostDef::{
         , name = "watchtower"
@@ -67,19 +69,18 @@ let hosts =
         , casFastBytes = 68719476736
         }
       , HostDef::{
-        , name = "shimmer"
-        , fqdn = "shimmer.sju1.s4.gl"
-        , arch = Arch.aarch64
-        , casWeight = 2
-        , casFastBytes = 34359738368
-        , enabled = False
-        }
-      , HostDef::{
         , name = "ultraviolence"
         , fqdn = "ultraviolence.sju1.s4.gl"
         , arch = Arch.x86_64
         , casWeight = 1
         , casFastBytes = 17179869184
+        }
+      , HostDef::{
+        , name = "weyl"
+        , fqdn = "weyl.sju1.s4.gl"
+        , arch = Arch.x86_64
+        , casWeight = 2
+        , casFastBytes = 34359738368
         }
       ]
 
@@ -112,7 +113,10 @@ let casServerConfig =
           [ schema.Store::{
             , name = "CAS_LOCAL"
             , backend =
-                r.fastSlow
+                -- write-back: buck2 CAS uploads return at NVMe speed; R2 is
+                -- populated by a background task, so a slow/stalled R2 can no
+                -- longer freeze the upload (nativelink #35, fast_slow write-back).
+                r.fastSlowWriteBack
                   ( r.cacheMetrics
                       "cas-fast"
                       ( r.filesystem
@@ -145,13 +149,37 @@ let casServerConfig =
           ]
         }
 
+let casBulkRpcTimeoutS = 900
+
+let mkCasShardRing =
+      \(timeoutS : Natural) ->
+        r.shard
+          ( List/map
+              HostDef.Type
+              r.ShardEntry
+              ( \(h : HostDef.Type) ->
+                  { store =
+                      r.grpc "main" "grpc://${h.fqdn}:${casPort}" "cas" timeoutS
+                  , weight = h.casWeight
+                  }
+              )
+              enabledHosts
+          )
+
+let casShardRingBulk = mkCasShardRing casBulkRpcTimeoutS
+
 let casShardRing =
       r.shard
         ( List/map
             HostDef.Type
             r.ShardEntry
             ( \(h : HostDef.Type) ->
-                { store = r.grpc "main" "grpc://${h.fqdn}:${casPort}" "cas"
+                { store =
+                    r.grpc
+                      "main"
+                      "grpc://${h.fqdn}:${casPort}"
+                      "cas"
+                      casRpcTimeoutS
                 , weight = h.casWeight
                 }
             )
@@ -164,7 +192,12 @@ let acShardRing =
             HostDef.Type
             r.ShardEntry
             ( \(h : HostDef.Type) ->
-                { store = r.grpc "main" "grpc://${h.fqdn}:${casPort}" "ac"
+                { store =
+                    r.grpc
+                      "main"
+                      "grpc://${h.fqdn}:${casPort}"
+                      "ac"
+                      casRpcTimeoutS
                 , weight = h.casWeight
                 }
             )
@@ -181,6 +214,29 @@ let schedulerConfig =
         , schema.Store::{
           , name = "AC_MAIN_STORE"
           , backend = r.cacheMetrics "ac-main" acShardRing
+          }
+        , schema.Store::{
+          , name = "CAS_MAIN_STORE_BULK"
+          , backend = casShardRingBulk
+          }
+        , schema.Store::{
+          , name = "OCI_INDEX_STORE"
+          , backend =
+              r.completeness
+                ( r.filesystem
+                    "${storeRoot}/oci-index/content"
+                    "${storeRoot}/oci-index/tmp"
+                    1073741824
+                )
+                "CAS_MAIN_STORE"
+          }
+        , schema.Store::{
+          , name = "OCI_REF_STORE"
+          , backend =
+              r.filesystem
+                "${storeRoot}/oci-refs/content"
+                "${storeRoot}/oci-refs/tmp"
+                1073741824
           }
         ]
       , schedulers =
@@ -205,6 +261,58 @@ let schedulerConfig =
             [ { instance_name = "main", cas_store = "CAS_MAIN_STORE" } ]
           , capabilities =
             [ { instance_name = "main", scheduler = "MAIN_SCHEDULER" } ]
+          , fetch =
+            [ { instance_name = "main"
+              , fetch_store = "CAS_MAIN_STORE"
+              , oci = Some schema.OciFetch::{
+                , -- Bulk deadline for the toolchain-import path: the
+                  -- projected-blob uploads AND the dedup has_many (one
+                  -- FindMissingBlobs over tens of thousands of digests for
+                  -- the ghc/lean/python cells) exceed the 60s hot-path
+                  -- ring deadline.
+                  cas_store = Some
+                    "CAS_MAIN_STORE_BULK"
+                , -- dedup_check=false: the import's has_many falls through
+                  -- fast_slow to the SLOW tier for every fast-tier miss —
+                  -- an R2 existence probe per digest, tens of thousands
+                  -- for the ghc/lean/python cells (>900s; observed wedge).
+                  -- Unconditional uploads are idempotent and land on the
+                  -- write-back NVMe tier at full speed.
+                  dedup_check = False
+                , registries =
+                  [ schema.OciRegistry::{
+                    , host = "registry.sju1.s4.gl"
+                    , scheme = Some "https"
+                    }
+                  ]
+                , -- oci://self short-circuit: FetchDirectory of images the
+                  -- colocated CAS registry holds becomes a local graph walk
+                  -- (no network client, nothing fetched twice).
+                  self_registry = Some
+                  { blob_store = "CAS_MAIN_STORE_BULK"
+                  , index_store = "OCI_INDEX_STORE"
+                  , ref_store = "OCI_REF_STORE"
+                  }
+                }
+              }
+            ]
+          , -- The OCI Distribution registry (PROD-3): skopeo/crane push and
+            -- pull straight against the CAS at http://watchtower:50051/v2/.
+            -- Open-push on this listener matches the existing trust model:
+            -- the same tailnet-gated port already accepts arbitrary CAS
+            -- writes over gRPC, so a write token would gate nothing an
+            -- attacker could not already do. Blobs land in CAS_MAIN_STORE
+            -- (the shard ring) under BLAKE3 — ByteStream-readable
+            -- fleet-wide, deduped with REAPI blobs post-projection.
+            oci_registry =
+            [ schema.OciRegistrySvc::{
+              , instance_name = "main"
+              , cas_store = "CAS_MAIN_STORE_BULK"
+              , index_store = "OCI_INDEX_STORE"
+              , ref_store = "OCI_REF_STORE"
+              , spool_path = "${storeRoot}/oci-spool"
+              }
+            ]
           , prometheus = True
           }
         , schema.Server::{
@@ -221,14 +329,8 @@ let workerConfig =
       \(h : HostDef.Type) ->
         schema.Config::{
         , stores =
-          [ schema.Store::{
-            , name = "REMOTE_CAS"
-            , backend = r.grpc "main" "grpc://${h.fqdn}:${casPort}" "cas"
-            }
-          , schema.Store::{
-            , name = "REMOTE_AC"
-            , backend = r.grpc "main" "grpc://${h.fqdn}:${casPort}" "ac"
-            }
+          [ schema.Store::{ name = "REMOTE_CAS", backend = casShardRing }
+          , schema.Store::{ name = "REMOTE_AC", backend = acShardRing }
           , schema.Store::{
             , name = "WORKER_FAST_SLOW_STORE"
             , backend =

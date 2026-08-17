@@ -117,6 +117,7 @@ emacsPkgs.emacsWithPackages (
 
         # programming - languages
         nix-mode
+        nix-ts-mode # treesit variant; treesit-auto remaps nix-mode -> this
         haskell-mode
         rust-mode
         typescript-mode
@@ -139,6 +140,10 @@ emacsPkgs.emacsWithPackages (
 
         # tree-sitter
         treesit-auto
+        # all grammars prebuilt from the store (nix path). On vanilla emacs
+        # there is no store, so treesit-auto compiles on demand instead —
+        # init.el picks the source per platform via hypermodern/nix-emacs-p.
+        treesit-grammars.with-all-grammars
 
         # navigation / search
         rg
@@ -164,7 +169,11 @@ emacsPkgs.emacsWithPackages (
         diredfl
 
         # tools
-        direnv
+        # envrc (buffer-local direnv) not the `direnv` package: it applies the
+        # per-project env BEFORE subprocesses spawn, so lsp-deferred can't win
+        # the race and launch a language server (e.g. HLS) with the wrong/no
+        # toolchain. Essential for flake-devshell projects.
+        envrc
         exec-path-from-shell
         helpful
 

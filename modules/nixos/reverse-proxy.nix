@@ -130,6 +130,18 @@ in
                   disable the limit for a registry vhost, or a size like "2g".
                 '';
               };
+              extraProxyConfig = mkOption {
+                type = types.lines;
+                default = "";
+                description = ''
+                  Extra nginx directives injected into this vhost's proxy
+                  location. Use for an OCI registry streaming large layer uploads
+                  to a slow backend (e.g. R2-tiered stores): lift proxy_read_timeout /
+                  proxy_send_timeout and turn off proxy_request_buffering, since
+                  the default 60s proxy timeout yields 502 Bad Gateway mid-push
+                  once a layer takes longer than a minute to stream.
+                '';
+              };
               protected = mkOption {
                 type = types.bool;
                 default = false;
@@ -183,9 +195,7 @@ in
       # them as redundant with wildcards in the same request.
       certs.${wildcardCert} = {
         domain = "*.${zone}";
-        extraDomainNames = [
-          "*.${topo.registry.internalDomain}"
-        ];
+        extraDomainNames = [ "*.${topo.registry.internalDomain}" ];
         group = config.services.nginx.group;
       };
     };
@@ -226,14 +236,16 @@ in
               {
                 proxyPass = "${svc.scheme}://${svc.upstream}";
                 proxyWebsockets = svc.websockets;
-                extraConfig = lib.optionalString svc.protected ''
-                  auth_request /oauth2/auth;
-                  error_page 401 = /oauth2/sign_in;
-                  auth_request_set $user $upstream_http_x_auth_request_user;
-                  auth_request_set $email $upstream_http_x_auth_request_email;
-                  proxy_set_header X-User $user;
-                  proxy_set_header X-Email $email;
-                '';
+                extraConfig =
+                  (lib.optionalString svc.protected ''
+                    auth_request /oauth2/auth;
+                    error_page 401 = /oauth2/sign_in;
+                    auth_request_set $user $upstream_http_x_auth_request_user;
+                    auth_request_set $email $upstream_http_x_auth_request_email;
+                    proxy_set_header X-User $user;
+                    proxy_set_header X-Email $email;
+                  '')
+                  + svc.extraProxyConfig;
               };
 
           # oauth2-proxy endpoints (only when this vhost is protected)

@@ -68,16 +68,16 @@ in
   # See docs/infrastructure/backups.md#postgresql-backups.
   hyper-modern-nixos.databases.postgres.backup.pitr.enable = true;
 
-  # ── OCI registry (zot → R2) ─────────────────────────────────────────────────
+  # ── OCI registry ────────────────────────────────────────────────────────────
 
-  # Blobs in the straylight-oci R2 bucket (reconstructible — not restic'd).
-  # Non-daemon systemd service; self-wires the zot-r2-env agenix creds. Now bound
-  # to LOOPBACK and fronted by nginx (below) on registry.sju1.s4.gl with a real
-  # cert — the converged pattern from networking.md.
-  hyper-modern-nixos.registry = {
-    enable = true;
-    listenAddress = "127.0.0.1";
-  };
+  # RETIRED (PROD-3 Gate E): the OCI Distribution API is served from the CAS
+  # by nativelink's oci_registry service on the public listener (:50051/v2).
+  # The former standalone registry daemon, its second storage engine, its R2
+  # bucket (straylight-oci), and the push tunnel are gone;
+  # registry.sju1.s4.gl below now fronts the CAS registry. All images
+  # (9 toolchain cells + pinchflat, digest-verified) were re-pushed before
+  # retirement. The straylight-oci R2 bucket can be deleted manually once
+  # this has soaked.
 
   # ── NativeLink: the fleet SCHEDULER (+ CAS shard + worker) ───────────────────
 
@@ -113,8 +113,7 @@ in
   # persists through attic being disabled fleet-wide (modules/nixos/default.nix).
   # mkDefault so the attic-node module still owns it verbatim if attic is ever
   # re-enabled (same file, so no conflict either way).
-  age.secrets.atticd-rs256.file =
-    lib.mkDefault ../../../secrets/agenix/machines/atticd-rs256.age;
+  age.secrets.atticd-rs256.file = lib.mkDefault ../../../secrets/agenix/machines/atticd-rs256.age;
 
   hyper-modern-nixos.supabase-native = {
     enable = true;
@@ -317,9 +316,7 @@ in
   };
 
   # install the clickhouse grafana plugin
-  services.grafana.declarativePlugins = [
-    pkgs.grafanaPlugins.grafana-clickhouse-datasource
-  ];
+  services.grafana.declarativePlugins = [ pkgs.grafanaPlugins.grafana-clickhouse-datasource ];
 
   # render dashboards from Dhall → JSON (type-safe, auto-layout)
   environment.etc =
@@ -334,16 +331,12 @@ in
         let
           name = builtins.replaceStrings [ ".dhall" ] [ "" ] file;
         in
-        pkgs.runCommand "grafana-dashboard-${name}.json"
-          {
-            nativeBuildInputs = [ pkgs.dhall-json ];
-          }
-          ''
-            export HOME="$TMPDIR"
-            export XDG_CACHE_HOME="$TMPDIR/dhall-cache"
-            mkdir -p "$XDG_CACHE_HOME"
-            dhall-to-json --file ${grafanaDir}/dashboards/${file} > $out
-          '';
+        pkgs.runCommand "grafana-dashboard-${name}.json" { nativeBuildInputs = [ pkgs.dhall-json ]; } ''
+          export HOME="$TMPDIR"
+          export XDG_CACHE_HOME="$TMPDIR/dhall-cache"
+          mkdir -p "$XDG_CACHE_HOME"
+          dhall-to-json --file ${grafanaDir}/dashboards/${file} > $out
+        '';
     in
     builtins.listToAttrs (
       map (
@@ -389,9 +382,7 @@ in
         "127.0.0.1:3200" # forgejo
       ];
 
-      logPaths = [
-        "/var/log/pgbackrest/supabase-*.log"
-      ];
+      logPaths = [ "/var/log/pgbackrest/supabase-*.log" ];
     };
   };
 
@@ -670,15 +661,26 @@ in
   # ── Reverse proxy + internal ACME (nginx → loopback services) ───────────────
   # nginx terminates TLS on the logical names with a real wildcard cert
   # (*.sju1.s4.gl via DNS-01/Njalla) and proxies to loopback. registry.sju1.s4.gl
-  # → the zot above; studio.sju1.s4.gl → Kong (Supabase's gateway). CoreDNS
+  # → the CAS registry; studio.sju1.s4.gl → Kong (Supabase's gateway). CoreDNS
   # already resolves those names to this host.
   hyper-modern-nixos.reverseProxy = {
     enable = true;
 
     services.registry = {
-      port = 5000;
+      # The CAS registry: nativelink's oci_registry service, mounted at /v2
+      # on the public listener. Same name, same clients, one store.
+      port = 50051;
       # OCI image layers are multi-MB/GB; the default 1m cap → HTTP 413 on push.
       maxBodySize = "0";
+      # Large layers stream nginx → nativelink → the CAS shard ring; the
+      # outer envelope matches the ring's bulk deadline so nginx never cuts
+      # a legitimate multi-minute layer push/pull first.
+      extraProxyConfig = ''
+        proxy_read_timeout 900s;
+        proxy_send_timeout 900s;
+        client_body_timeout 900s;
+        proxy_request_buffering off;
+      '';
     };
 
     services.studio.port = 8000; # → Kong → Studio/auth/rest/realtime/storage

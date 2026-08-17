@@ -23,19 +23,31 @@
             subvolumes = {
               "@" = {
                 mountpoint = "/";
-                mountOptions = [ "compress=zstd:1" "noatime" ];
+                mountOptions = [
+                  "compress=zstd:1"
+                  "noatime"
+                ];
               };
               "@persist" = {
                 mountpoint = "/persist";
-                mountOptions = [ "compress=zstd:1" "noatime" ];
+                mountOptions = [
+                  "compress=zstd:1"
+                  "noatime"
+                ];
               };
               "@nix" = {
                 mountpoint = "/nix";
-                mountOptions = [ "compress=zstd:1" "noatime" ];
+                mountOptions = [
+                  "compress=zstd:1"
+                  "noatime"
+                ];
               };
               "@home" = {
                 mountpoint = "/home";
-                mountOptions = [ "compress=zstd:1" "noatime" ];
+                mountOptions = [
+                  "compress=zstd:1"
+                  "noatime"
+                ];
               };
               "@root-blank" = { };
             };

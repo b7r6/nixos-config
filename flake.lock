@@ -200,11 +200,11 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1785154775,
-        "narHash": "sha256-izqYgEppwnNpzCMIV1VZ/A3dSn5CJwUTbxX1l1my2lU=",
+        "lastModified": 1786935128,
+        "narHash": "sha256-cByXHQ8FsqVDNvHEPIuRzB3fRDT1vsn85ZpZYr+XTS0=",
         "ref": "b7r6/wintermute-0x01",
-        "rev": "cb8a95450f4ae6a8d3e7d0667d12047b631d7842",
-        "revCount": 287,
+        "rev": "1a692294a6105b17d3d87e2fb78ac078373ad3f8",
+        "revCount": 463,
         "type": "git",
         "url": "ssh://git@git.s4.gl/continuity/continuity.git"
       },
@@ -1337,6 +1337,27 @@
         "type": "github"
       }
     },
+    "modern-nix": {
+      "inputs": {
+        "nixpkgs": [
+          "straylight-nvidia-sdk",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1786061655,
+        "narHash": "sha256-DnTo7XG5L9e3DilgK0pXjE0/swQW4paw/ZHcOOYUz4Y=",
+        "ref": "refs/heads/main",
+        "rev": "a4848cc903bfbf901bb0c8e951acd7331de52883",
+        "revCount": 4,
+        "type": "git",
+        "url": "file:///home/b7r6/src/straylight/modern.nix"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:///home/b7r6/src/straylight/modern.nix"
+      }
+    },
     "multigres": {
       "flake": false,
       "locked": {
@@ -1390,11 +1411,11 @@
         "rust-overlay": "rust-overlay_2"
       },
       "locked": {
-        "lastModified": 1784484378,
-        "narHash": "sha256-EKlPmSCuqxjPrlIWOTz/UAH26OxZ6rGbwqSZCjNVEPU=",
+        "lastModified": 1785979456,
+        "narHash": "sha256-knCHIhNUdSZ5xHEamUtSLPd33O3f8VNGwnTB1G5y+PI=",
         "ref": "nix-cache",
-        "rev": "7318d9240be55e4a75cd3b9d083b4bb42ec1dc9b",
-        "revCount": 1639,
+        "rev": "1b8df58abd47d79483dd8769cfdfb8c496f83f31",
+        "revCount": 1770,
         "type": "git",
         "url": "https://git.s4.gl/straylight/straylight-nativelink"
       },
@@ -2333,16 +2354,17 @@
         "agenix": "agenix_2",
         "flake-parts": "flake-parts_10",
         "llvm-project": "llvm-project",
+        "modern-nix": "modern-nix",
         "nixpkgs": "nixpkgs_6",
         "systems": "systems_7",
         "treefmt-nix": "treefmt-nix_5"
       },
       "locked": {
-        "lastModified": 1785252934,
-        "narHash": "sha256-z3CpbDSa9bgZ0iPQtHHLEIqxdo3pnhFLWWKzLgB6a7c=",
+        "lastModified": 1786934004,
+        "narHash": "sha256-i3TpIoPijQCRXKfgiBjsDzykPaIBkJl62YFXfdpswK0=",
         "ref": "refs/heads/main",
-        "rev": "37080fd61724935f540807f67fab7274db35b7e6",
-        "revCount": 42,
+        "rev": "fec204e156955c19f85789a2b9cdbd2990b6a24f",
+        "revCount": 50,
         "type": "git",
         "url": "ssh://git@git.s4.gl/straylight/straylight-nvidia-sdk.git"
       },

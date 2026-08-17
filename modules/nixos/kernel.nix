@@ -23,7 +23,5 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable {
-    boot.kernelPackages = lib.mkDefault cfg.package;
-  };
+  config = lib.mkIf cfg.enable { boot.kernelPackages = lib.mkDefault cfg.package; };
 }

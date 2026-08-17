@@ -433,9 +433,7 @@ in
     autostart = mkOption {
       type = types.listOf types.str;
 
-      default = [
-        "hyprpaper"
-      ];
+      default = [ "hyprpaper" ];
 
       description = "Programs to start on login (session daemons, not tray applets)";
     };
@@ -600,9 +598,7 @@ in
               let
                 speed = animationSpeed.${cfg.appearance.animations.speed};
               in
-              [
-                "windows,          1, ${toString speed},       easeOutExpo, popin 80%"
-              ]
+              [ "windows,          1, ${toString speed},       easeOutExpo, popin 80%" ]
               ++ (
                 if cfg.appearance.animations.glitch then
                   [

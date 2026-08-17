@@ -46,6 +46,7 @@
 - [Adding a host](./operations/adding-a-host.md)
 - [Dev shells](./operations/dev-shells.md)
 - [Runbooks](./operations/runbooks.md)
+- [btrfs ENOSPC recovery](./operations/btrfs-enospc-recovery.md)
 
 # Reference
 

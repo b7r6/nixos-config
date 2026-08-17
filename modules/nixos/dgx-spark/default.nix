@@ -157,9 +157,7 @@ in
     boot.kernelPackages = if cfg.useNvidiaKernel then nvidiaKernel else cppcPatchedLatest;
 
     # Out-of-tree Realtek RTL8127 10GbE driver
-    boot.extraModulePackages = [
-      (config.boot.kernelPackages.callPackage ./r8127 { })
-    ];
+    boot.extraModulePackages = [ (config.boot.kernelPackages.callPackage ./r8127 { }) ];
 
     boot.kernelParams = [
       # TH500 early console - REQUIRED for any output before full driver init

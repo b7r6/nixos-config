@@ -40,9 +40,7 @@ let
   # configurations/home/<name>.nix per registry user when the file exists.
   homeManagerNixosModule = {
 
-    imports = [
-      home-manager.nixosModules.home-manager
-    ];
+    imports = [ home-manager.nixosModules.home-manager ];
 
     home-manager = {
       useGlobalPkgs = true;

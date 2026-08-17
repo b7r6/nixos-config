@@ -231,9 +231,7 @@ in
         {
           description = "Rollback btrfs root to a pristine snapshot";
           wantedBy = [ "initrd.target" ];
-          after = [
-            "dev-disk-by\\x2dpartlabel-disk\\x2dmain\\x2droot.device"
-          ];
+          after = [ "dev-disk-by\\x2dpartlabel-disk\\x2dmain\\x2droot.device" ];
           before = [ "sysroot.mount" ];
           unitConfig.DefaultDependencies = "no";
           serviceConfig = {

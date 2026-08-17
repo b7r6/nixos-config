@@ -24,7 +24,6 @@ let
   # journald logs arrive as JSON in Body (MESSAGE, PRIORITY, _SYSTEMD_UNIT, etc.)
   # LogAttributes is empty; SeverityText/SeverityNumber are not populated.
   # syslog PRIORITY: 0=emerg, 1=alert, 2=crit, 3=err, 4=warn, 5=notice, 6=info, 7=debug
-  unit = "JSONExtractString(Body, '_SYSTEMD_UNIT')";
   msg = "JSONExtractString(Body, 'MESSAGE')";
   pri = "JSONExtractInt(Body, 'PRIORITY')";
   isErr = "JSONExtractInt(Body, 'PRIORITY') <= 3"; # err + crit + alert + emerg
@@ -71,9 +70,7 @@ let
               color.mode = "thresholds";
             }
           else
-            {
-              color.mode = "palette-classic";
-            }
+            { color.mode = "palette-classic"; }
         );
       }
       // fieldConfig;
@@ -240,56 +237,6 @@ let
     };
 
   # gauge panel
-  gauge =
-    {
-      id,
-      title,
-      x ? 0,
-      y ? 0,
-      w ? 6,
-      h ? 6,
-      unit ? "percentunit",
-      sql,
-      min ? 0,
-      max ? 1,
-      thresholds ? null,
-      description ? "",
-    }:
-    {
-      inherit id title description;
-      type = "gauge";
-      gridPos = {
-        inherit
-          x
-          y
-          w
-          h
-          ;
-      };
-      datasource = ds;
-      fieldConfig.defaults = {
-        inherit unit min max;
-        color.mode = if thresholds != null then "thresholds" else "palette-classic";
-      }
-      // (if thresholds != null then { inherit thresholds; } else { });
-      options = {
-        reduceOptions = {
-          calcs = [ "lastNotNull" ];
-          fields = "";
-          values = false;
-        };
-        showThresholdLabels = false;
-        showThresholdMarkers = true;
-      };
-      targets = [
-        {
-          rawSql = sql;
-          format = 2;
-          queryType = "sql";
-          refId = "A";
-        }
-      ];
-    };
 
   # ── common thresholds ─────────────────────────────────────────────────────────
   thresholdPct = {
@@ -362,15 +309,12 @@ let
 
   # ── rate helper (ClickHouse runningDifference for OTel cumulative counters) ──
   # OTel sums are cumulative — we need per-interval deltas
-  rate = metric: "runningDifference(Value)";
 
   # ── host filter clause ────────────────────────────────────────────────────────
   hostFilter = "${host} IN (\$host)";
   hostFilterSingle = "${host} = '\$host'";
 
   # ── unit filter for log queries ───────────────────────────────────────────────
-  unitIs = svc: "${unit} = '${svc}'";
-  unitLike = pat: "${unit} LIKE '${pat}'";
 
   # ── standard template variables ───────────────────────────────────────────────
   hostVarAll = {
@@ -3476,172 +3420,6 @@ in
         w = 24;
         h = 10;
         sql = "SELECT Timestamp, ${host} as host, substring(${msg}, 1, 400) as message FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'atticd.service' AND ${isErr} AND ${tfLog} ORDER BY Timestamp DESC LIMIT 100";
-      })
-    ];
-  };
-
-  # ════════════════════════════════════════════════════════════════════════════════
-  #  14. OCI Registry (Zot)
-  # ════════════════════════════════════════════════════════════════════════════════
-  #
-  # OCI image registry. fronted by nginx. blobs stored in R2.
-  # zot emits JSON-structured access logs with method, path, status, latency.
-  oci-registry = {
-    title = "OCI Registry (Zot)";
-    uid = "oci-registry";
-    schemaVersion = 39;
-    refresh = "1m";
-    time = {
-      from = "now-6h";
-      to = "now";
-    };
-    timezone = "browser";
-    editable = true;
-    tags = [
-      "registry"
-      "oci"
-    ];
-    panels = [
-
-      # ── row: health ──────────────────────────────────────────────────────────
-      (row {
-        id = 100;
-        title = "Health";
-        y = 0;
-      })
-
-      (stat {
-        id = 1;
-        title = "Zot logs (6h)";
-        x = 0;
-        y = 1;
-        w = 4;
-        h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND ${tfLog}";
-      })
-      (stat {
-        id = 2;
-        title = "Errors";
-        x = 4;
-        y = 1;
-        w = 4;
-        h = 4;
-        thresholds = thresholdErrors;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND ${isErr} AND ${tfLog}";
-      })
-      (stat {
-        id = 3;
-        title = "Pushes (PUT)";
-        x = 8;
-        y = 1;
-        w = 4;
-        h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND Body LIKE '%PUT%' AND ${tfLog}";
-      })
-      (stat {
-        id = 4;
-        title = "Pulls (GET)";
-        x = 12;
-        y = 1;
-        w = 4;
-        h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND Body LIKE '%GET%' AND Body LIKE '%blobs%' AND ${tfLog}";
-      })
-      (stat {
-        id = 5;
-        title = "Manifests served";
-        x = 16;
-        y = 1;
-        w = 4;
-        h = 4;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND Body LIKE '%manifests%' AND ${tfLog}";
-      })
-      (stat {
-        id = 6;
-        title = "4xx/5xx responses";
-        x = 20;
-        y = 1;
-        w = 4;
-        h = 4;
-        thresholds = thresholdErrors;
-        sql = "SELECT count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND (Body LIKE '%\" 4%' OR Body LIKE '%\" 5%') AND ${tfLog}";
-      })
-
-      # ── row: traffic ─────────────────────────────────────────────────────────
-      (row {
-        id = 101;
-        title = "Traffic";
-        y = 5;
-      })
-
-      (panel {
-        id = 10;
-        title = "Request volume";
-        x = 0;
-        y = 6;
-        w = 12;
-        h = 8;
-        unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND ${tfLog} GROUP BY time ORDER BY time";
-      })
-      (panel {
-        id = 11;
-        title = "Operations (push/pull/manifest/catalog)";
-        x = 12;
-        y = 6;
-        w = 12;
-        h = 8;
-        unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%PUT%' AND Body LIKE '%blobs%', 'blob_push', Body LIKE '%PUT%' AND Body LIKE '%manifests%', 'manifest_push', Body LIKE '%GET%' AND Body LIKE '%blobs%', 'blob_pull', Body LIKE '%GET%' AND Body LIKE '%manifests%', 'manifest_pull', Body LIKE '%GET%' AND Body LIKE '%tags%', 'tag_list', 'other') as op, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND (Body LIKE '%PUT%' OR Body LIKE '%GET%') AND ${tfLog} GROUP BY time, op ORDER BY time";
-        fieldConfig = {
-          defaults.custom.stacking = {
-            mode = "normal";
-            group = "A";
-          };
-          defaults.custom.fillOpacity = 60;
-        };
-      })
-
-      # ── row: logs ────────────────────────────────────────────────────────────
-      (row {
-        id = 102;
-        title = "Logs";
-        y = 14;
-      })
-
-      (panel {
-        id = 20;
-        title = "Log volume by severity";
-        x = 0;
-        y = 15;
-        w = 24;
-        h = 6;
-        unit = "short";
-        sql = "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(${pri} <= 3, 'error', ${pri} = 4, 'warning', ${pri} = 5, 'notice', ${pri} = 6, 'info', 'debug') as severity, count() as value FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND ${tfLog} GROUP BY time, severity ORDER BY time";
-        fieldConfig = {
-          defaults.custom.stacking = {
-            mode = "normal";
-            group = "A";
-          };
-          defaults.custom.fillOpacity = 80;
-        };
-      })
-
-      # ── row: errors ──────────────────────────────────────────────────────────
-      (row {
-        id = 103;
-        title = "Errors";
-        y = 21;
-      })
-
-      (table {
-        id = 30;
-        title = "Registry errors & 4xx/5xx";
-        x = 0;
-        y = 22;
-        w = 24;
-        h = 10;
-        sql = "SELECT Timestamp, substring(${msg}, 1, 400) as message FROM otel.otel_logs WHERE JSONExtractString(Body, '_SYSTEMD_UNIT') = 'zot.service' AND (${isErr} OR Body LIKE '%\" 4%' OR Body LIKE '%\" 5%') AND ${tfLog} ORDER BY Timestamp DESC LIMIT 100";
       })
     ];
   };

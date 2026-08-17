@@ -107,6 +107,13 @@ ignore = [
   "ARG",     # Unused arguments are OK in tests
 ]
 "**/__init__.py" = ["D104"]
+# BlueZ Agent1 D-Bus service: method names (RequestPinCode…) and signatures
+# (device, uuid) are fixed by the org.bluez.Agent1 interface contract —
+# renaming or dropping arguments breaks the agent, not the style.
+"**/shell/scripts/bluetooth-agent.py" = [
+  "N802",   # D-Bus method names are PascalCase by interface contract
+  "ARG002", # D-Bus signatures carry arguments the handler doesn't use
+]
 "**/notebooks/**" = [
   "E402", # Module level import not at top of file
   "F401", # Imported but unused (common in notebooks)

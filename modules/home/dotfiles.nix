@@ -15,12 +15,7 @@
 #   - the store never holds the live config, so nothing is read-only
 #   - the path below must point at a real checkout; activation warns if not
 #
-{
-  config,
-  lib,
-  ...
-}:
-{
+{ config, lib, ... }: {
   options.hyper-modern-nixos.dotfiles = {
     path = lib.mkOption {
       type = lib.types.str;
