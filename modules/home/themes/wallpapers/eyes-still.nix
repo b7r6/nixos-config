@@ -12,7 +12,10 @@
   flake,
   width ? 3840,
   height ? 2160,
-  time ? 2.0,
+  # t=11.8 is the money frame: three fat burning blades crossing mid-field
+  # under CP.ASYNC.BULK. load 0.55 heats them toward the white filament.
+  time ? 11.8,
+  load ? 0.55,
 }:
 let
   wintermuteField =
@@ -24,7 +27,7 @@ pkgs.runCommand "eyes-still-${toString width}x${toString height}"
   ''
     ${wintermuteField}/bin/wintermute-field --cpu --scene eyes \
       --size ${toString width}x${toString height} \
-      --time ${toString time} --load 0.35 \
+      --time ${toString time} --load ${toString load} \
       --out frame.ppm
     mkdir -p $out
     magick frame.ppm $out/eyes.png
