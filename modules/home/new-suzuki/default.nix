@@ -379,6 +379,16 @@ in
           Description = "wintermute theme reconciler";
           After = [ "graphical-session.target" ];
           PartOf = [ "graphical-session.target" ];
+          # No start-limit ceiling — parity with wintermute-field. A SIGKILL
+          # FLOOD (kill -9 in a tight loop) otherwise trips systemd's default
+          # 5-starts-per-10s ratelimiter, after which Restart=always AND
+          # Upholds= both back off ("tried this too often recently") and the
+          # unit wedges dead. The field survived exactly this because it
+          # already carried the line; the reconciler didn't, and a flood
+          # beheaded it. Interval 0 disables the limiter: every kill is
+          # answered by a restart within RestartSec, forever, no matter the
+          # rate. The daemon is level-triggered and cheap — respawning is free.
+          StartLimitIntervalSec = 0;
         };
         Service = {
           ExecStart = "${wintermute}/bin/wintermute daemon";
