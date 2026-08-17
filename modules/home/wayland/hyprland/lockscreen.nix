@@ -8,7 +8,13 @@
 #
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  flake,
+  ...
+}:
 let
   inherit (lib)
     mkOption
@@ -18,6 +24,9 @@ let
     ;
   cfg = config.hyper-modern-nixos.lockscreen;
   colors = config.lib.stylix.colors;
+  # The EYES card behind the lock indicator — the kernel's own CPU render,
+  # so the lock screen and the live wallpaper are the same scene.
+  eyesStill = import ../../themes/wallpapers/eyes-still.nix { inherit pkgs flake; };
 in
 {
   options.hyper-modern-nixos.lockscreen = {
@@ -41,6 +50,8 @@ in
       enable = true;
 
       settings = lib.mkForce {
+        image = "${eyesStill}/eyes.png";
+        scaling = "fill";
         color = colors.base00;
         bs-hl-color = colors.base08;
         key-hl-color = colors.base0B;

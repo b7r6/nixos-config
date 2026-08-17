@@ -60,6 +60,15 @@ Rectangle {
         Component.onCompleted: entrySweep.start()
     }
 
+    // ── The still: the EYES card, kernel-rendered at build time ──────────
+    // Sits over the shader field; if the asset ever goes missing the field
+    // simply shows through — never a blank frame zero.
+    Image {
+        anchors.fill: parent
+        source: Qt.resolvedUrl("eyes.png")
+        fillMode: Image.PreserveAspectCrop
+    }
+
     // ── The card ─────────────────────────────────────────────────────────
     Column {
         id: content
