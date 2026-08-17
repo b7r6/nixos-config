@@ -41,6 +41,7 @@
 
     ./network.nix
     ./network-manager.nix
+    ./mediatek-wifi.nix
     ../flake/coredns/nixos.nix
     ./reverse-proxy.nix
     ./oauth2-proxy.nix

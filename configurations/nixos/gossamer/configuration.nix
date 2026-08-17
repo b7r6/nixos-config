@@ -175,6 +175,10 @@ in
 
   networking.hostName = "gossamer";
 
+  # Onboard MediaTek MT7925 (Filogic 360) — needs the stability workarounds
+  # (no powersave, disable ASPM). See modules/nixos/mediatek-wifi.nix.
+  hyper-modern-nixos.mediatekWifi.enable = true;
+
   # NM wait-online is useless when primary links are statically configured
   systemd.services.NetworkManager-wait-online.enable = false;
 
