@@ -560,7 +560,7 @@ in
       # happens" — Screenshot, FileChooser) and graphical-session units
       # never see WAYLAND_DISPLAY/XDG_CURRENT_DESKTOP.
       hyper-modern-nixos.hyprland.autostart = lib.mkForce [
-        "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE"
+        "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE SSH_AUTH_SOCK"
         "blueman-applet"
         "nm-applet"
         "tailscale-systray"

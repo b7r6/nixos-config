@@ -32,6 +32,13 @@ let
   start-hyprland = pkgs.writeShellScriptBin "start-hyprland" ''
     export XDG_SESSION_TYPE=wayland
     export XDG_CURRENT_DESKTOP=Hyprland
+    # Pin SSH_AUTH_SOCK to the systemd ssh-agent (programs.ssh.startAgent) for
+    # the WHOLE graphical session, so GUI apps aren't agent-blind and don't
+    # spawn their own stray ssh-agents (the recurring "fucked up" mess). This
+    # is safe where home's guarded shell export can't be: a graphical session
+    # is ALWAYS local, never an inbound `ssh -A`, so there's no forwarded
+    # socket to clobber — the constraint the session-vars comment guards.
+    export SSH_AUTH_SOCK="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/ssh-agent"
     systemd-cat --identifier=hyprland Hyprland "$@"
     status=$?
     systemctl --user stop hyprland-session.target graphical-session.target 2>/dev/null || true
