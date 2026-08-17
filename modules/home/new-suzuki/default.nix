@@ -446,6 +446,25 @@ in
         Install.WantedBy = [ "graphical-session.target" ];
       };
 
+      # ── Upholds: the session itself enforces the stack ───────────────────
+      # The keeper timer can be stopped like anything else (chaos test 5:
+      # behead the keeper, then the stack — stays dead). Upholds= is the
+      # systemd primitive built for this: as long as the UPHOLDER is active,
+      # the upheld units are continuously restarted, explicit stops included.
+      # The upholder here is graphical-session.target — stopping THAT means
+      # ending the login session, which is no longer a wallpaper prank. The
+      # keeper timer stays as defense-in-depth (and heals post-reload races).
+      # Intentional off-switch: `systemctl --user stop graphical-session.target`
+      # is logout; short of that, edit this module — which is the point.
+      xdg.configFile."systemd/user/graphical-session.target.d/10-wintermute-upholds.conf" =
+        lib.mkIf cfg.cudaField.enable
+          {
+            text = ''
+              [Unit]
+              Upholds=wintermute.service wintermute-field.service wintermute-keeper.timer
+            '';
+          };
+
       # ── Font configuration ─────────────────────────────────────────────
       fonts.fontconfig.enable = true;
 
