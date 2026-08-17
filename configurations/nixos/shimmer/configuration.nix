@@ -235,9 +235,15 @@ in
   # Monitor layout is the single source of truth in lib/monitors.nix; see that
   # file for why it lives there rather than being duplicated between here and
   # the standalone home config.
+  # GB10: the kernel-rendered EYES still behind the login greeter (system)
+  # and the lock screen (home) — matches the live wallpaper. Pulls the CUDA
+  # SDK, so it's opt-in and only enabled on the Sparks.
+  hyper-modern-nixos.greeter.eyesStill = true;
+
   home-manager.users.b7r6 = {
     hyper-modern-nixos = {
       hyprland.monitors = (import ../../../lib/monitors.nix).shimmer;
+      lockscreen.eyesStill = true;
 
       # ── The rice ─────────────────────────────────────────────────────────
       # Same shell as gossamer: new-suzuki + wintermute, exclusive. Fleet

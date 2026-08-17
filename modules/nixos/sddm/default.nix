@@ -91,7 +91,7 @@ let
         mkdir -p $dir
         cp ${./Main.qml} $dir/Main.qml
         cp ${themeConf} $dir/theme.conf
-        cp ${eyesStill}/eyes.png $dir/eyes.png
+        ${lib.optionalString config.hyper-modern-nixos.greeter.eyesStill "cp ${eyesStill}/eyes.png $dir/eyes.png"}
         cp ${../../home/new-suzuki/shell/modules/wallpaper/wallpaper.frag} $dir/wallpaper.frag
         qsb --glsl "100 es,120,150" --hlsl 50 --msl 12 \
           -o $dir/wallpaper.frag.qsb $dir/wallpaper.frag
@@ -114,6 +114,13 @@ in
     default = "b7r6";
     description = "Account the greeter pre-selects (single-operator fleet).";
   };
+
+  # Opt-in: the kernel-rendered EYES still behind the login prompt pulls
+  # straylight-nvidia-sdk (CUDA), so only GB10 hosts want it. Off → the
+  # greeter's animated shader field shows alone (Main.qml's Image falls back
+  # to the field when eyes.png is absent), and no host without the SDK is
+  # forced to fetch it (the derivation is only referenced when this is true).
+  options.hyper-modern-nixos.greeter.eyesStill = lib.mkEnableOption "kernel-rendered EYES still behind the greeter (needs the CUDA SDK; GB10 only)";
 
   config = {
     services.displayManager = {
