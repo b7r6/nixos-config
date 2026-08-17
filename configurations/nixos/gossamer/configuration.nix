@@ -175,6 +175,17 @@ in
 
   networking.hostName = "gossamer";
 
+  # ── WiFi reliability (MediaTek MT7925 / Filogic 360, mt7925e) ───────────────
+  # Two durable fixes for the onboard Wi-Fi 7 card:
+  #   1. Kill NM power-save — the MT7925 drops packets / stalls when the radio
+  #      idle-sleeps; disabling it trades a little power for a stable link.
+  #   2. disable_aspm=1 — PCIe ASPM is the documented trigger for random
+  #      mt7925e firmware death (total radio loss until reload). Preventive.
+  networking.networkmanager.wifi.powersave = false;
+  boot.extraModprobeConfig = ''
+    options mt7925e disable_aspm=1
+  '';
+
   # NM wait-online is useless when primary links are statically configured
   systemd.services.NetworkManager-wait-online.enable = false;
 
