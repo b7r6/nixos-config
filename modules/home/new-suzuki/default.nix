@@ -418,6 +418,34 @@ in
         Install.WantedBy = [ "graphical-session.target" ];
       };
 
+      # ── The keeper: level-triggered liveness for the wallpaper stack ─────
+      # Restart=always self-heals crashes and clean exits, but an EXPLICIT
+      # `systemctl --user stop` (observed in the wild: fleet automation with
+      # ssh reach reaping the units, eight confirmed kills) is honored by
+      # systemd as intent and never restarted. The declared state is ON, so
+      # a keeper timer converges to it: every 30s, start whatever is down.
+      # `start` on a running unit is a no-op — the keeper is silent unless
+      # something actually died. To INTENTIONALLY stop the wallpaper, stop
+      # the keeper timer first.
+      systemd.user.services.wintermute-keeper = lib.mkIf cfg.cudaField.enable {
+        Unit.Description = "wintermute keeper — converge theme stack to ON";
+        Service = {
+          Type = "oneshot";
+          ExecStart = "${pkgs.writeShellScript "wintermute-keep" ''
+            ${pkgs.systemd}/bin/systemctl --user start wintermute.service wintermute-field.service
+          ''}";
+        };
+      };
+      systemd.user.timers.wintermute-keeper = lib.mkIf cfg.cudaField.enable {
+        Unit.Description = "wintermute keeper tick";
+        Timer = {
+          OnActiveSec = "30s";
+          OnUnitActiveSec = "30s";
+          AccuracySec = "5s";
+        };
+        Install.WantedBy = [ "graphical-session.target" ];
+      };
+
       # ── Font configuration ─────────────────────────────────────────────
       fonts.fontconfig.enable = true;
 
