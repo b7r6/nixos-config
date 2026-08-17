@@ -179,6 +179,18 @@ in
       client.enable = true;
     };
 
+    # ── Truecolor for daemon tty frames ──────────────────────────────────────
+    # emacs reads getenv("COLORTERM") in init-tty — and for `emacsclient -nw`
+    # frames that runs in the DAEMON process, not the client shell. A
+    # systemd-launched daemon never sourced the login shell, so without this
+    # it has no COLORTERM and paints every tty frame in 256-color, quantizing
+    # the exact ono-sendai hexes to the nearest xterm-256 (the blue accent
+    # #52a5ff lands on #5fafd7 — visibly teal). Pinning it in the unit makes
+    # every frame 24-bit no matter how the daemon starts (boot, redeploy).
+    # (Standalone `emacs -nw` never had this — it inherits the shell's
+    # COLORTERM directly; only the daemon needed teaching.)
+    systemd.user.services.emacs.Service.Environment = [ "COLORTERM=truecolor" ];
+
     home.packages =
       with pkgs;
       lib.flatten [
