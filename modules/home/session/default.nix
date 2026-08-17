@@ -231,6 +231,11 @@ in
             ForwardAgent = true;
             AddKeysToAgent = "yes";
             StrictHostKeyChecking = "accept-new";
+            # Carry truecolor across the hop: ghostty sets COLORTERM=truecolor,
+            # SSH forwards TERM but not this, so without it emacs -nw on the
+            # remote quantizes the ono-sendai hexes to 256-color and looks
+            # muted. Pairs with AcceptEnv COLORTERM on the fleet's sshd.
+            SendEnv = "COLORTERM";
           };
           "github.com" = {
             User = "git";
