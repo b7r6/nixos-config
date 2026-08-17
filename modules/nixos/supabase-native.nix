@@ -388,6 +388,13 @@ in
       (lib.optionalAttrs cfg.selfWireSecret {
         supabase-env.file = flake.self + "/secrets/agenix/machines/supabase-env.age";
       })
+      // (lib.optionalAttrs cfg.db.pitr.enable {
+        pgbackrest-r2-env = {
+          file = flake.self + "/secrets/agenix/machines/pgbackrest-r2-env.age";
+          group = pgUser;
+          mode = "0440";
+        };
+      })
       // (lib.optionalAttrs (cfg.db.databases != { }) (
         lib.mapAttrs' (
           _dbName: spec:
