@@ -2360,11 +2360,11 @@
         "treefmt-nix": "treefmt-nix_5"
       },
       "locked": {
-        "lastModified": 1786931883,
-        "narHash": "sha256-Xqbm0HOGs9CYAaf+AbxWk+fWso1sQd+03cQ2rpbRaHA=",
+        "lastModified": 1786933359,
+        "narHash": "sha256-oM4WpaKnMv8vZXOjigH9/2PGbAfoCD3mIMPpRCHJYsI=",
         "ref": "refs/heads/main",
-        "rev": "33eec7ceafa8678107e5c499a692b271f9dfc403",
-        "revCount": 47,
+        "rev": "3000c8e512e01dba8fe994f767a499e0dd8e5c68",
+        "revCount": 48,
         "type": "git",
         "url": "ssh://git@git.s4.gl/straylight/straylight-nvidia-sdk.git"
       },
