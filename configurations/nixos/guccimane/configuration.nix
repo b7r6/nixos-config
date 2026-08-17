@@ -72,8 +72,12 @@ in
     enable = true;
   };
 
+  # The 5090 was pulled from this box. Off, so the driver/CDI generator stop
+  # trying to init an absent card (the CDI generator failed every boot on
+  # "Driver Not Loaded"). Jellyfin's hardwareAcceleration defaults to this,
+  # so it cleanly falls back to CPU transcoding. Flip back on if a card returns.
   hyper-modern-nixos.nvidia = {
-    enable = true;
+    enable = false;
   };
 
   boot.loader.systemd-boot.enable = true;
@@ -137,8 +141,8 @@ in
   # Library lives at /var/lib/media (declared authoritative by the module, so
   # it's restic-backed + impermanence-persisted via the state registry). Ports
   # are open on the LAN (enp113s0) for the Google TV and on the tailnet
-  # (tailscale0 trusted fleet-wide) for phone/laptop. Jellyfin transcodes on the
-  # 5090 since hyper-modern-nixos.nvidia is enabled above.
+  # (tailscale0 trusted fleet-wide) for phone/laptop. Jellyfin transcodes on
+  # CPU now that the 5090 is gone (hardwareAcceleration follows nvidia.enable).
   #   - Navidrome : http://guccimane:4533  (music: /var/lib/media/music)
   #   - Jellyfin  : http://guccimane:8096  (video: /var/lib/media/video)
 
