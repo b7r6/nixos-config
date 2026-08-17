@@ -231,6 +231,11 @@ in
     libsecret # For Electron apps
   ];
 
+  hyper-modern-nixos.new-suzuki = {
+    enable = true;
+    cudaField.enable = true;
+  };
+
   # ── Per-host monitor & display config ──────────────────────────────────────
   # Monitor layout is the single source of truth in lib/monitors.nix; see that
   # file for why it lives there rather than being duplicated between here and
