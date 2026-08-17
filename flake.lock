@@ -1337,6 +1337,27 @@
         "type": "github"
       }
     },
+    "modern-nix": {
+      "inputs": {
+        "nixpkgs": [
+          "straylight-nvidia-sdk",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1786061655,
+        "narHash": "sha256-DnTo7XG5L9e3DilgK0pXjE0/swQW4paw/ZHcOOYUz4Y=",
+        "ref": "refs/heads/main",
+        "rev": "a4848cc903bfbf901bb0c8e951acd7331de52883",
+        "revCount": 4,
+        "type": "git",
+        "url": "file:///home/b7r6/src/straylight/modern.nix"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:///home/b7r6/src/straylight/modern.nix"
+      }
+    },
     "multigres": {
       "flake": false,
       "locked": {
@@ -2333,16 +2354,17 @@
         "agenix": "agenix_2",
         "flake-parts": "flake-parts_10",
         "llvm-project": "llvm-project",
+        "modern-nix": "modern-nix",
         "nixpkgs": "nixpkgs_6",
         "systems": "systems_7",
         "treefmt-nix": "treefmt-nix_5"
       },
       "locked": {
-        "lastModified": 1785252934,
-        "narHash": "sha256-z3CpbDSa9bgZ0iPQtHHLEIqxdo3pnhFLWWKzLgB6a7c=",
+        "lastModified": 1786931883,
+        "narHash": "sha256-Xqbm0HOGs9CYAaf+AbxWk+fWso1sQd+03cQ2rpbRaHA=",
         "ref": "refs/heads/main",
-        "rev": "37080fd61724935f540807f67fab7274db35b7e6",
-        "revCount": 42,
+        "rev": "33eec7ceafa8678107e5c499a692b271f9dfc403",
+        "revCount": 47,
         "type": "git",
         "url": "ssh://git@git.s4.gl/straylight/straylight-nvidia-sdk.git"
       },

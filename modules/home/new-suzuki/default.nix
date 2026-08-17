@@ -287,7 +287,7 @@ let
       WAYLAND_DISPLAY=$(ls "$XDG_RUNTIME_DIR" | grep -m1 '^wayland-[0-9]*$' || true)
       export WAYLAND_DISPLAY
     fi
-    exec ${wintermuteField}/bin/wintermute-field-daemon
+    exec ${wintermuteField}/bin/wintermute-field-daemon --scene ${cfg.cudaField.scene}
   '';
 
   quickshellLaunch =
@@ -314,6 +314,20 @@ in
         field into the compositor's wl_shm pool (zero-copy on GB10) and the
         QML AnimatedWallpaper stands down (HYPERMODERN_CUDA_FIELD=1)
       '';
+
+      scene = mkOption {
+        type = types.enum [
+          "field"
+          "eyes"
+        ];
+        default = "field";
+        description = ''
+          Which card the kernel renders: "field" is the two-axis design
+          space, "eyes" the reference-reel title card (plasma blades, the
+          CASK6 kernel words, the smeared floor). A "scene" key in
+          theme.json overrides this live.
+        '';
+      };
     };
 
     register = mkOption {

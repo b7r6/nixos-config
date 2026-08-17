@@ -245,9 +245,13 @@ in
       new-suzuki = {
         enable = true;
         exclusive = true;
-        # Match gossamer: render the animated Razorgirl field with the CUDA
-        # kernel and let it own the compositor wallpaper layer.
-        cudaField.enable = true;
+        # Render with the CUDA kernel and let it own the compositor
+        # wallpaper layer. The EYES card: plasma blades + kernel words,
+        # both panels, palette morphs riding the color spinor.
+        cudaField = {
+          enable = true;
+          scene = "eyes";
+        };
       };
 
       themes.display = {
