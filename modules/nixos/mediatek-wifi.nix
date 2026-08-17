@@ -14,21 +14,15 @@
 #
 # First hardened on gossamer (onboard card). Enable on any host that ships
 # the same radio: hyper-modern-nixos.mediatekWifi.enable = true;
-{
-  config,
-  lib,
-  ...
-}:
+{ config, lib, ... }:
 let
   cfg = config.hyper-modern-nixos.mediatekWifi;
 in
 {
   options.hyper-modern-nixos.mediatekWifi = {
-    enable =
-      lib.mkEnableOption "MediaTek MT7925 (Filogic 360) Wi-Fi stability workarounds"
-      // {
-        default = false;
-      };
+    enable = lib.mkEnableOption "MediaTek MT7925 (Filogic 360) Wi-Fi stability workarounds" // {
+      default = false;
+    };
 
     disableAspm = lib.mkOption {
       type = lib.types.bool;
