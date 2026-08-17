@@ -15,6 +15,16 @@
 (require 'cl-lib)
 (require 'seq)
 
+;; ── byte-compile hygiene ─────────────────────────────────────────────
+;; The compile gate (checks/emacs-config.nix) fails on ANY warning. Teach
+;; the compiler about symbols that only exist at runtime: xref's customs
+;; (set in consult's :init, before xref loads) and functions from lazily
+;; loaded packages referenced outside their own use-package forms.
+(eval-when-compile (require 'xref))
+(declare-function consult-xref "consult")
+(declare-function consult-recent-file "consult")
+(declare-function global-kkp-mode "kkp")
+
 ;; ───────────────────────────────────────────────────────────────────
 ;;                  // terminal keyboard // kitty keyboard protocol
 ;; ───────────────────────────────────────────────────────────────────
