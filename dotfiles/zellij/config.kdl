@@ -15,7 +15,12 @@
 theme "ono-sendai"
 default_layout "hypermodern"
 pane_frames false
-copy_on_select true
+// Match tmux copy-mode: selecting does not mutate the clipboard until the
+// explicit M-w copy gesture. wl-copy makes the destination unambiguously the
+// Wayland system clipboard rather than Zellij's internal/primary selection.
+copy_on_select false
+copy_command "wl-copy"
+copy_clipboard "system"
 session_serialization true
 show_startup_tips false
 show_release_notes false
@@ -110,6 +115,10 @@ keybinds clear-defaults=true {
         bind "Ctrl n" "Down" "j" { ScrollDown; }
         bind "Ctrl v" "PageDown" { PageScrollDown; }
         bind "Alt v" "PageUp" { PageScrollUp; }
+        // tmux copy-mode-emacs: M-w commits the current selection and exits.
+        // Zellij 0.44 has no keyboard begin-selection action, so selection is
+        // made with the mouse (or terminal selection) before this gesture.
+        bind "Alt w" { Copy; SwitchToMode "Normal"; }
         bind "Ctrl s" { SwitchToMode "EnterSearch"; SearchInput 0; }
         bind "e" { EditScrollback; SwitchToMode "Normal"; }
         bind "Esc" "q" { SwitchToMode "Normal"; }
