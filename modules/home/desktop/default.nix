@@ -155,10 +155,9 @@ in
         # (platforms/badPlatforms via availableOn) rather than hard-coding an
         # architecture: aarch64 hosts like shimmer skip it cleanly today and
         # pick it up automatically if upstream ever ships arm64.
-        (lib.optional
-          (cfg.music.enable && lib.meta.availableOn pkgs.stdenv.hostPlatform bitwig-studio)
-          bitwig-studio
-        )
+        (lib.optional (
+          cfg.music.enable && lib.meta.availableOn pkgs.stdenv.hostPlatform bitwig-studio
+        ) bitwig-studio)
 
         (lib.optionals cfg.communication.enable (
           [

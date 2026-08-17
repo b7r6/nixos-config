@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 with lib;
 let
   cfg = config.hyper-modern-nixos.terminals;
@@ -36,7 +41,12 @@ let
   # unit below; safe to run by hand.
   ghosttyThemeSync = pkgs.writeShellApplication {
     name = "ghostty-theme-sync";
-    runtimeInputs = with pkgs; [ jq coreutils systemd procps ];
+    runtimeInputs = with pkgs; [
+      jq
+      coreutils
+      systemd
+      procps
+    ];
     text = ''
       tj="''${XDG_STATE_HOME:-$HOME/.local/state}/wintermute/theme.json"
       out="''${XDG_CONFIG_HOME:-$HOME/.config}/ghostty/themes/wintermute"

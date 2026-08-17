@@ -26,7 +26,22 @@ let
   color-lib = import ../../flake/themes/lib.nix { inherit lib; };
 
   baseSlots = map (n: "base0${n}") [
-    "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F"
+    "0"
+    "1"
+    "2"
+    "3"
+    "4"
+    "5"
+    "6"
+    "7"
+    "8"
+    "9"
+    "A"
+    "B"
+    "C"
+    "D"
+    "E"
+    "F"
   ];
 
   reg = cfg.register;
@@ -80,11 +95,11 @@ let
 
   presetsJson = pkgs.writeText "new-suzuki-presets.json" (
     builtins.toJSON {
-      villa-straylight =
-        cornerPreview "villa-straylight" (color-lib.make-palette { level = "carbon"; }) false;
+      villa-straylight = cornerPreview "villa-straylight" (color-lib.make-palette {
+        level = "carbon";
+      }) false;
       razorgirl = cornerPreview "razorgirl" (color-lib.make-palette { level = "carbon"; }) false;
-      tessier =
-        cornerPreview "tessier" (color-lib.make-palette-light { level = "tessier"; }) true;
+      tessier = cornerPreview "tessier" (color-lib.make-palette-light { level = "tessier"; }) true;
       bioptic = cornerPreview "bioptic" (color-lib.make-palette-light {
         level = "neoform";
         ramp-hue = 36;
@@ -95,9 +110,7 @@ let
   # ── Shell QML Directory ──────────────────────────────────────────────────
   # The wallpaper shader compiles to Qt RHI bytecode (.qsb) at BUILD time —
   # no vendored binaries, the .frag source is the artifact under review.
-  shellDir = pkgs.runCommand "new-suzuki-shell" {
-    nativeBuildInputs = [ pkgs.qt6.qtshadertools ];
-  } ''
+  shellDir = pkgs.runCommand "new-suzuki-shell" { nativeBuildInputs = [ pkgs.qt6.qtshadertools ]; } ''
     mkdir -p $out
     cp -r ${./shell}/* $out/
     cp ${presetsJson} $out/presets.json
@@ -108,16 +121,6 @@ let
   '';
 
   # ── Quickshell global shortcut binds (appended in both modes) ─────────────
-  quickshellBinds = [
-    ", Print, global, quickshell:take_screenshot"
-    "$mod SHIFT, E, global, quickshell:power_menu"
-    "$mod SHIFT, V, global, quickshell:clipboard_history"
-    ", XF86AudioRaiseVolume, global, quickshell:volume_up"
-    ", XF86AudioLowerVolume, global, quickshell:volume_down"
-    ", XF86AudioMute, global, quickshell:volume_mute"
-    ", XF86MonBrightnessUp, global, quickshell:brightness_up"
-    ", XF86MonBrightnessDown, global, quickshell:brightness_down"
-  ];
 
   # ── Complete keybind replacement for exclusive mode ───────────────────────
   # Same hy3 semantics and navigation as the original, but shell components
@@ -275,9 +278,9 @@ let
   # The wallpaper field as a CUDA kernel (straylight-nvidia-sdk) — CLI plus
   # the zero-copy wayland presenter. Built against the SDK's own toolchain;
   # autoAddDriverRunpath in its default.nix resolves the real libcuda.
-  wintermuteField = pkgs.callPackage
-    "${flake.inputs.straylight-nvidia-sdk}/examples/wintermute-field"
-    { cuda = flake.inputs.straylight-nvidia-sdk.packages.${pkgs.stdenv.hostPlatform.system}.cuda; };
+  wintermuteField =
+    pkgs.callPackage "${flake.inputs.straylight-nvidia-sdk}/examples/wintermute-field"
+      { cuda = flake.inputs.straylight-nvidia-sdk.packages.${pkgs.stdenv.hostPlatform.system}.cuda; };
 
   # Daemon launcher: graphical-session units usually inherit WAYLAND_DISPLAY
   # via dbus-update-activation-environment --systemd, but that races the
@@ -454,9 +457,7 @@ in
       '';
 
       # ── Hyprland Autostart (non-exclusive) ─────────────────────────────
-      hyper-modern-nixos.hyprland.autostart = lib.mkIf (!cfg.exclusive) [
-        quickshellLaunch
-      ];
+      hyper-modern-nixos.hyprland.autostart = lib.mkIf (!cfg.exclusive) [ quickshellLaunch ];
 
       # ── Hyprland cursor config ─────────────────────────────────────────
       wayland.windowManager.hyprland.settings.exec-once = lib.mkAfter [

@@ -195,9 +195,7 @@ in
       # them as redundant with wildcards in the same request.
       certs.${wildcardCert} = {
         domain = "*.${zone}";
-        extraDomainNames = [
-          "*.${topo.registry.internalDomain}"
-        ];
+        extraDomainNames = [ "*.${topo.registry.internalDomain}" ];
         group = config.services.nginx.group;
       };
     };
@@ -238,15 +236,16 @@ in
               {
                 proxyPass = "${svc.scheme}://${svc.upstream}";
                 proxyWebsockets = svc.websockets;
-                extraConfig = (lib.optionalString svc.protected ''
-                  auth_request /oauth2/auth;
-                  error_page 401 = /oauth2/sign_in;
-                  auth_request_set $user $upstream_http_x_auth_request_user;
-                  auth_request_set $email $upstream_http_x_auth_request_email;
-                  proxy_set_header X-User $user;
-                  proxy_set_header X-Email $email;
-                '')
-                + svc.extraProxyConfig;
+                extraConfig =
+                  (lib.optionalString svc.protected ''
+                    auth_request /oauth2/auth;
+                    error_page 401 = /oauth2/sign_in;
+                    auth_request_set $user $upstream_http_x_auth_request_user;
+                    auth_request_set $email $upstream_http_x_auth_request_email;
+                    proxy_set_header X-User $user;
+                    proxy_set_header X-Email $email;
+                  '')
+                  + svc.extraProxyConfig;
               };
 
           # oauth2-proxy endpoints (only when this vhost is protected)

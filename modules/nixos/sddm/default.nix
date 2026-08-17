@@ -72,17 +72,20 @@ let
     ${lib.concatStringsSep "\n" (
       lib.mapAttrsToList (k: v: "${k}=${v}") (
         lib.getAttrs (map (n: "base0${n}") [
-          "0" "1" "2" "3" "4" "9" "A"
+          "0"
+          "1"
+          "2"
+          "3"
+          "4"
+          "9"
+          "A"
         ]) palette
       )
     )}
   '';
 
   hypermodernSddmTheme =
-    pkgs.runCommand "hypermodern-sddm-theme"
-      {
-        nativeBuildInputs = [ pkgs.qt6.qtshadertools ];
-      }
+    pkgs.runCommand "hypermodern-sddm-theme" { nativeBuildInputs = [ pkgs.qt6.qtshadertools ]; }
       ''
         dir=$out/share/sddm/themes/hypermodern
         mkdir -p $dir

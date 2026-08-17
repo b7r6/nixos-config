@@ -129,9 +129,7 @@ in
         ])
 
         # `buck2 development
-        (lib.optionals cfg.python.enable [
-          buck2
-        ])
+        (lib.optionals cfg.python.enable [ buck2 ])
 
         # Python development
         # NB: do NOT add a bare `python312` here — the llm module installs

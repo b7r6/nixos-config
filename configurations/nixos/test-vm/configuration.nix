@@ -17,16 +17,7 @@
 #   - Run 'Hyprland' to start the desktop
 #   - Test portals with: portal-test (screenshot, file picker, etc.)
 #
-{
-  flake,
-  pkgs,
-  lib,
-  ...
-}:
-let
-  inherit (flake) inputs;
-in
-{
+{ pkgs, lib, ... }: {
   # ── Machine Identity ─────────────────────────────────────────────────────────
 
   networking.hostName = "test-vm";

@@ -1,45 +1,45 @@
 {
-  "bar": {
-    "height": 34,
-    "autoHide": false
-  },
-  "geometry": {
-    "radiusSmall": 2,
-    "radius": 3,
-    "radiusLarge": 4,
-    "spacing": 8,
-    "padding": 6
-  },
-  "typography": {
-    "font": "Berkeley Mono",
-    "sizeSmall": 12,
-    "sizeNormal": 13,
-    "sizeLarge": 15,
-    "iconSmall": 16,
-    "icon": 20,
-    "iconLarge": 26
-  },
-  "animations": {
-    "short": 100,
-    "normal": 200,
-    "long": 400,
-    "screenshot": true
-  },
-  "opacity": {
-    "background": 0.9
-  },
-  "notifications": {
-    "width": 350,
-    "imageSize": 40,
-    "timeout": 5000,
-    "spacing": 10
-  },
-  "wallpaper": {
-    "dynamic": false
-  },
-  "theme": {
-    "name": "default",
-    "mode": "preset",
-    "scheme": "dark"
-  }
+	"bar": {
+		"height": 34,
+		"autoHide": false
+	},
+	"geometry": {
+		"radiusSmall": 2,
+		"radius": 3,
+		"radiusLarge": 4,
+		"spacing": 8,
+		"padding": 6
+	},
+	"typography": {
+		"font": "Berkeley Mono",
+		"sizeSmall": 12,
+		"sizeNormal": 13,
+		"sizeLarge": 15,
+		"iconSmall": 16,
+		"icon": 20,
+		"iconLarge": 26
+	},
+	"animations": {
+		"short": 100,
+		"normal": 200,
+		"long": 400,
+		"screenshot": true
+	},
+	"opacity": {
+		"background": 0.9
+	},
+	"notifications": {
+		"width": 350,
+		"imageSize": 40,
+		"timeout": 5000,
+		"spacing": 10
+	},
+	"wallpaper": {
+		"dynamic": false
+	},
+	"theme": {
+		"name": "default",
+		"mode": "preset",
+		"scheme": "dark"
+	}
 }

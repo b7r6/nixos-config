@@ -50,11 +50,6 @@ let workerApiPort = "50061"
 
 let publicPort = "50051"
 
--- Per-RPC deadline for every shard-ring grpc peer. 60s is generous for
--- LAN-NVMe unary calls and ByteStream writes (multi-hundred-MB toolchain
--- layers included) but bounds the half-open-peer case: a peer that accepts
--- TCP but never answers (wedged/restarting nativelink) times out + retries
--- instead of hanging every CAS RPC on the frontend.
 let casRpcTimeoutS = 60
 
 let hosts =
@@ -66,9 +61,6 @@ let hosts =
         , casFastBytes = 68719476736
         , isScheduler = True
         }
-      -- guccimane: back in the ring (2026-07-25) after a stand-up. While it was
-      -- out, the shared R2 bucket (straylight-nativelink-cas, cas/ prefix) held
-      -- the authoritative blobs, so re-adding it just re-warms its shard from R2.
       , HostDef::{
         , name = "guccimane"
         , fqdn = "guccimane.sju1.s4.gl"
@@ -83,9 +75,6 @@ let hosts =
         , casWeight = 1
         , casFastBytes = 17179869184
         }
-      -- weyl: fourth CAS node for redundancy (2026-07-25). casWeight 2 / 32 GiB
-      -- fast tier keeps the fleet's weight×16GiB convention (30 GiB RAM, ~1 TB
-      -- disk). More shards = more places a blob survives a node loss.
       , HostDef::{
         , name = "weyl"
         , fqdn = "weyl.sju1.s4.gl"
@@ -160,15 +149,6 @@ let casServerConfig =
           ]
         }
 
--- Bulk-transfer deadline for the shard-ring stores that carry whole OCI
--- layer blobs (the CAS registry ingest and the oci://self projection
--- reads). GrpcStore applies rpc_timeout_s to an ENTIRE streaming write,
--- so the deadline caps blob size at (timeout x ring throughput): the
--- 60s hot-path bound rejects any layer past ~2 GiB at LAN speed (the
--- cuda cell's 2.69 GB layer, found during PROD-3 phase 2). 900s admits
--- multi-GB layers at a 3 MB/s floor while still bounding a wedged peer.
--- The REAL fix is an idle-based (progress-resetting) deadline in
--- GrpcStore's streaming RPCs — see UPSTREAM-LEDGER in the fork.
 let casBulkRpcTimeoutS = 900
 
 let mkCasShardRing =
@@ -179,11 +159,7 @@ let mkCasShardRing =
               r.ShardEntry
               ( \(h : HostDef.Type) ->
                   { store =
-                      r.grpc
-                        "main"
-                        "grpc://${h.fqdn}:${casPort}"
-                        "cas"
-                        timeoutS
+                      r.grpc "main" "grpc://${h.fqdn}:${casPort}" "cas" timeoutS
                   , weight = h.casWeight
                   }
               )
@@ -239,20 +215,11 @@ let schedulerConfig =
           , name = "AC_MAIN_STORE"
           , backend = r.cacheMetrics "ac-main" acShardRing
           }
-        , -- The bulk-deadline view of the SAME CAS ring, for whole-layer
-          -- blob transfers (see casBulkRpcTimeoutS above). Same members,
-          -- same weights, same bytes — only the per-RPC deadline differs.
-          schema.Store::{
+        , schema.Store::{
           , name = "CAS_MAIN_STORE_BULK"
           , backend = casShardRingBulk
           }
-        , -- OCI registry digest-alias index (PROD-3): string-keyed
-          -- `oci-digest:sha256:<hex>` -> canonical-identity records, behind
-          -- completeness_checking against the CAS ring so an alias whose
-          -- blob was evicted 404s instead of advertising it. Records are
-          -- content-derived and rebuildable by re-pushing images, so a
-          -- local filesystem store (no R2 tier) is acceptable durability.
-          schema.Store::{
+        , schema.Store::{
           , name = "OCI_INDEX_STORE"
           , backend =
               r.completeness
@@ -263,10 +230,7 @@ let schedulerConfig =
                 )
                 "CAS_MAIN_STORE"
           }
-        , -- OCI registry tag refs: MUTABLE string-keyed records. Plain
-          -- filesystem — never existence_cache (drops overwrites), never
-          -- verify/size_partitioning (string keys).
-          schema.Store::{
+        , schema.Store::{
           , name = "OCI_REF_STORE"
           , backend =
               r.filesystem
@@ -306,7 +270,8 @@ let schedulerConfig =
                   -- FindMissingBlobs over tens of thousands of digests for
                   -- the ghc/lean/python cells) exceed the 60s hot-path
                   -- ring deadline.
-                  cas_store = Some "CAS_MAIN_STORE_BULK"
+                  cas_store = Some
+                    "CAS_MAIN_STORE_BULK"
                 , -- dedup_check=false: the import's has_many falls through
                   -- fast_slow to the SLOW tier for every fast-tier miss —
                   -- an R2 existence probe per digest, tens of thousands
@@ -364,23 +329,8 @@ let workerConfig =
       \(h : HostDef.Type) ->
         schema.Config::{
         , stores =
-          [ schema.Store::{
-            , name = "REMOTE_CAS"
-            -- The worker reads through its own view of the SHARD RING (dialing
-            -- owner nodes' :50052 directly), NOT its own node's CAS. With the
-            -- write-back CAS_LOCAL, a fresh buck2 upload lives on the ring
-            -- owner's NVMe synchronously while the shared-R2 copy is still in
-            -- flight — an own-node read misses both tiers ("Missing CAS inputs
-            -- during prepare_action", FAILED_PRECONDITION) until R2 lands. The
-            -- ring view makes worker reads owner-NVMe-consistent; R2 stays the
-            -- durability floor, not a read dependency.
-            , backend = casShardRing
-            }
-          , schema.Store::{
-            , name = "REMOTE_AC"
-            -- Same consistency argument for action results.
-            , backend = acShardRing
-            }
+          [ schema.Store::{ name = "REMOTE_CAS", backend = casShardRing }
+          , schema.Store::{ name = "REMOTE_AC", backend = acShardRing }
           , schema.Store::{
             , name = "WORKER_FAST_SLOW_STORE"
             , backend =

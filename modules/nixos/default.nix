@@ -121,8 +121,7 @@
   # (`hyper-modern-nixos.nativelink.nixCache.enable = lib.mkForce false`), e.g.
   # a disk-constrained box or the test-vm. Rollout is per-host: this codifies the
   # default; each host adopts it on its next rebuild.
-  age.secrets.nativelink-nix-cache-key.file =
-    ../../secrets/agenix/machines/nativelink-nix-cache-key.age;
+  age.secrets.nativelink-nix-cache-key.file = ../../secrets/agenix/machines/nativelink-nix-cache-key.age;
 
   hyper-modern-nixos.nativelink.nixCache = {
     enable = lib.mkDefault true;

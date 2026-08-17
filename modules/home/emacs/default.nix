@@ -160,10 +160,14 @@ in
     # The links themselves: ~/.emacs.d/{init,early-init,hypermodern-palette}.el
     # → the working tree.
     home.file = lib.mkIf cfg.repoConfig {
-      ".emacs.d/init.el".source = config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/emacs/init.el";
-      ".emacs.d/early-init.el".source = config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/emacs/early-init.el";
-      ".emacs.d/hypermodern-palette.el".source = config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/emacs/hypermodern-palette.el";
-      ".emacs.d/hypermodern-modeline.el".source = config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/emacs/hypermodern-modeline.el";
+      ".emacs.d/init.el".source =
+        config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/emacs/init.el";
+      ".emacs.d/early-init.el".source =
+        config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/emacs/early-init.el";
+      ".emacs.d/hypermodern-palette.el".source =
+        config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/emacs/hypermodern-palette.el";
+      ".emacs.d/hypermodern-modeline.el".source =
+        config.lib.file.mkOutOfStoreSymlink "${config.hyper-modern-nixos.dotfiles.path}/emacs/hypermodern-modeline.el";
     };
 
     # Emacs daemon: the socket wintermute's emacsclient adapter lands on

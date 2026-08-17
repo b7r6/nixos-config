@@ -281,9 +281,19 @@ in
           cfg.mode != "computed"
           || (
             if cfg.polarity == "light" then
-              builtins.elem cfg.level [ "tessier" "neoform" "ghost" ]
+              builtins.elem cfg.level [
+                "tessier"
+                "neoform"
+                "ghost"
+              ]
             else
-              builtins.elem cfg.level [ "void" "deep" "night" "carbon" "github" ]
+              builtins.elem cfg.level [
+                "void"
+                "deep"
+                "night"
+                "carbon"
+                "github"
+              ]
           );
         message = ''
           hyper-modern-nixos.themes: level "${cfg.level}" does not belong to the
@@ -299,7 +309,7 @@ in
 
       # Drives the xdg-desktop-portal color-scheme (the live day/night channel
       # GTK/Qt apps actually follow) alongside the palette itself.
-      polarity = cfg.polarity;
+      inherit (cfg) polarity;
 
       # Stylix's per-package theming overlay sets `nixpkgs.overlays` inside the
       # home-manager module. Under nixos-unified's `home-manager.useGlobalPkgs`

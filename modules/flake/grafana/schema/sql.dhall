@@ -61,11 +61,6 @@ let statGauge =
       \(metric : Text) ->
         "SELECT avg(Value) as value FROM ${gauge} WHERE MetricName = '${metric}' AND TimeUnix > now() - INTERVAL 2 MINUTE"
 
--- Raw scraped nativelink_* metrics land in the GAUGE table (the fork's
--- /metrics renderer emits every value as a gauge, cumulative counters
--- included). gaugeByHost plots a point-in-time gauge per host; rateGaugeByHost
--- differences a cumulative gauge into a per-second rate (runningDifference in a
--- subquery, ORDER BY time outer — same shape as rateBucketed but off `gauge`).
 let gaugeByHost =
       \(metric : Text) ->
         "SELECT toStartOfMinute(TimeUnix) as time, ${host} as node, avg(Value) as value FROM ${gauge} WHERE MetricName = '${metric}' AND ${tf} AND ${hostFilter} GROUP BY time, node ORDER BY time"
@@ -74,10 +69,6 @@ let rateGaugeByHost =
       \(metric : Text) ->
         "SELECT time, node, sum(rate) as value FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, ${host} as node, runningDifference(max(Value)) / 30 as rate FROM ${gauge} WHERE MetricName = '${metric}' AND ${tf} AND ${hostFilter} GROUP BY time, node ORDER BY node, time) WHERE rate >= 0 GROUP BY time, node ORDER BY time"
 
--- Per-worker scheduler metrics embed a per-connection UUID in the metric NAME
--- (workers_workers_<uuid>_run_action_successes …) rather than in a label — the
--- scheduler publishes them all under its own host. Match by LIKE, pull the key
--- out of the name with a regex capture group, then rate it like rateGaugeByHost.
 let rateGaugeByExtract =
       \(likePattern : Text) ->
       \(regex : Text) ->

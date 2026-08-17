@@ -73,13 +73,7 @@ let grpc =
                 obj
                   [ { mapKey = "instance_name", mapValue = str instanceName }
                   , { mapKey = "store_type", mapValue = str storeType }
-                  , -- per-RPC deadline (seconds). 0 = disabled (upstream-compat
-                    -- default); the fleet SETS it — a half-open peer (host up,
-                    -- nativelink wedged/restarting) otherwise queues shard-ring
-                    -- RPCs forever and freezes every CAS call on the frontend
-                    -- (the watchtower wedge). DeadlineExceeded is retryable, so
-                    -- a slow-but-alive peer just retries.
-                    { mapKey = "rpc_timeout_s", mapValue = nat rpcTimeoutS }
+                  , { mapKey = "rpc_timeout_s", mapValue = nat rpcTimeoutS }
                   , { mapKey = "endpoints"
                     , mapValue =
                         arr
@@ -107,30 +101,17 @@ let fastSlowWith =
           [ { mapKey = "fast_slow"
             , mapValue =
                 obj
-                  (     [ { mapKey = "fast", mapValue = wrap fast }
-                        , -- write-through: populate the local fast tier on WRITE
-                          -- (not just on read). With "get" (write-around) uploaded
-                          -- build outputs land in R2 only, so every cache-hit
-                          -- read-back paid a ~100ms R2 round-trip instead of a
-                          -- local NVMe read. "both" (nativelink's default) makes
-                          -- read-back local and fast.
-                          { mapKey = "fast_direction", mapValue = str "both" }
-                        , { mapKey = "slow", mapValue = wrap slow }
-                        ]
-                      # ( if    writeBack
-                          then  [ -- write-back: the update returns once the fast
-                                  -- (NVMe) tier holds the blob; fast->slow (R2) is
-                                  -- copied by a background task, so a slow or
-                                  -- stalled R2 can no longer backpressure/freeze the
-                                  -- client upload. Safe here because shard-ring
-                                  -- reads route to the writing node's NVMe; R2 is
-                                  -- the async durability / eviction backstop.
-                                  { mapKey = "slow_store_write_back"
-                                  , mapValue = bool True
-                                  }
-                                ]
-                          else  [] : List (Map/Entry Text JSON.Type)
-                        )
+                  (   [ { mapKey = "fast", mapValue = wrap fast }
+                      , { mapKey = "fast_direction", mapValue = str "both" }
+                      , { mapKey = "slow", mapValue = wrap slow }
+                      ]
+                    # ( if    writeBack
+                        then  [ { mapKey = "slow_store_write_back"
+                                , mapValue = bool True
+                                }
+                              ]
+                        else  [] : List (Map/Entry Text JSON.Type)
+                      )
                   )
             }
           ]
@@ -331,7 +312,8 @@ let nixCacheSvcJSON =
                 then  [] : List (Map/Entry Text JSON.Type)
                 else  [ { mapKey = "signing_key_files"
                         , mapValue =
-                            arr (List/map Text JSON.Type str x.signing_key_files)
+                            arr
+                              (List/map Text JSON.Type str x.signing_key_files)
                         }
                       ]
               )
@@ -406,9 +388,7 @@ let ociFetchJSON =
         obj
           (   optStrField "cas_store" x.cas_store
             # [ { mapKey = "dedup_check", mapValue = bool x.dedup_check }
-              , { mapKey = "digest_function"
-                , mapValue = str x.digest_function
-                }
+              , { mapKey = "digest_function", mapValue = str x.digest_function }
               , { mapKey = "registries"
                 , mapValue =
                     arr
@@ -467,13 +447,7 @@ let serverToJSON =
         let httpInner
             : List (Map/Entry Text JSON.Type)
             =   [ { mapKey = "socket_address", mapValue = str s.socket_address }
-                , -- HTTP/2 flow control for large CAS ByteStream uploads. The
-                  -- default per-stream window (~64 KiB) drains in a frame or two
-                  -- of a multi-GiB blob; with a slow downstream shard that stalls
-                  -- the stream to a mid-stream reset. Enable adaptive windows and
-                  -- raise the initial stream/connection windows so a toolchain
-                  -- upload lands in one shot.
-                  { mapKey = "advanced_http"
+                , { mapKey = "advanced_http"
                   , mapValue =
                       obj
                         [ { mapKey =

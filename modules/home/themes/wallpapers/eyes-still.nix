@@ -15,14 +15,12 @@
   time ? 2.0,
 }:
 let
-  wintermuteField = pkgs.callPackage "${flake.inputs.straylight-nvidia-sdk}/examples/wintermute-field" {
-    cuda = flake.inputs.straylight-nvidia-sdk.packages.${pkgs.stdenv.hostPlatform.system}.cuda;
-  };
+  wintermuteField =
+    pkgs.callPackage "${flake.inputs.straylight-nvidia-sdk}/examples/wintermute-field"
+      { cuda = flake.inputs.straylight-nvidia-sdk.packages.${pkgs.stdenv.hostPlatform.system}.cuda; };
 in
 pkgs.runCommand "eyes-still-${toString width}x${toString height}"
-  {
-    nativeBuildInputs = [ pkgs.imagemagick ];
-  }
+  { nativeBuildInputs = [ pkgs.imagemagick ]; }
   ''
     ${wintermuteField}/bin/wintermute-field --cpu --scene eyes \
       --size ${toString width}x${toString height} \

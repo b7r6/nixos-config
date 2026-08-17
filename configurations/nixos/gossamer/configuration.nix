@@ -220,9 +220,7 @@ in
   hardware.graphics = {
     enable = true;
 
-    extraPackages = with pkgs; [
-      nvidia-vaapi-driver
-    ];
+    extraPackages = with pkgs; [ nvidia-vaapi-driver ];
   };
 
   # Additional kernel modules for GB10

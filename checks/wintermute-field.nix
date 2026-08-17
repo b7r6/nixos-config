@@ -8,10 +8,7 @@
 # compiles the whole __host__ __device__ field, the wayland protocol glue
 # generates and links. Pixel conformance (--verify) needs a GPU, so it stays
 # a runtime check; the closure existing is what CI can promise.
-{
-  pkgs,
-  inputs,
-}:
+{ pkgs, inputs }:
 let
   # cudatoolkit is unfree; the perSystem pkgs set doesn't allow that, so the
   # check imports its own view of the same nixpkgs.

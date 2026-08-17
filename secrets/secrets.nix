@@ -85,7 +85,6 @@ in
   #   R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY
   "agenix/machines/nativelink-r2-env.age".publicKeys = mkGlobalSecret;
 
-
   # Njalla API token for ACME DNS-01 against s4.gl (internal nginx vhost certs).
   # env file: NJALLA_TOKEN=<token>. Consumed by lego via security.acme
   # credentialsFile; scoped to DNS-record management on s4.gl.

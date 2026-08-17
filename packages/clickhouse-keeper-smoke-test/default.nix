@@ -25,7 +25,7 @@
 
 writers.writePython3Bin "clickhouse-keeper-smoke-test" {
   libraries = with python3Packages; [ kazoo ];
-  
+
   flakeIgnore = [
     "E111"
     "E114"
@@ -33,5 +33,5 @@ writers.writePython3Bin "clickhouse-keeper-smoke-test" {
     "E121"
     "E501"
   ];
-  
+
 } (builtins.readFile ./clickhouse-keeper-smoke-test.py)

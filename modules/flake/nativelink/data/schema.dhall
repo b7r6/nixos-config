@@ -42,10 +42,6 @@ let ExecSvc = { instance_name : Text, cas_store : Text, scheduler : Text }
 
 let CapSvc = { instance_name : Text, scheduler : Text }
 
--- Remote Asset FetchDirectory + the OCI→REAPI toolchain bridge. `fetch_store`
--- backs remote-asset lookups; the optional `oci` block turns FetchDirectory
--- (oci://…) into a projection into CAS. `registries` fully specifies each
--- registry (scheme/TLS/creds); an unmatched host is anonymous HTTPS.
 let OciRegistry =
       { Type =
           { host : Text
@@ -92,11 +88,9 @@ let FetchSvc =
           , fetch_store : Text
           , oci : Optional OciFetch.Type
           }
-      , default = { oci = None OciFetch.Type }
+      , default.oci = None OciFetch.Type
       }
 
--- The straylight fork's Nix binary-cache facade + its raw-fetch caching proxy.
--- Not RE services; carried on their own HTTP servers.
 let UpstreamCache = { url : Text, trusted_public_keys : List Text }
 
 let NixCacheSvc =
@@ -117,9 +111,6 @@ let NixCacheSvc =
         }
       }
 
--- The OCI Distribution registry served from the CAS (PROD-3): blobs stored
--- once under the canonical digest function with a sha256 alias index; tags
--- as mutable string-keyed records. Mounted at /v2 on its server's listener.
 let OciRegistrySvc =
       { Type =
           { instance_name : Text

@@ -24,7 +24,6 @@ let
   # journald logs arrive as JSON in Body (MESSAGE, PRIORITY, _SYSTEMD_UNIT, etc.)
   # LogAttributes is empty; SeverityText/SeverityNumber are not populated.
   # syslog PRIORITY: 0=emerg, 1=alert, 2=crit, 3=err, 4=warn, 5=notice, 6=info, 7=debug
-  unit = "JSONExtractString(Body, '_SYSTEMD_UNIT')";
   msg = "JSONExtractString(Body, 'MESSAGE')";
   pri = "JSONExtractInt(Body, 'PRIORITY')";
   isErr = "JSONExtractInt(Body, 'PRIORITY') <= 3"; # err + crit + alert + emerg
@@ -71,9 +70,7 @@ let
               color.mode = "thresholds";
             }
           else
-            {
-              color.mode = "palette-classic";
-            }
+            { color.mode = "palette-classic"; }
         );
       }
       // fieldConfig;
@@ -240,56 +237,6 @@ let
     };
 
   # gauge panel
-  gauge =
-    {
-      id,
-      title,
-      x ? 0,
-      y ? 0,
-      w ? 6,
-      h ? 6,
-      unit ? "percentunit",
-      sql,
-      min ? 0,
-      max ? 1,
-      thresholds ? null,
-      description ? "",
-    }:
-    {
-      inherit id title description;
-      type = "gauge";
-      gridPos = {
-        inherit
-          x
-          y
-          w
-          h
-          ;
-      };
-      datasource = ds;
-      fieldConfig.defaults = {
-        inherit unit min max;
-        color.mode = if thresholds != null then "thresholds" else "palette-classic";
-      }
-      // (if thresholds != null then { inherit thresholds; } else { });
-      options = {
-        reduceOptions = {
-          calcs = [ "lastNotNull" ];
-          fields = "";
-          values = false;
-        };
-        showThresholdLabels = false;
-        showThresholdMarkers = true;
-      };
-      targets = [
-        {
-          rawSql = sql;
-          format = 2;
-          queryType = "sql";
-          refId = "A";
-        }
-      ];
-    };
 
   # ── common thresholds ─────────────────────────────────────────────────────────
   thresholdPct = {
@@ -362,15 +309,12 @@ let
 
   # ── rate helper (ClickHouse runningDifference for OTel cumulative counters) ──
   # OTel sums are cumulative — we need per-interval deltas
-  rate = metric: "runningDifference(Value)";
 
   # ── host filter clause ────────────────────────────────────────────────────────
   hostFilter = "${host} IN (\$host)";
   hostFilterSingle = "${host} = '\$host'";
 
   # ── unit filter for log queries ───────────────────────────────────────────────
-  unitIs = svc: "${unit} = '${svc}'";
-  unitLike = pat: "${unit} LIKE '${pat}'";
 
   # ── standard template variables ───────────────────────────────────────────────
   hostVarAll = {

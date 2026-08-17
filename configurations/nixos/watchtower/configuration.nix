@@ -113,8 +113,7 @@ in
   # persists through attic being disabled fleet-wide (modules/nixos/default.nix).
   # mkDefault so the attic-node module still owns it verbatim if attic is ever
   # re-enabled (same file, so no conflict either way).
-  age.secrets.atticd-rs256.file =
-    lib.mkDefault ../../../secrets/agenix/machines/atticd-rs256.age;
+  age.secrets.atticd-rs256.file = lib.mkDefault ../../../secrets/agenix/machines/atticd-rs256.age;
 
   hyper-modern-nixos.supabase-native = {
     enable = true;
@@ -317,9 +316,7 @@ in
   };
 
   # install the clickhouse grafana plugin
-  services.grafana.declarativePlugins = [
-    pkgs.grafanaPlugins.grafana-clickhouse-datasource
-  ];
+  services.grafana.declarativePlugins = [ pkgs.grafanaPlugins.grafana-clickhouse-datasource ];
 
   # render dashboards from Dhall → JSON (type-safe, auto-layout)
   environment.etc =
@@ -334,16 +331,12 @@ in
         let
           name = builtins.replaceStrings [ ".dhall" ] [ "" ] file;
         in
-        pkgs.runCommand "grafana-dashboard-${name}.json"
-          {
-            nativeBuildInputs = [ pkgs.dhall-json ];
-          }
-          ''
-            export HOME="$TMPDIR"
-            export XDG_CACHE_HOME="$TMPDIR/dhall-cache"
-            mkdir -p "$XDG_CACHE_HOME"
-            dhall-to-json --file ${grafanaDir}/dashboards/${file} > $out
-          '';
+        pkgs.runCommand "grafana-dashboard-${name}.json" { nativeBuildInputs = [ pkgs.dhall-json ]; } ''
+          export HOME="$TMPDIR"
+          export XDG_CACHE_HOME="$TMPDIR/dhall-cache"
+          mkdir -p "$XDG_CACHE_HOME"
+          dhall-to-json --file ${grafanaDir}/dashboards/${file} > $out
+        '';
     in
     builtins.listToAttrs (
       map (
@@ -389,9 +382,7 @@ in
         "127.0.0.1:3200" # forgejo
       ];
 
-      logPaths = [
-        "/var/log/pgbackrest/supabase-*.log"
-      ];
+      logPaths = [ "/var/log/pgbackrest/supabase-*.log" ];
     };
   };
 

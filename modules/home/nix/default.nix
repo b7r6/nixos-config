@@ -13,9 +13,7 @@ let
     flake.inputs.nativelink-nix.packages.${pkgs.stdenv.hostPlatform.system}.nativelink-nix-client;
 in
 {
-  imports = [
-    flake.inputs.nix-index-database.homeModules.nix-index
-  ];
+  imports = [ flake.inputs.nix-index-database.homeModules.nix-index ];
 
   options.hyper-modern-nixos.nix = {
     enable = lib.mkEnableOption "Nix development tools and integration";
@@ -91,18 +89,19 @@ in
     # nl-nix on PATH — the cache client for the substituter configured above.
     # `nl-nix flake .` builds a flake and pushes its closures; NL_NIX_CACHE
     # defaults it at the local cache so no --to is needed interactively.
-    home.packages =
-      [ nlClient ]
-      ++ lib.optionals cfg.development.enable (
-        with pkgs;
-        [
-          nixd
-          nixfmt
-          manix
-          statix
-          treefmt
-        ]
-      );
+    home.packages = [
+      nlClient
+    ]
+    ++ lib.optionals cfg.development.enable (
+      with pkgs;
+      [
+        nixd
+        nixfmt
+        manix
+        statix
+        treefmt
+      ]
+    );
 
     home.sessionVariables.NL_NIX_CACHE = "http://127.0.0.1:50071/nix/main";
 

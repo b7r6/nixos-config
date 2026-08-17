@@ -29,21 +29,52 @@
   wintermute ? null,
 }:
 let
-  lib = pkgs.lib;
+  inherit (pkgs) lib;
   themeLib = import ../modules/flake/themes/lib.nix { inherit lib; };
   generator = pkgs.callPackage ../modules/flake/themes/packages/ono-sendai-generator { };
 
   hues = [
-    { h = 211; a = 201; }
-    { h = 36; a = 26; }
-    { h = 0; a = 350; }
-    { h = 120; a = 110; }
-    { h = 262; a = 252; }
-    { h = 300; a = 290; }
+    {
+      h = 211;
+      a = 201;
+    }
+    {
+      h = 36;
+      a = 26;
+    }
+    {
+      h = 0;
+      a = 350;
+    }
+    {
+      h = 120;
+      a = 110;
+    }
+    {
+      h = 262;
+      a = 252;
+    }
+    {
+      h = 300;
+      a = 290;
+    }
   ];
-  darkLevels = [ "void" "deep" "night" "carbon" "github" ];
-  whiteLevels = [ "tessier" "neoform" "ghost" ];
-  ramps = [ 211 36 ];
+  darkLevels = [
+    "void"
+    "deep"
+    "night"
+    "carbon"
+    "github"
+  ];
+  whiteLevels = [
+    "tessier"
+    "neoform"
+    "ghost"
+  ];
+  ramps = [
+    211
+    36
+  ];
 
   darkVectors = lib.concatMap (
     hu:
