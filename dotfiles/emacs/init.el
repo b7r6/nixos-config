@@ -185,6 +185,8 @@
 (declare-function consult-fd "consult" ())
 ;; dashboard (installed package)
 (declare-function dashboard-open "dashboard" ())
+(declare-function dashboard-refresh-buffer "dashboard" ())
+(defvar dashboard-buffer-name)
 ;; xref (built-in)
 (declare-function xref-goto-xref "xref" (&optional _))
 ;; nerd-icons-completion (installed package)
@@ -3501,7 +3503,16 @@ no way human."))
         dashboard-set-heading-icons t
         dashboard-set-file-icons t
         dashboard-items '((recents . 5)))
-  (dashboard-setup-startup-hook))
+  (dashboard-setup-startup-hook)
+  ;; dashboard-setup-startup-hook only wins the STANDALONE startup buffer
+  ;; (that's why `emacs -nw` shows it but `emacsclient -c/-nw` drops to
+  ;; *scratch* — the daemon inited frameless, the client frame came later).
+  ;; initial-buffer-choice is the daemon-aware hook: every client frame with
+  ;; no file arg opens the freshly-rendered dashboard, matching standalone.
+  (setq initial-buffer-choice
+        (lambda ()
+          (dashboard-refresh-buffer)
+          (get-buffer dashboard-buffer-name))))
 
 ;; ───────────────────────────────────────────────────────────────────
 ;;                            // the long tail // purcell-class kit //
