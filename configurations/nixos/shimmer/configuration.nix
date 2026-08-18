@@ -132,6 +132,29 @@ in
 
   networking.hostName = "shimmer";
 
+  # ── keep the screens lit ────────────────────────────────────────────────────
+  # The trtllm-dsv4 benchmark harness on gossamer stops display-manager over
+  # ssh to free the GB10 during paired runs. The panels stay lit regardless:
+  # this timer restarts the display manager within ~30s of anything stopping
+  # it. NOTE this puts the compositor + CUDA wallpaper back on the GPU during
+  # benchmark runs; for a clean run, pause it first:
+  #   sudo systemctl stop keep-dm-lit.timer   (re-enable with start)
+  systemd.services.keep-dm-lit = {
+    description = "keep-dm-lit — restart display-manager if stopped";
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.systemd}/bin/systemctl start display-manager.service";
+    };
+  };
+  systemd.timers.keep-dm-lit = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnBootSec = "1min";
+      OnUnitActiveSec = "30s";
+      AccuracySec = "5s";
+    };
+  };
+
   time.timeZone = "America/Puerto_Rico";
 
   # Enable DGX Spark hardware support (custom NVIDIA kernel, watchdog, etc.)
