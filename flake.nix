@@ -25,6 +25,12 @@
     agenix-shell.url = "github:aciceri/agenix-shell";
     agenix-shell.inputs.nixpkgs.follows = "nixpkgs";
 
+    # ORBITAL // FORGE: the native Haskell read boundary in the web monorepo.
+    # Watchtower runs its Forgejo adapter beside the upstream and nginx exposes
+    # only the stable /orbital-forge/api/ path over the tailnet.
+    orbital-forge.url = "git+https://git.s4.gl/straylight/www.git?dir=projects/orbital-forge";
+    orbital-forge.inputs.nixpkgs.follows = "nixpkgs";
+
     # continuity: the verified Lean4 monorepo — pulled for the wintermute
     # theme reconciler (src/apps/wintermute). Deliberately does NOT follow
     # our nixpkgs: continuity pins its own lean4-nix toolchain and its

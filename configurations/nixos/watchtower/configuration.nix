@@ -11,6 +11,7 @@ in
   imports = [
     ./hardware-configuration.nix
     inputs.agenix.nixosModules.default
+    inputs.orbital-forge.nixosModules.default
   ];
 
   # ── Incremental rollout ─────────────────────────────────────────────────────
@@ -196,6 +197,15 @@ in
   # forgejo must wait for supabase-db-ensure-dbs to create its database + role
   systemd.services.forgejo.after = [ "supabase-db-ensure-dbs.service" ];
   systemd.services.forgejo.requires = [ "supabase-db-ensure-dbs.service" ];
+
+  # ORBITAL // FORGE's stable HTTP contract. Forgejo is only the first provider
+  # adapter; the browser never depends on the upstream service directly.
+  services.orbital-forge-backend = {
+    enable = true;
+    port = 3210;
+    upstreamBaseUrl = "http://127.0.0.1:3200/api/v1";
+    organization = "straylight";
+  };
 
   # ── PG17 daily logical dump (restic picks it up) ──────────────────────────────
 
@@ -720,6 +730,18 @@ in
       "~^http://(?:localhost|127\\.0\\.0\\.1)(?::[0-9]+)?$" $http_origin;
     }
   '';
+
+  # Keep the service on loopback and publish it beneath the existing internal
+  # Forgejo TLS name. A trailing proxyPass slash strips /orbital-forge/ so Warp
+  # receives its native /api/forge/v1 and /healthz routes.
+  services.nginx.virtualHosts."git.sju1.s4.gl".locations."/orbital-forge/" = {
+    proxyPass = "http://127.0.0.1:3210/";
+    proxyWebsockets = false;
+    extraConfig = ''
+      proxy_buffering off;
+      proxy_request_buffering off;
+    '';
+  };
 
   hardware.graphics = {
     enable = true;

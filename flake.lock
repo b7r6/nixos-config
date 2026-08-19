@@ -2272,6 +2272,28 @@
         "type": "github"
       }
     },
+    "orbital-forge": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "dir": "projects/orbital-forge",
+        "lastModified": 1787125442,
+        "narHash": "sha256-fd9zKrHopicHedwf3eOsjt/ReYgh+1FyJhK855vA8aM=",
+        "ref": "refs/heads/main",
+        "rev": "84cbf5923e35a3efbaf3b4abede4b7252ab6b3f0",
+        "revCount": 487,
+        "type": "git",
+        "url": "https://git.s4.gl/straylight/www.git"
+      },
+      "original": {
+        "dir": "projects/orbital-forge",
+        "type": "git",
+        "url": "https://git.s4.gl/straylight/www.git"
+      }
+    },
     "rayfish": {
       "inputs": {
         "crane": "crane_4",
@@ -2323,6 +2345,7 @@
         "nixpkgs-jetson": "nixpkgs-jetson",
         "nvf": "nvf",
         "opencode": "opencode",
+        "orbital-forge": "orbital-forge",
         "rayfish": "rayfish",
         "straylight-nvidia-sdk": "straylight-nvidia-sdk",
         "stylix": "stylix",
