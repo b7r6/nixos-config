@@ -685,7 +685,22 @@ in
 
     services.studio.port = 8000; # → Kong → Studio/auth/rest/realtime/storage
     services.attic.port = 8080; # → atticd (the monolithic backend)
-    services.git.port = 3200; # → forgejo
+    services.git = {
+      port = 3200; # → forgejo
+      # Orbital Forge is static on Vercel but reads this tailnet-only API from
+      # the operator's browser. Keep the seam public-data-only: exact frontend
+      # origins, GET/OPTIONS, and no credentialed cross-origin requests.
+      extraProxyConfig = ''
+        if ($request_method = OPTIONS) {
+          return 204;
+        }
+        add_header Access-Control-Allow-Origin $orbital_forge_origin always;
+        add_header Access-Control-Allow-Methods "GET, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Content-Type" always;
+        add_header Access-Control-Allow-Private-Network "true" always;
+        add_header Vary "Origin, Access-Control-Request-Private-Network" always;
+      '';
+    };
 
     services.auth = {
       # → kanidm (HTTPS loopback)
@@ -696,6 +711,15 @@ in
     services.ch.port = 8123; # → clickhouse play UI / HTTP API
     services.grafana.port = 3300; # → grafana
   };
+
+  services.nginx.appendHttpConfig = lib.mkAfter ''
+    map $http_origin $orbital_forge_origin {
+      default "";
+      "~^https://orbital-forge(?:-[a-z0-9]+)*\\.vercel\\.app$" $http_origin;
+      "https://forge.orbital.foo" $http_origin;
+      "~^http://(?:localhost|127\\.0\\.0\\.1)(?::[0-9]+)?$" $http_origin;
+    }
+  '';
 
   hardware.graphics = {
     enable = true;
