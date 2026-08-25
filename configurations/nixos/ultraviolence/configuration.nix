@@ -25,6 +25,10 @@ in
     # us-mia-* nodes; if Mullvad retires -001, switch to another at runtime
     # (`tailscale set --exit-node=<node>`) or update here.
     # exitNode = "us-mia-wg-001.mullvad.ts.net";
+
+    # Rotate through a random Mullvad exit node every minute instead of the
+    # static pin above (see exitNodeRotation option in modules/nixos/network.nix).
+    exitNodeRotation.enable = true;
   };
 
   # NOTE: the system rclone mount (/mnt/r2/common + /mnt/r2/ultraviolence) and

@@ -45,6 +45,7 @@ in
 
   # TODO[b7r6]: we should use the proper `agenix` path discovery...
   hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
+  hyper-modern-nixos.network.tailscale.exitNodeRotation.enable = true;
 
   # watchtower hosts the shared postgres (and atticd). The firewall is now ON
   # fleet-wide by default (so the postgres module's interface-scoped 5432 rule on

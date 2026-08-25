@@ -90,6 +90,37 @@ in
         '';
       };
 
+      exitNodeRotation = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = ''
+            Rotate this host through a RANDOM Mullvad exit node on a timer
+            (tailscale-exit-rotate.timer). Picks uniformly from all online
+            Mullvad exit nodes using the kernel CSPRNG (/dev/urandom), never
+            re-selecting the current node, always with
+            --exit-node-allow-lan-access so the LAN/tailnet stays reachable.
+
+            Hosts NOT enrolled in the Mullvad add-on (admin console, per-device)
+            see an empty pool and no-op cleanly — so this is safe to enable
+            fleet-wide before every device is enrolled.
+
+            Don't combine with a pinned `exitNode` — rotation would clobber the
+            pin within one interval anyway. Rotation events are structured log
+            lines (`exit-rotate: node=… cc=… city=… pool=…`) that reach
+            ClickHouse via the journald→otel pipeline; the "Exit Rotation"
+            Grafana dashboard is built on them.
+          '';
+        };
+
+        interval = mkOption {
+          type = types.str;
+          default = "*-*-* *:*:00";
+          example = "*:0/5";
+          description = "systemd OnCalendar spec for the rotation cadence (default: every minute).";
+        };
+      };
+
       advertiseConnector = mkOption {
         type = types.bool;
         default = false;
@@ -291,6 +322,53 @@ in
             --exit-node=${ts.exitNode} --exit-node-allow-lan-access \
             || echo "warning: failed to set exit-node ${ts.exitNode}" >&2
         '';
+      };
+
+      # Exit-node ROTATION: hop to a random Mullvad exit node on a timer.
+      # Randomness comes from the kernel CSPRNG (shuf --random-source=
+      # /dev/urandom); the current node is excluded so every tick is a real
+      # hop. An empty pool (host not enrolled in the Mullvad add-on) exits 0
+      # with a pool=0 log line rather than failing — the timer keeps ticking
+      # and picks up enrollment automatically. The structured `exit-rotate:`
+      # line is the dashboard's data source (journald → otel → ClickHouse).
+      systemd.services.tailscale-exit-rotate = mkIf ts.exitNodeRotation.enable {
+        description = "rotate the Tailscale exit node to a random Mullvad node";
+        after = [
+          "tailscaled.service"
+          "network-online.target"
+        ];
+        requires = [ "tailscaled.service" ];
+        serviceConfig.Type = "oneshot";
+        path = [
+          config.services.tailscale.package
+          pkgs.jq
+        ];
+        script = ''
+          current="$(tailscale status --json | jq -r '.Peer[] | select(.ExitNode==true) | .DNSName' || true)"
+          nodes="$(tailscale status --json \
+            | jq -r '.Peer[] | select(.ExitNodeOption==true and .Online==true) | .DNSName' \
+            | grep -vxF "''${current:-__none__}" || true)"
+          if [ -z "$nodes" ]; then
+            echo "exit-rotate: pool=0 (no mullvad exit nodes visible; not enrolled in the add-on?)"
+            exit 0
+          fi
+          pick="$(printf '%s\n' "$nodes" | shuf --random-source=/dev/urandom -n1)"
+          tailscale set --exit-node="$pick" --exit-node-allow-lan-access
+          node="''${pick%%.*}"
+          cc="''${node%%-*}"
+          city="$(printf '%s' "$node" | cut -d- -f2)"
+          pool="$(printf '%s\n' "$nodes" | wc -l)"
+          echo "exit-rotate: node=''${node} cc=''${cc} city=''${city} pool=''${pool}"
+        '';
+      };
+
+      systemd.timers.tailscale-exit-rotate = mkIf ts.exitNodeRotation.enable {
+        description = "rotate the Tailscale exit node on schedule";
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnCalendar = ts.exitNodeRotation.interval;
+          AccuracySec = "1s";
+        };
       };
 
       # Apply accept-dns via `tailscale set` (NOT just up flags) so it takes on

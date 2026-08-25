@@ -107,6 +107,7 @@ in
 
   age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;
   hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
+  hyper-modern-nixos.network.tailscale.exitNodeRotation.enable = true;
 
   # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
 

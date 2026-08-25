@@ -14,6 +14,7 @@ in
   # remote box off the tailnet (the deploy itself runs over the tailnet).
   age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;
   hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
+  hyper-modern-nixos.network.tailscale.exitNodeRotation.enable = true;
 
   # CoreDNS as this node's own resolver (resolves *.sju1.s4.gl — e.g. the
   # nativelink scheduler/CAS FQDNs — which MagicDNS can't; tailscale stops
