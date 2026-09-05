@@ -527,7 +527,10 @@ in
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
-          ExecStart = "${lib.getExe smokeTest} --host 127.0.0.1 --port ${toString keeper.ports.client}";
+          # --wait: Keeper's unit reports started before the client port
+          # listens, so the boot-time gate needs a grace window (seen on
+          # ultraviolence: connection refused at t+0, imok moments later).
+          ExecStart = "${lib.getExe smokeTest} --host 127.0.0.1 --port ${toString keeper.ports.client} --wait 60";
         };
       };
 

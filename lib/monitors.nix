@@ -22,10 +22,10 @@
 # Adding a host = add one entry here. Nothing else duplicates these strings.
 let
   # ── b7r6-desk: pair of ASUS PG32UCDP 4K OLEDs ────────────────────────────────
-  # The physical desk, described once. Both desk machines drive the same pair
-  # of panels — ultraviolence over DP, shimmer (DGX Spark) over HDMI — and
-  # Hyprland matches monitors by EDID description (make/model/serial), so this
-  # layout applies on whichever host the panels are currently plugged into.
+  # The physical desk, described once. Driven by shimmer (DGX Spark) over
+  # HDMI; ultraviolence has moved to its own single panel (below). Hyprland
+  # matches monitors by EDID description (make/model/serial), so this layout
+  # applies on whichever host the panels are currently plugged into.
   # n.b. the panels do 4K@240 (DSC); 120 is the deliberate choice here.
   # scale 1.0, deliberately: at 32"/137dpi this is "large 1x" territory, and
   # on WOLED (non-standard subpixel layout) fractional-scale downsampling
@@ -69,8 +69,35 @@ in
   # host's layout. The primary workstation is the sane default.
   defaultHost = "ultraviolence";
 
-  # ── ultraviolence: b7r6-desk over DP (currently headless, cables pulled) ─────
-  ultraviolence = b7r6-desk;
+  # ── ultraviolence: single LG UltraGear+ 4K over HDMI ─────────────────────────
+  # 60Hz deliberately: this panel's 4K@144 path is DisplayPort-only, and the
+  # bringup on 2026-09-04 showed the DP link training at 1 lane/RBR against a
+  # 4-lane/HBR3 monitor (bad cable — kernel: "enabling link 1 failed: 15",
+  # weston wedged on ENOMEM atomic commits, black screen). HDMI on the Granite
+  # Ridge iGPU tops out at 4K@60 and is rock solid. To reclaim 144Hz: certified
+  # DP 1.4 (HBR3) cable into DP-1, then bump refreshRate here.
+  ultraviolence = {
+    center = {
+      description = "LG Electronics LG ULTRAGEAR+ 502NTMX7E483";
+      resolution = "3840x2160";
+      refreshRate = 60;
+      position = "0x0";
+      scale = 1.5;
+      workspaces = [
+        1
+        2
+        3
+        4
+        5
+        6
+        7
+        8
+        9
+        10
+      ];
+      primary = true;
+    };
+  };
 
   # ── shimmer (DGX Spark): b7r6-desk over HDMI ─────────────────────────────────
   shimmer = b7r6-desk;
