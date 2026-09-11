@@ -99,6 +99,7 @@ in
           alejandra
           cmake
           fd
+          forgejo-cli
           gh
           git
           git-lfs

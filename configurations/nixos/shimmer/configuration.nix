@@ -107,7 +107,9 @@ in
   hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
   # let the desktop user drive tailscale from the tray (trayscale) without sudo
   hyper-modern-nixos.network.tailscale.operator = "b7r6";
-  hyper-modern-nixos.network.tailscale.exitNodeRotation.enable = true;
+  # off: minutely rotation re-paths every connection 60x/hr — unusable on an
+  # interactive host (2026-09-05)
+  hyper-modern-nixos.network.tailscale.exitNodeRotation.enable = false;
 
   # CoreDNS as this node's own resolver (resolves *.sju1.s4.gl, incl. the
   # nativelink scheduler/CAS FQDNs; tailscale stops managing resolv.conf).

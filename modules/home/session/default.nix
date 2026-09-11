@@ -240,6 +240,14 @@ in
           "github.com" = {
             User = "git";
           };
+          # forgejo (flake inputs resolve here) — only the b7r6 key auths;
+          # pin it so agent ordering / a missing agent can never break
+          # `nix build` again
+          "git.s4.gl" = {
+            User = "git";
+            IdentityFile = "${config.home.homeDirectory}/.ssh/id_ed25519_b7r6";
+            IdentitiesOnly = "yes";
+          };
         }
         // lanBlocks
         // tsBlocks;
