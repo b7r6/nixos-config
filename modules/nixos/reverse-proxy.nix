@@ -56,12 +56,34 @@ in
         description = "Contact email for the ACME account.";
       };
 
-      njallaTokenSecret = mkOption {
+      # DNS-01 provider for lego. TARGET STATE is deSEC ("desec" +
+      # "desec-acme-token") via delegated _acme-challenge CNAMEs, so Njalla
+      # (registrar + authoritative DNS) stays OUT of the renewal critical
+      # path — its API being down cost us the 2026-09 wildcard expiry
+      # (git.s4.gl outage). lego follows the _acme-challenge CNAMEs at
+      # Njalla into the deSEC zone automatically.
+      #
+      # MIGRATION (flip the two defaults below once done):
+      #   1. deSEC account → zone (e.g. s4gl.dedyn.io) → API token
+      #   2. agenix: secrets/agenix/machines/desec-acme-token.age
+      #      containing DESEC_TOKEN=<token>
+      #   3. at Njalla (one-time, static):
+      #        _acme-challenge.s4.gl       CNAME  s4gl.dedyn.io
+      #        _acme-challenge.sju1.s4.gl  CNAME  sju1.s4gl.dedyn.io
+      dnsProvider = mkOption {
+        type = types.str;
+        default = "cloudflare";
+        description = "lego DNS-01 provider name (cloudflare, njalla, desec, ...).";
+      };
+
+      credentialsSecret = mkOption {
         type = types.nullOr types.str;
-        default = "njalla-acme-token";
+        default = "cloudflare-acme-token";
         description = ''
-          agenix machine-secret NAME providing the Njalla API token as an env file
-          (NJALLA_TOKEN=…) for lego's DNS-01. The module self-wires age.secrets.<name>.
+          agenix machine-secret NAME providing the DNS provider's credentials as
+          an env file (CF_DNS_API_TOKEN=… for cloudflare, NJALLA_TOKEN=… for
+          njalla, DESEC_TOKEN=… for desec) for
+          lego's DNS-01. The module self-wires age.secrets.<name>.
           null = wire the ACME credentialsFile yourself.
         '';
       };
@@ -161,28 +183,29 @@ in
   config = lib.mkIf cfg.enable {
     assertions = [
       {
-        assertion = cfg.acme.njallaTokenSecret != null;
+        assertion = cfg.acme.credentialsSecret != null;
         message = ''
-          reverseProxy.enable is true but acme.njallaTokenSecret is null. Internal
-          TLS uses DNS-01 against s4.gl, which needs a Njalla API token (NJALLA_TOKEN)
+          reverseProxy.enable is true but acme.credentialsSecret is null. Internal
+          TLS uses DNS-01 against s4.gl, which needs the DNS provider's API token
           from an agenix env file — never the store. Set it or wire credentialsFile.
         '';
       }
     ];
 
-    # Self-wire the Njalla token secret (root-owned; acme reads it as root).
-    age.secrets = lib.mkIf (cfg.acme.njallaTokenSecret != null) {
-      ${cfg.acme.njallaTokenSecret}.file =
-        flake.self + "/secrets/agenix/machines/${cfg.acme.njallaTokenSecret}.age";
+    # Self-wire the DNS credentials secret (root-owned; acme reads it as root).
+    age.secrets = lib.mkIf (cfg.acme.credentialsSecret != null) {
+      ${cfg.acme.credentialsSecret}.file =
+        flake.self + "/secrets/agenix/machines/${cfg.acme.credentialsSecret}.age";
     };
 
     security.acme = {
       acceptTerms = true;
       defaults = {
         email = cfg.acme.email;
-        dnsProvider = "njalla";
-        # lego reads NJALLA_TOKEN from this env file (agenix runtime path).
-        environmentFile = "/run/agenix/${cfg.acme.njallaTokenSecret}";
+        inherit (cfg.acme) dnsProvider;
+        # lego reads the provider token (DESEC_TOKEN / NJALLA_TOKEN) from this
+        # env file (agenix runtime path).
+        environmentFile = "/run/agenix/${cfg.acme.credentialsSecret}";
         # DNS-01: don't try to reach the names over HTTP.
         dnsResolver = "1.1.1.1:53";
       }

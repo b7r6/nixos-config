@@ -89,6 +89,7 @@ in
   # env file: NJALLA_TOKEN=<token>. Consumed by lego via security.acme
   # credentialsFile; scoped to DNS-record management on s4.gl.
   "agenix/machines/njalla-acme-token.age".publicKeys = mkGlobalSecret;
+  "agenix/machines/cloudflare-acme-token.age".publicKeys = mkGlobalSecret;
 
   # pgBackRest PITR repo creds for the dedicated R2 bucket. env file exporting
   # the S3 secrets as PGBACKREST_* vars so they never enter the nix store:
