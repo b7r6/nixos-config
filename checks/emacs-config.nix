@@ -7,7 +7,7 @@
 # byte-compiler warnings that become runtime errors on the next Emacs upgrade.
 # This check makes that breakage loud at `nix flake check` time.
 #
-# Three gates:
+# Four gates:
 #
 #   1. BATCH LOAD — emacs --batch -l early-init.el -l init.el verifies the
 #      whole config loads without error. Output is captured and scanned for
@@ -19,7 +19,11 @@
 #      that are invisible at load time.
 #
 #   3. FORMAT ROUTING — runtime checks for manual/save formatting in both Rust
-#      modes, server failures, and the non-Rust format-all path.
+#      modes, readiness, stale responses, and the non-Rust format-all path.
+#
+#   4. RUST LSP — real rust-analyzer + offline Cargo workspace: mixed editions,
+#      completion, navigation, compiler diagnostics, build scripts/proc macros,
+#      workspace reload and server restart with unsaved edits and changed direnv.
 #
 # SANDBOX NOTES — the Nix build sandbox has no network and no display.
 # Several measures keep the batch load alive in that environment:
@@ -48,6 +52,13 @@ let
     emacs = pkgs.emacs-unstable-pgtk;
   };
 
+  # rust-analyzer reads the standard library's Cargo graph too. Without these
+  # sources an empty sandbox silently loses built-in macros such as include!,
+  # even though the fixture itself has no registry dependencies.
+  rustStdDeps = pkgs.rustPlatform.importCargoLock {
+    lockFile = "${pkgs.rustPlatform.rustLibSrc}/Cargo.lock";
+  };
+
   # Stub straight.el bootstrap — replaces the real bootstrap.el so init.el
   # never tries url-retrieve-synchronously to GitHub. The real straight.el
   # is not needed because the hypermodern emacs package already bundles every
@@ -62,7 +73,17 @@ let
     (provide 'straight-bootstrap-stub)
   '';
 in
-pkgs.runCommand "emacs-config" { nativeBuildInputs = [ emacsPkg ]; } ''
+pkgs.runCommand "emacs-config" {
+  nativeBuildInputs = [
+    emacsPkg
+    pkgs.rust-analyzer
+    pkgs.rustc
+    pkgs.cargo
+    pkgs.rustfmt
+    pkgs.stdenv.cc
+    pkgs.direnv
+  ];
+} ''
   set -euo pipefail
 
   # ── sandbox setup ───────────────────────────────────────────────────────────
@@ -159,8 +180,7 @@ pkgs.runCommand "emacs-config" { nativeBuildInputs = [ emacsPkg ]; } ''
     fi
   done
 
-  # Exercise behavior that loading/compiling alone cannot establish. No server
-  # is launched here; a real rust-analyzer formatting smoke test is separate.
+  # Exercise behavior that loading/compiling alone cannot establish.
   # Keep the Nix site file: it registers the packaged tree-sitter grammars.
   ${emacsPkg}/bin/emacs \
     --batch \
@@ -169,6 +189,25 @@ pkgs.runCommand "emacs-config" { nativeBuildInputs = [ emacsPkg ]; } ''
     -l ${./emacs-format-tests.el} \
     -f ert-run-tests-batch-and-exit
 
-  echo "emacs config: clean load + zero-warning compile + format routing checks"
+  # Real, offline integration. package-initialize supplies the same autoloads
+  # as GUI startup (batch mode does not run the normal package startup step).
+  export EMACS_TEST_RUST_SRC=${pkgs.rustPlatform.rustLibSrc}
+  export CARGO_HOME="$TMPDIR/cargo"
+  mkdir -p "$CARGO_HOME"
+  cat > "$CARGO_HOME/config.toml" <<EOF
+  [source.crates-io]
+  replace-with = "vendored-sources"
+  [source.vendored-sources]
+  directory = "${rustStdDeps}"
+  EOF
+  ${emacsPkg}/bin/emacs \
+    --batch \
+    --eval '(progn (require (quote package)) (package-initialize))' \
+    -l early-init.el \
+    -l init.el \
+    -l ${./emacs-rust-integration-tests.el} \
+    -f ert-run-tests-batch-and-exit
+
+  echo "emacs config: clean load + zero-warning compile + routing + real Rust LSP workflows"
   touch $out
 ''
