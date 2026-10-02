@@ -7,7 +7,7 @@
 # byte-compiler warnings that become runtime errors on the next Emacs upgrade.
 # This check makes that breakage loud at `nix flake check` time.
 #
-# Two gates:
+# Three gates:
 #
 #   1. BATCH LOAD — emacs --batch -l early-init.el -l init.el verifies the
 #      whole config loads without error. Output is captured and scanned for
@@ -17,6 +17,9 @@
 #      with -f batch-byte-compile. The compiler surfaces type mismatches,
 #      free variables, obsolete functions, and wrong-number-of-args errors
 #      that are invisible at load time.
+#
+#   3. FORMAT ROUTING — runtime checks for manual/save formatting in both Rust
+#      modes, server failures, and the non-Rust format-all path.
 #
 # SANDBOX NOTES — the Nix build sandbox has no network and no display.
 # Several measures keep the batch load alive in that environment:
@@ -92,15 +95,14 @@ pkgs.runCommand "emacs-config" { nativeBuildInputs = [ emacsPkg ]; } ''
   # Captures both stdout and stderr; any Warning/Error/Cannot line is fatal.
 
   echo "emacs-config: running batch load..."
+  LOAD_STATUS=0
   LOAD_OUT=$(${emacsPkg}/bin/emacs \
     --batch \
     --no-site-file \
     -l early-init.el \
     -l init.el \
     --eval '(message "load ok")' \
-    2>&1) || true   # capture exit code separately below
-
-  LOAD_STATUS=$?
+    2>&1) || LOAD_STATUS=$?
 
   # Allow-list: "Cannot open load file: No such file or directory: dashboard-banner"
   # The banner file write uses with-temp-file which can generate a benign
@@ -135,13 +137,12 @@ pkgs.runCommand "emacs-config" { nativeBuildInputs = [ emacsPkg ]; } ''
   echo "emacs-config: byte-compiling..."
   for f in early-init.el init.el hypermodern-palette.el hypermodern-modeline.el; do
     echo "  compiling $f ..."
+    COMPILE_STATUS=0
     COMPILE_OUT=$(${emacsPkg}/bin/emacs \
       --batch \
       --no-site-file \
       -f batch-byte-compile "$f" \
-      2>&1) || true
-
-    COMPILE_STATUS=$?
+      2>&1) || COMPILE_STATUS=$?
 
     echo "--- $f compile output ---"
     echo "$COMPILE_OUT"
@@ -158,6 +159,16 @@ pkgs.runCommand "emacs-config" { nativeBuildInputs = [ emacsPkg ]; } ''
     fi
   done
 
-  echo "emacs config: clean load + zero-warning compile"
+  # Exercise behavior that loading/compiling alone cannot establish. No server
+  # is launched here; a real rust-analyzer formatting smoke test is separate.
+  # Keep the Nix site file: it registers the packaged tree-sitter grammars.
+  ${emacsPkg}/bin/emacs \
+    --batch \
+    -l early-init.el \
+    -l init.el \
+    -l ${./emacs-format-tests.el} \
+    -f ert-run-tests-batch-and-exit
+
+  echo "emacs config: clean load + zero-warning compile + format routing checks"
   touch $out
 ''

@@ -168,6 +168,8 @@
 (declare-function lsp-register-client "lsp-mode" (client))
 (declare-function make-lsp-client "lsp-mode" (&rest plist))
 (declare-function lsp-stdio-connection "lsp-mode" (command))
+(declare-function lsp-format-buffer "lsp-mode" ())
+(declare-function lsp-feature? "lsp-mode" (feature))
 (declare-function tramp-cleanup-all-connections "tramp" ())
 (declare-function tramp-cleanup-all-buffers "tramp" ())
 (declare-function password-store-dir "password-store" ())
@@ -2707,7 +2709,7 @@ When you've completed the task or need clarification, say so clearly.")
      :backend lsp
      :server rust-analyzer
      :formatter rustfmt
-     :format-all-formatter rustfmt
+     :format-all-formatter nil ; rust-analyzer supplies the crate's edition
      :linter clippy
      :type-checker rust-analyzer)
 
@@ -3064,17 +3066,44 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 ;; ───────────────────────────────────────────────────────────────────
 
 (defun hypermodern/format-buffer ()
-  "Format buffer if in prog-mode and formatter is available."
+  "Format Rust through rust-analyzer; use format-all for other languages."
   (interactive)
 
-  (if (derived-mode-p 'prog-mode 'text-mode)
-      (progn
-        (require 'format-all)
-        (condition-case err
-            (format-all-buffer nil)
-          (error (message "// formatter // unavailable // %s" err))))
+  (cond
+   ((derived-mode-p 'rust-mode 'rust-ts-mode)
+    (hypermodern/rust-format-buffer))
+   ((derived-mode-p 'prog-mode 'text-mode)
+    (require 'format-all)
+    (format-all-buffer nil))
+   (t (user-error "Not in a formattable buffer"))))
 
-    (message "[hypermodern] M-z: not in a formattable buffer")))
+(defun hypermodern/rust-format-buffer ()
+  "Format the current Rust buffer using its crate's edition and environment.
+Bare rustfmt on stdin defaults to edition 2015, ignoring Cargo.toml.
+Rust-analyzer supplies the actual edition, including workspace inheritance."
+  (interactive)
+  (unless (and (bound-and-true-p lsp-mode)
+               (lsp-feature? "textDocument/formatting"))
+    (user-error "Rust formatter is not ready; start/reconnect rust-analyzer with M-x lsp"))
+  (lsp-format-buffer))
+
+(defun hypermodern/rust-format-before-save ()
+  "Try Rust formatting before save, reporting failures without blocking save."
+  (condition-case err
+      (hypermodern/rust-format-buffer)
+    (error (message "[hypermodern] Rust formatting skipped: %s"
+                    (error-message-string err)))))
+
+(defun hypermodern/rust-format-setup ()
+  "Use one Cargo-aware formatting path for both Rust major modes."
+  ;; prog-mode-hook enables format-all before the concrete major-mode hook.
+  ;; Disable that bare-rustfmt save hook locally, leaving other languages alone.
+  (when (bound-and-true-p format-all-mode)
+    (format-all-mode -1))
+  (add-hook 'before-save-hook #'hypermodern/rust-format-before-save nil t))
+
+(add-hook 'rust-mode-hook #'hypermodern/rust-format-setup)
+(add-hook 'rust-ts-mode-hook #'hypermodern/rust-format-setup)
 
 (use-package format-all
   :commands (format-all-buffer format-all-mode)
@@ -3082,7 +3111,7 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
   :hook (prog-mode . format-all-mode)
 
   :config
-  (setq format-all-show-errors 'never)
+  (setq format-all-show-errors 'errors)
 
   ;; format-all-formatters uses LANGUAGE NAMES (strings), not mode names
   ;; The format is: ("Language Name" . (formatter-symbol args...))
@@ -3107,7 +3136,6 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
      ("Protocol Buffer" . (clang-format))
      ("PureScript"      . (purs-tidy))
      ("Python"          . (ruff))
-     ("Rust"            . (rustfmt))
      ("Shell"           . (shfmt "-i" "2"))
      ("TOML"            . (taplo))
      ("TSX"             . (prettier))
