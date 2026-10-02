@@ -1458,16 +1458,16 @@
         "rust-overlay": "rust-overlay_2"
       },
       "locked": {
-        "lastModified": 1790960318,
-        "narHash": "sha256-r8zvQW9wt8m5BP/6Atc5u+BWh08UP8AL8Gj6PDMVfhQ=",
-        "ref": "nix-cache-s3-firefix",
-        "rev": "9d71ed09f6512fbeb63e13c95e9e2b76190f470c",
-        "revCount": 1777,
+        "lastModified": 1790967787,
+        "narHash": "sha256-lr+/7FB5mBt+KELsgvgMrYDq91jq4WgQsVFOJlBFZs0=",
+        "ref": "migrate-1.7.3",
+        "rev": "0ac94135c1185508a78bc761623b44b8bd414605",
+        "revCount": 1856,
         "type": "git",
         "url": "https://git.s4.gl/straylight/straylight-nativelink"
       },
       "original": {
-        "ref": "nix-cache-s3-firefix",
+        "ref": "migrate-1.7.3",
         "type": "git",
         "url": "https://git.s4.gl/straylight/straylight-nativelink"
       }
@@ -2403,11 +2403,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1774321696,
-        "narHash": "sha256-g18xMjMNla/nsF5XyQCNyWmtb2UlZpkY0XE8KinIXAA=",
+        "lastModified": 1787713867,
+        "narHash": "sha256-ZRYTEvDb8QZLCHRoMyIZle9V3Bvw905m0teeo1RvI7M=",
         "owner": "oxalica",
         "repo": "rust-overlay",
-        "rev": "49a67e6894d4cb782842ee6faa466aa90c92812d",
+        "rev": "494680f9ffa2b4bf9f2df0f442c7096e44adfa00",
         "type": "github"
       },
       "original": {

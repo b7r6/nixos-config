@@ -24,6 +24,9 @@
 (declare-function consult-xref "consult")
 (declare-function consult-recent-file "consult")
 (declare-function global-kkp-mode "kkp")
+(declare-function dired-get-filename "dired")
+(declare-function ghostel-compile-global-mode "ghostel-compile" (&optional arg))
+(declare-function ghostel-eshell-visual-command-mode "ghostel-eshell" (&optional arg))
 
 ;; ───────────────────────────────────────────────────────────────────
 ;;                  // terminal keyboard // kitty keyboard protocol
@@ -48,21 +51,6 @@
 ;; and these entries simply never fire.)
 (define-key key-translation-map (kbd "M-S-,") (kbd "M-<"))
 (define-key key-translation-map (kbd "M-S-.") (kbd "M->"))
-
-;; ───────────────────────────────────────────────────────────────────
-;;                            // memory // performance // optimization
-;; ───────────────────────────────────────────────────────────────────
-
-(defvar hypermodern--file-name-handler-alist file-name-handler-alist)
-
-(setq file-name-handler-alist nil
-      gc-cons-threshold most-positive-fixnum)
-
-(add-hook
- 'emacs-startup-hook
- (lambda ()
-   (setq file-name-handler-alist hypermodern--file-name-handler-alist
-         gc-cons-threshold (* 128 1024 1024))))
 
 ;; ───────────────────────────────────────────────────────────────────
 ;;             // early frame seeding // prevent PGTK pink flash
@@ -91,14 +79,14 @@
 ;; Portable config: works on NixOS (packages preloaded) and vanilla
 ;; emacs.
 ;;
-;; - On Nix: packages are preloaded, straight.el available for extras
+;; - On Nix: packages come entirely from the Nix closure; no bootstrap
 ;; - On vanilla: straight.el fetches everything
 ;;
 
 ;; Detect if we're running under Nix-managed emacs with packages
 (defvar hypermodern/nix-emacs-p
-  (and (getenv "NIX_PROFILES")
-       (locate-library "vertico"))  ; test for a Nix-provided package
+  (when-let* ((library (locate-library "vertico")))
+    (string-prefix-p "/nix/store/" library))
   "Non-nil if running Nix-managed Emacs with preloaded packages.")
 
 ;; Declare straight.el / use-package vars as special before we assign them.
@@ -110,31 +98,31 @@
 (defvar use-package-verbose)                   ; verbose logging
 (defvar use-package-expand-minimally)          ; minimal macro expansion
 
-;; Bootstrap straight.el (always available for ad-hoc packages)
-;; Suppress warning about package.el - we intentionally use both:
-;; - package.el for Nix-provided packages (autoloads)
-;; - straight.el for additional packages not in Nix
-(setq straight-package--warning-displayed t)
+;; Only vanilla Emacs needs straight. A fresh Nix profile must boot offline
+;; without an existing ~/.emacs.d/straight checkout or login-shell variables.
 (defvar bootstrap-version)
+(declare-function straight-use-package "straight")
 
-(let ((bootstrap-file
-       (expand-file-name "straight/repos/straight.el/bootstrap.el"
-                         (or (getenv "EMACSDIR") user-emacs-directory)))
-      (bootstrap-version 7))
-  (unless (file-exists-p bootstrap-file)
-    (with-current-buffer
-        (url-retrieve-synchronously
-         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
-         'silent 'inhibit-cookies)
-      (goto-char (point-max))
-      (eval-print-last-sexp)))
-  (load bootstrap-file nil 'nomessage))
-
-;; integrate `straight.el` with `use-package`
-(straight-use-package 'use-package)
+(unless hypermodern/nix-emacs-p
+  (setq straight-package--warning-displayed t)
+  (let ((bootstrap-file
+         (expand-file-name "straight/repos/straight.el/bootstrap.el"
+                           (or (getenv "EMACSDIR") user-emacs-directory)))
+        (bootstrap-version 7))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+          (or (url-retrieve-synchronously
+               "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+               'silent 'inhibit-cookies 15)
+              (error "Cannot bootstrap straight.el: download failed"))
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+  (straight-use-package 'use-package))
+(require 'use-package)
 
 ;; Configure use-package + straight.el behavior
-;; - On Nix: packages preloaded, straight available but won't auto-fetch
+;; - On Nix: packages preloaded, no fetching
 ;; - On vanilla: straight fetches packages automatically
 
 (if hypermodern/nix-emacs-p
@@ -1282,14 +1270,76 @@ the source of the fringe drift when hero/axis/level retune."
       ;; pty chunks leaves a half-painted frame visible (linewise tearing,
       ;; worst in tty emacs over ssh); skip fontification while input pends
       redisplay-skip-fontification-on-input t
-      auto-save-default nil
-      make-backup-files nil
-      create-lockfiles nil
-      backup-by-copying t
       require-final-newline t
       indent-tabs-mode nil
       cursor-in-non-selected-windows nil
       resize-mini-windows 'grow-only)
+
+;; Recovery copies never overwrite the visited file. Each process owns its
+;; autosaves, so independent GUI/daemon sessions cannot clobber one another's
+;; unsaved versions. M-x recover-session uses Emacs' session ledger to find them.
+;; Hashing also handles paths too long for a filesystem's filename limit.
+(defvar hypermodern/auto-save-directory
+  (let ((root (expand-file-name "auto-save/" user-emacs-directory)))
+    (make-directory root t)
+    (file-name-as-directory (make-temp-file (concat root "session-") t)))
+  "Directory for this process's recovery copies; retained after a crash.")
+
+(let ((backups (expand-file-name "backups/" user-emacs-directory)))
+  (make-directory backups t)
+  (setq backup-directory-alist `(("." . ,backups))))
+(setq auto-save-default t
+      auto-save-timeout 20
+      auto-save-interval 200
+      auto-save-file-name-transforms `((".*" ,hypermodern/auto-save-directory sha256))
+      make-backup-files t
+      vc-make-backup-files t
+      backup-by-copying t
+      version-control t
+      kept-new-versions 6
+      kept-old-versions 2
+      delete-old-versions t
+      create-lockfiles t)
+
+;; Emacs' recover-session-finish reads the ledger but then calls recover-file
+;; with only the original filename. recover-file recomputes the autosave name
+;; using the NEW process's directory, losing the selected session's copy.
+(defvar hypermodern/recovery-files nil
+  "Original/copy pairs dynamically bound while recovering a selected session.")
+
+(defun hypermodern/recover-session-files (original &rest args)
+  "Pass the selected session's exact recovery filenames through ORIGINAL."
+  (let* ((ledger (dired-get-filename))
+         (hypermodern/recovery-files
+          (with-temp-buffer
+            (insert-file-contents ledger)
+            (let ((lines (split-string (buffer-string) "\n")) pairs)
+              (while (cdr lines)
+                (let ((file (pop lines)) (copy (pop lines)))
+                  (unless (string-empty-p file)
+                    (push (cons (expand-file-name file) copy) pairs))))
+              pairs))))
+    (apply original args)))
+
+(defun hypermodern/recover-selected-copy (original file)
+  "Recover FILE from the selected ledger, then resume this process's autosaves."
+  (let* ((file (expand-file-name file))
+         (copy (cdr (assoc file hypermodern/recovery-files)))
+         (namer (symbol-function 'make-auto-save-file-name)))
+    (if (not copy)
+        (funcall original file)
+      (unwind-protect
+          (cl-letf (((symbol-function 'make-auto-save-file-name)
+                     (lambda ()
+                       (if (equal buffer-file-name file) copy (funcall namer)))))
+            (funcall original file))
+        ;; Never rename/delete the old session's copy or keep writing into it.
+        (when-let* ((buffer (get-file-buffer file)))
+          (with-current-buffer buffer
+            (when buffer-auto-save-file-name (auto-save-mode 1))))))))
+
+(advice-add 'recover-session-finish :around #'hypermodern/recover-session-files)
+(advice-add 'recover-file :around #'hypermodern/recover-selected-copy)
 
 (setq-default
  indent-tabs-mode nil
@@ -3438,9 +3488,12 @@ Manual formatting still reports the original error. Never hide failures."
 
 ;; Run compile/eshell-visual commands through ghostel's VT engine too.
 (use-package ghostel-compile
-  :after ghostel
-  :hook (after-init . ghostel-compile-global-mode)
+  :demand t
   :config
+  ;; An :after ghostel + after-init hook registers too late when the first
+  ;; terminal is opened after startup. Install the compile advice now; the
+  ;; native terminal module itself is loaded on first use.
+  (ghostel-compile-global-mode 1)
   ;; Compile: land on the REAL file, every time -- no `cd` prefix needed.
   ;;
   ;; Build tools print error paths relative to the *workspace root*, not to
@@ -3512,8 +3565,9 @@ to a containing directory wins, so a build-system root (`.buckconfig',
   (advice-add 'compilation-find-file :around #'hypermodern/compile--truename))
 
 (use-package ghostel-eshell
-  :after (ghostel eshell)
-  :hook (eshell-load . ghostel-eshell-visual-command-mode))
+  :after eshell
+  :demand t
+  :config (ghostel-eshell-visual-command-mode 1))
 
 ;; Fallback terminals (no longer bound to launcher keys).
 (use-package vterm
@@ -3688,7 +3742,10 @@ to a containing directory wins, so a build-system root (`.buckconfig',
 ;;                                         // comint // asni // colors
 ;; ───────────────────────────────────────────────────────────────────
 
-(add-hook 'comint-preoutput-filter-functions 'ansi-color-process-output)
+;; This function edits the region just inserted by Comint. Preoutput filters
+;; instead take and return a string: putting it there drops output or signals.
+(remove-hook 'comint-preoutput-filter-functions #'ansi-color-process-output)
+(add-hook 'comint-output-filter-functions #'ansi-color-process-output)
 
 ;; Or more broadly, for compilation buffers too:
 (require 'ansi-color)
