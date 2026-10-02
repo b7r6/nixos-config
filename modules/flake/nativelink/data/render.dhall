@@ -345,7 +345,7 @@ let casWitnessSvcJSON =
             }
           ]
 
-let Opt/fold = https://prelude.dhall-lang.org/v23.0.0/Optional/fold.dhall
+let Opt/fold = https://raw.githubusercontent.com/dhall-lang/dhall-lang/v23.0.0/Prelude/Optional/fold.dhall ? https://prelude.dhall-lang.org/v23.0.0/Optional/fold.dhall
 
 let optStrField =
       \(k : Text) ->
