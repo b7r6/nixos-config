@@ -37,7 +37,10 @@
   "Pixel height of the svg modeline tags (driven by the ui density).")
 
 (defvar hypermodern/modeline--cache (make-hash-table :test 'equal)
-  "Rendered segment cache; cleared on every theme change.")
+  "Bounded rendered segment cache; also cleared on every theme change.")
+
+(defconst hypermodern/modeline-cache-limit 256
+  "Maximum number of retained SVG tags, including changing cursor positions.")
 
 (defun hypermodern/modeline--facility-p ()
   "Non-nil when the live register sits at the facility side."
@@ -70,7 +73,8 @@ Falls back to propertized text on non-graphic frames."
                ('ghost (hypermodern/modeline--pget palette :base03 "#3d4752"))
                (_ (hypermodern/modeline--pget palette :base05 "#c1cedc"))))
          (accent (hypermodern/modeline--pget palette :base0A "#52a5ff"))
-         (key (list text kind fg bg facility hypermodern/modeline-height)))
+         (key (list text kind fg bg accent facility hypermodern/modeline-height
+                    (frame-char-width))))
     (if (not (and (featurep 'svg) (display-graphic-p)))
         (propertize (format " %s " text) 'face (list :foreground fg :background bg))
       (or (gethash key hypermodern/modeline--cache)
@@ -93,6 +97,12 @@ Falls back to propertized text on non-graphic frames."
                 (svg-line image w 0 (- w a) 0 :stroke s) (svg-line image w 0 w a :stroke s)
                 (svg-line image 0 h a h :stroke s) (svg-line image 0 h 0 (- h a) :stroke s)
                 (svg-line image w h (- w a) h :stroke s) (svg-line image w h w (- h a) :stroke s)))
+            ;; Cursor positions and buffer names have unbounded cardinality.
+            ;; Retain a small working set rather than every position visited
+            ;; during a days-long session. Common tags are rebuilt on demand.
+            (when (>= (hash-table-count hypermodern/modeline--cache)
+                      hypermodern/modeline-cache-limit)
+              (clrhash hypermodern/modeline--cache))
             (puthash key
                      (propertize (format " %s " text)
                                  'display (svg-image image :ascent 'center))

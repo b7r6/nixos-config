@@ -1,13 +1,14 @@
 ;;; early-init.el --- hypermodern visuals bootstrap -*- lexical-binding: t; -*-
 
-;; Fast, clean startup (esp. pgtk)
-(setq gc-cons-threshold most-positive-fixnum
-      gc-cons-percentage 0.6
+;; Keep collection bounded even if init fails or this file is reloaded after
+;; startup. File-name handlers remain installed throughout initialization.
+(setq gc-cons-threshold (* 256 1024 1024)
+      gc-cons-percentage 0.1
       frame-inhibit-implied-resize t
       inhibit-compacting-font-caches t)
 
 ;; Enable package.el for Nix-provided packages (autoloads)
-;; straight.el handles additional packages
+;; Vanilla Emacs bootstraps straight.el in init.el.
 (setq package-enable-at-startup t)
 
 (menu-bar-mode -1)
@@ -17,11 +18,6 @@
 (setq inhibit-startup-screen t
       inhibit-startup-message t
       initial-scratch-message "")
-
-(add-hook 'emacs-startup-hook
-          (lambda ()
-            (setq gc-cons-threshold (* 256 1024 1024)
-                  gc-cons-percentage 0.1)))
 
 (provide 'early-init)
 ;;; early-init.el ends here

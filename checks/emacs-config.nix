@@ -7,7 +7,7 @@
 # byte-compiler warnings that become runtime errors on the next Emacs upgrade.
 # This check makes that breakage loud at `nix flake check` time.
 #
-# Six gates:
+# Seven gates:
 #
 #   1. BATCH LOAD — emacs --batch -l early-init.el -l init.el verifies the
 #      whole config loads without error. Output is captured and scanned for
@@ -31,25 +31,12 @@
 #   6. LANGUAGE SERVERS — actual offline workspaces for the other server families,
 #      diagnostics and repair, completion/navigation, project environment isolation.
 #
-# SANDBOX NOTES — the Nix build sandbox has no network and no display.
-# Several measures keep the batch load alive in that environment:
+#   7. EDITOR LIFECYCLE — fresh offline startup without bootstrap stubs, crash
+#      recovery, concurrent sessions, Comint output, real terminal compilation,
+#      and bounded modeline retention.
 #
-#   a) straight.el bootstrap stub: init.el unconditionally tries to load
-#      $EMACSDIR/straight/repos/straight.el/bootstrap.el and will fetch it
-#      from GitHub if missing. We pre-create a no-op stub that just provides
-#      `straight-use-package` (a no-op when packages are already in the load
-#      path). ALLOW: the stub emits nothing; no allow-listing needed here.
-#
-#   b) NIX_PROFILES is set to a non-empty value so hypermodern/nix-emacs-p
-#      resolves to t, which prevents straight from trying to auto-install
-#      packages it can't reach. ALLOW: benign, changes no load-time output.
-#
-#   c) HOME is set to $TMPDIR so recentf, custom.el, and other files that
-#      init.el writes on startup land in the writable build dir rather than
-#      trying to write to a read-only store path.
-#
-#   d) DISPLAY is not set; --batch suppresses all frame-creation code.
-#      tool-bar-mode / scroll-bar-mode in early-init.el are no-ops in batch.
+# The Nix sandbox has no network or display. HOME points at the writable build
+# directory; startup must use the actual packaged closure with no straight stub.
 #
 { pkgs }:
 let
@@ -65,19 +52,6 @@ let
     lockFile = "${pkgs.rustPlatform.rustLibSrc}/Cargo.lock";
   };
 
-  # Stub straight.el bootstrap — replaces the real bootstrap.el so init.el
-  # never tries url-retrieve-synchronously to GitHub. The real straight.el
-  # is not needed because the hypermodern emacs package already bundles every
-  # package via emacsWithPackages; straight-use-package is only called with
-  # 'use-package which is already present in the load path.
-  straightStub = pkgs.writeText "straight-bootstrap-stub.el" ''
-    ;;; straight-bootstrap-stub.el --- sandbox no-op for nix check -*- lexical-binding: t; -*-
-    ;; This stub replaces the network-fetched straight.el bootstrap.
-    ;; All packages are pre-installed by emacsWithPackages; straight is not needed.
-    (defun straight-use-package (&rest _args)
-      "No-op stub: packages are pre-installed by Nix.")
-    (provide 'straight-bootstrap-stub)
-  '';
 in
 pkgs.runCommand "emacs-config"
   {
@@ -88,6 +62,7 @@ pkgs.runCommand "emacs-config"
       pkgs.cargo
       pkgs.rustfmt
       pkgs.stdenv.cc
+      pkgs.git
       pkgs.direnv
       pkgs.nixd
       pkgs.nixfmt
@@ -125,20 +100,13 @@ pkgs.runCommand "emacs-config"
     # HOME must be writable (recentf, custom.el, eln-cache, dashboard banner).
     export HOME="$TMPDIR"
 
-    # Tell init.el we are a Nix-managed Emacs; prevents straight from trying
-    # to auto-install packages it cannot reach in the sandbox.
-    export NIX_PROFILES="/nix/var/nix/profiles/default"
+    # Startup detects its packaged libraries without login-shell state.
+    unset NIX_PROFILES EMACSDIR
 
     # Buck constructs its HTTP client even for a local Starlark workspace.
     # The sandbox's default /no-cert-file.crt prevents daemon initialization;
     # providing roots does not grant the build network access.
     export SSL_CERT_FILE="${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
-
-    # Point EMACSDIR at a writable scratch dir that contains the straight stub,
-    # so init.el's bootstrap `load` succeeds without touching the network.
-    export EMACSDIR="$TMPDIR/emacsd"
-    mkdir -p "$EMACSDIR/straight/repos/straight.el"
-    cp ${straightStub} "$EMACSDIR/straight/repos/straight.el/bootstrap.el"
 
     # ── copy the three config files into a working directory ────────────────────
 
@@ -172,7 +140,6 @@ pkgs.runCommand "emacs-config"
     # Everything else matching Warning|Error|Cannot is a real problem.
     LOAD_STRICT=$(echo "$LOAD_OUT" \
       | grep -v "Cannot open load file.*dashboard-banner" \
-      | grep -v "Cannot open load file.*straight-bootstrap-stub" \
       || true)
 
     echo "--- batch load output ---"
@@ -218,6 +185,15 @@ pkgs.runCommand "emacs-config"
         exit 1
       fi
     done
+
+    export EMACS_TEST_CONFIG_DIR="$TMPDIR/elisp"
+    ${emacsPkg}/bin/emacs \
+      --batch \
+      --eval '(progn (require (quote package)) (package-initialize))' \
+      -l early-init.el \
+      -l init.el \
+      -l ${./emacs-core-tests.el} \
+      -f ert-run-tests-batch-and-exit
 
     # Exercise behavior that loading/compiling alone cannot establish.
     # Keep the Nix site file: it registers the packaged tree-sitter grammars.
