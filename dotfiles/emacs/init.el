@@ -159,6 +159,9 @@
 (declare-function vertico-mode "vertico" (&optional arg))
 (declare-function dimmer-mode "dimmer" (&optional arg))
 (declare-function format-all-buffer "format-all" (formatter))
+(declare-function format-all--buffer-easy "format-all" (executable &rest args))
+(declare-function format-all--line-and-column-at-pos "format-all" (pos))
+(declare-function format-all--pushhash "format-all" (key value table))
 (declare-function popper-mode "popper" (&optional arg))
 (declare-function marginalia-mode "marginalia" (&optional arg))
 (declare-function company-complete "company" ())
@@ -175,8 +178,14 @@
 (declare-function lsp-request "lsp-mode" (method params &rest args))
 (declare-function lsp--make-document-formatting-params "lsp-mode" ())
 (declare-function lsp--apply-text-edits "lsp-mode" (edits &optional operation))
+(declare-function lsp--update-inlay-hints "lsp-mode" ())
+(declare-function lsp-diagnostics--flymake-update-diagnostics "lsp-diagnostics" ())
+(defvar lsp-diagnostics--flymake-report-fn)
+(defvar flymake-mode)
 (declare-function rust-ts-flymake "rust-ts-mode" (report-fn &rest args))
-(eval-when-compile (require 'lsp-mode))
+(eval-when-compile (require 'lsp-mode) (require 'format-all))
+(defvar lsp-pyright-multi-root)
+(defvar lsp-purescript-formatter)
 (declare-function tramp-cleanup-all-connections "tramp" ())
 (declare-function tramp-cleanup-all-buffers "tramp" ())
 (declare-function password-store-dir "password-store" ())
@@ -1242,8 +1251,11 @@ the source of the fringe drift when hero/axis/level retune."
 ;;                                  // disable // flymake // squiggles
 ;; ───────────────────────────────────────────────────────────────────
 
-;; n.b. disable flymake globally...
+;; Disable the obsolete makefile-based backend, including when an older mode
+;; loads flymake-proc later. Keep modern native and LSP backends enabled.
 (with-eval-after-load 'flymake
+  (remove-hook 'flymake-diagnostic-functions 'flymake-proc-legacy-flymake))
+(with-eval-after-load 'flymake-proc
   (remove-hook 'flymake-diagnostic-functions 'flymake-proc-legacy-flymake))
 
 ;; Prevent flymake from starting automatically
@@ -2638,21 +2650,26 @@ When you've completed the task or need clarification, say so clearly.")
         lsp-ui-doc-enable t
         lsp-ui-doc-show-with-cursor nil))
 
-(with-eval-after-load 'lsp-mode
-  ;; alternatively, if the above doesn't work (depends on lsp-mode version):
-  (add-to-list 'lsp-language-id-configuration '(lean4-mode . "lean4")))
+(defun hypermodern/lsp-flymake-preserve-reporter (setup &rest args)
+  "Preserve an active Flymake reporter when SETUP runs after registration.
+The pinned lsp-mode clears its callback on each setup, but `flymake-mode' does
+not restart an already enabled mode. Dynamic capability registration can then
+silently disconnect diagnostic delivery until the next edit starts a check."
+  (let ((reporter (and (bound-and-true-p flymake-mode)
+                       lsp-diagnostics--flymake-report-fn)))
+    (apply setup args)
+    (when (and reporter flymake-mode (not lsp-diagnostics--flymake-report-fn))
+      (setq lsp-diagnostics--flymake-report-fn reporter)
+      (lsp-diagnostics--flymake-update-diagnostics))))
 
-;; (with-eval-after-load 'lsp-mode
-;;   (setq lsp-warn-no-matched-clients nil))
+(with-eval-after-load 'lsp-diagnostics
+  (advice-add 'lsp-diagnostics--flymake-setup :around
+              #'hypermodern/lsp-flymake-preserve-reporter))
 
-(with-eval-after-load 'lsp-mode
-  ;; Suppress "Unknown request method: workspace/inlayHint/refresh"
-  ;; lean4-server sends this; lsp-mode doesn't handle it. Harmless.
-  (advice-add 'lsp-warn :around
-              (lambda (orig &rest args)
-                (unless (and (car args)
-                             (string-match-p "Unknown request method" (car args)))
-                  (apply orig args)))))
+;; Each project's server must inherit that project's direnv environment.
+;; This must precede lsp-pyright's client registration, which captures it.
+(setq lsp-pyright-multi-root nil
+      lsp-purescript-formatter "purs-tidy")
 
 (with-eval-after-load 'lsp-mode
   (lsp-register-client
@@ -2691,6 +2708,8 @@ When you've completed the task or need clarification, say so clearly.")
 (defvar hypermodern/language-registry
   '((nix
      :mode nix-mode
+     :extra-modes (nix-ts-mode)
+     :client nixd
      :extensions ("\\.nix\\'")
      :backend lsp
      :server nixd
@@ -2701,6 +2720,7 @@ When you've completed the task or need clarification, say so clearly.")
 
     (haskell
      :mode haskell-mode
+     :client lsp-haskell
      :extensions ("\\.hs\\'")
      :backend lsp
      :server haskell-language-server
@@ -2712,6 +2732,8 @@ When you've completed the task or need clarification, say so clearly.")
 
     (rust
      :mode rust-mode
+     :extra-modes (rust-ts-mode)
+     :client rust-analyzer
      :extensions ("\\.rs\\'")
      :backend lsp
      :server rust-analyzer
@@ -2722,18 +2744,24 @@ When you've completed the task or need clarification, say so clearly.")
 
     (python
      :mode python-ts-mode
+     :extra-modes (python-mode)
+     :client pyright
+     :native-checkers (python-flymake)
      :extensions ("\\.py\\'")
      :backend lsp
      :server pyright
      :formatter ruff-format
-     :format-all-formatter ruff
-     :linter ruff-check
+     :format-all-formatter hypermodern-ruff
+     :linter nil
      :type-checker pyright
      :builtin t
-     :notes "ruff does both formatting and linting; pyright for types")
+     :notes "Ruff formats; Pyright supplies diagnostics and types")
 
     (c
      :mode c-mode
+     :extra-modes (c-ts-mode)
+     :client clangd
+     :native-checkers (flymake-cc)
      :extensions ("\\.c\\'")
      :backend lsp
      :server clangd
@@ -2745,6 +2773,9 @@ When you've completed the task or need clarification, say so clearly.")
 
     (cpp
      :mode c++-mode
+     :extra-modes (c++-ts-mode)
+     :client clangd
+     :native-checkers (flymake-cc)
      :extensions ("\\.cpp\\'" "\\.cc\\'" "\\.cxx\\'" "\\.h\\'" "\\.hpp\\'" "\\.hh\\'" "\\.hxx\\'")
      :backend lsp
      :server clangd
@@ -2756,6 +2787,8 @@ When you've completed the task or need clarification, say so clearly.")
 
     (cuda
      :mode cuda-mode
+     :client clangd
+     :native-checkers (flymake-cc)
      :extensions ("\\.cu\\'" "\\.cuh\\'")
      :backend lsp
      :server clangd
@@ -2767,6 +2800,7 @@ When you've completed the task or need clarification, say so clearly.")
 
     (typescript
      :mode typescript-ts-mode
+     :client ts-ls
      :extensions (("\\.ts\\'" . typescript-ts-mode)
                   ("\\.tsx\\'" . tsx-ts-mode))
      :backend lsp
@@ -2776,10 +2810,12 @@ When you've completed the task or need clarification, say so clearly.")
      :linter eslint
      :type-checker typescript-language-server
      :builtin t
-     :extra-modes (tsx-ts-mode))
+     :extra-modes (tsx-ts-mode typescript-mode))
 
     (javascript
      :mode js-ts-mode
+     :extra-modes (js-mode js-jsx-mode)
+     :client ts-ls
      :extensions (("\\.js\\'" . js-ts-mode)
                   ("\\.jsx\\'" . js-ts-mode))
      :backend lsp
@@ -2792,6 +2828,9 @@ When you've completed the task or need clarification, say so clearly.")
 
     (json
      :mode json-ts-mode
+     :extra-modes (json-mode)
+     :client json-ls
+     :snippets t
      :extensions ("\\.json\\'")
      :backend lsp
      :server vscode-json-language-server
@@ -2803,6 +2842,9 @@ When you've completed the task or need clarification, say so clearly.")
 
     (yaml
      :mode yaml-mode
+     :extra-modes (yaml-ts-mode)
+     :client yamlls
+     :native-checkers (yaml-ts-mode-flymake)
      :extensions ("\\.ya?ml\\'")
      :backend lsp
      :server yaml-language-server
@@ -2813,6 +2855,9 @@ When you've completed the task or need clarification, say so clearly.")
 
     (bash
      :mode bash-ts-mode
+     :extra-modes (sh-mode)
+     :client bash-ls
+     :native-checkers (sh-shellcheck-flymake)
      :extensions ("\\.sh\\'")
      :backend lsp
      :server bash-language-server
@@ -2825,6 +2870,7 @@ When you've completed the task or need clarification, say so clearly.")
 
     (purescript
      :mode purescript-mode
+     :client pursls
      :extensions ("\\.purs\\'")
      :backend lsp
      :server purescript-language-server
@@ -2836,17 +2882,20 @@ When you've completed the task or need clarification, say so clearly.")
 
     (lean4
      :mode lean4-mode
+     :client lean4-lsp
      :extensions ("\\.lean\\'")
-     :backend nil              ;; n.b. ← was 'lsp, but lean4-mode has built-in LSP
-     :server lean              ;; lean4-mode handles this internally
+     :backend lsp
+     :server lean
      :formatter nil
      :format-all-formatter nil
      :linter nil
      :type-checker lean
-     :notes "lean4-mode has built-in LSP client; do NOT use lsp-mode")
+     :notes "lean4-mode registers lean4-lsp; lake/lean comes from the project toolchain; no formatter")
 
     (starlark
      :mode bazel-starlark-mode
+     :client buck2
+     :project-marker ".buckconfig"
 
      :extensions (("\\.bzl\\'" . bazel-starlark-mode)
                   ("BUCK\\'" . bazel-starlark-mode))
@@ -2854,11 +2903,27 @@ When you've completed the task or need clarification, say so clearly.")
      :backend lsp
      :server buck2
      :formatter buildifier
-     :format-all-formatter buildifier
+     :format-all-formatter hypermodern-buildifier
      :linter buildifier
      :type-checker nil
      :notes "buck2: `buck2 lsp` over stdio; buildifier formats + lints .bzl/BUCK")
-    )
+
+    (dhall :mode dhall-mode :backend lsp :client dhallls
+           :server dhall-lsp-server :formatter dhall :format-all-formatter dhall)
+    (css :mode css-mode :extra-modes (css-ts-mode)
+         :snippets t
+         :backend lsp :client css-ls :server vscode-css-language-server
+         :formatter prettier :format-all-formatter prettier)
+    (html :mode html-mode :extra-modes (html-ts-mode mhtml-mode)
+          :snippets t
+          :backend lsp :client html-ls :server vscode-html-language-server
+          :formatter prettier :format-all-formatter prettier)
+    (toml :mode toml-ts-mode :backend lsp :client taplo :server taplo
+          :formatter taplo :format-all-formatter taplo-fmt)
+    (markdown :mode markdown-mode :extra-modes (gfm-mode) :backend nil
+              :formatter prettier :format-all-formatter prettier)
+    (elisp :mode emacs-lisp-mode :extra-modes (lisp-interaction-mode)
+           :backend nil :formatter emacs-lisp :format-all-formatter emacs-lisp))
 
   "Registry of language configurations for hypermodern Emacs.
 
@@ -2866,7 +2931,11 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
   :mode             - Primary major mode symbol
   :extensions       - File extension patterns (string or (pattern . mode) list)
   :backend          - `lsp\\=', `eglot\\=', or nil for no LSP
-  :server           - LSP server identifier (symbol)
+  :server           - Server executable (symbol)
+  :client           - lsp-mode client identifier
+  :project-marker   - Require this ancestor file before starting LSP
+  :native-checkers  - Standalone Flymake backends replaced when LSP attaches
+  :snippets         - Enable snippet completion for servers which require it
   :formatter        - Preferred formatter command (symbol)
   :format-all-formatter - format-all backend name (symbol)
   :linter           - Linter/static analysis tool (symbol or nil)
@@ -2883,8 +2952,53 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 
 (defun hypermodern/language-modes ()
   "Return list of all configured language modes."
-  (mapcar (lambda (entry) (plist-get (cdr entry) :mode))
-          hypermodern/language-registry))
+  (seq-mapcat (lambda (entry)
+                (cons (plist-get (cdr entry) :mode)
+                      (plist-get (cdr entry) :extra-modes)))
+              hypermodern/language-registry))
+
+(defun hypermodern/language-entry ()
+  "Return the registry entry for the current major mode.
+Prefer an exact match: JSON and CUDA derive from other configured modes."
+  (or (seq-find (lambda (entry)
+                  (memq major-mode (cons (plist-get (cdr entry) :mode)
+                                         (plist-get (cdr entry) :extra-modes))))
+                hypermodern/language-registry)
+      (seq-find (lambda (entry) (derived-mode-p (plist-get (cdr entry) :mode)))
+                hypermodern/language-registry)))
+
+(defun hypermodern/language-setup ()
+  "Start the registered client once the concrete mode has finished setup.
+Defer startup until after directory locals and envrc have supplied the project's
+settings.  Internal fontification buffers must not launch language servers."
+  (when-let* ((file buffer-file-name)
+              (entry (hypermodern/language-entry))
+              (config (cdr entry)))
+    (when (and (eq (plist-get config :backend) 'lsp)
+               (let ((marker (plist-get config :project-marker)))
+                 (or (not marker) (locate-dominating-file file marker))))
+      ;; VS Code's CSS/HTML/JSON servers withhold their entire completion
+      ;; provider unless snippetSupport is true. yasnippet is already enabled.
+      (when (plist-get config :snippets)
+        (setq-local lsp-enable-snippet t))
+      ;; Directory-local settings may override this default. Remote clients
+      ;; have distinct IDs; let lsp-mode choose those using its TRAMP support.
+      (unless (file-remote-p file)
+        (setq-local lsp-enabled-clients (list (plist-get config :client))))
+      (lsp-deferred))
+    ;; YAML and Markdown derive from text-mode, so prog-mode-hook misses them.
+    (when (plist-get config :format-all-formatter)
+      (format-all-mode 1))))
+
+(defun hypermodern/language-diagnostics-setup ()
+  "When LSP attaches, retire only the standalone checkers it replaces.
+Keep native diagnostics if no server attaches, and keep complementary linters."
+  (when (bound-and-true-p lsp-managed-mode)
+    (dolist (checker (plist-get (cdr (hypermodern/language-entry)) :native-checkers))
+      (remove-hook 'flymake-diagnostic-functions checker t))))
+
+(add-hook 'after-change-major-mode-hook #'hypermodern/language-setup t)
+(add-hook 'lsp-managed-mode-hook #'hypermodern/language-diagnostics-setup)
 
 (defun hypermodern/languages-using-lsp ()
   "Return list of languages configured to use LSP."
@@ -2902,12 +3016,8 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
   "Show configuration for current language."
   (interactive)
 
-  (let* ((mode major-mode)
-         (entry (seq-find (lambda (e)
-                            (let ((plist (cdr e)))
-                              (or (eq mode (plist-get plist :mode))
-                                  (member mode (plist-get plist :extra-modes)))))
-                          hypermodern/language-registry)))
+  (let ((mode major-mode)
+        (entry (hypermodern/language-entry)))
     (if entry
         (let* ((name (car entry))
                (config (cdr entry))
@@ -2971,26 +3081,12 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 ;;                                                        // languages
 ;; ───────────────────────────────────────────────────────────────────
 
-;; nix: treesit-auto remaps nix-mode -> nix-ts-mode when the grammar is
-;; present, so hook both — whichever the buffer lands in starts LSP.
-(use-package nix-mode
-  :mode "\\.nix\\'"
-  :hook ((nix-mode . lsp-deferred)
-         (nix-ts-mode . lsp-deferred)))
-
-(use-package haskell-mode
-  :mode "\\.hs\\'"
-  :hook (haskell-mode . lsp-deferred))
-
-(use-package lsp-haskell
-  :after (haskell-mode lsp-mode))
-
-;; rust-ts-mode is built-in but shares no base mode with rust-mode, so hook
-;; both — treesit-auto remaps rust-mode -> rust-ts-mode when the grammar is up.
-(use-package rust-mode
-  :mode "\\.rs\\'"
-  :hook ((rust-mode . lsp-deferred)
-         (rust-ts-mode . lsp-deferred)))
+;; Startup hooks are installed centrally from the registry above. Both classic
+;; and tree-sitter modes use the same policy.
+(use-package nix-mode :mode "\\.nix\\'")
+(use-package haskell-mode :mode "\\.hs\\'")
+(use-package lsp-haskell :after (haskell-mode lsp-mode))
+(use-package rust-mode :mode "\\.rs\\'")
 
 (defun hypermodern/rust-diagnostics-setup ()
   "Let rust-analyzer supply Cargo-aware Rust diagnostics to Flymake."
@@ -3048,29 +3144,18 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 
 (use-package cuda-mode
   :mode (("\\.cu\\'" . cuda-mode)
-         ("\\.cuh\\'" . cuda-mode))
-  :hook (cuda-mode . lsp-deferred))
+         ("\\.cuh\\'" . cuda-mode)))
 
-;; Built-in python (the external `python-mode' package was never installed —
-;; the require failed silently, so .py buffers ran WITHOUT the lsp hook).
-;; Tree-sitter grammars are store-provided, so .py maps straight to the ts
-;; variant. python-base-mode is the shared parent of python-mode and
-;; python-ts-mode, so one hook on it covers both (a derived mode runs its
-;; parents' hooks).
 (use-package python
-  :mode ("\\.py\\'" . python-ts-mode)
-  :hook (python-base-mode . lsp-deferred))
+  :mode ("\\.py\\'" . python-ts-mode))
 
 (use-package typescript-ts-mode
   :mode (("\\.ts\\'" . typescript-ts-mode)
-         ("\\.tsx\\'" . tsx-ts-mode))
-  :hook ((typescript-ts-mode . lsp-deferred)
-         (tsx-ts-mode . lsp-deferred)))
+         ("\\.tsx\\'" . tsx-ts-mode)))
 
 (use-package purescript-mode
   :mode "\\.purs\\'"
-  :hook ((purescript-mode . lsp-deferred)
-         (purescript-mode . turn-on-purescript-indentation))
+  :hook (purescript-mode . turn-on-purescript-indentation)
   :config
   ;; lsp-mode ships a built-in PureScript client (lsp-purescript, server-id
   ;; 'pursls) that shells out to `purescript-language-server` on PATH. Make
@@ -3088,22 +3173,51 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
         markdown-asymmetric-header t))
 
 (use-package dhall-mode
-  :mode "\\.dhall\\'")
+  :mode "\\.dhall\\'"
+  :init
+  ;; format-all owns saves and dhall-lsp-server owns diagnostics. The mode's
+  ;; separate type-check timer also dereferences buffers after they are killed.
+  (setq dhall-format-at-save nil
+        dhall-use-header-line nil))
 
-;; lean4-mode has its own LSP client built in. It does NOT use lsp-mode.
-;; The workspace/inlayHint/refresh spam is lsp-mode trying to attach
-;; to .lean buffers alongside lean4-mode's own LSP — two clients talking
-;; to one server. Kill lsp-mode for lean buffers.
+;; lean4-mode registers its lake/lean connection with lsp-mode. The central
+;; hook starts that client; the mode supplies Lean input and the info view.
+(make-variable-buffer-local 'lean4-rootdir)
+(defvar lean4-fringe-delay-timer)
+
+(defun hypermodern/lean-cancel-progress-timer ()
+  "Cancel this buffer's pending Lean progress redraw before it disappears."
+  (when (timerp lean4-fringe-delay-timer)
+    (cancel-timer lean4-fringe-delay-timer)
+    (setq lean4-fringe-delay-timer nil)))
+
+(defun hypermodern/lean-setup ()
+  "Install Lean input and buffer-lifetime cleanup."
+  (set-input-method "Lean")
+  ;; The pinned mode schedules a redraw without checking buffer-live-p.
+  (add-hook 'kill-buffer-hook #'hypermodern/lean-cancel-progress-timer nil t)
+  (add-hook 'change-major-mode-hook #'hypermodern/lean-cancel-progress-timer nil t))
+
+(defun hypermodern/lean-refresh-inlay-hints (workspace _params)
+  "Acknowledge Lean's refresh request and refresh enabled views in WORKSPACE."
+  (dolist (buffer (lsp--workspace-buffers workspace))
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (when (bound-and-true-p lsp-inlay-hints-mode)
+          (lsp--update-inlay-hints)))))
+  nil)
 
 (use-package lean4-mode
   :commands lean4-mode
   :mode "\\.lean\\'"
 
-  :hook (lean4-mode . (lambda ()
-                        ;; Unicode input: \to → →, \lam → λ, \forall → ∀, etc.
-                        (set-input-method "Lean")))
+  :hook (lean4-mode . hypermodern/lean-setup)
 
   :config
+  ;; The package caches its executable directory. Keep that cache local so
+  ;; one project's Nix toolchain cannot pin another project's server binary.
+  (puthash "workspace/inlayHint/refresh" #'hypermodern/lean-refresh-inlay-hints
+           (lsp--client-request-handlers (gethash 'lean4-lsp lsp-clients)))
   ;; Info buffer toggle — the function name has changed across versions
   (let ((toggle-fn (or (and (fboundp 'lean4-toggle-info) 'lean4-toggle-info)
                        (and (fboundp 'lean4-info-toggle) 'lean4-info-toggle)
@@ -3119,8 +3233,7 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
 ;; inside it, not a feature) failed silently: BUCK/.bzl config never applied.
 (use-package bazel
   :mode (("\\.bzl\\'" . bazel-starlark-mode)
-         ("BUCK\\'" . bazel-starlark-mode))
-  :hook (bazel-starlark-mode . lsp-deferred))
+         ("BUCK\\'" . bazel-starlark-mode)))
 
 ;; ───────────────────────────────────────────────────────────────────
 ;;                                                       // formatting
@@ -3187,6 +3300,13 @@ Rust-analyzer supplies the actual edition, including workspace inheritance."
 (add-hook 'rust-mode-hook #'hypermodern/rust-format-setup)
 (add-hook 'rust-ts-mode-hook #'hypermodern/rust-format-setup)
 
+(defun hypermodern/format-before-save-safely (formatter &rest args)
+  "Report failed automatic formatting without preventing a file save.
+Manual formatting still reports the original error. Never hide failures."
+  (condition-case err
+      (apply formatter args)
+    (error (message "[hypermodern] Formatting skipped: %s" (error-message-string err)))))
+
 (use-package format-all
   :commands (format-all-buffer format-all-mode)
 
@@ -3195,13 +3315,47 @@ Rust-analyzer supplies the actual edition, including workspace inheritance."
   :config
   (setq format-all-show-errors 'errors)
 
+  ;; The upstream Ruff adapter uses --silent: a parse failure exits nonzero
+  ;; with empty stderr, which format-all misreports as "Already formatted".
+  (define-format-all-formatter hypermodern-ruff
+    (:executable "ruff")
+    (:install "Install ruff through the Emacs Nix module")
+    (:languages "Python")
+    (:features region)
+    (:format
+     (format-all--buffer-easy
+      executable "format" "--stdin-filename" (or buffer-file-name (buffer-name))
+      (when region
+        (let ((start (format-all--line-and-column-at-pos (car region)))
+              (end (format-all--line-and-column-at-pos (cdr region))))
+          (format "--range=%d:%d-%d:%d" (car start) (cdr start) (car end) (cdr end))))
+      "-")))
+
+  ;; buildifier on stdin otherwise guesses BUILD even for .bzl source. Supply
+  ;; the file kind explicitly for BUCK, whose name buildifier does not know.
+  (define-format-all-formatter hypermodern-buildifier
+    (:executable "buildifier")
+    (:install "Install buildifier through the Emacs Nix module")
+    (:languages "Bazel")
+    (:features)
+    (:format
+     (format-all--buffer-easy
+      executable
+      (when buffer-file-name (concat "-path=" buffer-file-name))
+      (when (and buffer-file-name
+                 (equal (file-name-nondirectory buffer-file-name) "BUCK"))
+        "-type=build"))))
+
+  (advice-add 'format-all--buffer-from-hook :around #'hypermodern/format-before-save-safely)
+
   ;; format-all-formatters uses LANGUAGE NAMES (strings), not mode names
-  ;; The format is: ("Language Name" . (formatter-symbol args...))
+  ;; Each entry is a chain: ("Language" formatter (formatter-with-args args...)).
   (setq-default
    format-all-formatters
-   '(("Bazel"           . (buildifier))
+   '(("Bazel"           . (hypermodern-buildifier))
      ("C"               . (clang-format))
      ("C++"             . (clang-format))
+     ("Cuda"            . (clang-format))
      ("C#"              . (clang-format))
      ("CSS"             . (prettier))
      ("Dhall"           . (dhall))
@@ -3217,9 +3371,9 @@ Rust-analyzer supplies the actual edition, including workspace inheritance."
      ("Nix"             . (nixfmt))
      ("Protocol Buffer" . (clang-format))
      ("PureScript"      . (purs-tidy))
-     ("Python"          . (ruff))
-     ("Shell"           . (shfmt "-i" "2"))
-     ("TOML"            . (taplo))
+     ("Python"          . (hypermodern-ruff))
+     ("Shell"           . ((shfmt "-i" "2")))
+     ("TOML"            . (taplo-fmt))
      ("TSX"             . (prettier))
      ("TypeScript"      . (prettier))
      ("YAML"            . (prettier))

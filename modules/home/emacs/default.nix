@@ -205,9 +205,11 @@ in
           # different clang-tools in one profile collide on bin/clang-*.
           llvmPackages_22.clang-tools
           typescript-language-server
+          typescript # lsp-mode resolves tsserver separately from the LSP launcher
           vscode-langservers-extracted
           yaml-language-server
           bash-language-server
+          taplo # TOML language server and formatter
         ])
 
         # Haskell (heavy ~1GB)
