@@ -1458,16 +1458,16 @@
         "rust-overlay": "rust-overlay_2"
       },
       "locked": {
-        "lastModified": 1787004460,
-        "narHash": "sha256-E9e2XqS9uB6c8Hpjtgrx+gEoqJLwWjLnB8rLe/R9d/o=",
-        "ref": "nix-cache",
-        "rev": "f463b92bc39c2aac3e7de472daa605ad2356094b",
-        "revCount": 1775,
+        "lastModified": 1790960318,
+        "narHash": "sha256-r8zvQW9wt8m5BP/6Atc5u+BWh08UP8AL8Gj6PDMVfhQ=",
+        "ref": "nix-cache-s3-firefix",
+        "rev": "9d71ed09f6512fbeb63e13c95e9e2b76190f470c",
+        "revCount": 1777,
         "type": "git",
         "url": "https://git.s4.gl/straylight/straylight-nativelink"
       },
       "original": {
-        "ref": "nix-cache",
+        "ref": "nix-cache-s3-firefix",
         "type": "git",
         "url": "https://git.s4.gl/straylight/straylight-nativelink"
       }

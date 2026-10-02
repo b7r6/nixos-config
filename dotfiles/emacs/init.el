@@ -170,6 +170,13 @@
 (declare-function lsp-stdio-connection "lsp-mode" (command))
 (declare-function lsp-format-buffer "lsp-mode" ())
 (declare-function lsp-feature? "lsp-mode" (feature))
+(declare-function lsp-workspaces "lsp-mode" ())
+(declare-function lsp-get "lsp-protocol" (from key))
+(declare-function lsp-request "lsp-mode" (method params &rest args))
+(declare-function lsp--make-document-formatting-params "lsp-mode" ())
+(declare-function lsp--apply-text-edits "lsp-mode" (edits &optional operation))
+(declare-function rust-ts-flymake "rust-ts-mode" (report-fn &rest args))
+(eval-when-compile (require 'lsp-mode))
 (declare-function tramp-cleanup-all-connections "tramp" ())
 (declare-function tramp-cleanup-all-buffers "tramp" ())
 (declare-function password-store-dir "password-store" ())
@@ -2985,6 +2992,60 @@ Each entry is (LANGUAGE-NAME . PLIST) where PLIST contains:
   :hook ((rust-mode . lsp-deferred)
          (rust-ts-mode . lsp-deferred)))
 
+(defun hypermodern/rust-diagnostics-setup ()
+  "Let rust-analyzer supply Cargo-aware Rust diagnostics to Flymake."
+  ;; Emacs 30+ adds a second backend that runs `clippy-driver -' on stdin,
+  ;; without the crate's edition, dependencies, features or build-script env.
+  ;; Besides duplicate checks, this produces bogus errors in workspace files.
+  (remove-hook 'flymake-diagnostic-functions #'rust-ts-flymake t))
+
+(add-hook 'rust-ts-mode-hook #'hypermodern/rust-diagnostics-setup)
+
+;; Capabilities arrive before Cargo metadata and the VFS have loaded.  In that
+;; interval rust-analyzer can return a successful, empty formatting response.
+;; Track the server's own readiness signal, separately for each workspace and
+;; each server lifetime; a restart must never inherit another server's status.
+(defvar hypermodern/rust-server-status
+  (make-hash-table :test 'eq :weakness 'key))
+
+(defun hypermodern/rust-server-status-update (workspace status)
+  "Record WORKSPACE's STATUS and surface a new server health problem."
+  (let ((previous (gethash workspace hypermodern/rust-server-status)))
+    (puthash workspace status hypermodern/rust-server-status)
+    (when (and (member (lsp-get status :health) '("warning" "error"))
+               (lsp-get status :message)
+               (not (equal (lsp-get previous :message) (lsp-get status :message))))
+      (display-warning 'rust-analyzer (lsp-get status :message) :warning))))
+
+(with-eval-after-load 'lsp-rust
+  (let* ((client (gethash 'rust-analyzer lsp-clients))
+         (capabilities (lsp--client-custom-capabilities client)))
+    (setf (alist-get 'serverStatusNotification (alist-get 'experimental capabilities)) t
+          (lsp--client-custom-capabilities client) capabilities)
+    (puthash "experimental/serverStatus" #'hypermodern/rust-server-status-update
+             (lsp--client-notification-handlers client))))
+
+(defun hypermodern/rust-ready-p ()
+  "Whether this buffer's rust-analyzer has finished loading its workspace."
+  (seq-some
+   (lambda (workspace)
+     (let ((status (gethash workspace hypermodern/rust-server-status)))
+       (and (eq (lsp--client-server-id (lsp--workspace-client workspace)) 'rust-analyzer)
+            (eq (lsp--workspace-status workspace) 'initialized)
+            (eq t (lsp-get status :quiescent)))))
+   (lsp-workspaces)))
+
+(defun hypermodern/rust-status ()
+  "Show rust-analyzer's loading state and any reported workspace problem."
+  (interactive)
+  (unless (and (bound-and-true-p lsp-mode) (lsp-workspaces))
+    (user-error "Rust LSP is disconnected; reconnect with M-x lsp"))
+  (dolist (workspace (lsp-workspaces))
+    (let ((status (gethash workspace hypermodern/rust-server-status)))
+      (message "Rust LSP: %s%s"
+               (if (eq t (lsp-get status :quiescent)) "ready" "loading workspace")
+               (if-let* ((detail (lsp-get status :message))) (concat " — " detail) "")))))
+
 (use-package cuda-mode
   :mode (("\\.cu\\'" . cuda-mode)
          ("\\.cuh\\'" . cuda-mode))
@@ -3085,7 +3146,25 @@ Rust-analyzer supplies the actual edition, including workspace inheritance."
   (unless (and (bound-and-true-p lsp-mode)
                (lsp-feature? "textDocument/formatting"))
     (user-error "Rust formatter is not ready; start/reconnect rust-analyzer with M-x lsp"))
-  (lsp-format-buffer))
+  (unless (hypermodern/rust-ready-p)
+    (user-error "Rust workspace is still loading; retry when ready (M-x hypermodern/rust-status)"))
+  ;; Even a synchronous LSP request runs process filters and timers.  An edit
+  ;; made while waiting invalidates the returned ranges; never apply them to
+  ;; a different version of the document.  Do not retry errors indiscriminately:
+  ;; a failed formatter or a parse error must remain visible.
+  (save-restriction
+    (widen)
+    (let* ((tick (buffer-chars-modified-tick))
+           (edits (lsp-request "textDocument/formatting"
+                               (lsp--make-document-formatting-params))))
+      (unless (= tick (buffer-chars-modified-tick))
+        (user-error "Rust buffer changed while formatting; discarded stale edits, retry M-z"))
+      ;; rust-analyzer uses null both for unchanged text and for parse errors.
+      ;; Do not claim the buffer is valid/already formatted from that response;
+      ;; syntax errors are reported separately through Flymake.
+      (if (seq-empty-p edits)
+          (message "Rust formatter returned no edits")
+        (lsp--apply-text-edits edits 'format)))))
 
 (defun hypermodern/rust-format-before-save ()
   "Try Rust formatting before save, reporting failures without blocking save."
@@ -3100,6 +3179,9 @@ Rust-analyzer supplies the actual edition, including workspace inheritance."
   ;; Disable that bare-rustfmt save hook locally, leaving other languages alone.
   (when (bound-and-true-p format-all-mode)
     (format-all-mode -1))
+  ;; Keep one save formatter even if a package's global defaults are changed.
+  (setq-local lsp-format-buffer-on-save nil
+              rust-format-on-save nil)
   (add-hook 'before-save-hook #'hypermodern/rust-format-before-save nil t))
 
 (add-hook 'rust-mode-hook #'hypermodern/rust-format-setup)
