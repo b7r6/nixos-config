@@ -555,6 +555,11 @@ in
 
       # ── Autostart ──────────────────────────────────────────────────────
       # No hyprpaper: the shell's AnimatedWallpaper layer IS the wallpaper.
+      # That means BOTH spawn paths must go: hyprland's autostart (below) AND
+      # stylix's autoEnable, which pulls in the hyprpaper systemd service and
+      # paints a static PNG over the AnimatedWallpaper on the Background layer.
+      stylix.targets.hyprpaper.enable = lib.mkForce false;
+      services.hyprpaper.enable = lib.mkForce false;
       # dbus-update-activation-environment MUST stay first: without it,
       # dbus-activated portal services (OpenURI — "click a link, nothing
       # happens" — Screenshot, FileChooser) and graphical-session units

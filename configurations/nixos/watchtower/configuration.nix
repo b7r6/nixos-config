@@ -36,6 +36,11 @@ in
   networking.hostName = "watchtower";
   networking.networkmanager.enable = true;
 
+  # WoL: this box went dark for 3 days (2026-09) and only a walk to the power
+  # button brought it back. eno1 = 84:47:09:64:9d:a9 — wake from any LAN peer:
+  #   wol 84:47:09:64:9d:a9   (or: nix run nixpkgs#wol -- 84:47:09:64:9d:a9)
+  networking.interfaces.eno1.wakeOnLan.enable = true;
+
   # ── Tailscale safety net (ALWAYS on) ────────────────────────────────────────
 
   # Declarative enrollment so this remote box can't fall off the tailnet during
