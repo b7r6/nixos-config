@@ -32,6 +32,7 @@ let
     mkEnableOption
     types
     concatStringsSep
+    concatMapStringsSep
     optionalString
     ;
 
@@ -88,6 +89,19 @@ let
   # exactly the glue nixlang is for. It references the rendered zone file by
   # store path.
   corefile = ''
+    ${concatMapStringsSep "\n" (name: ''
+      ${name}.${topo.registry.internalDomain}:${toString cfg.port} {
+          bind ${cfg.bindAddress}
+          forward . ${concatStringsSep " " cfg.forwardServers} {
+              health_check 5s
+          }
+          cache ${toString cfg.cacheTTL}
+          ${optionalString cfg.prometheus "prometheus ${cfg.bindAddress}:9153"}
+          errors
+          ${optionalString cfg.debug "log"}
+      }
+    '') cfg.publicSubdomains}
+
     ${zone}:${toString cfg.port} {
         bind ${cfg.bindAddress}
         file ${zoneFile} ${zone}
@@ -175,6 +189,19 @@ in
         "8.8.8.8"
       ];
       description = "Upstreams for general (non-internal, non-tailnet) names.";
+    };
+
+    publicSubdomains = mkOption {
+      type = types.listOf types.str;
+      default = [ "cdn" ];
+      example = [ "downloads" ];
+      description = ''
+        Exact one-label names below the internal domain that must keep using
+        public DNS. Each name gets a more-specific forwarding zone ahead of the
+        short-name template, avoiding a split-horizon shadow of public services.
+        cdn is exempted fleet-wide because cdn.s4.gl is the Cloudflare custom
+        domain for the public R2 bucket.
+      '';
     };
 
     magicDnsServer = mkOption {

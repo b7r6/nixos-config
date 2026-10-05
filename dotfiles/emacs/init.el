@@ -4134,7 +4134,37 @@ walking zellij panes. Outside zellij, the edge stays an edge."
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(safe-local-variable-values
-   '((lsp-clients-clangd-args "--background-index"
+   '((haskell-indentation-layout-offset . 4)
+     (haskell-indentation-left-offset . 4)
+     (haskell-indentation-starter-offset . 4)
+     (haskell-indentation-where-post-offset . 4)
+     (haskell-indentation-where-pre-offset . 4)
+     (eval let
+           ((ws-root
+             (locate-dominating-file default-directory "MODULE.bazel")))
+           (require 'compile)
+           (setq-local compilation-directory ws-root)
+           (setq-local compile-command
+                       (format "cd %s && bazel build //..." ws-root))
+           (unless
+               (assoc 'c++-ts-mode
+                      (default-value
+                       'compilation-filename-transformers))
+             (add-to-list 'compilation-filename-transformers
+                          `(lambda (filename _)
+                             (unless (file-name-absolute-p filename)
+                               (expand-file-name filename ,ws-root))))))
+     (eval c-set-offset 'inlambda 0)
+     (eval c-set-offset 'access-label '-)
+     (eval c-set-offset 'substatement-open 0)
+     (eval c-set-offset 'arglist-cont-nonempty '+)
+     (eval c-set-offset 'arglist-cont 0)
+     (eval c-set-offset 'arglist-intro '+)
+     (eval c-set-offset 'inline-open 0)
+     (eval c-set-offset 'defun-open 0)
+     (eval c-set-offset 'innamespace 0) (indicate-empty-lines . t)
+     (c-block-comment-prefix . "  ")
+     (lsp-clients-clangd-args "--background-index"
                               "--header-insertion=never"))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
