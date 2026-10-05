@@ -174,9 +174,13 @@ in
     timerConfig = lib.mkOption {
       type = lib.types.attrs;
       default = {
-        OnCalendar = "daily";
+        # Hourly: restic dedup makes a mostly-unchanged tree cost seconds and
+        # kilobytes, and on laptops the real RPO question is "how much work
+        # walks away with a stolen bag" — Persistent=true catches up after
+        # suspend, so a machine that sleeps through its window backs up on wake.
+        OnCalendar = "hourly";
         Persistent = true;
-        RandomizedDelaySec = "1h";
+        RandomizedDelaySec = "10m";
       };
       description = "systemd timer config for the periodic backup.";
     };
@@ -184,6 +188,7 @@ in
     pruneOpts = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [
+        "--keep-hourly 24"
         "--keep-daily 7"
         "--keep-weekly 5"
         "--keep-monthly 12"
