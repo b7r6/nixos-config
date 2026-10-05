@@ -26,6 +26,39 @@ rh-sol + archives), wan-spike scripts/notes/outputs (weights excluded).
 From guccimane: `/var/backup/justin/{src,jpyxal,fxy-nix,.atuin,straylight,desktop}`
 (root-only home backup from 2026-02; no evidence it was duplicated anywhere).
 
+## Ultraviolence sweep (2026-10-05 evening, drop-out-tonight check)
+
+- **26 git repos → GitHub** `hypermodern-src/salvage-uv-*` (private): slide-rule
+  (never-pushed Lean proofs), nix-0x02 (39 unpushed commits; was a SHALLOW
+  clone — unshallowed from NixOS/nix before push, ditto salvage-uv-nix),
+  latent, villa-straylight, weyl-std, render-gateway, s4-gauge, all trash/*
+  repos, and the rest of the no-remote/unpushed set. Plus trash plain dirs +
+  straylight.tar.gz → shannon `~/salvage-2026-10-05/uv-git/`.
+- **Dirty-tree patches + untracked tarballs** for the 11 heavy dirty repos →
+  shannon `~/salvage-2026-10-05/uv-dirty/` (13G+).
+- **looking-local (165G unique dataset)** → streaming to R2
+  `straylight-archive/data/looking-local-uv` (rclone on uv, log at
+  /tmp/rclone-looking-local.log — SLOW, verify complete before power-off).
+- Transmission download dir empty; searxng/flood state nil — nothing to save.
+- **uv owner-judgment pile (NOT copied)**: ~/Downloads/archive-downloads
+  (192G, unknown), src-archive-0x01+0x02 (363G, probably overlaps GitHub
+  archive), ACE-Step-1.5 (44G), eminem-godzilla/i-mean-it (~9G raw data?),
+  archive-mp4 (9.8G), dissertation 13 dirty files (repo pushed, review diff).
+- **uv secrets to wipe**: /etc/ssh host keys, ~/.ssh (3 private keys),
+  ~/.gnupg, ~/.password-store, ~/.netrc, ~/.config/gcloud.
+
+## Drop-out-tonight verdicts (verified 2026-10-05)
+
+- **guccimane: GO.** Media+state copied (34G), justin-backup copied (26G),
+  /fxy verified all-public-HF. Remaining: wipe keys.
+- **ultraviolence: GO once looking-local upload completes** (and modulo the
+  judgment pile above). Remaining: wipe keys.
+- Infra impact of both dropping: ClickHouse fine (no Replicated tables —
+  keeper quorum loss is harmless; all-MergeTree verified), nix substitution
+  fine (local replica first), NativeLink CAS ring logs errors until topology
+  retag (cosmetic), SearXNG/torrents/media serving die until re-homed on
+  shannon.
+
 ## MUST do before hardware leaves (manual, destructive — not automated)
 
 - [ ] **Wipe private keys**: guccimane `/var/backup/justin/.ssh/id_ed25519`,
