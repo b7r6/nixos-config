@@ -10,6 +10,7 @@ import argparse
 import logging
 import socket
 import sys
+import time
 
 from kazoo.client import KazooClient, KazooState
 
@@ -77,6 +78,15 @@ def main():
     "-p", "--port", type=int, default=9181, help="Keeper client (ZooKeeper protocol) port"
   )
   parser.add_argument(
+    "--wait",
+    type=float,
+    default=0.0,
+    metavar="SECONDS",
+    help="Keep retrying the initial ruok for up to this long before failing. "
+    "Keeper's unit reports started before the client port listens, so a "
+    "post-start gate needs a grace window at boot.",
+  )
+  parser.add_argument(
     "--server-state",
     action="store_true",
     help="Print only this node's Raft role (leader/follower/...) from mntr and exit.",
@@ -94,12 +104,20 @@ def main():
     log.critical("server-state: zk_server_state not found in mntr output")
     sys.exit(1)
 
-  # ruok must answer 'imok' before we bother with a session.
-  try:
-    ruok = four_letter_word(args.host, args.port, "ruok").strip()
-  except OSError as exc:
-    log.critical("ruok: cannot reach %s:%d (%s)", args.host, args.port, exc)
-    sys.exit(1)
+  # ruok must answer 'imok' before we bother with a session. Within the
+  # --wait window a refused/timed-out connection is a retry, not a failure.
+  deadline = time.monotonic() + args.wait
+  while True:
+    try:
+      ruok = four_letter_word(args.host, args.port, "ruok").strip()
+      break
+    except OSError as exc:
+      if time.monotonic() < deadline:
+        log.info("ruok: %s:%d not up yet (%s), retrying", args.host, args.port, exc)
+        time.sleep(2)
+        continue
+      log.critical("ruok: cannot reach %s:%d (%s)", args.host, args.port, exc)
+      sys.exit(1)
   if ruok != "imok":
     log.critical("ruok: expected 'imok', got %r", ruok)
     sys.exit(1)

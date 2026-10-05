@@ -225,8 +225,11 @@ in
     enable = true;
   };
 
-  hyper-modern-nixos.nvidia = {
+  # The NVIDIA card left this chassis; display is the Granite Ridge iGPU
+  # (amdgpu). ROCm stays off — gfx1036 is display silicon, not compute.
+  hyper-modern-nixos.radeon = {
     enable = true;
+    rocm.enable = false;
   };
 
   boot.loader.systemd-boot.enable = true;
