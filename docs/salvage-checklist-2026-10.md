@@ -40,10 +40,17 @@ From guccimane: `/var/backup/justin/{src,jpyxal,fxy-nix,.atuin,straylight,deskto
   `straylight-archive/data/looking-local-uv` (rclone on uv, log at
   /tmp/rclone-looking-local.log — SLOW, verify complete before power-off).
 - Transmission download dir empty; searxng/flood state nil — nothing to save.
-- **uv owner-judgment pile (NOT copied)**: ~/Downloads/archive-downloads
-  (192G, unknown), src-archive-0x01+0x02 (363G, probably overlaps GitHub
-  archive), ACE-Step-1.5 (44G), eminem-godzilla/i-mean-it (~9G raw data?),
-  archive-mp4 (9.8G), dissertation 13 dirty files (repo pushed, review diff).
+- **Judgment pile → R2 exodus (policy: everything big-but-unverified parks in
+  R2 at ~$12/mo, judged later)**: sequential rclone queues running on uv
+  (`/tmp/uv-exodus.{sh,log}` → `straylight-archive/artifacts/uv-exodus/`:
+  s4-gauge 69G Flux TRT engines, archive-downloads 192G, src-archives 363G,
+  ACE-Step, eminem-godzilla, i-mean-it, archive-mp4, nested-home, dgx-spark,
+  keeper-forge, nl-wt dirs) and watchtower (`/tmp/wt-exodus.log` →
+  `artifacts/wt-exodus/`: shimmer-hedge Downloads/home/Documents/Pictures/
+  Screenshots + small Downloads) and guccimane (justin .config →
+  `artifacts/gucci-exodus/`). **Verify COMPLETE lines in each log before
+  power-off** — ~820G total, runs overnight+. dissertation dirty files:
+  review diff (repo itself pushed).
 - **uv secrets to wipe**: /etc/ssh host keys, ~/.ssh (3 private keys),
   ~/.gnupg, ~/.password-store, ~/.netrc, ~/.config/gcloud.
 
