@@ -43,7 +43,9 @@ let
   # derivation, enabled fleet-wide (see nix.nix). No committed registry.json, no
   # render/check staleness dance. The registry Dhall is fully local (no remote
   # Prelude), so the build needs only the locale fix (unicode in comments), not
-  # CA certs. buildPackages so cross-arch shimmer doesn't demand an aarch64 build.
+  # CA certs. NB: the aarch64 hosts are NATIVE (hostPlatform only), so
+  # buildPackages is still aarch64 there — evaluating them from an x86 machine
+  # needs binfmt emulation (enabled on shannon) or an aarch64 builder.
 
   registrySrc = flake.self + "/modules/flake/registry/data";
   buildPkgs = pkgs.buildPackages;

@@ -42,8 +42,8 @@ let
   registryDir = ./data;
 
   # render users.dhall → JSON at eval time (IFD), same pattern as the topology
-  # registry (nixos.nix): buildPackages so cross-arch hosts don't demand a native
-  # dhall build, + the locale fix for the unicode in the Dhall comments.
+  # registry (nixos.nix), + the locale fix for the unicode in the Dhall
+  # comments. See the NB there about native-aarch64 hosts and binfmt.
   buildPkgs = pkgs.buildPackages;
 
   usersJson =

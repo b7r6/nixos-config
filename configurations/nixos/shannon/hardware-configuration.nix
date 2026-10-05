@@ -44,7 +44,11 @@
   ];
 
   hardware.cpu.amd.updateMicrocode = true;
-  powerManagement.cpuFreqGovernor = "performance";
+  # With amd-pstate-epp, `powersave` + the default balance_performance EPP
+  # still boosts to max clocks but lets the platform back off under thermal
+  # pressure — `performance` pins EPP and rides the thermal limit, which this
+  # chassis can't sustain (hard crashes under all-core builds).
+  powerManagement.cpuFreqGovernor = "powersave";
   services.supergfxd.enable = true;
   systemd.services.supergfxd.path = [ pkgs.pciutils ];
 

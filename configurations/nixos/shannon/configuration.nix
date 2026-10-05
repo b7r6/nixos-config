@@ -41,6 +41,29 @@ in
     paths = [ "/home" ];
   };
 
+  # ── laptop backpressure: swap-backed memory pressure + early OOM relief ────
+  # zram gives systemd-oomd a pressure signal to act on; without swap it goes
+  # straight from "fine" to kernel OOM/lockup under big parallel builds.
+  zramSwap = {
+    enable = true;
+    memoryPercent = 50;
+  };
+
+  systemd.oomd = {
+    enableRootSlice = true;
+    enableUserSlices = true;
+    extraConfig.DefaultMemoryPressureDurationSec = "20s";
+  };
+
+  # /bin/bash etc. for FHS-assuming tools (Bazel genrules, scripts).
+  services.envfs.enable = true;
+
+  # The registry IFDs (dhall→JSON) build on each host's platform; gossamer and
+  # shimmer are native aarch64, so evaluating/`nix flake check`-ing the fleet
+  # from this laptop needs aarch64 build capability. The renders are tiny —
+  # qemu-user emulation is more than enough.
+  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
+
   environment.variables = {
     __GLX_VENDOR_LIBRARY_NAME = "nvidia";
     WLR_NO_HARDWARE_CURSORS = "1";

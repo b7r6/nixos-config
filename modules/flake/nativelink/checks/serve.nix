@@ -38,6 +38,7 @@ pkgs.testers.runNixOSTest {
   nodes.node = { ... }: {
     imports = [
       ../../../nixos/state.nix
+      ../../../nixos/otel.nix # the shim wires scrapeTargets/otlpEndpoint — options must exist
       ../../registry/nixos.nix
       inputs.nativelink-nix.nixosModules.nativelink
       ../shim.nix

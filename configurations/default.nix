@@ -59,8 +59,11 @@ let
       system = "aarch64-linux";
       nixpkgs = inputs.nixpkgs-jetson;
     };
-    gossamer.system = "aarch64-linux";
-    shimmer.system = "aarch64-linux";
+    # The DGX Sparks are out of the fleet for now; configs kept (and the
+    # dgx-spark module stays maintained) so they can be re-added by
+    # uncommenting when hardware returns.
+    # gossamer.system = "aarch64-linux";
+    # shimmer.system = "aarch64-linux";
 
     guccimane = { };
     shannon = { };
