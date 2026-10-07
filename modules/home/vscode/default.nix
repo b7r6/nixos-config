@@ -259,6 +259,7 @@ in
           nvidia.nsight-vscode-edition # CUDA debugging (cuda-gdb)
           anthropic.claude-code # Claude Code
           kilocode.kilo-code # agentic assistant + Codestral FIM autocomplete (Kilo gateway)
+          tuttieee.emacs-mcx # Awesome Emacs Keymap (C-x C-s, kill ring, marks)
         ])
         # --- Python checker: pick one ---
         ++ lib.optional (cfg.pythonChecker == "pyrefly") marketplace.meta.pyrefly
