@@ -59,12 +59,9 @@ in  schema.Registry::{
           [ "postgres"
           , "attic"
           , "registry"
-          , "monitoring"
           , "studio"
           , "git"
           , "auth"
-          , "ch"
-          , "grafana"
           ]
         }
       , Host::{
@@ -114,7 +111,7 @@ in  schema.Registry::{
         , tailnet_ipv4 = "100.120.215.82"
         , zone = "sju1"
         , role = "laptop"
-        , services = [ "clickhouse-keeper" ]
+        , services = [ "clickhouse-keeper", "ch", "grafana", "monitoring" ]
         }
       , Host::{
         , physical = "weyl"

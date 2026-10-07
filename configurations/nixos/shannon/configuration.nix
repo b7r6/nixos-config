@@ -1,4 +1,9 @@
-{ flake, lib, ... }:
+{
+  flake,
+  lib,
+  pkgs,
+  ...
+}:
 let
   inherit (flake) inputs;
 in
@@ -50,6 +55,106 @@ in
       bucket = "straylight-nativelink-cas";
       environmentFile = "/run/agenix/nativelink-r2-env";
     };
+  };
+
+  # ── OTel gateway: the observability spine lands on the laptop ──────────────
+  # The registry `ch` tag moved here with the fleet sell-off, so this node is
+  # both agent and gateway; the module fuses them into one collector writing
+  # straight into the local ClickHouse (otel database).
+  hyper-modern-nixos.observability.otel.gateway.enable = true;
+
+  # ── Grafana: single-box flavor of watchtower's stack ───────────────────────
+  # Localhost only (no nginx edge, no kanidm OAuth — the IdP retired with
+  # watchtower). ClickHouse datasource + the same Dhall-rendered dashboards.
+  services.grafana = {
+    enable = true;
+
+    settings = {
+      server = {
+        http_addr = "127.0.0.1";
+        http_port = 3300;
+      };
+
+      security = {
+        admin_user = "admin";
+        admin_password = "$__file{/run/agenix/grafana-admin-password}";
+        secret_key = "$__file{/run/agenix/grafana-admin-password}";
+      };
+
+      "auth.anonymous".enabled = false;
+    };
+
+    declarativePlugins = [ pkgs.grafanaPlugins.grafana-clickhouse-datasource ];
+
+    provision = {
+      enable = true;
+
+      datasources.settings.datasources = [
+        {
+          name = "ClickHouse";
+          type = "grafana-clickhouse-datasource";
+          uid = "clickhouse";
+          access = "proxy";
+          isDefault = true;
+          jsonData = {
+            host = "127.0.0.1";
+            port = 9000;
+            protocol = "native";
+            defaultDatabase = "otel";
+            username = "default";
+          };
+        }
+      ];
+
+      dashboards.settings.providers = [
+        {
+          name = "fleet";
+          type = "file";
+          options.path = "/etc/grafana/dashboards";
+          options.foldersFromFilesStructure = true;
+        }
+      ];
+    };
+  };
+
+  # render dashboards from Dhall → JSON (same apparatus as watchtower ran)
+  environment.etc =
+    let
+      grafanaDir = ../../../modules/flake/grafana;
+      dashboardDir = "${grafanaDir}/dashboards";
+      dhallFiles = builtins.filter (n: builtins.match ".*\\.dhall" n != null) (
+        builtins.attrNames (builtins.readDir dashboardDir)
+      );
+      renderDashboard =
+        file:
+        let
+          name = builtins.replaceStrings [ ".dhall" ] [ "" ] file;
+        in
+        pkgs.runCommand "grafana-dashboard-${name}.json" { nativeBuildInputs = [ pkgs.dhall-json ]; } ''
+          export HOME="$TMPDIR"
+          export XDG_CACHE_HOME="$TMPDIR/dhall-cache"
+          mkdir -p "$XDG_CACHE_HOME"
+          dhall-to-json --file ${grafanaDir}/dashboards/${file} > $out
+        '';
+    in
+    builtins.listToAttrs (
+      map (
+        file:
+        let
+          name = builtins.replaceStrings [ ".dhall" ] [ "" ] file;
+        in
+        {
+          name = "grafana/dashboards/${name}.json";
+          value.source = renderDashboard file;
+        }
+      ) dhallFiles
+    );
+
+  age.secrets.grafana-admin-password = {
+    file = ../../../secrets/agenix/machines/grafana-admin-password.age;
+    owner = "grafana";
+    group = "grafana";
+    mode = "0400";
   };
 
   # ── ClickHouse: single-node keeper + server, S3→R2 durable tier ─────────────
