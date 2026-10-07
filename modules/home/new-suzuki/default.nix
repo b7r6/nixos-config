@@ -394,6 +394,14 @@ in
           ExecStart = "${wintermute}/bin/wintermute daemon";
           Restart = "always";
           RestartSec = 1;
+          # wintermute's gsettings adapter drives the GTK/Qt + Firefox/Slack
+          # day-night signal (org.gnome.desktop.interface color-scheme →
+          # xdg-desktop-portal Settings → every prefers-color-scheme app). The
+          # systemd --user env lacks the gsettings-schemas subdirs the login
+          # shell gets, so the set fails "No schemas installed" and runQuiet
+          # swallows it — the theme flips everywhere but the browser. Hand the
+          # daemon the desktop schema explicitly.
+          Environment = "GSETTINGS_SCHEMA_DIR=${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}/glib-2.0/schemas";
         };
         Install.WantedBy = [ "graphical-session.target" ];
       };
