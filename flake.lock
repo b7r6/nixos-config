@@ -1426,11 +1426,11 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1791399420,
-        "narHash": "sha256-Lukny/M4eljXUQX0WbA7sbO4KT/X6b3K8Q2MZDPa0j0=",
+        "lastModified": 1791403077,
+        "narHash": "sha256-rdWV11eO4JJJ1o3vfznZh7MW7hlV70o3wwpJlCi+FEk=",
         "owner": "b7r6",
         "repo": "narsil",
-        "rev": "0e739a7b65813fe431ed79ae40283f3cdd46a200",
+        "rev": "47dfe0af1961b4e69ea4ff2da02e6751da19025a",
         "type": "github"
       },
       "original": {
@@ -3052,11 +3052,11 @@
         "systems": "systems_12"
       },
       "locked": {
-        "lastModified": 1791399631,
-        "narHash": "sha256-o+Hpwor02gj1Eklvil9+rbdT7l3IVpFcxWuXdV9w9jk=",
+        "lastModified": 1791405935,
+        "narHash": "sha256-BG08iRluvl/5Et3j6qsCjzhj3Q2fVqySQT/JaxHtuFE=",
         "ref": "refs/heads/main",
-        "rev": "1bedff6f94ed7d20a373811a3213d5ffd7aae826",
-        "revCount": 2,
+        "rev": "c29b85e927d8a61f429e4d05e2cd01758f0bb243",
+        "revCount": 3,
         "type": "git",
         "url": "ssh://git@github.com/b7r6/wintermute.git"
       },
