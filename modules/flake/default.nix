@@ -87,7 +87,7 @@
         # Lean generator vs lib.nix vs the wintermute daemon's port.
         ono-sendai-parity = import ../../checks/ono-sendai-parity.nix {
           inherit pkgs;
-          wintermute = inputs.continuity.packages.${system}.wintermute or null;
+          wintermute = inputs.wintermute.packages.${system}.wintermute or null;
         };
         # Batch-loads and byte-compiles the full emacs config; fails on any
         # Warning or Error so regressions are caught at `nix flake check` time.

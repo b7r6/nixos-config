@@ -273,7 +273,7 @@ let
 
   # The reconciler daemon/CLI from the continuity monorepo (theorem-carrying
   # core; the shell's ThemeService spawns `wintermute preset|set`).
-  wintermute = flake.inputs.continuity.packages.${pkgs.stdenv.hostPlatform.system}.wintermute;
+  wintermute = flake.inputs.wintermute.packages.${pkgs.stdenv.hostPlatform.system}.wintermute;
 
   # The wallpaper field as a CUDA kernel (straylight-nvidia-sdk) — CLI plus
   # the zero-copy wayland presenter. Built against the SDK's own toolchain;

@@ -31,13 +31,12 @@
     orbital-forge.url = "git+ssh://git@github.com/hypermodern-src/orbital-straylight-www.git?dir=projects/orbital-forge";
     orbital-forge.inputs.nixpkgs.follows = "nixpkgs";
 
-    # continuity: the verified Lean4 monorepo — pulled for the wintermute
-    # theme reconciler (src/apps/wintermute). Deliberately does NOT follow
-    # our nixpkgs: continuity pins its own lean4-nix toolchain and its
-    # packages should build exactly as its own CI builds them.
-    # Fetched from the GitHub mirror since the forge retired with watchtower
-    # (2026-10-07); same branch as the forge had.
-    continuity.url = "git+ssh://git@github.com/hypermodern-src/orbital-continuity.git?ref=b7r6/wintermute-0x01";
+    # wintermute: the hot-reload theme reconciler as its own production
+    # (extracted 2026-10-07 from the continuity monorepo's
+    # b7r6/wintermute-0x01 branch, proof-carrying dep cone included).
+    # Deliberately does NOT follow our nixpkgs: it pins its own lean4-nix
+    # toolchain and should build exactly as its own CI builds it.
+    wintermute.url = "git+ssh://git@github.com/b7r6/wintermute.git";
 
     # straylight-nvidia-sdk: modern nv. Pulled for wintermute-field — the
     # wallpaper field as a CUDA kernel, and the zero-copy wayland presenter
