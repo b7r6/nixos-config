@@ -428,10 +428,10 @@ in
         set -g status-right " #[fg=${colors.base0D}]%H:%M #[fg=${colors.base0D}]#h#[default] #[fg=${colors.base0D}]#(whoami)#[default] "
 
         set -g window-status-separator ""
-        set -g window-status-style "fg=${colors.base04},bg=${colors.base03}"
+        set -g window-status-style "fg=${colors.base05},bg=${colors.base03}"
         set -g window-status-current-style "fg=${colors.base05},bg=${colors.base03}"
         set -g window-status-current-format " #[fg=${colors.base05},bg=${colors.base03},bold]#W#[default]"
-        set -g window-status-format " #[fg=${colors.base04}]#W#[default] "
+        set -g window-status-format " #[fg=${colors.base05}]#W#[default] "
       '';
     };
 
