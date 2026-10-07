@@ -515,6 +515,13 @@ in
   config = mkIf cfg.enable {
     # This is the canonical Hyprland configuration module.
 
+    # home-manager's hyprland module auto-enables xdg.portal with ONLY the
+    # hyprland backend, and its portal dir (the per-user profile) SHADOWS the
+    # system one — without gtk here, gtk.portal becomes invisible to
+    # xdg-desktop-portal and every gtk-backed interface (OpenURI → links from
+    # Slack/VSCode, FileChooser, AppChooser) silently drops off the bus.
+    xdg.portal.extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+
     wayland.windowManager.hyprland = {
       enable = true;
       configType = "hyprlang";
