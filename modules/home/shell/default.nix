@@ -429,6 +429,11 @@ in
         set -g status-right " #[fg=${colors.base0D}]%H:%M #[fg=${colors.base0D}]#h#[default] #[fg=${colors.base0D}]#(whoami)#[default] "
 
         set -g window-status-separator ""
+        # Override stylix.targets.tmux, which injects these two with a hardcoded
+        # dark bg — the formats only set fg, so without bg=default here the
+        # window names sit on dark boxes even under the light theme.
+        set -g window-status-style "fg=${colors.base04},bg=default"
+        set -g window-status-current-style "fg=${colors.base0A},bg=default"
         set -g window-status-current-format " #[fg=${colors.base05},bg=default]#W#[default]"
         set -g window-status-format " #[fg=${colors.base04}]#W#[default] "
       '';

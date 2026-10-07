@@ -3052,11 +3052,11 @@
         "systems": "systems_12"
       },
       "locked": {
-        "lastModified": 1791406462,
-        "narHash": "sha256-drfFi/XsTSXZyrF4ZY6k77+D2IcH5rGVQIA2PQWRC0k=",
+        "lastModified": 1791407037,
+        "narHash": "sha256-FRIdn0/UTvWkO8hi6FC28xhKvqtu3BfmbBvf++CymRA=",
         "ref": "refs/heads/main",
-        "rev": "4aac350406af65251b74ad7f896f625b24f35d6f",
-        "revCount": 4,
+        "rev": "d20e24599c7ca244a854aec878fd7f9b2d98b3db",
+        "revCount": 5,
         "type": "git",
         "url": "ssh://git@github.com/b7r6/wintermute.git"
       },
