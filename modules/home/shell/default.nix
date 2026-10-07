@@ -419,22 +419,18 @@ in
 
         set -g status-right-length 150
         set -g status-justify right
-        # bg=default: the status bar tracks the terminal background instead of
-        # painting a solid strip — blends with the theme (light/dark) and picks
-        # up ghostty's opacity/blur. fg=base04 is the palette's purpose-built
-        # de-emphasis mid-tone, tuned per-polarity for legibility (base03 sits
-        # too close to the bg and washes out). Kept in lockstep with
-        # wintermute's live tmuxRestyle adapter.
-        set -g status-style "fg=${colors.base04},bg=default"
+        # The bar IS the pane-split gray (base03): a solid strip that reads well
+        # on both polarities, with base05 text (the main fg — always high
+        # contrast vs base03) and base04 for de-emphasized inactive windows.
+        # bg=base03 everywhere overrides stylix.targets.tmux's dark injection.
+        # Kept in lockstep with wintermute's live tmuxRestyle adapter.
+        set -g status-style "fg=${colors.base05},bg=${colors.base03}"
         set -g status-right " #[fg=${colors.base0D}]%H:%M #[fg=${colors.base0D}]#h#[default] #[fg=${colors.base0D}]#(whoami)#[default] "
 
         set -g window-status-separator ""
-        # Override stylix.targets.tmux, which injects these two with a hardcoded
-        # dark bg — the formats only set fg, so without bg=default here the
-        # window names sit on dark boxes even under the light theme.
-        set -g window-status-style "fg=${colors.base04},bg=default"
-        set -g window-status-current-style "fg=${colors.base0A},bg=default"
-        set -g window-status-current-format " #[fg=${colors.base05},bg=default]#W#[default]"
+        set -g window-status-style "fg=${colors.base04},bg=${colors.base03}"
+        set -g window-status-current-style "fg=${colors.base05},bg=${colors.base03}"
+        set -g window-status-current-format " #[fg=${colors.base05},bg=${colors.base03},bold]#W#[default]"
         set -g window-status-format " #[fg=${colors.base04}]#W#[default] "
       '';
     };
