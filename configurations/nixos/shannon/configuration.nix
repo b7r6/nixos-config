@@ -1,4 +1,4 @@
-{ flake, ... }:
+{ flake, lib, ... }:
 let
   inherit (flake) inputs;
 in
@@ -35,6 +35,11 @@ in
   # Last fleet holdout: without it, flake inputs from git.s4.gl can't resolve
   # off-tailnet-DNS and the attic replica can't look up watchtower.
   hyper-modern-nixos.coredns.enable = true;
+
+  # ── nativelink nix-cache: opt out (disk-constrained laptop) ────────────────
+  # The fleet default parks a 200G local substituter cache on /var/lib; on a
+  # ~1T single-disk laptop that's the difference between fine and 96% full.
+  hyper-modern-nixos.nativelink.nixCache.enable = lib.mkForce false;
 
   # ── Tailscale safety net ────────────────────────────────────────────────────
 
