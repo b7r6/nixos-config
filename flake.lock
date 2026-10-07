@@ -206,12 +206,12 @@
         "rev": "1a692294a6105b17d3d87e2fb78ac078373ad3f8",
         "revCount": 463,
         "type": "git",
-        "url": "ssh://git@git.s4.gl/continuity/continuity.git"
+        "url": "ssh://git@github.com/hypermodern-src/orbital-continuity.git"
       },
       "original": {
         "ref": "b7r6/wintermute-0x01",
         "type": "git",
-        "url": "ssh://git@git.s4.gl/continuity/continuity.git"
+        "url": "ssh://git@github.com/hypermodern-src/orbital-continuity.git"
       }
     },
     "crane": {
@@ -1395,17 +1395,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1786061655,
-        "narHash": "sha256-DnTo7XG5L9e3DilgK0pXjE0/swQW4paw/ZHcOOYUz4Y=",
+        "lastModified": 1787002529,
+        "narHash": "sha256-Hnv50Zncimaw4JaYUCdjbYriovx/GXqp1K7Xq4ICfvg=",
         "ref": "refs/heads/main",
-        "rev": "a4848cc903bfbf901bb0c8e951acd7331de52883",
-        "revCount": 4,
+        "rev": "75995925b150656997beb60343019afc5464c0da",
+        "revCount": 10,
         "type": "git",
-        "url": "file:///home/b7r6/src/straylight/modern.nix"
+        "url": "ssh://git@github.com/hypermodern-src/orbital-straylight-modern.nix.git"
       },
       "original": {
         "type": "git",
-        "url": "file:///home/b7r6/src/straylight/modern.nix"
+        "url": "ssh://git@github.com/hypermodern-src/orbital-straylight-modern.nix.git"
       }
     },
     "multigres": {
@@ -2220,6 +2220,10 @@
         "agenix": "agenix_3",
         "flake-parts": "flake-parts_14",
         "llvm-project": "llvm-project_2",
+        "modern-nix": [
+          "straylight-nvidia-sdk",
+          "modern-nix"
+        ],
         "nixpkgs": [
           "vllm-stack",
           "nixpkgs"
@@ -2228,17 +2232,17 @@
         "treefmt-nix": "treefmt-nix_8"
       },
       "locked": {
-        "lastModified": 1782897257,
-        "narHash": "sha256-Ih7mN2uKBvyQ75HSz8rsEm2GBHnZsC4W5P4N97O+/E0=",
+        "lastModified": 1787002557,
+        "narHash": "sha256-iabOILhhSvB3g4XaYGfwEqf4a93EcsenErMVJZJa2oM=",
         "ref": "refs/heads/main",
-        "rev": "3215cac6bcf3cc7645659dcb4b0e5e43ce36cf56",
-        "revCount": 30,
+        "rev": "9b483a2f13494ae984dab875be403156e50f6bd9",
+        "revCount": 52,
         "type": "git",
-        "url": "ssh://git@git.s4.gl/straylight/nvidia-sdk.git"
+        "url": "ssh://git@github.com/hypermodern-src/orbital-straylight-nvidia-sdk.git"
       },
       "original": {
         "type": "git",
-        "url": "ssh://git@git.s4.gl/straylight/nvidia-sdk.git"
+        "url": "ssh://git@github.com/hypermodern-src/orbital-straylight-nvidia-sdk.git"
       }
     },
     "opencode": {
@@ -2269,18 +2273,18 @@
       },
       "locked": {
         "dir": "projects/orbital-forge",
-        "lastModified": 1787125442,
-        "narHash": "sha256-fd9zKrHopicHedwf3eOsjt/ReYgh+1FyJhK855vA8aM=",
+        "lastModified": 1787580827,
+        "narHash": "sha256-nOCUDBGGZOOfxjLhhPUs6rGCxtREMirS/wwxAeWV0tk=",
         "ref": "refs/heads/main",
-        "rev": "84cbf5923e35a3efbaf3b4abede4b7252ab6b3f0",
-        "revCount": 487,
+        "rev": "debdc51a8d4019c33b55fe8dad330f6be0c1fc7e",
+        "revCount": 494,
         "type": "git",
-        "url": "https://git.s4.gl/straylight/www.git"
+        "url": "ssh://git@github.com/hypermodern-src/orbital-straylight-www.git"
       },
       "original": {
         "dir": "projects/orbital-forge",
         "type": "git",
-        "url": "https://git.s4.gl/straylight/www.git"
+        "url": "ssh://git@github.com/hypermodern-src/orbital-straylight-www.git"
       }
     },
     "rayfish": {
@@ -2301,12 +2305,12 @@
         "rev": "344b9cacd6c6395f56f7d36e90250d37be47d48f",
         "revCount": 584,
         "type": "git",
-        "url": "https://git.s4.gl/vendor/rayfish.git"
+        "url": "ssh://git@github.com/hypermodern-src/orbital-vendor-rayfish.git"
       },
       "original": {
         "ref": "master",
         "type": "git",
-        "url": "https://git.s4.gl/vendor/rayfish.git"
+        "url": "ssh://git@github.com/hypermodern-src/orbital-vendor-rayfish.git"
       }
     },
     "root": {
@@ -2437,17 +2441,17 @@
         "treefmt-nix": "treefmt-nix_5"
       },
       "locked": {
-        "lastModified": 1786934004,
-        "narHash": "sha256-i3TpIoPijQCRXKfgiBjsDzykPaIBkJl62YFXfdpswK0=",
+        "lastModified": 1787002557,
+        "narHash": "sha256-iabOILhhSvB3g4XaYGfwEqf4a93EcsenErMVJZJa2oM=",
         "ref": "refs/heads/main",
-        "rev": "fec204e156955c19f85789a2b9cdbd2990b6a24f",
-        "revCount": 50,
+        "rev": "9b483a2f13494ae984dab875be403156e50f6bd9",
+        "revCount": 52,
         "type": "git",
-        "url": "ssh://git@git.s4.gl/straylight/straylight-nvidia-sdk.git"
+        "url": "ssh://git@github.com/hypermodern-src/orbital-straylight-nvidia-sdk.git"
       },
       "original": {
         "type": "git",
-        "url": "ssh://git@git.s4.gl/straylight/straylight-nvidia-sdk.git"
+        "url": "ssh://git@github.com/hypermodern-src/orbital-straylight-nvidia-sdk.git"
       }
     },
     "stylix": {
@@ -2973,11 +2977,11 @@
         "rev": "2f135a0a3f6e4a9b1388a2f12d09d7e3e14fbb50",
         "revCount": 3,
         "type": "git",
-        "url": "ssh://git@git.s4.gl/hypermodern/hypermodern-vllm.git"
+        "url": "ssh://git@github.com/hypermodern-src/orbital-hypermodern-vllm.git"
       },
       "original": {
         "type": "git",
-        "url": "ssh://git@git.s4.gl/hypermodern/hypermodern-vllm.git"
+        "url": "ssh://git@github.com/hypermodern-src/orbital-hypermodern-vllm.git"
       }
     },
     "xremap": {
