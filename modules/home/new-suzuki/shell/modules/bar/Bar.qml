@@ -26,6 +26,11 @@ Scope {
 
             property bool enableAutoHide: Config.barAutoHide
 
+            // Baby-screen mode: under ~1600 logical px (the laptop panel is
+            // 1440 at scale 2.0) the full console spread overlaps — clamp the
+            // window title and shed low-priority telemetry instead.
+            readonly property bool narrowScreen: modelData.width < 1600
+
             // Floating ↔ flush morph: the bar is a detached glass island at
             // the affluent pole (inset margins) and a flush console strip at
             // the facility pole. Drag the pad and the bar physically
@@ -213,7 +218,9 @@ Scope {
 
                     CalendarButton {}
                     SystemMonitorButton {}
-                    ActiveWindow {}
+                    ActiveWindow {
+                        maxWidth: narrowScreen ? 180 : 400
+                    }
                 }
 
                 // --- CENTER ---
@@ -240,6 +247,7 @@ Scope {
 
                     Telemetry {
                         Layout.rightMargin: 8
+                        densityScale: narrowScreen ? 0.55 : 1.0
                     }
 
                     TrayWidget {}

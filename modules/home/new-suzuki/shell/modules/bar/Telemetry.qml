@@ -17,8 +17,14 @@ import qs.services
 RowLayout {
     id: root
 
+    // Width-aware shed: narrow panels (the laptop's 1440 logical) scale the
+    // effective density down so low-priority readouts drop before anything
+    // overlaps. 1.0 = full fleet-console spread.
+    property real densityScale: 1.0
+    readonly property real effDensity: Config.telemetryDensity * densityScale
+
     spacing: 12
-    visible: Config.telemetryDensity > 0.08
+    visible: effDensity > 0.08
 
     // Fabric link speed (the Mellanox flex): fastest carrier-up interface,
     // /sys/class/net/*/speed. 200000 → "200G" on a ConnectX. Polled slowly —
@@ -137,7 +143,7 @@ RowLayout {
         property bool hot: false
         property var spark: null
 
-        readonly property real reveal: Math.max(0, Math.min(1, (Config.telemetryDensity - threshold) / 0.12))
+        readonly property real reveal: Math.max(0, Math.min(1, (root.effDensity - threshold) / 0.12))
 
         visible: reveal > 0.01
         opacity: reveal
