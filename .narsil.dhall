@@ -1,24 +1,24 @@
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
---                                        // hypermodern // nixos // nix-compile
+--                                             // hypermodern // nixos // narsil
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 --
--- nix-compile configuration for this NixOS config repository.
+-- narsil configuration for this NixOS config repository (migrated from the
+-- pre-rename .nix-compile.dhall, 2026-10-07).
 --
--- We use the strict profile but disable lisp-case enforcement since this is
--- a NixOS/home-manager configuration that must interface with nixpkgs APIs
--- which use camelCase and snake_case conventions.
+-- Strict profile, but lisp-case and the raw-nixpkgs-pattern rules are off:
+-- a NixOS/home-manager config must interface with nixpkgs APIs that use
+-- camelCase/snake_case and the stock mkDerivation/runCommand idioms.
 --
-let Severity = < Error | Warning | Info | Off >
-
-let RuleOverride = { id : Text, severity : Severity, reason : Optional Text }
+let Severity = < Off | Info | Warning | Error >
 
 let override-with-reason =
       \(id : Text) ->
       \(severity : Severity) ->
       \(reason : Text) ->
-        { id, severity, reason = Some reason } : RuleOverride
+        { id, severity, reason = Some reason }
 
 in  { profile = "strict"
+    , layout = "flake-parts"
     , extra-ignores = [ ".direnv/**", "result", "result-*" ]
     , overrides =
       [ override-with-reason
@@ -46,4 +46,5 @@ in  { profile = "strict"
           Severity.Off
           "Standard nix templating for config files"
       ]
+    , lsp = { max-threads = 4, max-memory-mb = 512, max-disk-mb = 1024 }
     }

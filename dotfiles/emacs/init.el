@@ -2735,6 +2735,17 @@ silently disconnect diagnostic delivery until the next edit starts a check."
     :priority 10)))
 
 (with-eval-after-load 'lsp-mode
+  ;; narsil: b7r6's HM type checker / linter / LSP for Nix + embedded bash.
+  ;; Priority above nixd makes it the primary nix server; nixd stays
+  ;; registered as the fallback when narsil is absent from PATH.
+  (lsp-register-client
+   (make-lsp-client
+    :new-connection (lsp-stdio-connection '("narsil" "lsp"))
+    :major-modes '(nix-mode nix-ts-mode)
+    :server-id 'narsil
+    :priority 11)))
+
+(with-eval-after-load 'lsp-mode
   ;; buck2's Starlark language server: `buck2 lsp` speaks LSP over stdio.
   ;; Bound to bazel-starlark-mode (BUCK / *.bzl) for the buck2 build graph.
   ;;

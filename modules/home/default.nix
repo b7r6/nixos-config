@@ -16,6 +16,7 @@
     ./cloud
     ./dev
     ./llm
+    ./narsil
     ./nix
 
     # terminal tooling

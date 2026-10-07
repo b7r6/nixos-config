@@ -46,6 +46,11 @@
     # GitHub mirror, same reason as continuity.
     straylight-nvidia-sdk.url = "git+ssh://git@github.com/hypermodern-src/orbital-straylight-nvidia-sdk.git";
 
+    # narsil: HM type checker / linter / LSP for Nix + embedded bash
+    # (b7r6's own; holds 99.92% of nixpkgs). Like continuity, deliberately
+    # does NOT follow our nixpkgs — it pins its own Haskell toolchain.
+    narsil.url = "github:b7r6/narsil";
+
     devshell.url = "github:numtide/devshell";
     devshell.inputs.nixpkgs.follows = "nixpkgs";
 
