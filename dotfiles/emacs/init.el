@@ -2770,10 +2770,10 @@ silently disconnect diagnostic delivery until the next edit starts a check."
   '((nix
      :mode nix-mode
      :extra-modes (nix-ts-mode)
-     :client nixd
+     :client narsil
      :extensions ("\\.nix\\'")
      :backend lsp
-     :server nixd
+     :server narsil
      :formatter nixfmt
      :format-all-formatter nixfmt
      :linter nil
