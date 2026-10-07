@@ -948,8 +948,8 @@
 
 (defvar hypermodern/ui-cursor-style nil)
 (defvar hypermodern/ui-font-preset 'auto)
-(defvar hypermodern/ui-font-size 120)
-(defvar hypermodern/ui-variable-font-size 120)
+(defvar hypermodern/ui-font-size 144)
+(defvar hypermodern/ui-variable-font-size 144)
 (defvar hypermodern/ui-padding nil)
 
 (defvar hypermodern/ui-alpha 100)
@@ -1004,16 +1004,20 @@
   (pcase hypermodern/ui-glow-level ('off 0.0) ('subtle 0.08) ('neon 0.16) (_ 0.0)))
 
 (defun hypermodern/ui--apply-fonts ()
+  ;; Flat mono always: variable-pitch resolves to the SAME mono family and
+  ;; size as default — never a proportional font — and weight/slant are pinned
+  ;; normal at the source so nothing inherits bold/italic. The preset's
+  ;; :variable list is deliberately ignored.
   (let* ((preset (assq hypermodern/ui-font-preset hypermodern/ui--font-presets))
          (mono-list (plist-get (cdr preset) :mono))
-         (var-list (plist-get (cdr preset) :variable))
-         (mono (hypermodern/ui--first-font mono-list))
-         (var (or (hypermodern/ui--first-font var-list) mono)))
+         (mono (hypermodern/ui--first-font mono-list)))
     (when mono
-      (set-face-attribute 'default nil :family mono :height hypermodern/ui-font-size)
-      (set-face-attribute 'fixed-pitch nil :family mono :height hypermodern/ui-font-size))
-    (when var
-      (set-face-attribute 'variable-pitch nil :family var :height hypermodern/ui-variable-font-size))))
+      (dolist (face '(default fixed-pitch variable-pitch))
+        (set-face-attribute face nil
+                            :family mono
+                            :height hypermodern/ui-font-size
+                            :weight 'normal
+                            :slant 'normal)))))
 
 (defun hypermodern/ui--density-values (density)
   (pcase density
