@@ -81,7 +81,6 @@ in  schema.Registry::{
           , "searxng"
           , "torrents"
           , "attic-replica"
-          , "clickhouse-keeper"
           ]
         }
       , Host::{
@@ -93,7 +92,7 @@ in  schema.Registry::{
         , lan_ipv4 = Some "192.168.40.232"
         , zone = "sju1"
         , role = "accelerator"
-        , services = [ "clickhouse-keeper" ]
+        , services = [] : List Text
         }
       , Host::{
         , physical = "guccimane"
@@ -105,7 +104,7 @@ in  schema.Registry::{
         , zone = "sju1"
         , role = "server"
         , services =
-          [ "drop", "navidrome", "jellyfin", "pinchflat", "clickhouse-keeper" ]
+          [ "drop", "navidrome", "jellyfin", "pinchflat" ]
         }
       , Host::{
         , physical = "shannon"
@@ -115,7 +114,7 @@ in  schema.Registry::{
         , tailnet_ipv4 = "100.120.215.82"
         , zone = "sju1"
         , role = "laptop"
-        , services = [] : List Text
+        , services = [ "clickhouse-keeper" ]
         }
       , Host::{
         , physical = "weyl"

@@ -230,6 +230,18 @@ in
     keeper = {
       enable = lib.mkEnableOption "ClickHouse Keeper (coordination plane, registry-derived ensemble)";
 
+      allowSolo = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          Permit a 1-node "ensemble". No fault tolerance — a single Keeper is
+          coordination theater, acceptable only when the deployment is
+          deliberately one box (e.g. the whole fleet is one laptop) and
+          durability comes from elsewhere (S3/R2 data tier). Even sizes are
+          still rejected.
+        '';
+      };
+
       nodeAddressMode = lib.mkOption {
         type = lib.types.enum [
           "tailnet-fqdn"
@@ -449,12 +461,13 @@ in
           message = "clickhouse-keeper: ensemble members must be unique.";
         }
         {
-          assertion = (lib.length ensembleHosts) >= 3;
+          assertion = (lib.length ensembleHosts) >= 3 || (keeper.allowSolo && (lib.length ensembleHosts) == 1);
           message = ''
             clickhouse-keeper: the ensemble must have at least 3 members for fault
             tolerance (found ${toString (lib.length ensembleHosts)}). A 1-node
             "ensemble" is a toy; a 2-node one is worse than 1 (any loss breaks
-            quorum). Tag at least 3 hosts `clickhouse-keeper`.
+            quorum). Tag at least 3 hosts `clickhouse-keeper`, or set
+            keeper.allowSolo = true for a deliberate one-box deployment.
           '';
         }
         {

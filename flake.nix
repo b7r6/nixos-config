@@ -121,7 +121,9 @@
     # module, so modules/nixos/common/nativelink.nix hand-rolls the service.
     # Off by default; building from source is heavy unless you add
     # nativelink.cachix.org to substituters.
-    nativelink.url = "github:TraceMachina/nativelink";
+    # Pinned to b7r6's integration branch: straylight fork + all upstream-bound
+    # fix branches (shard-ring failover, CAS integrity, scheduler-redis, etc.).
+    nativelink.url = "github:b7r6/nativelink?ref=integration/straylight-plus-all-fixes-2026-10-05";
     nativelink.inputs.nixpkgs.follows = "nixpkgs";
 
     # Straylight's NativeLink fork carrying the Nix binary-cache (substituter)
@@ -129,8 +131,10 @@
     # option in modules/flake/nativelink to serve the Nix HTTP binary-cache
     # protocol. It is a strict superset of upstream, kept as a SEPARATE input so
     # standing up the Nix cache on one host does not rebuild the RE fleet's
-    # `nativelink`. Fetched over the self-hosted forge's HTTPS git endpoint.
-    nativelink-nix.url = "git+https://git.s4.gl/straylight/straylight-nativelink?ref=migrate-1.7.3";
+    # `nativelink`. Moved off the self-hosted forge (watchtower retired
+    # 2026-10-07) onto the GitHub fork; the integration branch is a superset
+    # of migrate-1.7.3.
+    nativelink-nix.url = "github:b7r6/nativelink?ref=integration/straylight-plus-all-fixes-2026-10-05";
     nativelink-nix.inputs.nixpkgs.follows = "nixpkgs";
 
     # rayfish — our vendored fork of the iroh-powered P2P mesh VPN (rayfish/rayfish),

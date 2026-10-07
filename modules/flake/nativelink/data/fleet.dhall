@@ -6,11 +6,11 @@
 --  worker vs CAS differ per role). See
 --  docs/src/infrastructure/nativelink-production.md.
 --
---  Topology (single-site sju1, multi-arch):
---    watchtower (x86_64): scheduler + CAS shard + worker
---    guccimane  (x86_64): CAS shard + worker
---    shimmer    (aarch64): CAS shard + worker  (only aarch64 executor)
---    ultraviolence (x86_64): CAS shard (small) + worker
+--  Topology (single-site sju1, fleet sell-off 2026-10-07 — one box remains):
+--    shannon (x86_64): scheduler + CAS shard + worker  (laptop, LARP-RBE)
+--  The ring degenerates to a single shard; R2 stays the slow tier so the
+--  CAS survives shannon's disk. Old roster (watchtower/guccimane/
+--  ultraviolence/weyl) wiped and sold — see docs/salvage-checklist-2026-10.md.
 --  CAS = a weighted shard ring over each node's CAS server (grpc), hashed by
 --  digest; each node fronts a local NVMe fast tier over the shared R2 slow tier.
 let schema = ./schema.dhall
@@ -42,7 +42,7 @@ let HostDef =
       , default = { isScheduler = False, enabled = True }
       }
 
-let schedulerFqdn = "watchtower.sju1.s4.gl"
+let schedulerFqdn = "shannon.sju1.s4.gl"
 
 let casPort = "50052"
 
@@ -54,33 +54,12 @@ let casRpcTimeoutS = 60
 
 let hosts =
       [ HostDef::{
-        , name = "watchtower"
-        , fqdn = "watchtower.sju1.s4.gl"
-        , arch = Arch.x86_64
-        , casWeight = 4
-        , casFastBytes = 68719476736
-        , isScheduler = True
-        }
-      , HostDef::{
-        , name = "guccimane"
-        , fqdn = "guccimane.sju1.s4.gl"
-        , arch = Arch.x86_64
-        , casWeight = 4
-        , casFastBytes = 68719476736
-        }
-      , HostDef::{
-        , name = "ultraviolence"
-        , fqdn = "ultraviolence.sju1.s4.gl"
+        , name = "shannon"
+        , fqdn = "shannon.sju1.s4.gl"
         , arch = Arch.x86_64
         , casWeight = 1
         , casFastBytes = 17179869184
-        }
-      , HostDef::{
-        , name = "weyl"
-        , fqdn = "weyl.sju1.s4.gl"
-        , arch = Arch.x86_64
-        , casWeight = 2
-        , casFastBytes = 34359738368
+        , isScheduler = True
         }
       ]
 

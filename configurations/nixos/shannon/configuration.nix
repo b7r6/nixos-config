@@ -28,7 +28,44 @@ in
 
     scrapeTargets = [
       "127.0.0.1:9153" # coredns
+      "127.0.0.1:9363" # clickhouse
+      "127.0.0.1:9364" # clickhouse-keeper
     ];
+  };
+
+  # ── NativeLink: the whole fleet in one laptop (scheduler + CAS + worker) ────
+  # Fleet sell-off 2026-10-07: shannon inherits the scheduler role and is the
+  # only shard in the CAS ring (weight 1, 16G fast tier — disk-constrained).
+  # R2 remains the slow tier, so cache contents outlive this disk.
+  age.secrets.nativelink-r2-env.file = ../../../secrets/agenix/machines/nativelink-r2-env.age;
+
+  hyper-modern-nixos.nativelink = {
+    enable = true;
+    dhallHost = "shannon";
+    openFirewall = true;
+
+    r2 = {
+      enable = true;
+      accountId = "6063b6652178f5cf1cfb87e7e41acf1e";
+      bucket = "straylight-nativelink-cas";
+      environmentFile = "/run/agenix/nativelink-r2-env";
+    };
+  };
+
+  # ── ClickHouse: single-node keeper + server, S3→R2 durable tier ─────────────
+  # Keeper membership is registry-derived (shannon is the only host tagged
+  # `clickhouse-keeper` after the sell-off → 1-node ensemble). The server's
+  # local disk is reconstructible cache; R2 is the durable truth.
+  hyper-modern-nixos.databases.clickhouse = {
+    keeper = {
+      enable = true;
+      # One box IS the fleet now; durability is the S3→R2 tier, not quorum.
+      allowSolo = true;
+    };
+    server = {
+      enable = true;
+      s3.enable = true;
+    };
   };
 
   # ── CoreDNS as this node's own resolver (serves s4.gl — git, auth, grafana) ─
