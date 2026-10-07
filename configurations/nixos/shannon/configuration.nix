@@ -78,7 +78,23 @@ in
   # local fast tier capped: with r2.enable the NAR store is fastSlow(local, R2
   # nix-nar/), so eviction from the 32G local tier never loses data — R2 is the
   # durable copy. The uncapped default grew to 201G on this ~1T laptop.
-  hyper-modern-nixos.nativelink.nixCache.fastCacheBytes = 34359738368; # 32 GiB
+  hyper-modern-nixos.nativelink.nixCache = {
+    fastCacheBytes = 34359738368; # 32 GiB
+
+    # Read-through: a miss here consults upstream and mirrors the NAR into the
+    # local CAS (→ R2) instead of just 404ing the client into fallthrough.
+    # Same pair guccimane ran.
+    upstreamCaches = [
+      {
+        url = "https://cache.nixos.org";
+        trustedPublicKeys = [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" ];
+      }
+      {
+        url = "https://nix-community.cachix.org";
+        trustedPublicKeys = [ "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=" ];
+      }
+    ];
+  };
 
   # ── Tailscale safety net ────────────────────────────────────────────────────
 
