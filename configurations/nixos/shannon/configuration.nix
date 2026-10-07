@@ -73,6 +73,8 @@ in
       server = {
         http_addr = "127.0.0.1";
         http_port = 3300;
+        root_url = "https://grafana.sju1.s4.gl/";
+        domain = "grafana.sju1.s4.gl";
       };
 
       security = {
@@ -155,6 +157,17 @@ in
     owner = "grafana";
     group = "grafana";
     mode = "0400";
+  };
+
+  # ── nginx vhosts: TLS names for the single-box stack ───────────────────────
+  # Split-horizon: coredns resolves <sub>.sju1.s4.gl here (grafana/ch tags),
+  # nginx terminates the wildcard LE cert and proxies to loopback. No
+  # `protected` vhosts — oauth2-proxy's IdP retired with watchtower.
+  hyper-modern-nixos.reverseProxy = {
+    enable = true;
+
+    services.grafana.port = 3300;
+    services.ch.port = 8123; # clickhouse HTTP interface
   };
 
   # ── ClickHouse: single-node keeper + server, S3→R2 durable tier ─────────────
