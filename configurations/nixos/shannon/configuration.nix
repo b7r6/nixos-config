@@ -73,10 +73,12 @@ in
   # off-tailnet-DNS and the attic replica can't look up watchtower.
   hyper-modern-nixos.coredns.enable = true;
 
-  # ── nativelink nix-cache: opt out (disk-constrained laptop) ────────────────
-  # The fleet default parks a 200G local substituter cache on /var/lib; on a
-  # ~1T single-disk laptop that's the difference between fine and 96% full.
-  hyper-modern-nixos.nativelink.nixCache.enable = lib.mkForce false;
+  # ── nativelink nix-cache: bounded fast tier over R2 ────────────────────────
+  # Re-enabled (fleet default) after the 2026-10-07 disk incident, but with the
+  # local fast tier capped: with r2.enable the NAR store is fastSlow(local, R2
+  # nix-nar/), so eviction from the 32G local tier never loses data — R2 is the
+  # durable copy. The uncapped default grew to 201G on this ~1T laptop.
+  hyper-modern-nixos.nativelink.nixCache.fastCacheBytes = 34359738368; # 32 GiB
 
   # ── Tailscale safety net ────────────────────────────────────────────────────
 
