@@ -23,7 +23,18 @@ in
 
   # ── OTel agent (host metrics + journald → watchtower gateway) ──────────────
 
-  hyper-modern-nixos.observability.otel.agent.enable = true;
+  hyper-modern-nixos.observability.otel.agent = {
+    enable = true;
+
+    scrapeTargets = [
+      "127.0.0.1:9153" # coredns
+    ];
+  };
+
+  # ── CoreDNS as this node's own resolver (serves s4.gl — git, auth, grafana) ─
+  # Last fleet holdout: without it, flake inputs from git.s4.gl can't resolve
+  # off-tailnet-DNS and the attic replica can't look up watchtower.
+  hyper-modern-nixos.coredns.enable = true;
 
   # ── Tailscale safety net ────────────────────────────────────────────────────
 
