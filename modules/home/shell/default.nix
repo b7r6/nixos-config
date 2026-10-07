@@ -421,14 +421,16 @@ in
         set -g status-justify right
         # bg=default: the status bar tracks the terminal background instead of
         # painting a solid strip — blends with the theme (light/dark) and picks
-        # up ghostty's opacity/blur. Kept in lockstep with wintermute's live
-        # tmuxRestyle adapter, which sets the same.
-        set -g status-style "fg=${colors.base03},bg=default"
+        # up ghostty's opacity/blur. fg=base04 is the palette's purpose-built
+        # de-emphasis mid-tone, tuned per-polarity for legibility (base03 sits
+        # too close to the bg and washes out). Kept in lockstep with
+        # wintermute's live tmuxRestyle adapter.
+        set -g status-style "fg=${colors.base04},bg=default"
         set -g status-right " #[fg=${colors.base0D}]%H:%M #[fg=${colors.base0D}]#h#[default] #[fg=${colors.base0D}]#(whoami)#[default] "
 
         set -g window-status-separator ""
         set -g window-status-current-format " #[fg=${colors.base05},bg=default]#W#[default]"
-        set -g window-status-format " #[fg=${colors.base03}]#W#[default] "
+        set -g window-status-format " #[fg=${colors.base04}]#W#[default] "
       '';
     };
 
