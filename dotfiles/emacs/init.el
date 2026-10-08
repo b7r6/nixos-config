@@ -4149,7 +4149,12 @@ walking zellij panes. Outside zellij, the edge stays an edge."
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(safe-local-variable-values
-   '((haskell-indentation-layout-offset . 4)
+   '((haskell-indentation-layout-offset . 2)
+     (haskell-indentation-left-offset . 2)
+     (haskell-indentation-starter-offset . 2)
+     (haskell-indentation-where-post-offset . 2)
+     (haskell-indentation-where-pre-offset . 2)
+     (haskell-indentation-layout-offset . 4)
      (haskell-indentation-left-offset . 4)
      (haskell-indentation-starter-offset . 4)
      (haskell-indentation-where-post-offset . 4)
