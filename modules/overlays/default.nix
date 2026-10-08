@@ -16,6 +16,19 @@
 
 _final: prev: {
 
+  # claude-code — bumped ahead of nixpkgs (which lagged at 2.1.195). It's a
+  # prebuilt-binary fetch, so overriding version + src is a clean targeted bump
+  # that doesn't rebuild the world via a nixpkgs update. linux-x64 is fine: the
+  # fleet is one x86_64 box now. Refresh the hash with:
+  #   nix store prefetch-file https://downloads.claude.ai/claude-code-releases/<v>/linux-x64/claude
+  claude-code = prev.claude-code.overrideAttrs (_old: {
+    version = "2.1.293";
+    src = prev.fetchurl {
+      url = "https://downloads.claude.ai/claude-code-releases/2.1.293/linux-x64/claude";
+      hash = "sha256-iWhAXibbR4r0TqvEY1q1ylVwV7cCpURgpZwT4bJT6Xg=";
+    };
+  });
+
   # coredns-zone — the fleet DNS compiler (modules/flake/registry/packages/coredns-zone):
   # a compiled GHC-9.12 program that renders + semantically validates the topology
   # registry into a CoreDNS zone. Consumed by modules/nixos/coredns.nix at build time.

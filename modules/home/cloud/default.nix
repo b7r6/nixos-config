@@ -23,6 +23,12 @@ in
       description = "Enable Google Cloud SDK (heavy ~500MB, disabled by default)";
     };
 
+    azure.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable Azure CLI (az)";
+    };
+
     terraform.enable = lib.mkOption {
       type = lib.types.bool;
       default = false;
@@ -75,6 +81,7 @@ in
       lib.flatten [
         (lib.optional cfg.flyctl.enable flyctl)
         (lib.optional cfg.aws.enable awscli2)
+        (lib.optional cfg.azure.enable azure-cli)
         (lib.optional cfg.rclone.enable rclone)
         (lib.optionals cfg.gcp.enable [ google-cloud-sdk ])
         (lib.optionals cfg.terraform.enable [
