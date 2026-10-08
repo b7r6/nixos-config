@@ -7,9 +7,12 @@ Brings shannon back **identical but encrypted**. Config + inputs on GitHub
 1. **The host-key bundle** (~5KB): `/tmp/shannon-reinstall-bundle/`
    (also in R2: `straylight-archive/shannon-reinstall/bundle/`). Has shannon's
    `ssh_host_*` (the agenix identity) + `rclone.conf` (R2 access for restic).
-2. **A GitHub token** — a fine-grained PAT, read-only on your repos
-   (`github.com/settings/tokens`). nix needs it to fetch the PRIVATE flake +
-   private inputs. Or use your off-machine `id_ed25519_b7r6` for git+ssh.
+2. **A GitHub token** — nix needs it to fetch the PRIVATE flake + private
+   inputs. 7 private inputs across 3 accounts: `b7r6/nixos-config`,
+   `hypermodern-src/orbital-*` (×5), `sensenet-ai/nix-compile`. Simplest:
+   a **classic PAT with `repo` scope** (read-covers-everything-you-can-see) —
+   a fine-grained PAT would need all 3 accounts selected. Make it at
+   `github.com/settings/tokens`.
 
 ## USB
 Already written: NixOS graphical 25.11 installer (sda1/sda2). Boot it.
