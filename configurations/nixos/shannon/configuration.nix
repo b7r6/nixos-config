@@ -19,6 +19,23 @@ in
   networking.hostName = "shannon";
   networking.networkmanager.enable = true;
 
+  # ═══════════════════════════════════════════════════════════════════════════
+  # TODO[b7r6]: SERVER ROLES DISABLED for the LUKS reinstall (2026-10-08).
+  #
+  # The 2026-10-07 fleet sell-off consolidated the whole server stack onto this
+  # laptop (attic, nativelink + nix-cache, clickhouse, coredns, otel agent +
+  # gateway, grafana, nginx/acme). Those roles drag heavy from-source fork/
+  # Haskell/Rust builds (nativelink=Rust, coredns-zone/hnix/dhall=Haskell,
+  # clickhouse=C++) that exist on NO public binary cache — the only cache that
+  # ever held them was this box's own loopback nativelink nix_cache, which does
+  # not exist during `disko-install`. That is why a clean install compiles for
+  # hours. None of it is needed for a bootable encrypted DESKTOP.
+  #
+  # To restore the server stack after the box is reinstalled and can rebuild/
+  # serve its own cache again: delete the `/* … */` wrappers below AND the two
+  # `mkForce false` lines that follow the block.
+  # ═══════════════════════════════════════════════════════════════════════════
+  /*
   # ── attic api-server replica (module self-wires its secrets) ────────────────
 
   hyper-modern-nixos.attic-node = {
@@ -213,6 +230,13 @@ in
       }
     ];
   };
+  */
+
+  # TODO[b7r6]: neutralize the fleet-wide defaults (modules/nixos/default.nix)
+  # that would otherwise re-enable the nativelink nix-cache (and its Rust build)
+  # on every host. Drop these two lines when re-enabling the server block above.
+  hyper-modern-nixos.nativelink.enable = lib.mkForce false;
+  hyper-modern-nixos.nativelink.nixCache.enable = lib.mkForce false;
 
   # ── Tailscale safety net ────────────────────────────────────────────────────
 
@@ -247,11 +271,10 @@ in
   # /bin/bash etc. for FHS-assuming tools (Bazel genrules, scripts).
   services.envfs.enable = true;
 
-  # The registry IFDs (dhall→JSON) build on each host's platform; gossamer and
-  # shimmer are native aarch64, so evaluating/`nix flake check`-ing the fleet
-  # from this laptop needs aarch64 build capability. The renders are tiny —
-  # qemu-user emulation is more than enough.
-  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
+  # TODO[b7r6]: aarch64 emulation was for cross-evaluating the (now-sold) fleet's
+  # native-aarch64 registry IFDs. Dead weight for a standalone laptop; re-enable
+  # if this box ever needs to `nix flake check` aarch64 hosts again.
+  # boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
   environment.variables = {
     __GLX_VENDOR_LIBRARY_NAME = "nvidia";

@@ -1,6 +1,30 @@
 {
   description = "// hypermodern // nixos";
 
+  # The build must be self-sufficient from PUBLIC caches — never dependent on a
+  # private/self-hosted one. The fleet's nativelink nix_cache (127.0.0.1:50071)
+  # is a pure OPTIONAL accelerator: it lives only in the b7r6 user nix.conf, is
+  # fail-open (a dead endpoint falls through to source), and is deliberately NOT
+  # listed here, so it is never assumed by a root build such as `disko-install`.
+  #
+  # What IS listed are the public substituters the stock installer ISO does not
+  # know about on its own (it ships only cache.nixos.org). Without this block a
+  # fresh `disko-install` rebuilds the entire nix-community + supabase-postgres
+  # closure from source for no reason. `disko-install`/`nix` honor these with
+  # --accept-flake-config (root on the ISO is trusted). The fork packages
+  # (b7r6/nativelink, narsil, wintermute, coredns-zone, …) have no public cache
+  # and still build from source — that is accepted, not a failure.
+  nixConfig = {
+    extra-substituters = [
+      "https://nix-community.cachix.org"
+      "https://nix-postgres-artifacts.s3.amazonaws.com"
+    ];
+    extra-trusted-public-keys = [
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+      "nix-postgres-artifacts:dGZlQOvKcNEjvT7QEeBMKja1bMnGqCiQ5vzg4IZ4Qbk="
+    ];
+  };
+
   outputs =
     inputs:
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
