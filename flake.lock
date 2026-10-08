@@ -2067,15 +2067,16 @@
     },
     "nixpkgs_5": {
       "locked": {
-        "lastModified": 1782764868,
-        "narHash": "sha256-7ZOVqNZSb1CWXes02nQuRMYpaRtM61fKfRTRZf76prs=",
-        "owner": "sensenet-ai",
+        "lastModified": 1791456040,
+        "narHash": "sha256-H83yz/do+hjOO0uujHyH8RgtIQP2v7Mw+cLwcZK/xKc=",
+        "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "ddb5e98374d1f16c86ecd70d9c4e2d6c6a5e8dbc",
+        "rev": "e7439b6b14ad3cc35d05608ebca9bce01a25f5f8",
         "type": "github"
       },
       "original": {
-        "owner": "sensenet-ai",
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
         "repo": "nixpkgs",
         "type": "github"
       }

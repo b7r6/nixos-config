@@ -278,7 +278,7 @@ in
   systemd.oomd = {
     enableRootSlice = true;
     enableUserSlices = true;
-    extraConfig.DefaultMemoryPressureDurationSec = "20s";
+    settings.OOM.DefaultMemoryPressureDurationSec = "20s";
   };
 
   # /bin/bash etc. for FHS-assuming tools (Bazel genrules, scripts).

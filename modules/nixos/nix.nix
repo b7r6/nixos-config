@@ -97,6 +97,13 @@ in
 
   nixpkgs.config.allowUnfree = true;
 
+  # TODO[b7r6]: electron-41 (EOL) is pulled by pkgs.opencode-desktop
+  # (modules/home/llm). Whitelisted here only to unblock the modern-nixpkgs
+  # migration eval — a known-insecure Electron on a SOC2 box is NOT acceptable
+  # long-term. Proper fix: `nix flake update opencode` to a rev off electron-41,
+  # or drop opencode-desktop (keep the CLI). Remove this once done.
+  nixpkgs.config.permittedInsecurePackages = [ "electron-41.10.7" ];
+
   nixpkgs.overlays = [
     # Our own overlay (ragenix/agenix runtime-dep wrapping, inline-snapshot fix).
     # Previously defined as `flake.overlays.default` but never applied anywhere;

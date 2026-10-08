@@ -4,7 +4,7 @@
 #
 # Core system settings: SSH, sudo, home-manager integration.
 #
-{ config, lib, ... }:
+{ config, lib, pkgs, ... }:
 let
   # On impermanence hosts the root is wiped on boot, so host keys must live under
   # the persist volume to survive. On normal hosts they belong at the standard
@@ -45,6 +45,28 @@ in
 
   # Passwordless sudo for wheel group
   security.sudo.wheelNeedsPassword = false;
+
+  # ── Password-quality policy (Secureframe "password policy" control) ─────────
+  # The fleet is SSH-key-only (no password hashes), so this is rarely exercised,
+  # but Secureframe/osquery reads the STATIC config — /etc/security/pwquality.conf
+  # and the PAM password stack — so the control needs it present AND enforced.
+  environment.etc."security/pwquality.conf".text = ''
+    minlen = 12
+    dcredit = -1
+    ucredit = -1
+    ocredit = -1
+    lcredit = -1
+    minclass = 3
+    retry = 3
+    enforce_for_root
+  '';
+  security.pam.services.passwd.rules.password.pwquality = {
+    control = "required";
+    modulePath = "${pkgs.libpwquality.lib}/lib/security/pam_pwquality.so";
+    # Run before pam_unix writes the hash, so a weak password is rejected.
+    order = config.security.pam.services.passwd.rules.password.unix.order - 10;
+    settings.conf = "/etc/security/pwquality.conf";
+  };
 
   # Home-manager integration
   home-manager.useUserPackages = true;

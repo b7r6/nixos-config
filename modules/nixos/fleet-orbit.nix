@@ -98,10 +98,24 @@ in
       serviceConfig = {
         Type = "simple";
         EnvironmentFile = cfg.environmentFile;
+
+        # orbit is fleetd's TUF self-updater: it manages its OWN orbit binary +
+        # osqueryd under <root-dir>/bin and expects to run FROM <root-dir>/bin/
+        # orbit/orbit (that's what Secureframe's .deb installs and its unit runs).
+        # Run it straight from the read-only nix store and its update/symlink
+        # dance fails ("move old symlink … orbit.old: no such file or directory").
+        # So seed the pinned binary into the writable StateDirectory on first
+        # start (if absent), then exec that — orbit keeps it updated via TUF.
+        ExecStartPre = pkgs.writeShellScript "orbit-seed" ''
+          install -d -m0700 ${cfg.rootDir}/bin/orbit
+          if [ ! -x ${cfg.rootDir}/bin/orbit/orbit ]; then
+            install -m0755 ${cfg.package}/bin/orbit ${cfg.rootDir}/bin/orbit/orbit
+          fi
+        '';
         # Mirror the Secureframe unit: orbit flags, then `--`, then osquery flags.
         ExecStart = lib.concatStringsSep " " (
           [
-            "${cfg.package}/bin/orbit"
+            "${cfg.rootDir}/bin/orbit/orbit"
             "--root-dir ${cfg.rootDir}"
           ]
           ++ lib.optionals (cfg.hostIdentifier != null) [
