@@ -65,6 +65,7 @@
     flake.inputs.nativelink-nix.nixosModules.nativelink
     ../flake/nativelink/shim.nix
     ./clickhouse.nix
+    ./fleet-orbit.nix
     ./otel.nix
     ./postgres.nix
     ./rayfish.nix

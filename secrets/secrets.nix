@@ -62,6 +62,13 @@ in
   # retired tailnets and have been removed.
   "agenix/machines/tailscale-auth-key.age".publicKeys = mkGlobalSecret;
 
+  # Secureframe device-agent env (hyper-modern-nixos.fleet-orbit). The ORBIT_*
+  # environment file extracted from Secureframe's personalized agent .deb
+  # (/etc/default/orbit): ORBIT_FLEET_URL + ORBIT_ENROLL_SECRET + update
+  # channels. Decrypted to /run/agenix/fleet-orbit-env, consumed as the orbit
+  # service's EnvironmentFile. Re-extract from a fresh .deb to rotate.
+  "agenix/machines/fleet-orbit-env.age".publicKeys = mkGlobalSecret;
+
   # restic repository password (modules/nixos/common/backup.nix). High-entropy
   # passphrase (`openssl rand -base64 48`). LOSING THIS = UNRECOVERABLE BACKUPS;
   # keep an independent out-of-band copy.

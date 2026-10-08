@@ -244,6 +244,19 @@ in
   hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
   hyper-modern-nixos.network.tailscale.exitNodeRotation.enable = true;
 
+  # ── Secureframe device agent (fleet-orbit / osquery) ───────────────────────
+  # Reproduces Secureframe's personalized agent .deb declaratively: the ORBIT_*
+  # env (fleet URL + enroll secret + channels) extracted from /etc/default/orbit
+  # → agenix; the --specified_identifier triple from the .deb's orbit.service
+  # links this box to its Secureframe device record. Re-extract from a fresh
+  # .deb to rotate (see modules/nixos/fleet-orbit.nix).
+  age.secrets.fleet-orbit-env.file = ../../../secrets/agenix/machines/fleet-orbit-env.age;
+  hyper-modern-nixos.fleet-orbit = {
+    enable = true;
+    environmentFile = "/run/agenix/fleet-orbit-env";
+    hostIdentifier = "edaca163-3f94-4cbc-85c0-b48d42706d20:aec2d51b-d62c-4bce-807e-369335e0f71e:17a29c92-b56c-48ab-977e-7d5d678bb93c";
+  };
+
   # ── restic → Cloudflare R2 backups ─────────────────────────────────────────
 
   # Per-host repo (backups-restic/shannon). FIRST init:  nix run .#restic-init -- shannon
