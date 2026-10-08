@@ -29,6 +29,10 @@ _final: prev: {
     };
   });
 
+  # fleet-orbit — Secureframe's osquery agent (static Go binary, fetched durably
+  # from cdn.s4.gl). See packages/fleet-orbit/default.nix.
+  fleet-orbit = prev.callPackage ../../packages/fleet-orbit { };
+
   # coredns-zone — the fleet DNS compiler (modules/flake/registry/packages/coredns-zone):
   # a compiled GHC-9.12 program that renders + semantically validates the topology
   # registry into a CoreDNS zone. Consumed by modules/nixos/coredns.nix at build time.
