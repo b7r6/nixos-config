@@ -28,7 +28,7 @@
     # ORBITAL // FORGE: the native Haskell read boundary in the web monorepo.
     # Watchtower runs its Forgejo adapter beside the upstream and nginx exposes
     # only the stable /orbital-forge/api/ path over the tailnet.
-    orbital-forge.url = "git+ssh://git@github.com/hypermodern-src/orbital-straylight-www.git?dir=projects/orbital-forge";
+    orbital-forge.url = "github:hypermodern-src/orbital-straylight-www?dir=projects/orbital-forge";
     orbital-forge.inputs.nixpkgs.follows = "nixpkgs";
 
     # wintermute: the hot-reload theme reconciler as its own production
@@ -36,14 +36,14 @@
     # b7r6/wintermute-0x01 branch, proof-carrying dep cone included).
     # Deliberately does NOT follow our nixpkgs: it pins its own lean4-nix
     # toolchain and should build exactly as its own CI builds it.
-    wintermute.url = "git+ssh://git@github.com/b7r6/wintermute.git";
+    wintermute.url = "github:b7r6/wintermute";
 
     # straylight-nvidia-sdk: modern nv. Pulled for wintermute-field — the
     # wallpaper field as a CUDA kernel, and the zero-copy wayland presenter
     # daemon (kernel writes the compositor's wl_shm pool over GB10 coherent
     # memory). Like continuity, deliberately does NOT follow our nixpkgs.
     # GitHub mirror, same reason as continuity.
-    straylight-nvidia-sdk.url = "git+ssh://git@github.com/hypermodern-src/orbital-straylight-nvidia-sdk.git";
+    straylight-nvidia-sdk.url = "github:hypermodern-src/orbital-straylight-nvidia-sdk";
 
     # narsil: HM type checker / linter / LSP for Nix + embedded bash
     # (b7r6's own; holds 99.92% of nixpkgs). Like continuity, deliberately
@@ -150,7 +150,7 @@
     # for boxes with no IPMI when the tailnet/control-plane is down). Its own flake
     # exposes packages.rayfish (the `ray` daemon+CLI). Consumed by
     # modules/nixos/rayfish.nix. Fetched over the self-hosted forge's HTTPS endpoint.
-    rayfish.url = "git+ssh://git@github.com/hypermodern-src/orbital-vendor-rayfish.git?ref=master";
+    rayfish.url = "github:hypermodern-src/orbital-vendor-rayfish?ref=master";
     rayfish.inputs.nixpkgs.follows = "nixpkgs";
 
     # attic binary cache — our fork (sensenet-ai) carrying the configurable
@@ -167,13 +167,13 @@
     # It pulls nvidia-sdk for the NGC-extracted python environment (torch cu130,
     # triton, tensorrt_llm) and does NOT follow our nixpkgs fork, so the NGC
     # packages stay pinned to upstream nixos-unstable.
-    vllm-stack.url = "git+ssh://git@github.com/hypermodern-src/orbital-hypermodern-vllm.git";
+    vllm-stack.url = "github:hypermodern-src/orbital-hypermodern-vllm";
     # Transitive forge refs, overridden onto mirrors (the forge retired with
     # watchtower 2026-10-07): vllm-stack's `nvidia-sdk` is the same repo as
     # straylight-nvidia-sdk under its pre-rename name.
-    vllm-stack.inputs.nvidia-sdk.url = "git+ssh://git@github.com/hypermodern-src/orbital-straylight-nvidia-sdk.git";
+    vllm-stack.inputs.nvidia-sdk.url = "github:hypermodern-src/orbital-straylight-nvidia-sdk";
     vllm-stack.inputs.nvidia-sdk.inputs.modern-nix.follows = "straylight-nvidia-sdk/modern-nix";
-    straylight-nvidia-sdk.inputs.modern-nix.url = "git+ssh://git@github.com/hypermodern-src/orbital-straylight-modern.nix.git";
+    straylight-nvidia-sdk.inputs.modern-nix.url = "github:hypermodern-src/orbital-straylight-modern.nix";
 
     # Self-hosted Supabase. NOT a flake — we consume its docker/ tree as a SOURCE
     # for the version-coupled config files (volumes/api/kong.yml, the db init
