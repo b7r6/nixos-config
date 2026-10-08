@@ -3,27 +3,26 @@
 Brings shannon back **identical but encrypted**. Config + inputs on GitHub
 (PRIVATE), /home in restic→R2, host key preserved (unlocks the secrets).
 
-## Carry two small things to the installer (copy to a phone / 2nd stick NOW)
+## Carry one small thing to the installer (copy to a phone / 2nd stick NOW)
 1. **The host-key bundle** (~5KB): `/tmp/shannon-reinstall-bundle/`
    (also in R2: `straylight-archive/shannon-reinstall/bundle/`). Has shannon's
    `ssh_host_*` (the agenix identity) + `rclone.conf` (R2 access for restic).
-2. **A GitHub token** — nix needs it to fetch the PRIVATE flake + private
-   inputs. 7 private inputs across 3 accounts: `b7r6/nixos-config`,
-   `hypermodern-src/orbital-*` (×5), `sensenet-ai/nix-compile`. Simplest:
-   a **classic PAT with `repo` scope** (read-covers-everything-you-can-see) —
-   a fine-grained PAT would need all 3 accounts selected. Make it at
-   `github.com/settings/tokens`.
+
+**No GitHub token needed:** the flake + all its inputs are currently PUBLIC, so
+nix fetches them over HTTPS anonymously (verified 2026-10-08). A PAT is only
+required if you later flip the repos back to private — then set
+`export NIX_CONFIG="extra-access-tokens = github.com=<classic PAT, repo scope>"`
+before the install command below.
 
 ## USB
 Already written: NixOS graphical 25.11 installer (sda1/sda2). Boot it.
 
 ## Reinstall (boot shannon from the USB, get network, open a terminal)
 ```sh
-# auth so nix can fetch the private config + private inputs
-export NIX_CONFIG="extra-access-tokens = github.com=<YOUR_PAT>"
-
 # 1. partition(LUKS, prompts passphrase) + format + install the whole config
-sudo --preserve-env=NIX_CONFIG nix --experimental-features 'nix-command flakes' \
+#    (inputs are public → no token; if private, prepend the NIX_CONFIG export
+#     above and add `--preserve-env=NIX_CONFIG` after sudo)
+sudo nix --experimental-features 'nix-command flakes' \
   run github:nix-community/disko/latest#disko-install -- \
   --flake github:b7r6/nixos-config/luks-reinstall#shannon \
   --disk main /dev/nvme0n1

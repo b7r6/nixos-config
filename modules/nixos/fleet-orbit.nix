@@ -98,10 +98,32 @@ in
       serviceConfig = {
         Type = "simple";
         EnvironmentFile = cfg.environmentFile;
+
+        # orbit is fleetd's TUF self-updater: it manages its OWN orbit binary +
+        # osqueryd under <root-dir>/bin and expects to run FROM <root-dir>/bin/
+        # orbit/orbit (that's what Secureframe's .deb installs and its unit runs).
+        # Run it straight from the read-only nix store and its update/symlink
+        # dance fails ("move old symlink … orbit.old: no such file or directory").
+        # So seed the pinned binary into the writable StateDirectory on first
+        # start (if absent), then exec that — orbit keeps it updated via TUF.
+        #
+        # certs.pem: orbit auto-loads <root-dir>/certs.pem as osquery's
+        # --tls_server_certs. WITHOUT it, the self-downloaded generic-linux
+        # osqueryd finds no CA bundle on NixOS and every check-in fails with
+        # "certificate verify failed" (validated live). Seed it from pkgs.cacert.
+        # Dir mode MUST be 0755 — orbit refuses 0700 ("exists with mode … instead
+        # of expected 0755") and skips its own update path.
+        ExecStartPre = pkgs.writeShellScript "orbit-seed" ''
+          install -d -m0755 ${cfg.rootDir}/bin/orbit
+          if [ ! -x ${cfg.rootDir}/bin/orbit/orbit ]; then
+            install -m0755 ${cfg.package}/bin/orbit ${cfg.rootDir}/bin/orbit/orbit
+          fi
+          install -m0644 ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt ${cfg.rootDir}/certs.pem
+        '';
         # Mirror the Secureframe unit: orbit flags, then `--`, then osquery flags.
         ExecStart = lib.concatStringsSep " " (
           [
-            "${cfg.package}/bin/orbit"
+            "${cfg.rootDir}/bin/orbit/orbit"
             "--root-dir ${cfg.rootDir}"
           ]
           ++ lib.optionals (cfg.hostIdentifier != null) [
