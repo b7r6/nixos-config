@@ -6,7 +6,7 @@
 #
 # Live environment with Calamares installer, browser, and full desktop.
 #
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
   imports = [ ./base.nix ];
@@ -29,6 +29,13 @@
     efiInstallAsRemovable = true;
     device = "nodev";
   };
+
+  # base.nix is the ARM64/DGX base and FORCES ARM-only initrd modules
+  # (sbsa_gwdt, xhci_plat_hcd) that don't exist in the x86_64 kernel — which made
+  # modules-shrunk fail ("modprobe: FATAL: Module sbsa_gwdt not found"), so this
+  # x86 target never actually built. Clear them; availableKernelModules below is
+  # the real x86 boot set.
+  boot.initrd.kernelModules = lib.mkForce [ ];
 
   # Common x86 hardware support
   boot.initrd.availableKernelModules = [
