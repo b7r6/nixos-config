@@ -278,7 +278,7 @@ in
   systemd.oomd = {
     enableRootSlice = true;
     enableUserSlices = true;
-    extraConfig.DefaultMemoryPressureDurationSec = "20s";
+    settings.OOM.DefaultMemoryPressureDurationSec = "20s";
   };
 
   # /bin/bash etc. for FHS-assuming tools (Bazel genrules, scripts).
@@ -322,6 +322,13 @@ in
   home-manager.users.b7r6 = {
     hyper-modern-nixos = {
       hyprland.monitors = (import ../../../lib/monitors.nix).shannon;
+
+      # TODO[b7r6]: aider + opencode disabled for the modern-nixpkgs migration —
+      # on nixos-unstable @ e7439b6b they fail to build (aider's python anyio
+      # test, opencode's vendored node_modules hash drift). claude-code stays
+      # (nixpkgs ships it). Re-enable once upstream settles / the hash is re-pinned.
+      llm.aider.enable = false;
+      llm.opencode.enable = false;
 
       themes.display = {
         # Samsung OLED internal panel at scale 2.0 → 192dpi logical

@@ -93,19 +93,28 @@
 
   # ── GNOME Tweaks ───────────────────────────────────────────────────────────
 
-  # Exclude some heavy GNOME apps to keep image smaller
-  environment.gnome.excludePackages = with pkgs; [
-    gnome-music
-    gnome-photos
-    totem # video player
-    epiphany # gnome web browser (we have firefox)
-    geary # email client
-    gnome-characters
-    gnome-contacts
-    gnome-maps
-    gnome-weather
-    simple-scan
-  ];
+  # Exclude some heavy GNOME apps to keep image smaller. Resolved by NAME and
+  # filtered, so an app removed upstream (e.g. gnome-photos, archived) is simply
+  # skipped instead of throwing during eval.
+  environment.gnome.excludePackages =
+    let
+      names = [
+        "gnome-music"
+        "gnome-photos"
+        "totem" # video player
+        "epiphany" # gnome web browser (we have firefox)
+        "geary" # email client
+        "gnome-characters"
+        "gnome-contacts"
+        "gnome-maps"
+        "gnome-weather"
+        "simple-scan"
+      ];
+      # tryEval (not `or null`): removed attrs still EXIST but their value is a
+      # `throw`, so only tryEval can skip them.
+      resolve = n: let r = builtins.tryEval (pkgs.${n} or null); in if r.success then r.value else null;
+    in
+    builtins.filter (p: p != null) (map resolve names);
 
   # ── Welcome Message ────────────────────────────────────────────────────────
 

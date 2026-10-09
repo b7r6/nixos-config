@@ -39,7 +39,7 @@
   inputs = {
     # nixpkgs: the sensenet-ai fork at HEAD (NOT upstream nixpkgs-unstable). The
     # whole tree rides this via `follows = "nixpkgs"`; pin anything we touch to it.
-    nixpkgs.url = "github:sensenet-ai/nixpkgs";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     systems.url = "github:nix-systems/default-linux";
 

@@ -14,20 +14,24 @@
 # does NOT import (only modules/flake/* is autowired), so it was a dead no-op
 # and `self.overlays.default` evaluated to nothing. It is now wired explicitly.
 
-_final: prev: {
+final: prev: {
 
   # claude-code — bumped ahead of nixpkgs (which lagged at 2.1.195). It's a
   # prebuilt-binary fetch, so overriding version + src is a clean targeted bump
   # that doesn't rebuild the world via a nixpkgs update. linux-x64 is fine: the
   # fleet is one x86_64 box now. Refresh the hash with:
   #   nix store prefetch-file https://downloads.claude.ai/claude-code-releases/<v>/linux-x64/claude
-  claude-code = prev.claude-code.overrideAttrs (_old: {
-    version = "2.1.293";
-    src = prev.fetchurl {
-      url = "https://downloads.claude.ai/claude-code-releases/2.1.293/linux-x64/claude";
-      hash = "sha256-iWhAXibbR4r0TqvEY1q1ylVwV7cCpURgpZwT4bJT6Xg=";
-    };
-  });
+  # TODO[b7r6]: override DROPPED for the modern-nixpkgs migration. We used to pin
+  # 2.1.293 ahead of the stale fork (which lagged at 2.1.195); modern nixpkgs
+  # already ships 2.1.292, and the fetchurl override breaks against its updated
+  # base derivation. Re-pin here only if nixpkgs falls behind again.
+  # claude-code = prev.claude-code.overrideAttrs (_old: {
+  #   version = "2.1.293";
+  #   src = prev.fetchurl {
+  #     url = "https://downloads.claude.ai/claude-code-releases/2.1.293/linux-x64/claude";
+  #     hash = "sha256-iWhAXibbR4r0TqvEY1q1ylVwV7cCpURgpZwT4bJT6Xg=";
+  #   };
+  # });
 
   # fleet-orbit — Secureframe's osquery agent (static Go binary, fetched durably
   # from cdn.s4.gl). See packages/fleet-orbit/default.nix.
@@ -44,13 +48,21 @@ _final: prev: {
   # gen-supabase-secrets — compiled JWT/crypto generator (replaces bash).
   gen-supabase-secrets = prev.callPackage ../../packages/gen-supabase-secrets { };
 
-  # Skip failing inline-snapshot tests (trivial output format diff in upstream).
-  # TODO: remove once upstream is fixed.
-  python312Packages = prev.python312Packages // {
-    inline-snapshot = prev.python312Packages.inline-snapshot.overridePythonAttrs (_old: {
-      doCheck = false;
-    });
-  };
+  # Python test-suite skips, applied at the INTERPRETER level (packageOverrides)
+  # so they propagate to TRANSITIVE consumers — a `python312Packages // {…}`
+  # override only fixes the top-level attr, not packages that pull these as deps.
+  #   - anyio: its trio / asyncio-TLS tests fail intermittently on nixos-unstable
+  #     ("unraisable exception warnings"); the library is fine, the tests flake.
+  #   - inline-snapshot: trivial output-format diff upstream.
+  python312 = prev.python312.override (old: {
+    packageOverrides = prev.lib.composeExtensions (old.packageOverrides or (_: _: { })) (
+      _pyfinal: pyprev: {
+        anyio = pyprev.anyio.overridePythonAttrs (_: { doCheck = false; });
+        inline-snapshot = pyprev.inline-snapshot.overridePythonAttrs (_: { doCheck = false; });
+      }
+    );
+  });
+  python312Packages = final.python312.pkgs;
 
   # ragenix ships without its runtime deps on PATH; wrap it so the CLI actually
   # finds sha256sum/find/grep/sed/rage/age at runtime.
