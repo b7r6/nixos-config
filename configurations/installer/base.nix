@@ -16,28 +16,32 @@
 
   boot.initrd.systemd.enable = true;
 
-  # Critical kernel modules for ARM64 USB boot
-  boot.initrd.kernelModules = [
-    # SBSA Generic Watchdog Timer - MUST load first to disarm watchdog
-    # Without this, the ARM SBSA watchdog fires and resets the system
-    "sbsa_gwdt"
-
-    # USB controllers (critical for ARM64 USB boot)
-    "xhci_plat_hcd" # Platform USB 3.0 controllers for ARM64 systems
-
-    # USB storage and modern USB support (for boot device access)
-    "uas" # USB Attached SCSI protocol for modern USB drives
-    "usb_storage" # USB mass storage
-
-    # USB input devices (essential for emergency mode keyboard access)
-    "usbhid" # USB Human Interface Device driver
-    "hid" # HID core
-    "hid_generic" # Generic HID support
-
-    # Storage access
-    "sd_mod" # SCSI disk support
-    "nvme" # NVMe SSD support
-  ];
+  # Initrd modules for USB boot. Generic (all-arch) set below; the ARM-only
+  # modules are gated by platform — they do NOT exist in the x86_64 kernel, so
+  # adding them unconditionally made `modules-shrunk` FATAL on x86 (and the only
+  # safe-looking "fix", mkForce [], wiped the ISO image module's own loop/overlay
+  # entries and produced a non-booting stick). MERGES with the iso-image module's
+  # loop/overlay/squashfs — do not mkForce this.
+  boot.initrd.kernelModules =
+    [
+      # USB storage + modern USB (boot device access)
+      "uas" # USB Attached SCSI
+      "usb_storage" # USB mass storage
+      # USB input (emergency-mode keyboard)
+      "usbhid"
+      "hid"
+      "hid_generic"
+      # Storage
+      "sd_mod" # SCSI disk
+      "nvme" # NVMe SSD
+    ]
+    ++ lib.optionals pkgs.stdenv.hostPlatform.isAarch64 [
+      # SBSA Generic Watchdog Timer — MUST load first to disarm the ARM SBSA
+      # watchdog (else it fires and resets). ARM64/DGX only.
+      "sbsa_gwdt"
+      # Platform USB 3.0 controllers for ARM64.
+      "xhci_plat_hcd"
+    ];
 
   # ── Filesystem Support ─────────────────────────────────────────────────────
 

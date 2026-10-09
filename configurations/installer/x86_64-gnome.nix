@@ -30,14 +30,9 @@
     device = "nodev";
   };
 
-  # base.nix is the ARM64/DGX base and FORCES ARM-only initrd modules
-  # (sbsa_gwdt, xhci_plat_hcd) that don't exist in the x86_64 kernel — which made
-  # modules-shrunk fail ("modprobe: FATAL: Module sbsa_gwdt not found"), so this
-  # x86 target never actually built. Clear them; availableKernelModules below is
-  # the real x86 boot set.
-  boot.initrd.kernelModules = lib.mkForce [ ];
-
-  # Common x86 hardware support
+  # Common x86 hardware support (base.nix now gates the ARM-only initrd modules
+  # by arch, so no override is needed here — and mkForce [] would wipe the ISO
+  # image module's loop/overlay and make the stick non-booting).
   boot.initrd.availableKernelModules = [
     "ahci"
     "xhci_pci"
