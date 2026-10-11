@@ -95,6 +95,16 @@ in
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
 
+      # nix-ld's loader location is only exported to LOGIN sessions by the
+      # nixpkgs module (environment.sessionVariables); a systemd service sees
+      # neither variable and relies on nix-ld's compiled-in fallback. Make it
+      # explicit so orbit's self-downloaded osqueryd/fleet-desktop always find
+      # the loader + base libraries, whatever nix-ld's default does.
+      environment = lib.mkIf config.programs.nix-ld.enable {
+        NIX_LD = "/run/current-system/sw/share/nix-ld/lib/ld.so";
+        NIX_LD_LIBRARY_PATH = "/run/current-system/sw/share/nix-ld/lib";
+      };
+
       serviceConfig = {
         Type = "simple";
         EnvironmentFile = cfg.environmentFile;

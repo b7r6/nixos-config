@@ -110,6 +110,24 @@ cd ~/src/nixos-config && git pull
 nh os switch .            # or: sudo nixos-rebuild switch --flake .#shannon
 ```
 
+
+## First-boot checks: fleet-orbit (the reason for all of this)
+
+```sh
+systemctl status orbit --no-pager          # active (running); ExecStartPre seeded /var/lib/orbit
+ls -la /run/agenix/fleet-orbit-env         # exists, root 0400 → the host key decrypted it
+ls /var/lib/orbit/bin/                     # orbit/ … and, after the TUF pull, osqueryd/ (+ desktop/)
+journalctl -u orbit -b --no-pager | grep -iE 'enroll|error|certificate|update' | tail -20
+#   expect: "enrolled" / osqueryd started; NO "certificate verify failed" and
+#   NO "no such file or directory" on osqueryd (that would be nix-ld)
+```
+
+- Secureframe → Device Management: shannon's record (the --specified_identifier
+  triple) shows a fresh check-in and `disk_encryption: 1` (osquery reads the
+  dm-crypt root).
+- If `/run/agenix/fleet-orbit-env` is missing: the injected host key is wrong or
+  absent — `ssh-keygen -y -f /etc/ssh/ssh_host_ed25519_key` must print the key
+  ending in `MeNJ` from secrets/keys.nix. Otherwise rekey (FALLBACK above).
 ## FALLBACK — no host-key bundle
 
 Your off-machine `id_ed25519_b7r6` is a recipient on every secret:
