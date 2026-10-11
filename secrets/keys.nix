@@ -53,7 +53,11 @@
 
     guccimane = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIADHEWWzCpRcLIjk1CNKnl86dtAap7BHfsaijUqe3cV7" ];
 
-    shannon = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMbJUUAOq1ZviJYmM9G2i9Mnmcps7UTNKhPm9ILCMeNJ" ];
+    # shannon: host key ROTATED 2026-10-11 on the LUKS reinstall (the original
+    # key was not recoverable from the old disk). Secrets rekeyed (agenix -r)
+    # with an admin identity the same day.
+    # Fingerprint SHA256:X5PHGTNupKHY4lDO6y0xQMru02eqHlQmmGNlOVXWUMM.
+    shannon = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFa30b+tc+HvJZfGKk6jHbdPXSrv9Rfmy4ecfeQM1dQA" ];
 
     # ── aarch64-linux ──
     shimmer = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAFyVtrt3AmJrLqcdAnZn5hXrvMenOUKGAS182qBnuYN" ];
