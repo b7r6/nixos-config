@@ -28,6 +28,12 @@
     "thunderbolt"
     "usbhid"
     "sdhci_pci"
+    # LUKS root: dm-crypt binds its AES implementation when the volume is
+    # opened in the initrd and never re-binds. nixpkgs' luksroot module ships
+    # "aes" (generic) but not the AES-NI driver, so without this the root disk
+    # runs on software AES for the whole session (verified 2026-10-11: the
+    # installed initrd had no aesni-intel.ko).
+    "aesni_intel"
   ];
 
   hardware.cpu.amd.updateMicrocode = true;
