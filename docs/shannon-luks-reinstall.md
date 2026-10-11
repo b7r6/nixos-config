@@ -11,7 +11,9 @@ Brings shannon back **identical but encrypted**, in two stages:
    where there is disk, swap and time. This is the one that builds the forks.
 
 Config + inputs on GitHub (PUBLIC — no token needed, verified 2026-10-08),
-/home in restic→R2, host key preserved (unlocks the secrets).
+/home in restic→R2. The host key (agenix identity) is either carried over or
+rotated + rekeyed — both paths below are tested; 2026-10-11 took the rotate
+path because the old key was not recoverable.
 
 ## Why two stages (read once, then never hang the box again)
 
@@ -31,10 +33,16 @@ is bounded because this is a 13" chassis (see `hardware-configuration.nix`).
 
 ## Carry to the installer (phone / 2nd stick)
 
-**The host-key bundle** (~5 KB): `/tmp/shannon-reinstall-bundle/` on the old
-system, also in R2 at `straylight-archive/shannon-reinstall/bundle/`. It holds
-shannon's `ssh_host_*` (the agenix identity) + `rclone.conf` (R2 access for
-restic). Without it, see FALLBACK.
+**Your admin identity** (`id_ed25519_b7r6`, e.g. via Proton Drive): it pushes
+the branch and, if the host key is gone, rekeys every secret. This is the
+one thing you truly cannot do without.
+
+**The host-key bundle** (~5 KB, optional): `/tmp/shannon-reinstall-bundle/` on
+the old system, also in R2 at `straylight-archive/shannon-reinstall/bundle/`.
+Holds shannon's `ssh_host_*` (the agenix identity) + `rclone.conf`. With it,
+step 3a; without it, step 3b (≈10 min longer, no other cost). Do not spend
+time scanning the installer stick for it: the ISO is dd'd over the whole
+device and nothing else is on it (checked 2026-10-11).
 
 ## USB
 
@@ -71,23 +79,39 @@ nixos-install --root /mnt \
   --max-jobs 2 --cores 8 \
   --option accept-flake-config true
 
-# 3. Preserved host key → agenix decrypts on first boot (NO rekey needed).
+# 3a. HAVE the bundle: preserved host key → agenix decrypts on first boot.
 cp /path/to/bundle/ssh_host_* /mnt/etc/ssh/
 chmod 600 /mnt/etc/ssh/ssh_host_*_key
+ssh-keygen -y -f /mnt/etc/ssh/ssh_host_ed25519_key   # must equal secrets/keys.nix hosts.shannon
 
-# 3b. Installing from the LOCAL checkout (unpushed)? Nothing on the ISO
-#     survives reboot — carry the committed tree onto the new disk, OUTSIDE
-#     the restic-restored path so the restore cannot clobber it:
+# 3b. NO bundle (what 2026-10-11 did): rotate the host key and rekey.
+#     The install above already ran fine; agenix just printed
+#     "identityPaths entry … not present" and skipped the secrets.
+ssh-keygen -t ed25519 -N '' -C root@shannon -f /mnt/etc/ssh/ssh_host_ed25519_key
+ssh-keygen -t rsa -b 4096 -N '' -C root@shannon -f /mnt/etc/ssh/ssh_host_rsa_key
+cat /mnt/etc/ssh/ssh_host_ed25519_key.pub   # → paste (type + key only) into secrets/keys.nix hosts.shannon
+#     Then, with id_ed25519_b7r6 in ~/.ssh (rekey-secrets passes it to agenix):
+nix run --accept-flake-config ~/src/nixos-config#rekey-secrets   # 40 secrets, ~30 s
+git -C ~/src/nixos-config -c user.name=b7r6 -c user.email=b7r6@b7r6.net \
+  commit -am 'secrets: rotate shannon host key + rekey'
+#     Re-run step 2 (incremental; ~3 min). Its log must now show
+#     "decrypting … fleet-orbit-env …" instead of the agenix warning.
+
+# 3c. Nothing on the ISO survives reboot — carry the committed tree onto the
+#     new disk, OUTSIDE the restic-restored path so the restore cannot clobber
+#     it (uid 1000 = b7r6 on the target; the ISO shows it as "nixos"):
 mkdir -p /mnt/home/b7r6 && cp -a /home/nixos/src/nixos-config /mnt/home/b7r6/nixos-config.reinstall
-nixos-enter --root /mnt -c 'chown -R b7r6: /home/b7r6/nixos-config.reinstall'
-#     After first boot: push it (`git push origin luks-reinstall`) from there.
+chown -R 1000:100 /mnt/home/b7r6/nixos-config.reinstall
+#     Push from the ISO if the admin key is present, else from there after boot.
 
 # 4. Login password. The fleet is SSH-key-only (no hashes in config) and
-#    pam_pwquality is enforced, so without this SDDM is a wall.
-nixos-enter --root /mnt -c 'passwd b7r6'
+#    pam_pwquality is enforced, so without this SDDM is a wall. root is
+#    optional (b7r6 is in wheel); --no-root-passwd above left it locked.
+nixos-enter --root /mnt -c 'passwd b7r6'        # ignore agenix chown noise
+nixos-enter --root /mnt -c 'passwd root'        # optional
 
 # 5. Reboot → LUKS passphrase → SDDM → b7r6.
-reboot
+swapoff /mnt/.swap/swapfile; reboot
 ```
 
 If step 2 dies, re-run it: everything already in `/mnt/nix/store` is reused.
@@ -125,18 +149,19 @@ journalctl -u orbit -b --no-pager | grep -iE 'enroll|error|certificate|update' |
 - Secureframe → Device Management: shannon's record (the --specified_identifier
   triple) shows a fresh check-in and `disk_encryption: 1` (osquery reads the
   dm-crypt root).
-- If `/run/agenix/fleet-orbit-env` is missing: the injected host key is wrong or
-  absent — `ssh-keygen -y -f /etc/ssh/ssh_host_ed25519_key` must print the key
-  ending in `MeNJ` from secrets/keys.nix. Otherwise rekey (FALLBACK above).
-## FALLBACK — no host-key bundle
+- If `/run/agenix/fleet-orbit-env` is missing: the host key on disk is not the
+  one in secrets/keys.nix — `ssh-keygen -y -f /etc/ssh/ssh_host_ed25519_key`
+  must print exactly `hosts.shannon`. Fix = step 3b (rotate + rekey) and a
+  rebuild; nothing else can be wrong here.
 
-Your off-machine `id_ed25519_b7r6` is a recipient on every secret:
+## Why a lost host key is cheap
 
-- decrypt restic creds by hand to restore /home:
-  `age -d -i id_ed25519_b7r6 restic-password.age` (and `restic-r2-env.shannon.age`)
-- then rekey to the NEW host key: add it to `secrets/keys.nix`, `agenix -r`
-  (decrypts with id_ed25519_b7r6, re-encrypts incl. the new key), commit+push,
-  rebuild.
+`id_ed25519_b7r6` is an admin recipient on every secret (via
+secrets/admin-recipients.json), so a lost host key never loses data: step 3b
+rotates the key and re-encrypts all 40 secrets in one command. Nothing else
+in the repo consumes the host key (no knownHosts, no build-machine lists), so
+`secrets/keys.nix` is the only edit. Other fleet hosts will see a changed
+host key for shannon on their next ssh — expected.
 
 ## After it's confirmed good
 
