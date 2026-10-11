@@ -103,6 +103,9 @@ git -C ~/src/nixos-config -c user.name=b7r6 -c user.email=b7r6@b7r6.net \
 mkdir -p /mnt/home/b7r6 && cp -a /home/nixos/src/nixos-config /mnt/home/b7r6/nixos-config.reinstall
 chown -R 1000:100 /mnt/home/b7r6/nixos-config.reinstall
 #     Push from the ISO if the admin key is present, else from there after boot.
+#     Also make the journal persistent NOW, so a failed first boot leaves logs
+#     (journald only persists when this directory exists):
+mkdir -p /mnt/var/log/journal
 
 # 4. Login password. The fleet is SSH-key-only (no hashes in config) and
 #    pam_pwquality is enforced, so without this SDDM is a wall. root is
@@ -153,6 +156,37 @@ journalctl -u orbit -b --no-pager | grep -iE 'enroll|error|certificate|update' |
   one in secrets/keys.nix — `ssh-keygen -y -f /etc/ssh/ssh_host_ed25519_key`
   must print exactly `hosts.shannon`. Fix = step 3b (rotate + rekey) and a
   rebuild; nothing else can be wrong here.
+
+## If it does not come up
+
+Nothing on the ISO survives a reboot (no shell history, no Claude session),
+so the whole recovery path is here. The installer stick stays plugged in.
+
+**Get back to the mounted state** (≈1 min, the install is untouched):
+
+```sh
+sudo -i
+nix run github:nix-community/disko/ff8702b4de27f72b4c78573dfb89ec74e36abdf1 -- \
+  --mode mount --flake "github:b7r6/nixos-config/luks-reinstall#shannon-bootstrap"
+journalctl -D /mnt/var/log/journal -b -1 -p warning     # the failed boot's log
+```
+
+Then by symptom:
+
+| Symptom | Meaning | Fix |
+|---|---|---|
+| Firmware ignores the NVMe, boots the stick or drops to setup | BootOrder lost | pick "Linux Boot Manager" in the firmware boot menu (F2/Esc at POST), or from the ISO `efibootmgr -o <id>` where `efibootmgr -v` shows the `HD(1,GPT,…)\EFI\systemd\systemd-bootx64.efi` entry |
+| systemd-boot menu shows, kernel hangs/panics before any prompt | initrd | in the menu pick the previous generation (same kernel; gen 3 = same initrd minus aesni_intel). Read the journal above. |
+| Passphrase prompt rejects the passphrase | typo/layout (keymap is `us`) | from the ISO `cryptsetup open --test-passphrase /dev/nvme0n1p2`; if it is truly lost, there is no recovery — the LUKS header has one keyslot. Reinstall from step 1. |
+| Unlocks, then emergency shell / root not found | fstab vs disk | `blkid /dev/mapper/cryptroot`, `btrfs subvolume list /mnt`; compare with `disko.nix`. Fix, re-run step 2. |
+| SDDM appears, login fails | password / session | `Ctrl-Alt-F2`, log in on tty; `journalctl -b -u display-manager`. Password: `nixos-enter --root /mnt -c 'passwd b7r6'` from the ISO. |
+| Boots, no wifi | driver/firmware (mt7925e, blobs are in the closure) | `dmesg \| grep -i mt79`; tether by USB and `nh os switch .` anyway |
+| Boots, `/run/agenix` missing or empty | host key ≠ keys.nix | `ssh-keygen -y -f /etc/ssh/ssh_host_ed25519_key` vs `hosts.shannon`; step 3b |
+| Boots, orbit failing | see "First-boot checks" | `journalctl -u orbit -b` |
+
+Every fix above is "edit, commit, re-run step 2 from the ISO" (incremental,
+~3 min) or a one-liner on the mounted target. There is no scenario that
+needs a reformat except a lost passphrase.
 
 ## Why a lost host key is cheap
 
