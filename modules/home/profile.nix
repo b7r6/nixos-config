@@ -8,7 +8,7 @@
 #
 # `bootstrap` keeps the desktop, the shell, the terminal and Emacs — and drops
 # every package that only exists as a from-source build of one of our own
-# forks (narsil, the nativelink client, wintermute) or that is simply large and
+# forks (narsil, the nativelink client — wintermute stays) or that is large and
 # not needed on first boot (VS Code + extensions, cloud CLIs, the heavy LSPs).
 #
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -37,7 +37,10 @@ in
       # Our own forks — no public cache, hours of compile on a laptop.
       narsil.enable = off; # Haskell
       nix.nativelinkClient.enable = off; # Rust (nl-nix / nl-watch-store)
-      new-suzuki.wintermute.enable = off; # Lean 4 (the shell itself stays)
+      # wintermute (Lean 4) deliberately STAYS: the shell is half-dead without
+      # its reconciler, and it is the one from-source build small enough to
+      # carry through the installer (prebuilt Lean toolchain; bounded jobs).
+      # new-suzuki.wintermute.enable = off;
 
       # Heavy but cached: dropped purely to keep the first closure small.
       vscode.enable = off;
