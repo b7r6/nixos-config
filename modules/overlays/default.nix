@@ -57,47 +57,56 @@ final: prev: {
   python312 = prev.python312.override (old: {
     packageOverrides = prev.lib.composeExtensions (old.packageOverrides or (_: _: { })) (
       _pyfinal: pyprev: {
-        anyio = pyprev.anyio.overridePythonAttrs (_: { doCheck = false; });
-        inline-snapshot = pyprev.inline-snapshot.overridePythonAttrs (_: { doCheck = false; });
+        anyio = pyprev.anyio.overridePythonAttrs (_: {
+          doCheck = false;
+        });
+        inline-snapshot = pyprev.inline-snapshot.overridePythonAttrs (_: {
+          doCheck = false;
+        });
       }
     );
   });
   python312Packages = final.python312.pkgs;
 
   # ragenix ships without its runtime deps on PATH; wrap it so the CLI actually
-  # finds sha256sum/find/grep/sed/rage/age at runtime.
-  ragenix = prev.ragenix.overrideAttrs (old: {
-    nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ prev.makeWrapper ];
-    postInstall = (old.postInstall or "") + ''
+  # finds sha256sum/find/grep/sed/rage/age at runtime. symlinkJoin + wrapProgram
+  # (NOT overrideAttrs): the latter re-derives the Rust build and throws away
+  # the cache.nixos.org hit for a PATH prefix.
+  ragenix = prev.symlinkJoin {
+    name = "ragenix-${prev.ragenix.version or "wrapped"}";
+    paths = [ prev.ragenix ];
+    nativeBuildInputs = [ final.makeWrapper ];
+    postBuild = ''
       wrapProgram $out/bin/ragenix \
         --prefix PATH : ${
-          prev.lib.makeBinPath [
-            prev.coreutils # sha256sum
-            prev.findutils # find
-            prev.gnugrep # grep
-            prev.gnused # sed
-            prev.rage # rage
-            prev.age # age
+          final.lib.makeBinPath [
+            final.coreutils # sha256sum
+            final.findutils # find
+            final.gnugrep # grep
+            final.gnused # sed
+            final.rage # rage
+            final.age # age
           ]
         }
     '';
-  });
+    inherit (prev.ragenix) meta;
+  };
 
   # Same treatment for agenix, guarded in case the attr is absent.
   agenix =
     if prev ? agenix then
       prev.agenix.overrideAttrs (old: {
-        nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ prev.makeWrapper ];
+        nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ final.makeWrapper ];
         postInstall = (old.postInstall or "") + ''
           wrapProgram $out/bin/agenix \
             --prefix PATH : ${
-              prev.lib.makeBinPath [
-                prev.coreutils
-                prev.findutils
-                prev.gnugrep
-                prev.gnused
-                prev.rage
-                prev.age
+              final.lib.makeBinPath [
+                final.coreutils
+                final.findutils
+                final.gnugrep
+                final.gnused
+                final.rage
+                final.age
               ]
             }
         '';

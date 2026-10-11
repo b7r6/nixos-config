@@ -24,7 +24,9 @@
   perSystem = { pkgs, ... }: {
     apps.deploy-fleet =
       let
-        deployable = pkgs.lib.filterAttrs (n: _: n != "test-vm") self.nixosConfigurations;
+        deployable = pkgs.lib.filterAttrs (
+          n: _: n != "test-vm" && !(pkgs.lib.hasSuffix "-bootstrap" n)
+        ) self.nixosConfigurations;
         # "attrName:system:hostName" lines baked in at build time (no runtime nix
         # eval). hostName is the host's real networking.hostName so self-detection
         # is correct even if it ever diverges from the flake attr name.

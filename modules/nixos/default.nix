@@ -20,6 +20,7 @@
     # ── Core system (always-on) ──
 
     ./base.nix
+    ./profile.nix
     ./nix.nix
     ./packages.nix
     ./sddm

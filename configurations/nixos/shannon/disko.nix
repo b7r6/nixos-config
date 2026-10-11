@@ -34,15 +34,36 @@
             settings.allowDiscards = true;
             content = {
               type = "btrfs";
-              extraArgs = [ "-L" "nixos" "-f" ];
+              extraArgs = [
+                "-L"
+                "nixos"
+                "-f"
+              ];
               subvolumes = {
                 "@" = {
                   mountpoint = "/";
-                  mountOptions = [ "compress=zstd" "noatime" ];
+                  mountOptions = [
+                    "compress=zstd"
+                    "noatime"
+                  ];
                 };
                 "@home" = {
                   mountpoint = "/home";
-                  mountOptions = [ "compress=zstd" "noatime" ];
+                  mountOptions = [
+                    "compress=zstd"
+                    "noatime"
+                  ];
+                };
+                # Real swap, inside the LUKS container. The installer has no
+                # swap of its own and the box hangs silently when a build
+                # exhausts RAM; disko creates+activates this during
+                # `--mode format,mount`, so nixos-install already has it. At
+                # runtime it backs zram (modules: zramSwap 50%) as the
+                # last-resort tier for large builds. Encrypted by construction.
+                "@swap" = {
+                  mountpoint = "/.swap";
+                  mountOptions = [ "noatime" ];
+                  swap.swapfile.size = "32G";
                 };
               };
             };

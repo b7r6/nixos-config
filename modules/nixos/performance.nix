@@ -109,7 +109,6 @@ in
 
         # kernel function tracing
         trace-cmd
-        traccar
 
         # system stats, NUMA + topology (Grace is NUMA — hwloc/numactl matter)
         sysstat

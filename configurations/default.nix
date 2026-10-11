@@ -67,7 +67,7 @@ let
 
     guccimane = { };
     shannon = { };
-    test-vm = { };
+    test-vm.bootstrap = false;
     ultraviolence = { };
     watchtower = { };
     weyl = { };
@@ -78,6 +78,7 @@ let
     {
       system ? "x86_64-linux",
       nixpkgs ? inputs.nixpkgs,
+      extraModules ? [ ],
     }:
     nixpkgs.lib.nixosSystem {
       inherit specialArgs;
@@ -85,8 +86,26 @@ let
         { nixpkgs.hostPlatform = system; }
         homeManagerNixosModule
         ./nixos/${name}/default.nix
-      ];
+      ]
+      ++ extraModules;
     };
+
+  # `<name>-bootstrap`: the same host with hyper-modern-nixos.profile =
+  # "bootstrap" (modules/nixos/profile.nix) — no from-source fork builds, so it
+  # installs from a stock ISO in RAM. Install THAT, reboot, then
+  # `nh os switch .#<name>` for the full profile. Opt a host out with
+  # `bootstrap = false` (test-vm: it doesn't import the fleet module tree).
+  bootstrapHosts = lib.mapAttrs' (
+    name: host:
+    lib.nameValuePair "${name}-bootstrap" (
+      mkHost name (
+        host
+        // {
+          extraModules = (host.extraModules or [ ]) ++ [ { hyper-modern-nixos.profile = "bootstrap"; } ];
+        }
+      )
+    )
+  ) (lib.filterAttrs (_: host: host.bootstrap or true) hosts);
 
   # Standalone home configs (configurations/home/<user>.nix) for `nh home switch`.
   homeUsers = lib.pipe (builtins.readDir ./home) [
@@ -105,7 +124,7 @@ in
 
     homeModules.default = ../modules/home;
 
-    nixosConfigurations = lib.mapAttrs mkHost hosts;
+    nixosConfigurations = lib.mapAttrs mkHost hosts // bootstrapHosts;
   };
 
   perSystem = { pkgs, ... }: {

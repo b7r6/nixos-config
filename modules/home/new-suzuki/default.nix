@@ -302,6 +302,17 @@ in
   options.hyper-modern-nixos.new-suzuki = {
     enable = mkEnableOption "New Suzuki Quickshell desktop shell";
 
+    wintermute.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Run the wintermute theme reconciler (daemon + CLI). It is a Lean 4 build
+        of our own fork with NO public cache. Off, the shell still renders from
+        the Nix-seeded theme.json; only live preset switching is lost. The
+        bootstrap profile turns it off.
+      '';
+    };
+
     exclusive = mkOption {
       type = types.bool;
       default = false;
@@ -361,9 +372,9 @@ in
           nerd-fonts.symbols-only # Nerd Font icon glyphs for the vendored shell
           orbitron # geometric sci-fi display font
         ]
+        ++ [ azonixFont ]
+        ++ lib.optional cfg.wintermute.enable wintermute
         ++ [
-          azonixFont
-          wintermute
           wm-alpha
           # Affluent-pole display serif (subset — google-fonts is enormous)
           (pkgs.google-fonts.override { fonts = [ "Cormorant Garamond" ]; })
@@ -374,7 +385,7 @@ in
       # to every live channel and rewrites theme.json for the shell. The
       # daemon is crash-only (adapters are best-effort by construction);
       # systemd supplies the uptime.
-      systemd.user.services.wintermute = {
+      systemd.user.services.wintermute = lib.mkIf cfg.wintermute.enable {
         Unit = {
           Description = "wintermute theme reconciler";
           After = [ "graphical-session.target" ];

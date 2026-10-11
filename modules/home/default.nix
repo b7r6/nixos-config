@@ -9,6 +9,9 @@
     # user identity
     ./me.nix
 
+    # build profile (full / bootstrap) — propagated from the NixOS host
+    ./profile.nix
+
     # repo-homed dotfiles (XDG symlinks into the working tree)
     ./dotfiles.nix
 
