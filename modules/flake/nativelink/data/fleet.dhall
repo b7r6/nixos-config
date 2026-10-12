@@ -46,6 +46,24 @@ let schedulerFqdn = "shannon.sju1.s4.gl"
 
 let casPort = "50052"
 
+-- Push CAS/AC to R2? Off while the fleet is one laptop: every action output
+-- and result went up over a residential/hotel uplink (bufferbloat starved
+-- everything else; AC writes blocked on it). R2 stays readable, so content
+-- another producer put there is still served. Same switch as nix-cache.dhall.
+let pushToR2 = False
+
+let casBackend =
+      \(fast : r.Backend) ->
+      \(slow : r.Backend) ->
+        if    pushToR2
+        then  r.fastSlowWriteBack fast slow
+        else  r.fastSlowReadSlow fast slow
+
+let acBackend =
+      \(fast : r.Backend) ->
+      \(slow : r.Backend) ->
+        if pushToR2 then r.fastSlow fast slow else r.fastSlowReadSlow fast slow
+
 let workerApiPort = "50061"
 
 let publicPort = "50051"
@@ -92,10 +110,9 @@ let casServerConfig =
           [ schema.Store::{
             , name = "CAS_LOCAL"
             , backend =
-                -- write-back: buck2 CAS uploads return at NVMe speed; R2 is
-                -- populated by a background task, so a slow/stalled R2 can no
-                -- longer freeze the upload (nativelink #35, fast_slow write-back).
-                r.fastSlowWriteBack
+                -- pushToR2: write-back, so buck2 CAS uploads return at NVMe
+                -- speed and R2 fills in the background (nativelink #35).
+                casBackend
                   ( r.cacheMetrics
                       "cas-fast"
                       ( r.filesystem
@@ -109,7 +126,7 @@ let casServerConfig =
           , schema.Store::{
             , name = "AC_LOCAL"
             , backend =
-                r.fastSlow
+                acBackend
                   (r.cacheMetrics "ac-fast" (r.memory 67108864))
                   (r.cacheMetrics "ac-slow" (r.r2 r2Account r2Bucket "ac/"))
             }

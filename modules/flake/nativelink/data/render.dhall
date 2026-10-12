@@ -121,6 +121,24 @@ let fastSlow = fastSlowWith False
 
 let fastSlowWriteBack = fastSlowWith True
 
+-- Slow tier read-only (slow_direction = get): misses still fall through to
+-- it and populate the fast tier, but nothing is ever written to it. For a
+-- consumer of a shared remote tier that must not spend its uplink on it.
+let fastSlowReadSlow =
+      \(fast : Backend) ->
+      \(slow : Backend) ->
+          [ { mapKey = "fast_slow"
+            , mapValue =
+                obj
+                  [ { mapKey = "fast", mapValue = wrap fast }
+                  , { mapKey = "fast_direction", mapValue = str "both" }
+                  , { mapKey = "slow", mapValue = wrap slow }
+                  , { mapKey = "slow_direction", mapValue = str "get" }
+                  ]
+            }
+          ]
+        : Backend
+
 let cacheMetrics =
       \(cacheType : Text) ->
       \(inner : Backend) ->
@@ -778,12 +796,14 @@ let renderConfig =
 
         in  JSON.render (obj top)
 
-in  { filesystem
+in  { Backend
+    , filesystem
     , memory
     , grpc
     , ref
     , fastSlow
     , fastSlowWriteBack
+    , fastSlowReadSlow
     , cacheMetrics
     , r2
     , verify
