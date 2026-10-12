@@ -204,6 +204,7 @@ Scope {
 
                 // --- LEFT ---
                 RowLayout {
+                    id: leftRow
                     anchors.left: parent.left
                     anchors.leftMargin: root.gapOut
                     anchors.verticalCenter: parent.verticalCenter
@@ -224,8 +225,13 @@ Scope {
                 }
 
                 // --- CENTER ---
+                // Centred, but never under a flank: on a 1440-logical panel
+                // the telemetry cluster grows (sparklines fill in) into the
+                // strip, so it dodges sideways instead of overlapping.
                 RowLayout {
-                    anchors.centerIn: parent
+                    x: Math.max(leftRow.x + leftRow.width + root.gapOut,
+                                Math.min((parent.width - width) / 2,
+                                         rightRow.x - width - root.gapOut))
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: root.gapIn
 
@@ -234,6 +240,7 @@ Scope {
 
                 // --- RIGHT ---
                 RowLayout {
+                    id: rightRow
                     anchors.right: parent.right
                     anchors.rightMargin: root.gapOut
                     anchors.verticalCenter: parent.verticalCenter

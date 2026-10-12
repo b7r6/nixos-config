@@ -209,8 +209,10 @@ RowLayout {
             }
         }
 
+        // Reserve the slot from the first frame (empty canvas until two
+        // samples land) so the cluster doesn't reflow when history arrives.
         Spark {
-            visible: readout.spark !== null && (readout.spark?.length ?? 0) > 1
+            visible: readout.spark !== null
             history: readout.spark ?? []
             hot: readout.hot
         }
