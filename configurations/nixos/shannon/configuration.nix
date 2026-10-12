@@ -1,4 +1,10 @@
-{ flake, lib, ... }:
+{
+  flake,
+  lib,
+  options,
+  pkgs,
+  ...
+}:
 let
   inherit (flake) inputs;
 in
@@ -305,8 +311,53 @@ in
   # if this box ever needs to `nix flake check` aarch64 hosts again.
   # boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
+  # ── GPU: amdgpu drives the panel, the RTX (AD107) is a PRIME offload card ──
+  # Proprietary `latest` driver via hyper-modern-nixos.nvidia (CUDA wallpapers).
+  # The eDP panel hangs off the iGPU; the dGPU only owns HDMI-A-1. Neither PCI
+  # function carries boot_vga=1 on this ASUS, so whichever KMS driver registers
+  # first becomes card1 — and weston (the SDDM greeter) opens that one. On
+  # 2026-10-11 nouveau won the race, weston got a card with no atomic KMS and
+  # died, leaving no greeter. amdgpu in the initrd makes the iGPU card1, always.
+  hyper-modern-nixos.nvidia.enable = true;
+  hardware.amdgpu.initrd.enable = true;
+
+  # The kernel-rendered EYES still behind the greeter (and the lock screen,
+  # below), matching the live CUDA wallpaper. Rendered on the CPU at build time.
+  hyper-modern-nixos.greeter.eyesStill = true;
+
+  # The greeter's weston opens ONE DRM device: the lowest cardN. Card numbers
+  # are first-come — simpledrm holds minor 0 at boot, amdgpu takes minor 1 and
+  # frees 0 when it replaces simpledrm, then nvidia-drm grabs 0 — so weston
+  # landed on the dGPU (only HDMI-A-1, disconnected), found no outputs, exited,
+  # and left a bare console. Resolve the iGPU by PCI path at launch instead.
+  # (Hyprland opens every GPU, which is why the session itself was always fine.)
+  services.displayManager.sddm.wayland.compositorCommand =
+    let
+      upstream = options.services.displayManager.sddm.wayland.compositorCommand.default;
+      onIgpu = pkgs.writeShellScript "sddm-weston-igpu" ''
+        card=$(${pkgs.coreutils}/bin/readlink -f /dev/dri/by-path/pci-0000:c5:00.0-card)
+        exec ${upstream} ''${card:+--drm-device=''${card##*/}} "$@"
+      '';
+    in
+    "${onIgpu}";
+
+  hardware.nvidia = {
+    prime = {
+      offload.enable = true;
+      offload.enableOffloadCmd = true; # `nvidia-offload <cmd>`
+      amdgpuBusId = "PCI:197@0:0:0"; # c5:00.0
+      nvidiaBusId = "PCI:196@0:0:0"; # c4:00.0
+    };
+    # Laptop: let the dGPU power down (RTD3) when idle, and save VRAM across
+    # suspend (mem_sleep_default=deep). The fleet module defaults both off.
+    powerManagement.enable = lib.mkForce true;
+    powerManagement.finegrained = lib.mkForce true;
+  };
+
+  # No global __GLX_VENDOR_LIBRARY_NAME=nvidia: under PRIME offload it would put
+  # every GL client on the dGPU and pin it awake. `nvidia-offload` sets it per
+  # process.
   environment.variables = {
-    __GLX_VENDOR_LIBRARY_NAME = "nvidia";
     WLR_NO_HARDWARE_CURSORS = "1";
   };
 
@@ -354,13 +405,21 @@ in
         height = 1800;
       };
 
+      lockscreen.eyesStill = true;
+
       # ── The rice ─────────────────────────────────────────────────────────
       # Same shell as gossamer/shimmer: new-suzuki + wintermute, exclusive
-      # mode replaces waybar/wofi/mako and takes the keybinds. No cudaField —
-      # the panel is driven by the AMD iGPU, the QML wallpaper does the work.
+      # mode replaces waybar/wofi/mako and takes the keybinds. The wallpaper
+      # is the CUDA kernel on the RTX (PRIME: rendered on the dGPU, presented
+      # through wl_shm to the iGPU-driven panel — not zero-copy like GB10).
       new-suzuki = {
         enable = true;
         exclusive = true;
+        cudaField = {
+          enable = true;
+          arch = "sm_89"; # AD107 (Ada); the x86 SDK default is sm_120
+          scene = "eyes";
+        };
       };
     };
   };
