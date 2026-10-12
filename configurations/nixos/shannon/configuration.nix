@@ -54,19 +54,11 @@ in
     # Fleet sell-off 2026-10-07: shannon inherits the scheduler role and is the
     # only shard in the CAS ring (weight 1, 16G fast tier — disk-constrained).
     # R2 remains the slow tier, so cache contents outlive this disk.
-    age.secrets.nativelink-r2-env.file = ../../../secrets/agenix/machines/nativelink-r2-env.age;
-
+    # (R2 creds + nativelink.r2 live in the active nix-cache section below.)
     hyper-modern-nixos.nativelink = {
       enable = true;
       dhallHost = "shannon";
       openFirewall = true;
-
-      r2 = {
-        enable = true;
-        accountId = "6063b6652178f5cf1cfb87e7e41acf1e";
-        bucket = "straylight-nativelink-cas";
-        environmentFile = "/run/agenix/nativelink-r2-env";
-      };
     };
 
     # ── OTel gateway: the observability spine lands on the laptop ──────────────
@@ -202,36 +194,47 @@ in
     # Last fleet holdout: without it, flake inputs from git.s4.gl can't resolve
     # off-tailnet-DNS and the attic replica can't look up watchtower.
     hyper-modern-nixos.coredns.enable = true;
-
-    # ── nativelink nix-cache: bounded fast tier over R2 ────────────────────────
-    # Re-enabled (fleet default) after the 2026-10-07 disk incident, but with the
-    # local fast tier capped: with r2.enable the NAR store is fastSlow(local, R2
-    # nix-nar/), so eviction from the 32G local tier never loses data — R2 is the
-    # durable copy. The uncapped default grew to 201G on this ~1T laptop.
-    hyper-modern-nixos.nativelink.nixCache = {
-      fastCacheBytes = 34359738368; # 32 GiB
-
-      # Read-through: a miss here consults upstream and mirrors the NAR into the
-      # local CAS (→ R2) instead of just 404ing the client into fallthrough.
-      # Same pair guccimane ran.
-      upstreamCaches = [
-        {
-          url = "https://cache.nixos.org";
-          trustedPublicKeys = [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" ];
-        }
-        {
-          url = "https://nix-community.cachix.org";
-          trustedPublicKeys = [ "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=" ];
-        }
-      ];
-    };
   */
 
-  # TODO[b7r6]: neutralize the fleet-wide defaults (modules/nixos/default.nix)
-  # that would otherwise re-enable the nativelink nix-cache (and its Rust build)
-  # on every host. Drop these two lines when re-enabling the server block above.
+  # ── nativelink nix-cache: ON (fleet default), standalone ──────────────────
+  # Only the substituter + nl-watch-store; the RE scheduler/CAS/worker stays in
+  # the commented server block above. The cache needs nativelink.r2 for its
+  # fast_slow NAR store but NOT nativelink.enable. The bootstrap profile turns
+  # all of this off, so a clean install still builds from public caches.
+  age.secrets.nativelink-r2-env.file = ../../../secrets/agenix/machines/nativelink-r2-env.age;
+
+  hyper-modern-nixos.nativelink.r2 = {
+    enable = true;
+    accountId = "6063b6652178f5cf1cfb87e7e41acf1e";
+    bucket = "straylight-nativelink-cas";
+    environmentFile = "/run/agenix/nativelink-r2-env";
+  };
+
+  # Bounded fast tier over R2. Re-enabled (fleet default) after the 2026-10-07 disk incident, but with the
+  # local fast tier capped: with r2.enable the NAR store is fastSlow(local, R2
+  # nix-nar/), so eviction from the 32G local tier never loses data — R2 is the
+  # durable copy. The uncapped default grew to 201G on this ~1T laptop.
+  hyper-modern-nixos.nativelink.nixCache = {
+    fastCacheBytes = 34359738368; # 32 GiB
+
+    # Read-through: a miss here consults upstream and mirrors the NAR into the
+    # local CAS (→ R2) instead of just 404ing the client into fallthrough.
+    # Same pair guccimane ran.
+    upstreamCaches = [
+      {
+        url = "https://cache.nixos.org";
+        trustedPublicKeys = [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" ];
+      }
+      {
+        url = "https://nix-community.cachix.org";
+        trustedPublicKeys = [ "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=" ];
+      }
+    ];
+  };
+
+  # TODO[b7r6]: the RE server stays off until the server block above is
+  # re-enabled; drop this line with it.
   hyper-modern-nixos.nativelink.enable = lib.mkForce false;
-  hyper-modern-nixos.nativelink.nixCache.enable = lib.mkForce false;
 
   # ── Tailscale safety net ────────────────────────────────────────────────────
 
