@@ -550,6 +550,18 @@ in
         fi
       '';
 
+      # ── Idle lock → the shell's own lock surface ──────────────────────
+      # swayidle stays the compliance trigger (the shell's IdleMonitor can be
+      # paused by caffeine/media and its timeout is user state); it just
+      # raises the shell's PAM password lock instead of swaylock's bare ring.
+      # swaylock only if the shell isn't up to answer the dispatch.
+      hyper-modern-nixos.lockscreen.idleLock.command = "${pkgs.writeShellScript "suzuki-lock" ''
+        if ${pkgs.procps}/bin/pgrep -u "$USER" -f 'quickshell' >/dev/null; then
+          exec ${pkgs.hyprland}/bin/hyprctl dispatch global quickshell:lock_screen
+        fi
+        exec ${config.programs.swaylock.package}/bin/swaylock -f
+      ''}";
+
       # ── Hyprland Autostart (non-exclusive) ─────────────────────────────
       hyper-modern-nixos.hyprland.autostart = lib.mkIf (!cfg.exclusive) [ quickshellLaunch ];
 

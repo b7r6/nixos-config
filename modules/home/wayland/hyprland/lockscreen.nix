@@ -64,6 +64,15 @@ in
         default = 600;
         description = "Idle seconds before locking (≤ 900: the 15-minute compliance ceiling).";
       };
+      command = mkOption {
+        type = types.str;
+        default = "${config.programs.swaylock.package}/bin/swaylock -f";
+        defaultText = lib.literalExpression ''"''${config.programs.swaylock.package}/bin/swaylock -f"'';
+        description = ''
+          What swayidle runs to lock. A desktop shell with its own lock
+          surface (new-suzuki) points this at it; swaylock is the fallback.
+        '';
+      };
     };
   };
 
@@ -72,13 +81,12 @@ in
       enable = true;
       timeouts = [
         {
-          timeout = cfg.idleLock.timeout;
-          command = "${config.programs.swaylock.package}/bin/swaylock -f";
+          inherit (cfg.idleLock) timeout command;
         }
       ];
       events = {
-        before-sleep = "${config.programs.swaylock.package}/bin/swaylock -f";
-        lock = "${config.programs.swaylock.package}/bin/swaylock -f";
+        before-sleep = cfg.idleLock.command;
+        lock = cfg.idleLock.command;
       };
     };
 
