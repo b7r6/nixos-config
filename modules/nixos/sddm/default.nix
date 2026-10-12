@@ -39,7 +39,10 @@ let
     # is ALWAYS local, never an inbound `ssh -A`, so there's no forwarded
     # socket to clobber — the constraint the session-vars comment guards.
     export SSH_AUTH_SOCK="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/ssh-agent"
-    systemd-cat --identifier=hyprland Hyprland "$@"
+    # Hyprland's own watchdog launcher (0.56+; warns on a bare `Hyprland`).
+    # Absolute path: this wrapper shadows the name on PATH.
+    systemd-cat --identifier=hyprland \
+      ${config.programs.hyprland.package}/bin/start-hyprland --no-nixgl -- "$@"
     status=$?
     systemctl --user stop hyprland-session.target graphical-session.target 2>/dev/null || true
     systemctl --user unset-environment \
