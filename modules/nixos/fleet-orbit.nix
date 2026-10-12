@@ -89,11 +89,31 @@ in
     # orbit's self-updated osqueryd/fleet-desktop are dynamically linked.
     hyper-modern-nixos.nix-ld.enable = lib.mkDefault true;
 
+    # Secureframe's Linux screen-lock check reads the user's GNOME dconf keys
+    # through fleetd's `dconf_read` table, which execs `sudo -u <user> dconf
+    # read <key>`. orbit ≤ 1.61 hardcodes /usr/bin/{sudo,dconf} (upstream main
+    # also probes /run/wrappers + /run/current-system); without these the table
+    # errors and the check can never pass. The keys themselves are written,
+    # from the same timeout swayidle enforces, by home/lockscreen (idleLock).
+    # Under services.envfs /usr/bin is a read-only FUSE view that resolves
+    # names through the CALLER's PATH — so put both on orbit's PATH (its
+    # osquery extension children inherit it); elsewhere, plain symlinks.
+    # TODO[b7r6]: drop once orbit self-updates past the NixOS-paths fix.
+    programs.dconf.enable = true;
+    systemd.tmpfiles.rules = lib.mkIf (!config.services.envfs.enable) [
+      "L+ /usr/bin/sudo - - - - /run/wrappers/bin/sudo"
+      "L+ /usr/bin/dconf - - - - ${pkgs.dconf}/bin/dconf"
+    ];
+
     systemd.services.orbit = {
       description = "Orbit osquery (Secureframe Fleet device agent)";
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
+      path = [
+        "/run/wrappers" # sudo (setuid wrapper) for dconf_read — see above
+        pkgs.dconf
+      ];
 
       # nix-ld's loader location is only exported to LOGIN sessions by the
       # nixpkgs module (environment.sessionVariables); a systemd service sees

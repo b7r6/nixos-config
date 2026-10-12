@@ -48,9 +48,48 @@ in
       default = true;
       description = "Show failed login attempts";
     };
+
+    # Automatic lock. Compliance (Secureframe) requires ≤ 15 min, and its
+    # Linux check can only see GNOME's dconf keys — so the same timeout is
+    # mirrored there. The keys describe what swayidle actually does; never
+    # set them without the daemon.
+    idleLock = {
+      enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = "Lock (swaylock) after `timeout` seconds idle and before sleep.";
+      };
+      timeout = mkOption {
+        type = types.ints.between 60 900;
+        default = 600;
+        description = "Idle seconds before locking (≤ 900: the 15-minute compliance ceiling).";
+      };
+    };
   };
 
   config = mkIf cfg.enable {
+    services.swayidle = mkIf cfg.idleLock.enable {
+      enable = true;
+      timeouts = [
+        {
+          timeout = cfg.idleLock.timeout;
+          command = "${config.programs.swaylock.package}/bin/swaylock -f";
+        }
+      ];
+      events = {
+        before-sleep = "${config.programs.swaylock.package}/bin/swaylock -f";
+        lock = "${config.programs.swaylock.package}/bin/swaylock -f";
+      };
+    };
+
+    dconf.settings = mkIf cfg.idleLock.enable {
+      "org/gnome/desktop/screensaver" = {
+        lock-enabled = true;
+        lock-delay = lib.hm.gvariant.mkUint32 0;
+      };
+      "org/gnome/desktop/session".idle-delay = lib.hm.gvariant.mkUint32 cfg.idleLock.timeout;
+    };
+
     programs.swaylock = {
       enable = true;
 
