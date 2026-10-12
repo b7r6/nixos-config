@@ -34,7 +34,8 @@ in
   #
   # Restoring it one role at a time (2026-10-12): each role moves OUT of the
   # `/* … */` block below into the live config once it builds and verifies.
-  # Back so far: nativelink nix-cache, NativeLink RE (scheduler+CAS+worker).
+  # Back so far: nativelink nix-cache, NativeLink RE (scheduler+CAS+worker),
+  # ClickHouse (keeper + server).
   # ═══════════════════════════════════════════════════════════════════════════
   /*
     # ── attic api-server replica (module self-wires its secrets) ────────────────
@@ -169,27 +170,27 @@ in
       services.ch.port = 8123; # clickhouse HTTP interface
     };
 
-    # ── ClickHouse: single-node keeper + server, S3→R2 durable tier ─────────────
-    # Keeper membership is registry-derived (shannon is the only host tagged
-    # `clickhouse-keeper` after the sell-off → 1-node ensemble). The server's
-    # local disk is reconstructible cache; R2 is the durable truth.
-    hyper-modern-nixos.databases.clickhouse = {
-      keeper = {
-        enable = true;
-        # One box IS the fleet now; durability is the S3→R2 tier, not quorum.
-        allowSolo = true;
-      };
-      server = {
-        enable = true;
-        s3.enable = true;
-      };
-    };
-
     # ── CoreDNS as this node's own resolver (serves s4.gl — git, auth, grafana) ─
     # Last fleet holdout: without it, flake inputs from git.s4.gl can't resolve
     # off-tailnet-DNS and the attic replica can't look up watchtower.
     hyper-modern-nixos.coredns.enable = true;
   */
+
+  # ── ClickHouse: single-node keeper + server, S3→R2 durable tier ─────────────
+  # Keeper membership is registry-derived (shannon is the only host tagged
+  # `clickhouse-keeper` after the sell-off → 1-node ensemble). The server's
+  # local disk is reconstructible cache; R2 is the durable truth.
+  hyper-modern-nixos.databases.clickhouse = {
+    keeper = {
+      enable = true;
+      # One box IS the fleet now; durability is the S3→R2 tier, not quorum.
+      allowSolo = true;
+    };
+    server = {
+      enable = true;
+      s3.enable = true;
+    };
+  };
 
   # ── nativelink nix-cache: ON (fleet default), standalone ──────────────────
   # The substituter + nl-watch-store. The cache needs nativelink.r2 for its
