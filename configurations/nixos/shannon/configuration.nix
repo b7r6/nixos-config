@@ -32,9 +32,9 @@ in
   # not exist during `disko-install`. That is why a clean install compiles for
   # hours. None of it is needed for a bootable encrypted DESKTOP.
   #
-  # To restore the server stack after the box is reinstalled and can rebuild/
-  # serve its own cache again: delete the `/* … */` wrappers below AND the two
-  # `mkForce false` lines that follow the block.
+  # Restoring it one role at a time (2026-10-12): each role moves OUT of the
+  # `/* … */` block below into the live config once it builds and verifies.
+  # Back so far: nativelink nix-cache, NativeLink RE (scheduler+CAS+worker).
   # ═══════════════════════════════════════════════════════════════════════════
   /*
     # ── attic api-server replica (module self-wires its secrets) ────────────────
@@ -54,17 +54,6 @@ in
         "127.0.0.1:9363" # clickhouse
         "127.0.0.1:9364" # clickhouse-keeper
       ];
-    };
-
-    # ── NativeLink: the whole fleet in one laptop (scheduler + CAS + worker) ────
-    # Fleet sell-off 2026-10-07: shannon inherits the scheduler role and is the
-    # only shard in the CAS ring (weight 1, 16G fast tier — disk-constrained).
-    # R2 remains the slow tier, so cache contents outlive this disk.
-    # (R2 creds + nativelink.r2 live in the active nix-cache section below.)
-    hyper-modern-nixos.nativelink = {
-      enable = true;
-      dhallHost = "shannon";
-      openFirewall = true;
     };
 
     # ── OTel gateway: the observability spine lands on the laptop ──────────────
@@ -203,10 +192,10 @@ in
   */
 
   # ── nativelink nix-cache: ON (fleet default), standalone ──────────────────
-  # Only the substituter + nl-watch-store; the RE scheduler/CAS/worker stays in
-  # the commented server block above. The cache needs nativelink.r2 for its
-  # fast_slow NAR store but NOT nativelink.enable. The bootstrap profile turns
-  # all of this off, so a clean install still builds from public caches.
+  # The substituter + nl-watch-store. The cache needs nativelink.r2 for its
+  # fast_slow NAR store but NOT nativelink.enable (the RE server, below).
+  # The bootstrap profile turns all of this off, so a clean install still
+  # builds from public caches.
   age.secrets.nativelink-r2-env.file = ../../../secrets/agenix/machines/nativelink-r2-env.age;
 
   hyper-modern-nixos.nativelink.r2 = {
@@ -238,9 +227,20 @@ in
     ];
   };
 
-  # TODO[b7r6]: the RE server stays off until the server block above is
-  # re-enabled; drop this line with it.
-  hyper-modern-nixos.nativelink.enable = lib.mkForce false;
+  # ── NativeLink: the whole fleet in one laptop (scheduler + CAS + worker) ────
+  # Fleet sell-off 2026-10-07: shannon inherits the scheduler role and is the
+  # only shard in the CAS ring (weight 1, 16G fast tier — disk-constrained).
+  # R2 remains the slow tier, so cache contents outlive this disk.
+  hyper-modern-nixos.nativelink = {
+    enable = true;
+    dhallHost = "shannon";
+    openFirewall = true;
+  };
+
+  # The rendered config dials its own scheduler/CAS as shannon.sju1.s4.gl —
+  # a name only CoreDNS/MagicDNS ever answered. One box IS the fleet, so pin
+  # it to loopback: RE comes up on any network, with or without either.
+  networking.hosts."127.0.0.1" = [ "shannon.sju1.s4.gl" ];
 
   # ── Tailscale safety net ────────────────────────────────────────────────────
 
