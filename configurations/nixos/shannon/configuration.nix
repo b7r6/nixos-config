@@ -262,6 +262,13 @@ in
     paths = [ "/home" ];
   };
 
+  # HOLD (2026-10 LUKS reinstall): no backups until the rebuilt /home is set up
+  # the way we want it. Every backup run is followed by `restic forget`, and
+  # the default retention would age out the last pre-reinstall snapshot
+  # (98947d3f, 2026-10-09) within ~7 days — that snapshot is what selective
+  # restores come from. Remove this line to resume hourly backups.
+  systemd.timers.restic-backups-system.enable = lib.mkForce false;
+
   # ── laptop backpressure: swap-backed memory pressure + early OOM relief ────
   # zram gives systemd-oomd a pressure signal to act on; without swap it goes
   # straight from "fine" to kernel OOM/lockup under big parallel builds.
