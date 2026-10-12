@@ -53,7 +53,13 @@ let render =
                 { None = fsStore "nar" p.maxNarBytes
                 , Some =
                     \(x : R2) ->
-                      r.fastSlow
+                      -- write-back, as the RE CAS (fleet.dhall): a read-through
+                      -- `narinfo` GET ingests the whole upstream NAR before it
+                      -- answers, and write-through held that answer hostage to
+                      -- the R2 upload (300 MB at ~2 MB/s uplink → nix's 300 s
+                      -- stall timeout, retry, repeat). Now it returns at disk
+                      -- speed and R2 fills in the background.
+                      r.fastSlowWriteBack
                         (fsStore "nar" p.fastBytes)
                         (r.r2 x.account x.bucket "nix-nar/")
                 }
