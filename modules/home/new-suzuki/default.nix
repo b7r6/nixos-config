@@ -280,7 +280,14 @@ let
   # autoAddDriverRunpath in its default.nix resolves the real libcuda.
   wintermuteField =
     pkgs.callPackage "${flake.inputs.straylight-nvidia-sdk}/examples/wintermute-field"
-      { cuda = flake.inputs.straylight-nvidia-sdk.packages.${pkgs.stdenv.hostPlatform.system}.cuda; };
+      (
+        {
+          cuda = flake.inputs.straylight-nvidia-sdk.packages.${pkgs.stdenv.hostPlatform.system}.cuda;
+          # nvcc (CUDA 13.3) rejects host GCC > 15; nixpkgs' default is 16.
+          stdenv = pkgs.gcc15Stdenv;
+        }
+        // lib.optionalAttrs (cfg.cudaField.arch != null) { cudaArch = cfg.cudaField.arch; }
+      );
 
   # Daemon launcher: graphical-session units usually inherit WAYLAND_DISPLAY
   # via dbus-update-activation-environment --systemd, but that races the
@@ -328,6 +335,17 @@ in
         field into the compositor's wl_shm pool (zero-copy on GB10) and the
         QML AnimatedWallpaper stands down (HYPERMODERN_CUDA_FIELD=1)
       '';
+
+      arch = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        example = "sm_89";
+        description = ''
+          CUDA SM target for the kernel. null keeps the SDK package's default
+          (sm_121 on aarch64/GB10, sm_120 on x86_64). Set it on hosts whose GPU
+          is OLDER than that default — SASS/PTX never runs on an older SM.
+        '';
+      };
 
       scene = mkOption {
         type = types.enum [
