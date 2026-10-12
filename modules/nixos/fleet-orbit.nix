@@ -145,7 +145,11 @@ in
         Restart = "always";
         RestartSec = 1;
         StateDirectory = "orbit";
-        StateDirectoryMode = "0700";
+        # orbit's initialize-root-dir check rejects anything but 0755 on the
+        # root dir itself ("already exists with mode … instead of the expected
+        # …755") and exits 0, so Restart=always spins into start-limit-hit.
+        # Secrets inside (node key, enroll secret) are orbit's own 0600 files.
+        StateDirectoryMode = "0755";
         KillMode = "control-group";
         KillSignal = "SIGTERM";
         CPUQuota = cfg.cpuQuota;
