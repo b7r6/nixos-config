@@ -3819,11 +3819,13 @@ no way human."))
   :after nerd-icons
   :config
   (defvar hypermodern/dashboard-banner-file
-    (expand-file-name "dashboard-banner-0x04.txt" user-emacs-directory))
+    (expand-file-name "dashboard-banner-0x05.txt" user-emacs-directory))
 
+  ;; the tag ends flush with the rules (44 cols) — dashboard centres the
+  ;; banner by its widest line, so an overhang reads as a misalignment
   (defvar hypermodern/dashboard-banner-text
     "────────────────────────────────────────────
-                                   // hypermodern
+                              // hypermodern
 ────────────────────────────────────────────")
 
   (unless (file-exists-p hypermodern/dashboard-banner-file)
