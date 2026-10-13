@@ -143,10 +143,21 @@ in
         # "certificate verify failed" (validated live). Seed it from pkgs.cacert.
         # Dir mode MUST be 0755 — orbit refuses 0700 ("exists with mode … instead
         # of expected 0755") and skips its own update path.
+        #
+        # Layout matters for self-update: orbit downloads each release into
+        # bin/orbit/linux/<channel>/orbit and swaps bin/orbit/orbit, which MUST
+        # be a symlink to it ("check symlink failed: readlink … invalid
+        # argument" otherwise, and the agent is pinned at the seeded version
+        # forever). Seed the stable target only if orbit hasn't fetched one,
+        # and turn a plain-file bin/orbit/orbit (older seeds) into the link.
         ExecStartPre = pkgs.writeShellScript "orbit-seed" ''
-          install -d -m0755 ${cfg.rootDir}/bin/orbit
-          if [ ! -x ${cfg.rootDir}/bin/orbit/orbit ]; then
-            install -m0755 ${cfg.package}/bin/orbit ${cfg.rootDir}/bin/orbit/orbit
+          stable=${cfg.rootDir}/bin/orbit/linux/stable/orbit
+          install -d -m0755 ${cfg.rootDir}/bin/orbit/linux/stable
+          if [ ! -x "$stable" ]; then
+            install -m0755 ${cfg.package}/bin/orbit "$stable"
+          fi
+          if [ ! -L ${cfg.rootDir}/bin/orbit/orbit ]; then
+            ln -sfn "$stable" ${cfg.rootDir}/bin/orbit/orbit
           fi
           install -m0644 ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt ${cfg.rootDir}/certs.pem
         '';
