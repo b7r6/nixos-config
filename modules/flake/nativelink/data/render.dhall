@@ -725,6 +725,17 @@ let workerToJSON =
                       [ { mapKey = "entrypoint", mapValue = str e } ]
                   )
                   ([] : List (Map/Entry Text JSON.Type))
+              # Opt/fold
+                  Natural
+                  w.max_inflight_tasks
+                  (List (Map/Entry Text JSON.Type))
+                  ( \(n : Natural) ->
+                      [ { mapKey = "max_inflight_tasks"
+                        , mapValue = JSON.natural n
+                        }
+                      ]
+                  )
+                  ([] : List (Map/Entry Text JSON.Type))
 
         in  obj [ { mapKey = "local", mapValue = obj localInner } ]
 

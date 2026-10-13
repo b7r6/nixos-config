@@ -79,6 +79,11 @@ let
       inherit hostmetrics;
       journald.units = agent.journaldUnits;
     }
+    // lib.optionalAttrs isAgent (
+      lib.mapAttrs' (
+        name: t: lib.nameValuePair "otlp/${name}" { protocols.grpc.endpoint = "127.0.0.1:${toString t.port}"; }
+      ) agent.taggedOtlp
+    )
     // lib.optionalAttrs (isAgent && agent.scrapeTargets != [ ]) {
       prometheus.config.scrape_configs = [
         {
@@ -160,6 +165,17 @@ let
       override = false;
     };
   }
+  // lib.optionalAttrs isAgent (
+    lib.mapAttrs' (
+      name: t:
+      lib.nameValuePair "resource/${name}" {
+        attributes = lib.mapAttrsToList (key: value: {
+          inherit key value;
+          action = "upsert";
+        }) t.attributes;
+      }
+    ) agent.taggedOtlp
+  )
   // lib.optionalAttrs (isAgent && !isGateway) {
     "resource".attributes = [
       {
@@ -194,10 +210,29 @@ let
   #   - logs/gateway: otlp → batch → exporter
   # on a pure agent: single pipeline with otlp + local receivers → full procChain → exporter
   # on a pure gateway (no agent): single pipeline with otlp → batch → exporter
+  # one pipeline per signal per tagged receiver: its own resource stamp, then
+  # the ordinary local chain (host.name), into the same exporter
+  taggedPipelines = lib.optionalAttrs isAgent (
+    lib.concatMapAttrs (
+      name: _:
+      lib.listToAttrs (
+        map (signal: {
+          name = "${signal}/${name}";
+          value = {
+            receivers = [ "otlp/${name}" ];
+            processors = [ "resource/${name}" ] ++ localProcChain;
+            exporters = [ exporterName ];
+          };
+        }) [ "metrics" "logs" "traces" ]
+      )
+    ) agent.taggedOtlp
+  );
+
   otelSettings = {
     inherit receivers processors exporters;
     service.pipelines =
-      if isGateway && isAgent then
+      taggedPipelines
+      // (if isGateway && isAgent then
         {
           # fused node: separate local vs gateway pipelines
           "metrics/local" = {
@@ -263,7 +298,7 @@ let
             processors = localProcChain;
             exporters = [ exporterName ];
           };
-        };
+        });
   };
 in
 {
@@ -285,6 +320,35 @@ in
         type = lib.types.port;
         default = 4319;
         description = "Local OTLP/gRPC port apps push to (loopback only).";
+      };
+
+      taggedOtlp = lib.mkOption {
+        type = lib.types.attrsOf (
+          lib.types.submodule {
+            options = {
+              port = lib.mkOption {
+                type = lib.types.port;
+                description = "Loopback OTLP/gRPC port this source pushes to.";
+              };
+              attributes = lib.mkOption {
+                type = lib.types.attrsOf lib.types.str;
+                description = "Resource attributes upserted on everything received there.";
+              };
+            };
+          }
+        );
+        default = { };
+        example = {
+          my-service = {
+            port = 4321;
+            attributes."service.role" = "worker";
+          };
+        };
+        description = ''
+          Extra loopback OTLP receivers that stamp fixed resource attributes:
+          identity by port, for apps whose SDK can't label itself (it ignores
+          OTEL_RESOURCE_ATTRIBUTES) or that share a service.name.
+        '';
       };
 
       journaldUnits = lib.mkOption {

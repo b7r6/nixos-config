@@ -388,6 +388,17 @@ in
 
   # ── Per-host monitor & display config ──────────────────────────────────────
   home-manager.users.b7r6 = {
+    # Opt-in RBE against this box's own NativeLink (scheduler :50051, instance
+    # `main`): `bazel build --config=rbe-local //...`. Named, not default, so
+    # other workspaces keep their own remote settings. --jobs matches the
+    # worker's max_inflight_tasks (fleet.dhall).
+    home.file.".bazelrc".text = ''
+      build:rbe-local --remote_executor=grpc://127.0.0.1:50051
+      build:rbe-local --remote_instance_name=main
+      build:rbe-local --remote_timeout=3600
+      build:rbe-local --jobs=12
+    '';
+
     hyper-modern-nixos = {
       hyprland.monitors = (import ../../../lib/monitors.nix).shannon;
 

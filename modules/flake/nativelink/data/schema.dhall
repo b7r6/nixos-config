@@ -185,9 +185,13 @@ let Worker =
           , work_directory : Text
           , entrypoint : Optional Text
           , platform_properties : List PlatformProp
+          , max_inflight_tasks : Optional Natural
           }
       , default =
-        { entrypoint = None Text, platform_properties = [] : List PlatformProp }
+        { entrypoint = None Text
+        , platform_properties = [] : List PlatformProp
+        , max_inflight_tasks = None Natural
+        }
       }
 
 let Config =

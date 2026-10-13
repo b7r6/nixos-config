@@ -1,5 +1,5 @@
 --  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
---                                      // hypermodern // nativelink // fleet
+--                                           // hypermodern // nativelink // fleet
 --  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 --
 --  The fleet topology, typed. Emits a per-HOST NativeLink config (scheduler vs
@@ -38,18 +38,16 @@ let HostDef =
           , casFastBytes : Natural
           , isScheduler : Bool
           , enabled : Bool
+          , maxInflightTasks : Optional Natural
           }
-      , default = { isScheduler = False, enabled = True }
+      , default =
+        { isScheduler = False, enabled = True, maxInflightTasks = None Natural }
       }
 
 let schedulerFqdn = "shannon.sju1.s4.gl"
 
 let casPort = "50052"
 
--- Push CAS/AC to R2? Off while the fleet is one laptop: every action output
--- and result went up over a residential/hotel uplink (bufferbloat starved
--- everything else; AC writes blocked on it). R2 stays readable, so content
--- another producer put there is still served. Same switch as nix-cache.dhall.
 let pushToR2 = False
 
 let casBackend =
@@ -78,6 +76,7 @@ let hosts =
         , casWeight = 1
         , casFastBytes = 17179869184
         , isScheduler = True
+        , maxInflightTasks = Some 12
         }
       ]
 
@@ -345,6 +344,7 @@ let workerConfig =
             , cas_fast_slow_store = "WORKER_FAST_SLOW_STORE"
             , ac_store = "REMOTE_AC"
             , work_directory = "${storeRoot}/work"
+            , max_inflight_tasks = h.maxInflightTasks
             , platform_properties =
               [ { name = "cpu_arch", values = [ archCpu h.arch ] }
               , { name = "OSFamily", values = [ "linux" ] }
