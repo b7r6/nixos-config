@@ -35,7 +35,7 @@ in
   # Restoring it one role at a time (2026-10-12): each role moves OUT of the
   # `/* … */` block below into the live config once it builds and verifies.
   # Back so far: nativelink nix-cache, NativeLink RE (scheduler+CAS+worker),
-  # ClickHouse (keeper + server).
+  # ClickHouse (keeper + server), OTel agent + gateway.
   # ═══════════════════════════════════════════════════════════════════════════
   /*
     # ── attic api-server replica (module self-wires its secrets) ────────────────
@@ -44,24 +44,6 @@ in
       enable = true;
       profile = "replica";
     };
-
-    # ── OTel agent (host metrics + journald → watchtower gateway) ──────────────
-
-    hyper-modern-nixos.observability.otel.agent = {
-      enable = true;
-
-      scrapeTargets = [
-        "127.0.0.1:9153" # coredns
-        "127.0.0.1:9363" # clickhouse
-        "127.0.0.1:9364" # clickhouse-keeper
-      ];
-    };
-
-    # ── OTel gateway: the observability spine lands on the laptop ──────────────
-    # The registry `ch` tag moved here with the fleet sell-off, so this node is
-    # both agent and gateway; the module fuses them into one collector writing
-    # straight into the local ClickHouse (otel database).
-    hyper-modern-nixos.observability.otel.gateway.enable = true;
 
     # ── Grafana: single-box flavor of watchtower's stack ───────────────────────
     # Localhost only (no nginx edge, no kanidm OAuth — the IdP retired with
@@ -191,6 +173,24 @@ in
       s3.enable = true;
     };
   };
+
+  # ── OTel agent (host metrics + journald → local gateway) ──────────────
+
+  hyper-modern-nixos.observability.otel.agent = {
+    enable = true;
+
+    scrapeTargets = [
+      "127.0.0.1:9153" # coredns
+      "127.0.0.1:9363" # clickhouse
+      "127.0.0.1:9364" # clickhouse-keeper
+    ];
+  };
+
+  # ── OTel gateway: the observability spine lands on the laptop ──────────────
+  # The registry `ch` tag moved here with the fleet sell-off, so this node is
+  # both agent and gateway; the module fuses them into one collector writing
+  # straight into the local ClickHouse (otel database).
+  hyper-modern-nixos.observability.otel.gateway.enable = true;
 
   # ── nativelink nix-cache: ON (fleet default), standalone ──────────────────
   # The substituter + nl-watch-store. The cache needs nativelink.r2 for its
