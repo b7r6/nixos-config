@@ -150,6 +150,16 @@ let
       system.hostname_sources = [ "os" ];
     };
   }
+  // lib.optionalAttrs (isAgent && isGateway) {
+    # fill-only twin for the fused node's gateway pipelines: local services
+    # (nativelink, …) OTLP into them with no host.name, and every dashboard
+    # filters on it. override = false never touches a remote agent's stamp.
+    "resourcedetection/fill" = {
+      detectors = [ "system" ];
+      system.hostname_sources = [ "os" ];
+      override = false;
+    };
+  }
   // lib.optionalAttrs (isAgent && !isGateway) {
     "resource".attributes = [
       {
@@ -166,8 +176,9 @@ let
     ++ lib.optionals (isAgent && !isGateway) [ "resource" ]
     ++ [ "batch" ];
 
-  # gateway pass-through: only batch (preserve remote agents' host.name)
-  gatewayProcChain = [ "batch" ];
+  # gateway pass-through: preserve remote agents' host.name; on a fused node,
+  # fill it (never overwrite) for the local OTLP senders
+  gatewayProcChain = lib.optionals (isAgent && isGateway) [ "resourcedetection/fill" ] ++ [ "batch" ];
 
   # receiver lists per signal
   localMetricReceivers =
