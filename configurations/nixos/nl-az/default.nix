@@ -36,6 +36,9 @@ in
           hyper-modern-nixos.soakRig = {
             enable = true;
             targetHost = "nl-az-a.tail8ec1af.ts.net"; # the az site's scheduler, on the site's tailnet
+            # One-hour campaigns while the wall is being shown: a completed,
+            # loaded campaign every hour beats one two-hour run in flight.
+            durationSeconds = 3600;
             casNodes = [
               "nl-az-b.tail8ec1af.ts.net"
               "nl-az-c.tail8ec1af.ts.net"

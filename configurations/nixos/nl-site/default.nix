@@ -82,6 +82,7 @@ in
             casNodes = map (n: "${n.name}.${site.tailnet}") (builtins.filter (n: !n.isScheduler) site.nodes);
             continuous = true;
             intensity = "savage";
+            durationSeconds = 3600; # see nl-az: hourly completed campaigns on the wall
             expectedWorkers = builtins.length site.nodes;
             site = site.name; # the manifest's and soak.runs' site column
           };
