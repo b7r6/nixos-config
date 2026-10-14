@@ -108,7 +108,7 @@ in  schema.Registry::{
         , tailnet = "shannon"
         , dc = "sju1"
         , logical = logicalOf "shannon" "sju1"
-        , tailnet_ipv4 = "100.120.215.82"
+        , tailnet_ipv4 = "100.113.120.45"
         , zone = "sju1"
         , role = "laptop"
         , services = [ "clickhouse-keeper", "ch", "grafana", "monitoring" ]
