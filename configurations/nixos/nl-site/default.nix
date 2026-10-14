@@ -72,10 +72,24 @@ in
         # it moves here when az folds onto nl-site.
         ../nl-az/rig.nix
         {
-          hyper-modern-nativelink.siteSecrets.casEnv = false; # the rig runs no NativeLink; not a recipient
+          # The rig runs no NativeLink; it holds the site's CAS env only when it
+          # runs the egress fault proxy (sites.dhall egressFaults), which fronts
+          # the Blob container with that SAS for the nodes.
+          hyper-modern-nativelink.siteSecrets.casEnv = site.egressFaults;
+          hyper-modern-nativelink.siteSecrets.casEnvName = site.casEnvSecret;
           hyper-modern-nixos.network.tailscale.tags = [ site.tags.rig ]; # site policy: 22 + NativeLink ports into the nodes
           hyper-modern-nixos.soakRig = {
             enable = true;
+            # The five classes: the egress fault proxy (class 4) as the site says;
+            # the scheduler-scenario phase is on by the module's default.
+            egressFaults = {
+              enable = site.egressFaults;
+              dialect = site.egressDialect;
+              proxyUrl = site.egressProxy or ""; # dhall-to-json drops a None field
+              listenPort = site.egressProxyPort;
+              controlPort = site.egressControlPort;
+              upstreamEnvFile = "/run/agenix/${site.casEnvSecret}";
+            };
             targetHost = site.schedulerFqdn; # the site's scheduler, on the site's tailnet
             # the other nodes (CAS shard + worker): targets for the savage
             # CAS-node SIGKILL / pause / netem faults, by tailnet name

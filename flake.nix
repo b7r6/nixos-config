@@ -201,7 +201,7 @@
     # the repo lands hot while a soak runs, and a soak's rechaos must not move
     # under it. Bump deliberately (`nix flake update rechaos`) between runs;
     # the run manifest records the rev. Own nixpkgs (Haskell package set).
-    rechaos.url = "github:b7r6/rechaos/ec2d0e741cd438bb3e161205fe25492c423debf2";
+    rechaos.url = "github:b7r6/rechaos/7c90b91b2755d2e2fbb8804664bc0921acd4b38a";
 
     # hypermodern-nativelink — the Dhall-native NativeLink flake being split out
     # of modules/flake/nativelink (typed fleet, modules, soak rig, telemetry,
