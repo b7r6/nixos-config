@@ -269,7 +269,9 @@ in
       script = ''
         for _ in $(seq 1 60); do
           if clickhouse-client --host 127.0.0.1 --query 'SELECT 1' >/dev/null 2>&1; then
-            exec clickhouse-client --host 127.0.0.1 --multiquery --queries-file ${soakSchema}
+            clickhouse-client --host 127.0.0.1 --multiquery --queries-file ${soakSchema}
+            # the inference layer (lane 9): views over soak.* with the bounds stated
+            exec clickhouse-client --host 127.0.0.1 --multiquery --queries-file ${flake.inputs.hypermodern-nativelink}/nix/soak/inference.sql
           fi
           sleep 2
         done
