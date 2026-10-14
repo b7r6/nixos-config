@@ -39,6 +39,23 @@ in
     ];
   };
 
+  # The private hypermodern-nativelink flake is fetched over ssh with a
+  # read-only deploy key (agenix, decrypted for the operator so evaluation can
+  # read it): flake.nix refers to git+ssh://git@github-hmnl/… and this alias
+  # binds that name to github.com with the right identity and nothing else.
+  age.secrets.github-deploy-key-hypermodern-nativelink = {
+    file = ../../secrets/agenix/machines/github-deploy-key-hypermodern-nativelink.age;
+    owner = "b7r6";
+    mode = "0400";
+  };
+  programs.ssh.extraConfig = ''
+    Host github-hmnl
+      HostName github.com
+      User git
+      IdentityFile /run/agenix/github-deploy-key-hypermodern-nativelink
+      IdentitiesOnly yes
+  '';
+
   # Use standard ssh-agent (conflicts with gnome-keyring's gcr-ssh-agent)
   # Set low priority so wayland module can override if gnome-keyring is enabled
   programs.ssh.startAgent = lib.mkDefault true;

@@ -201,6 +201,13 @@ in
   # enters the nix store.
   "agenix/machines/nix-access-tokens.age".publicKeys = mkGlobalSecret;
 
+  # Read-only GitHub deploy key for the PRIVATE hypermodern-nativelink flake
+  # (deus-ex-b7r6/hypermodern-nativelink). Decrypted for the operator user so
+  # `nix` can fetch the flake input over ssh via the `github-hmnl` host alias
+  # (modules/nixos/base.nix); global because every fleet host and the Azure
+  # builder evaluate nixos-config. Rotate: new key, `gh repo deploy-key add`.
+  "agenix/machines/github-deploy-key-hypermodern-nativelink.age".publicKeys = mkGlobalSecret;
+
   # SearXNG signing key env file: SEARXNG_SECRET=<openssl rand -hex 32>.
   "agenix/machines/searxng-env.age".publicKeys = mkGlobalSecret;
 
