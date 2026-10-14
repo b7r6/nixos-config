@@ -95,6 +95,17 @@ in
       description = "Whether to provision Kanidm from the user registry (only on the IdP host).";
     };
 
+    homeManager = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Import each registry user's configurations/home/<name>.nix as their
+        home-manager config. Off on headless cloud nodes: the desktop home
+        config is ~36 GiB of closure (editors, fonts, GPU tooling) that a
+        fleet VM never uses and a laptop uplink cannot ship.
+      '';
+    };
+
     defaultGroups = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [ "networkmanager" ];
@@ -137,11 +148,13 @@ in
     # ── home-manager (auto-imported when a home config exists) ────────────────
     # Per-host home tweaks (monitor layout, etc.) still merge cleanly on top via
     # a plain `home-manager.users.<name> = { … }` in the host's configuration.nix.
-    home-manager.users = lib.listToAttrs (
-      map (user: {
-        inherit (user) name;
-        value.imports = [ (homeFile user.name) ];
-      }) (builtins.filter (u: hasHome u.name) hostUsers)
+    home-manager.users = lib.mkIf cfg.homeManager (
+      lib.listToAttrs (
+        map (user: {
+          inherit (user) name;
+          value.imports = [ (homeFile user.name) ];
+        }) (builtins.filter (u: hasHome u.name) hostUsers)
+      )
     );
 
     # ── nix trusted-users ─────────────────────────────────────────────────────

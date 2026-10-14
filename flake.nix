@@ -166,6 +166,22 @@
     nativelink-nix.url = "github:b7r6/nativelink?ref=integration/straylight-plus-all-fixes-2026-10-05";
     nativelink-nix.inputs.nixpkgs.follows = "nixpkgs";
 
+    # rechaos — the black-box REAPI chaos + determinism gateway that drives the
+    # Azure soak rig (modules/flake/nativelink/soak). Pinned by REV on purpose:
+    # the repo lands hot while a soak runs, and a soak's rechaos must not move
+    # under it. Bump deliberately (`nix flake update rechaos`) between runs;
+    # the run manifest records the rev. Own nixpkgs (Haskell package set).
+    rechaos.url = "github:b7r6/rechaos/c65dd7d0e9d745fc58c50beda98f5ce19a274f2d";
+
+    # hypermodern-nativelink — the Dhall-native NativeLink flake being split out
+    # of modules/flake/nativelink (typed fleet, modules, soak rig, telemetry,
+    # and the Azure site's OWN agenix secrets: tailnet key + CAS SAS). Local
+    # path only until it is pushed; then github:b7r6/hypermodern-nativelink.
+    hypermodern-nativelink.url = "path:/home/b7r6/src/hypermodern/hypermodern-nativelink-0x01";
+    hypermodern-nativelink.inputs.nixpkgs.follows = "nixpkgs";
+    hypermodern-nativelink.inputs.nativelink.follows = "nativelink-nix";
+    hypermodern-nativelink.inputs.rechaos.follows = "rechaos";
+
     # rayfish — our vendored fork of the iroh-powered P2P mesh VPN (rayfish/rayfish),
     # remapped off Tailscale's 100.64.0.0/10 CGNAT block onto 10.64.0.0/10 so it
     # coexists with the tailnet as an INDEPENDENT fallback mesh (out-of-band reach

@@ -83,6 +83,7 @@
 
     # ── Special ──
 
+    ./azure.nix
     ./impermanence.nix
     ./impurity.nix
     ./xremap.nix

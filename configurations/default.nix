@@ -66,6 +66,12 @@ let
     # shimmer.system = "aarch64-linux";
 
     guccimane = { };
+    # Azure soak fleet (docs/azure-soak-fleet.md): nixos-anywhere installs, no
+    # bootstrap variants — the VMs never build, closures come from the builder.
+    nl-az-a.bootstrap = false;
+    nl-az-b.bootstrap = false;
+    nl-az-c.bootstrap = false;
+    nl-az-rig.bootstrap = false;
     shannon = { };
     test-vm.bootstrap = false;
     ultraviolence = { };
@@ -79,6 +85,9 @@ let
       system ? "x86_64-linux",
       nixpkgs ? inputs.nixpkgs,
       extraModules ? [ ],
+      # consumed by bootstrapHosts below; accepted here so a `bootstrap = false`
+      # host still evaluates (test-vm had this latent since the flag landed).
+      bootstrap ? true,
     }:
     nixpkgs.lib.nixosSystem {
       inherit specialArgs;

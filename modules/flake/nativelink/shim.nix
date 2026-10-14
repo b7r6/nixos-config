@@ -6,6 +6,18 @@ let
   otelAgent = config.hyper-modern-nixos.observability.otel.agent;
 in
 {
+  options.hyper-modern-nixos.nativelink.extraEnvironmentFiles = lib.mkOption {
+    type = lib.types.listOf lib.types.str;
+    default = [ ];
+    example = [ "/run/agenix/nativelink-azure-env" ];
+    description = ''
+      Extra EnvironmentFiles for the RE service. The fork module only wires the
+      R2 credential file; a slow tier on another object store (the Azure soak
+      fleet's `AZURE_CAS_SAS_URL`, consumed by the Dhall `azure` backend via
+      shellexpand) hands its env file in here. Never store paths.
+    '';
+  };
+
   config = lib.mkMerge [
     {
       # The typed Dhall fleet definition is this repo's — the module renders
@@ -67,6 +79,9 @@ in
     })
     (lib.mkIf (otelAgent.enable && cfg.enable) {
       systemd.services.nativelink.environment.NL_OTEL_ENDPOINT = lib.mkForce "http://127.0.0.1:4321";
+    })
+    (lib.mkIf (cfg.enable && cfg.extraEnvironmentFiles != [ ]) {
+      systemd.services.nativelink.serviceConfig.EnvironmentFile = cfg.extraEnvironmentFiles;
     })
     (lib.mkIf (otelAgent.enable && cfg.nixCache.enable) {
       # The fork's module only wires NL_OTEL_ENDPOINT into the RE service; the

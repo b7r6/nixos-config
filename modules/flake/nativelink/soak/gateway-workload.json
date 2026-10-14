@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "seed": 20261013,
+  "rules": [
+    {
+      "target": {"method": "build.bazel.remote.execution.v2.ContentAddressableStorage/FindMissingBlobs", "direction": "response"},
+      "chancePpm": 100000,
+      "fault": {"kind": "abort", "status": "Unavailable"}
+    },
+    {
+      "target": {"method": "build.bazel.remote.execution.v2.ContentAddressableStorage/BatchUpdateBlobs", "direction": "request"},
+      "chancePpm": 250000,
+      "fault": {"kind": "delay", "micros": 150000}
+    },
+    {
+      "target": {"method": "google.bytestream.ByteStream/Read", "direction": "response"},
+      "chancePpm": 250000,
+      "fault": {"kind": "dribble", "bytesPerSecond": 262144, "chunkBytes": 4096}
+    }
+  ]
+}

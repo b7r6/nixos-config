@@ -59,6 +59,15 @@
     # Fingerprint SHA256:X5PHGTNupKHY4lDO6y0xQMru02eqHlQmmGNlOVXWUMM.
     shannon = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFa30b+tc+HvJZfGKk6jHbdPXSrv9Rfmy4ecfeQM1dQA" ];
 
+    # ── Azure soak fleet (x86_64, westus2) ──
+    # Pre-generated on shannon 2026-10-13 and shipped to each VM by
+    # nixos-anywhere --extra-files, so agenix secrets (tailscale auth key, the
+    # Azure SAS env) decrypt on first boot. See docs/azure-soak-fleet.md.
+    nl-az-a = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGwomeIGtmLyw696IxXST+J22QBXbPXLotzEeJ99zKCn" ];
+    nl-az-b = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOilQyGb4N48AGY9OaP20OCLwJXW6dGA/3IufQAMBo1Q" ];
+    nl-az-c = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDeiXDkFFDlR9i/SQH/vGDWaVnuO4OkQpq86rhrj4HgJ" ];
+    nl-az-rig = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDJ4JLz3OT/7v5+YkhY6A9uMpFrsEIdUxg2hEEMMDHOv" ];
+
     # ── aarch64-linux ──
     shimmer = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAFyVtrt3AmJrLqcdAnZn5hXrvMenOUKGAS182qBnuYN" ];
 

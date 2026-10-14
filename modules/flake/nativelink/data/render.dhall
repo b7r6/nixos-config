@@ -182,6 +182,32 @@ let r2 =
           ]
         : Backend
 
+let azure =
+      \(keyPrefix : Text) ->
+          [ { mapKey = "experimental_cloud_object_store"
+            , mapValue =
+                obj
+                  [ { mapKey = "provider", mapValue = str "azure" }
+                  , -- A container SAS URL from the service's EnvironmentFile
+                    -- (hyper-modern-nixos.nativelink.extraEnvironmentFiles);
+                    -- the fork's Azure store takes a SAS or k8s workload
+                    -- identity, nothing a VM can present. Same shape the
+                    -- enterprise chart's cas.cloudProvider=azure lands on.
+                    { mapKey = "sas_url", mapValue = str "\${AZURE_CAS_SAS_URL}" }
+                  , { mapKey = "key_prefix", mapValue = str keyPrefix }
+                  , { mapKey = "retry"
+                    , mapValue =
+                        obj
+                          [ { mapKey = "max_retries", mapValue = nat 6 }
+                          , { mapKey = "delay", mapValue = JSON.double 0.3 }
+                          , { mapKey = "jitter", mapValue = JSON.double 0.5 }
+                          ]
+                    }
+                  ]
+            }
+          ]
+        : Backend
+
 let ShardEntry = { store : Backend, weight : Natural }
 
 let shard =
@@ -363,7 +389,7 @@ let casWitnessSvcJSON =
             }
           ]
 
-let Opt/fold = https://raw.githubusercontent.com/dhall-lang/dhall-lang/v23.0.0/Prelude/Optional/fold.dhall ? https://prelude.dhall-lang.org/v23.0.0/Optional/fold.dhall
+let Opt/fold = Prelude.Optional.fold
 
 let optStrField =
       \(k : Text) ->
@@ -776,20 +802,19 @@ let renderConfig =
                           }
                         ]
                 )
-              # ( if    Prelude.List.null schema.Server.Type c.servers
-                  then  [] : List (Map/Entry Text JSON.Type)
-                  else  [ { mapKey = "servers"
-                          , mapValue =
-                              arr
-                                ( List/map
-                                    schema.Server.Type
-                                    JSON.Type
-                                    serverToJSON
-                                    c.servers
-                                )
-                          }
-                        ]
-                )
+              # [ -- always present: nativelink rejects a config without it,
+                  -- and a worker-only node has none ("missing field servers")
+                  { mapKey = "servers"
+                  , mapValue =
+                      arr
+                        ( List/map
+                            schema.Server.Type
+                            JSON.Type
+                            serverToJSON
+                            c.servers
+                        )
+                  }
+                ]
               # ( if    Prelude.List.null schema.Worker.Type c.workers
                   then  [] : List (Map/Entry Text JSON.Type)
                   else  [ { mapKey = "workers"
@@ -817,6 +842,7 @@ in  { Backend
     , fastSlowReadSlow
     , cacheMetrics
     , r2
+    , azure
     , verify
     , completeness
     , ShardEntry
