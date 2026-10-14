@@ -2,11 +2,19 @@
 # default.nix is `import ../nl-az { name = "<host>"; role = "node" | "rig"; }`.
 #   node — scheduler/CAS/worker per the Dhall fleet (dhallHost = name)
 #   rig  — the soak driver (rechaos gateway + monkey + workload + oracle)
-{ name, role ? "node" }:
+{
+  name,
+  role ? "node",
+}:
 { flake, ... }:
 let
   inherit (flake) inputs;
-  inherit (inputs) self disko agenix hypermodern-nativelink;
+  inherit (inputs)
+    self
+    disko
+    agenix
+    hypermodern-nativelink
+    ;
 in
 {
   imports = [
@@ -20,7 +28,7 @@ in
   ++ (
     if role == "rig" then
       [
-        ../../../modules/flake/nativelink/soak/rig.nix
+        hypermodern-nativelink.nixosModules.soak-rig # the soak driver is the site flake's (continuous, savage)
         ./rig.nix # the site's observability sink: ClickHouse + OTel gateway + Grafana
         {
           hyper-modern-nativelink.siteSecrets.casEnv = false; # the rig runs no NativeLink; not a recipient
@@ -28,7 +36,19 @@ in
           hyper-modern-nixos.soakRig = {
             enable = true;
             targetHost = "nl-az-a.tail8ec1af.ts.net"; # the az site's scheduler, on the site's tailnet
+            casNodes = [
+              "nl-az-b.tail8ec1af.ts.net"
+              "nl-az-c.tail8ec1af.ts.net"
+            ];
           };
+          # The wall: this Grafana also reads az2's sink (datasource
+          # `clickhouse-az2`) for the differential dashboard.
+          hyper-modern-nixos.soakSink.wall.peers = [
+            {
+              name = "az2";
+              host = "nl-az2-rig.tail8ec1af.ts.net";
+            }
+          ];
         }
       ]
     else

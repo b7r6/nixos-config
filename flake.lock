@@ -1401,8 +1401,8 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1791978461,
-        "narHash": "sha256-0nidT/AxFsWMyZXEEEXALZQvFLM+lJR2EyKPO0Bfu70=",
+        "lastModified": 1791979116,
+        "narHash": "sha256-tMFft+cv0nQegifYZa9f44CLChB4Kv/b8noGlGZtT10=",
         "path": "/home/b7r6/src/hypermodern/hypermodern-nativelink-0x01",
         "type": "path"
       },
