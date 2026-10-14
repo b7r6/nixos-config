@@ -86,6 +86,12 @@ in
       ]
   );
   networking.hostName = host;
-  # v6: the OS disk is NVMe; the Azure module's initrd set is the v5 SCSI one.
-  boot.initrd.availableKernelModules = lib.mkIf nvme [ "nvme" ];
+  # v6: the OS disk is NVMe behind Hyper-V PCI passthrough ("MSFT NVMe
+  # Accelerator", pci-c05b:…), so stage 1 needs the Hyper-V PCI bus driver
+  # AND nvme or it waits 90 s for /dev/disk/by-partlabel/nixos and gives up
+  # (serial log, 2026-10-14). The Azure module's initrd set is the v5 SCSI one.
+  boot.initrd.kernelModules = lib.mkIf nvme [
+    "pci_hyperv"
+    "nvme"
+  ];
 }
