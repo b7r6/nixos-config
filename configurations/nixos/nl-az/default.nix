@@ -46,6 +46,7 @@ in
           };
           # The wall: this Grafana also reads az2's sink (datasource
           # `clickhouse-az2`) for the differential dashboard.
+          hyper-modern-nixos.soakSink.grafana.fqdn = "nl-az-rig.tail8ec1af.ts.net"; # Grafana on the tailnet
           hyper-modern-nixos.soakSink.wall.peers = [
             {
               name = "az2";

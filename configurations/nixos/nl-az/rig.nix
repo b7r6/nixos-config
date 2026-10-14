@@ -158,6 +158,12 @@ let
   };
 in
 {
+  options.hyper-modern-nixos.soakSink.grafana.fqdn = lib.mkOption {
+    type = lib.types.str;
+    example = "nl-az-rig.tail8ec1af.ts.net";
+    description = "This rig's name on the SITE's tailnet: Grafana's root_url/domain (it listens on the tailnet).";
+  };
+
   options.hyper-modern-nixos.soakSink.wall = {
     serve = lib.mkOption {
       type = lib.types.bool;
@@ -236,7 +242,8 @@ in
     '';
 
     environment.etc."clickhouse-server/users.d/wall.xml" = lib.mkIf wall.serve { source = wallUsers; };
-    networking.firewall.interfaces.tailscale0.allowedTCPPorts = lib.mkIf wall.serve [ 8123 ];
+    # 3000 = Grafana on the tailnet (below); 8123 = this sink readable by the wall.
+    networking.firewall.interfaces.tailscale0.allowedTCPPorts = [ 3000 ] ++ lib.optionals wall.serve [ 8123 ];
 
     systemd.services.clickhouse-soak-schema = {
       description = "ClickHouse: the soak.* schema (declarative, idempotent)";
@@ -293,19 +300,23 @@ in
     };
 
     # ── Grafana: loopback, through the bastion ─────────────────────────────────
-    # No edge, no IdP: :3000 on 127.0.0.1, reached with ssh -L (header). Viewers
+    # No edge, no IdP: :3000 ON THE TAILNET — http://<rig>.<tailnet>:3000. The
+    # firewall admits it on tailscale0 only, and the policy decides who may
+    # reach a rig at all (admins and tag:admin-device; the nodes cannot). The
+    # public IP never sees it (NSG: 22 from the admin address only). Viewers
     # are anonymous so the projector just works; edits need the admin password
     # the first start minted into the state dir (nothing secret in the store,
     # nothing to rekey in the fleet's agenix tree for a transient site).
+    # ssh -L to 127.0.0.1:3000 keeps working as the fallback.
     services.grafana = {
       enable = true;
 
       settings = {
         server = {
-          http_addr = "127.0.0.1";
+          http_addr = "0.0.0.0";
           http_port = 3000;
-          root_url = "http://127.0.0.1:3000/";
-          domain = "127.0.0.1";
+          root_url = "http://${config.hyper-modern-nixos.soakSink.grafana.fqdn}:3000/";
+          domain = config.hyper-modern-nixos.soakSink.grafana.fqdn;
         };
 
         security = {

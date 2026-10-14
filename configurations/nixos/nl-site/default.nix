@@ -89,6 +89,7 @@ in
           # Every generated site's sink is readable from the wall (the
           # differential on az's Grafana); the tailnet policy decides who may.
           hyper-modern-nixos.soakSink.wall.serve = true;
+          hyper-modern-nixos.soakSink.grafana.fqdn = "${site.rig.name}.${site.tailnet}"; # Grafana on the tailnet
         }
       ]
     else if role == "builder" then
