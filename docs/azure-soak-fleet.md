@@ -387,6 +387,60 @@ upstream-dialect scheduler, which serves no `/metrics` (az2 campaigns #1–#3 di
 probe is best-effort now). az2's first real campaign is `20261014T121520Z`, started after the three
 az2 nodes were deployed with envfs.
 
+### az → upstream v1.7.6 (2026-10-14, 15:00Z)
+
+The differential is pure now: az soaks `TraceMachina/nativelink` at tag **v1.7.6**
+(`be96a8a0cf38b74d0997b48ee45a1ec8c6a6e925`, input `nativelink-rev-1-7-6`), az2 soaks 1.7.7, both on
+the `upstream` dialect, so the binary is the only difference. The fork's integration branch
+(`7eba9bf`) ran az's campaigns #1–#6 and is off the wall; it returns as a third site. How it landed:
+
+- **Config surface at the tag.** `nativelink-config` at v1.7.6 vs 1.7.7, non-doc diff: 1.7.7 adds
+  `reservation_hold` (the class-3 opt-in), `executing_sweep_interval_s`, `forward_headers`, and
+  the object-store `throttle_retry_{delay,max_delay,budget}_s` knobs (the Retry-After fix, class 4;
+  budget 120 s by default). `experimental_backend: { redis: { redis_store } }`, `insecure_allow_http`,
+  `max_download_timeout_s` (worker, default 600) exist at both. The az render was run through the
+  v1.7.6 binary on the laptop: every store instantiated, the ring dialled, then `0.0.0.0:50051`
+  already in use (the laptop's own NativeLink) — the same proof the doc records for 1.7.7.
+- **Build on the builder: 14 min** (`ssh nl-az2-builder nix build github:TraceMachina/nativelink/
+  be96a8a…#nativelink --accept-flake-config`; D16s_v6, deps + crate; the laptop took ~25 min for
+  1.7.7). The copy builder → laptop was another 14 min (the laptop's downlink is no better than its
+  uplink), so for the deploy the binary went laptop → az rig (`nix copy`, 78 MiB) and rig → nodes as
+  root over the tailnet (`nix copy --to ssh://root@<node>` with the soak key, seconds), and the three
+  node deploys then copied 6 paths each (render JSON, unit, etc.) — 30 s per node instead of a
+  78 MiB upload per node.
+- **The wiring.** az's nodes stay hand-written but boot the SITE's binary and the SITE's render:
+  `configurations/nixos/nl-site/package.nix` (`packageFor site`, the lock-rev assertion, shared with
+  `sites.nix`) and the flake's `mkFleetDir` over `examples/{fleet,sites}.dhall` (the first of the two
+  fold-in differences, reconciled). Render proof: az2 and shannon byte-identical before/after; nl-az-a's
+  render equals nl-az2-a's modulo host names.
+- **`sh/azure-soak.sh deploy` needs `az`.** It resolves the rig's public IP with `az vm
+  list-ip-addresses` for the ProxyJump; with the CLI logged out the ProxyJump is `b7r6@` and every
+  copy fails — and a wrapper that `| tail`s the output reports rc=0. The nodes were deployed by hand
+  (`nix copy --substitute-on-destination --to ssh://b7r6@<node>.<tailnet>` with
+  `-o ProxyJump=b7r6@52.246.254.11`, then `nix-env --set` + `switch-to-configuration switch`).
+  TODO[b7r6]: `AZS_RIG_IP` override, and never mask a deploy's exit status.
+- **Drain window:** `soak pause` at 14:30Z landed as campaign #6 ended; nodes switched 15:01–15:03Z,
+  the ring re-formed (OTLP `worker.connected.count` = 3 within 10 s of the last switch), smoke build
+  `build-20261014T150356Z`: 21/21 actions, 0 findings, 2.8 s; `soak resume` 15:05Z. az campaign #7
+  onward is v1.7.6.
+- az2's first 1.7.7 campaign (`20261014T131100Z`) carries 292 CAS-integrity findings
+  (`incomplete-upload-readable:short-INVALID_ARGUMENT`, `fmb-present-phantom:…`); lane 8 is
+  confirming or refuting. Whether v1.7.6 shows the same under the same write-through tier is a
+  differential data point to read off az from campaign #7.
+
+### The five classes (2026-10-14)
+
+The wall's "The five classes" table (per site) is computed from two columns the triage classifier
+writes: `soak.findings.klass` (which of the five failure classes of NativeLink 1.7.7 a finding's
+rechaos signature belongs to; `''` for none) and `soak.runs.active_classes` (the classes whose
+mechanism the campaign had armed, from the manifest). A class shows CAUGHT ×n when real findings
+exist, "quiet · m armed" only when m finished campaigns ran with the mechanism on and found none,
+and "not armed" otherwise. Both columns were added live on both rigs (`ALTER TABLE … ADD COLUMN IF
+NOT EXISTS`) and are in the rig's declarative schema (`nl-az/rig.nix`). Mapping: class1
+`stuck-executing`; class2 `input-evicted-failure`; class3 `queue-starvation`; class4/5
+`store-throttle-giveup`, `store-throttle-redispatch` (and the broken awaited-action stream), by
+the dialect of the campaign's egress faults.
+
 ### Fold-in of az (TODO[b7r6])
 
 az stays on `configurations/nixos/nl-az/` (lane 1's observability work landed there during

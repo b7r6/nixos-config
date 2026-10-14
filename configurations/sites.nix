@@ -40,18 +40,9 @@ let
   generated = lib.filterAttrs (name: site: site.enabled && !(lib.elem name handWritten)) sites;
 
   # The site's NativeLink package: null (the fork module's default, i.e. the
-  # `nativelink-nix` input) when the site soaks that, else the named input's.
-  packageFor =
-    site:
-    let
-      rev = site.nativelinkRev;
-      input =
-        inputs.${rev.input}
-          or (throw "site ${site.name}: nativelinkRev.input '${rev.input}' is not a flake input (add it to flake.nix)");
-    in
-    assert lib.assertMsg (input.rev == rev.rev)
-      "site ${site.name}: input ${rev.input} is locked at ${input.rev}, sites.dhall says ${rev.rev}";
-    if rev.input == "nativelink-nix" then null else input.packages.x86_64-linux.nativelink;
+  # `nativelink-nix` input) when the site soaks that, else the named input's,
+  # asserted against the lock (shared with the hand-written az site).
+  packageFor = import ./nixos/nl-site/package.nix { inherit inputs lib; };
 
   mkSiteHost = site: host: role: {
     bootstrap = false;

@@ -186,12 +186,22 @@
     # as upstream's CI builds it (musl static via its own pins).
     nativelink-rev-1-7-7.url = "github:TraceMachina/nativelink/b1ca26e08296f50935136b2385873354c88286ed";
 
+    # 1.7.6: UPSTREAM tag v1.7.6, the pure PRE-fix side of the differential
+    # (az soaks it since 2026-10-14 ~15:00Z; before that az ran the fork's
+    # integration branch, which is no longer on the wall). Same `upstream`
+    # dialect as 1.7.7, so the only difference between the two sites is the
+    # binary. Its config surface was checked against 1.7.7's at the tag:
+    # 1.7.7 adds `reservation_hold`, `executing_sweep_interval_s`, the
+    # `throttle_retry_*` object-store knobs and `forward_headers`; everything
+    # the upstream render emits exists at both. Own nixpkgs pins, as 1.7.7.
+    nativelink-rev-1-7-6.url = "github:TraceMachina/nativelink/be96a8a0cf38b74d0997b48ee45a1ec8c6a6e925";
+
     # rechaos — the black-box REAPI chaos + determinism gateway that drives the
     # Azure soak rig (modules/flake/nativelink/soak). Pinned by REV on purpose:
     # the repo lands hot while a soak runs, and a soak's rechaos must not move
     # under it. Bump deliberately (`nix flake update rechaos`) between runs;
     # the run manifest records the rev. Own nixpkgs (Haskell package set).
-    rechaos.url = "github:b7r6/rechaos/c65dd7d0e9d745fc58c50beda98f5ce19a274f2d";
+    rechaos.url = "github:b7r6/rechaos/ec2d0e741cd438bb3e161205fe25492c423debf2";
 
     # hypermodern-nativelink — the Dhall-native NativeLink flake being split out
     # of modules/flake/nativelink (typed fleet, modules, soak rig, telemetry,

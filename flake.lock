@@ -1510,8 +1510,8 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1791989501,
-        "narHash": "sha256-TAFaixmE5p7wvJAdyVioc6WZGIbaTYw/ERpiYj6FEcA=",
+        "lastModified": 1791990309,
+        "narHash": "sha256-dl6GEGpu6fEydaw2hr090LjYcTDEeLAYZXeKYSlVixQ=",
         "path": "/home/b7r6/src/hypermodern/hypermodern-nativelink-0x01",
         "type": "path"
       },
@@ -2781,17 +2781,17 @@
         "nixpkgs": "nixpkgs_8"
       },
       "locked": {
-        "lastModified": 1791391215,
-        "narHash": "sha256-MCrkmjFctbb05euiHe1SCQQCHzN2rCHWKUuQOwBGuVo=",
+        "lastModified": 1791982402,
+        "narHash": "sha256-pgCIgb8EAdwSzyzM4ycNjxjG6lCTlpAW39czm7CkxPA=",
         "owner": "b7r6",
         "repo": "rechaos",
-        "rev": "c65dd7d0e9d745fc58c50beda98f5ce19a274f2d",
+        "rev": "ec2d0e741cd438bb3e161205fe25492c423debf2",
         "type": "github"
       },
       "original": {
         "owner": "b7r6",
         "repo": "rechaos",
-        "rev": "c65dd7d0e9d745fc58c50beda98f5ce19a274f2d",
+        "rev": "ec2d0e741cd438bb3e161205fe25492c423debf2",
         "type": "github"
       }
     },
