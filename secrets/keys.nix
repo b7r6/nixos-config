@@ -35,6 +35,12 @@
 #
 # Decommissioned & removed from the fleet (do not re-add without a real host):
 #   beratna, flatline, galois, noether, railgun, ultralight
+#   ultraviolence, watchtower, weyl, guccimane, shimmer, gossamer — wiped and
+#   sold 2026-10-07 (docs/salvage-checklist-2026-10.md). Their host keys were
+#   dropped as recipients and every secret rekeyed 2026-10-14: this repo is
+#   public, so a sold disk with an unwiped /etc/ssh host key must not be able
+#   to decrypt anything committed from here on. Older ciphertexts in git
+#   history remain encrypted to them: rotate any credential that matters.
 #
 {
   # ── Host Keys ────────────────────────────────────────────────────────────────
@@ -43,16 +49,6 @@
   # All keys below were read directly from the live hosts (authoritative).
   hosts = {
     # ── x86_64-linux ──
-    ultraviolence = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIByLBDrGF8XgGFi9TdWS65haJBZYGEbAHLSu+q3LaGP5"
-    ];
-
-    watchtower = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMibWXJ2mjqlJi0j8hlNP7OgiUZ7jG8dB1vZ75fNH0Cy" ];
-
-    weyl = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIITOOlNpHBYnG7EmU3lXqrSzf4AqMHxpViF8HS90QTiK" ];
-
-    guccimane = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIADHEWWzCpRcLIjk1CNKnl86dtAap7BHfsaijUqe3cV7" ];
-
     # shannon: host key ROTATED 2026-10-11 on the LUKS reinstall (the original
     # key was not recoverable from the old disk). Secrets rekeyed (agenix -r)
     # with an admin identity the same day.
@@ -77,16 +73,5 @@
     nl-az2-c = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPKJqWHfPqjcSxu8swKKQeX2Xcq7j2P3KhhnQD0c5UjV" ];
     nl-az2-b = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKAMjtRoBifoC2YG/K79GGcufnTfp2OP7E1gGdrSXDft" ];
     nl-az2-a = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBK71mJCnfTOwpxcfU0GB93UP8W9ekFlKguvTsRWY3vu" ];
-
-    # ── aarch64-linux ──
-    shimmer = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAFyVtrt3AmJrLqcdAnZn5hXrvMenOUKGAS182qBnuYN" ];
-
-    # ── non-NixOS → NixOS converted ──
-    # gossamer reinstalled; host key rotated (fingerprint SHA256:854h4SO…).
-    # Secrets must be rekeyed (agenix -r) after this change so the live key can
-    # decrypt them.
-    gossamer = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFWDDAnBkYQb2Uvl+hqiIWbY90fdhOIrj4y75Co9WERY root@gossamer"
-    ];
   };
 }
