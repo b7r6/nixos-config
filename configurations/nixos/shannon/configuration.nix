@@ -60,6 +60,7 @@ in
     # Last fleet holdout: without it, flake inputs from git.s4.gl can't resolve
     # off-tailnet-DNS and the attic replica can't look up watchtower.
     hyper-modern-nixos.coredns.enable = true;
+    hyper-modern-nixos.observability.otel.agent.scrapeTargets = [ "127.0.0.1:9153" ]; # coredns
   */
 
   # ── ClickHouse: single-node keeper + server, S3→R2 durable tier ─────────────
@@ -83,8 +84,9 @@ in
   hyper-modern-nixos.observability.otel.agent = {
     enable = true;
 
+    # coredns (:9153) rejoins this list with its role (disabled block above);
+    # scraping it while parked is a down target and a warn every 30s.
     scrapeTargets = [
-      "127.0.0.1:9153" # coredns
       "127.0.0.1:9363" # clickhouse
       "127.0.0.1:9364" # clickhouse-keeper
     ];
@@ -152,18 +154,33 @@ in
     };
   };
 
-  # render dashboards from Dhall → JSON (same apparatus as watchtower ran)
+  # render dashboards from Dhall → JSON (same apparatus as watchtower ran).
+  # One level of subfolders is honoured: dashboards/retired/*.dhall lands in
+  # /etc/grafana/dashboards/retired/, which foldersFromFilesStructure turns
+  # into a "retired" Grafana folder — the top level stays dashboards with data.
   environment.etc =
     let
       grafanaDir = ../../../modules/flake/grafana;
       dashboardDir = "${grafanaDir}/dashboards";
-      dhallFiles = builtins.filter (n: builtins.match ".*\\.dhall" n != null) (
-        builtins.attrNames (builtins.readDir dashboardDir)
-      );
+      isDhall = n: builtins.match ".*\\.dhall" n != null;
+      # relative paths ("fleet-overview.dhall", "retired/attic.dhall")
+      dhallFiles =
+        let
+          top = builtins.readDir dashboardDir;
+          files = builtins.filter isDhall (builtins.attrNames top);
+          dirs = builtins.filter (n: top.${n} == "directory") (builtins.attrNames top);
+          sub = builtins.concatMap (
+            d:
+            map (f: "${d}/${f}") (
+              builtins.filter isDhall (builtins.attrNames (builtins.readDir "${dashboardDir}/${d}"))
+            )
+          ) dirs;
+        in
+        files ++ sub;
       renderDashboard =
         file:
         let
-          name = builtins.replaceStrings [ ".dhall" ] [ "" ] file;
+          name = builtins.replaceStrings [ ".dhall" "/" ] [ "" "-" ] file;
         in
         pkgs.runCommand "grafana-dashboard-${name}.json" { nativeBuildInputs = [ pkgs.dhall-json ]; } ''
           export HOME="$TMPDIR"

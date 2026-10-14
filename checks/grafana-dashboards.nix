@@ -23,8 +23,13 @@ pkgs.runCommand "grafana-dashboards"
     mkdir -p "$XDG_CACHE_HOME"
     mkdir -p $out
     fail=0
-    for f in ${../modules/flake/grafana}/dashboards/*.dhall; do
-      name=$(basename "$f" .dhall)
+    # one level of subfolders (dashboards/retired/*.dhall) is part of the
+    # surface too — they still provision, just into a grafana folder.
+    for f in ${../modules/flake/grafana}/dashboards/*.dhall \
+             ${../modules/flake/grafana}/dashboards/*/*.dhall; do
+      rel=''${f#${../modules/flake/grafana}/dashboards/}
+      name=''${rel%.dhall}
+      mkdir -p "$out/$(dirname "$name")"
       echo "── rendering $name"
       if ! dhall-to-json --file "$f" > "$out/$name.json"; then
         echo "FAIL: $name does not render"; fail=1; continue

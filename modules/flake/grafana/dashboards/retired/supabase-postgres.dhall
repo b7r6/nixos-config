@@ -1,15 +1,15 @@
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 --                  // hypermodern // grafana // supabase-postgres
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-let T = ../schema/types.dhall
+let T = ../../schema/types.dhall
 
-let S = ../schema/sql.dhall
+let S = ../../schema/sql.dhall
 
-let Q = ../schema/queries.dhall
+let Q = ../../schema/queries.dhall
 
-let P = ../schema/panels.dhall
+let P = ../../schema/panels.dhall
 
-let R = ../schema/render.dhall
+let R = ../../schema/render.dhall
 
 let dashboard =
       T.Dashboard::{

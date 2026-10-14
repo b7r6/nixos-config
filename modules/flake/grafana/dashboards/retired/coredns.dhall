@@ -5,15 +5,15 @@
 -- split-horizon fleet DNS. 5 nodes run CoreDNS.
 -- 4 zones: authoritative (sju1.s4.gl), CNAME template (s4.gl),
 --           tailnet forward (MagicDNS), catch-all (1.1.1.1/8.8.8.8).
-let T = ../schema/types.dhall
+let T = ../../schema/types.dhall
 
-let S = ../schema/sql.dhall
+let S = ../../schema/sql.dhall
 
-let Q = ../schema/queries.dhall
+let Q = ../../schema/queries.dhall
 
-let P = ../schema/panels.dhall
+let P = ../../schema/panels.dhall
 
-let R = ../schema/render.dhall
+let R = ../../schema/render.dhall
 
 let dnsRate =
       \(metric : Text) ->
