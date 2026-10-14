@@ -27,7 +27,7 @@
   role ? "node",
   package ? null,
 }:
-{ flake, ... }:
+{ flake, lib, ... }:
 let
   inherit (flake) inputs;
   inherit (inputs)
@@ -36,13 +36,25 @@ let
     agenix
     hypermodern-nativelink
     ;
+
+  # This host's VM size from the site (nodes, rig or builder), and the OS disk
+  # device that generation presents (v6 = NVMe; see ./disko.nix).
+  machine =
+    lib.findFirst (m: m.name == host) (throw "nl-site: ${host} is not in site ${site.name}") (
+      site.nodes
+      ++ [
+        site.rig
+        site.builder
+      ]
+    );
+  nvme = lib.hasSuffix "_v6" machine.size;
 in
 {
   imports = [
     self.nixosModules.default
     agenix.nixosModules.default
     disko.nixosModules.disko
-    ./disko.nix
+    (import ./disko.nix { device = if nvme then "/dev/nvme0n1" else "/dev/sda"; })
     (import ./common.nix { inherit site role; })
   ]
   ++ (
@@ -74,4 +86,6 @@ in
       ]
   );
   networking.hostName = host;
+  # v6: the OS disk is NVMe; the Azure module's initrd set is the v5 SCSI one.
+  boot.initrd.availableKernelModules = lib.mkIf nvme [ "nvme" ];
 }

@@ -225,3 +225,126 @@ the recorded metrics side by side.
   (Dhall library + modules + soak rig + telemetry contract + Grafana dashboard); nixos-config
   swaps its path import for the input once the first campaign has run.
 - Spot: quota ticket for Low-priority vCPUs (3 → ≥64) before any worker pool can be spot.
+
+## Sites (2026-10-14)
+
+More than one cluster, each soaking a different NativeLink rev, from ONE typed list. The
+mechanism, then the second site, then the lessons.
+
+### The source of truth
+
+`examples/sites.dhall` in hypermodern-nativelink (typed by `dhall/site.dhall`): per site its
+Azure footprint (region, resource group, VNet + subnet, NSG, NAT gateway, storage account +
+container), tailnet suffix and its two tags, nodes (size, OS disk, `casWeight`, `casFastBytes`,
+`maxInflightTasks`, which one schedules), rig and builder sizes, `nativelinkRev` (a nixos-config
+flake-input name + the commit it must be locked to), that rev's config `dialect`
+(`fork` | `upstream`), and its secret names (`casEnvSecret`, `tailscaleAuthKeySecret`). The az
+site is in it exactly as deployed (weights 4/4/4, 100 GiB fast tier, 8 in flight, `nl-az-a`
+schedules). Everything else derives:
+
+| consumer | derives |
+| --- | --- |
+| `examples/fleet.dhall` | a `HostDef` per node (`List/concatMap` over the sites; site identity by index, Dhall has no `Text` equality); the ring and scheduler per site |
+| `netops/policy.dhall` → `nix run .#render-policy -- --write` | `netops/tailscale-policy.hujson`: per-site tags, the three rules, tests, plus a deny test per ordered pair of sites |
+| `nix run .#render-sites -- [sites.dhall] [site]` | the JSON `sh/azure-soak.sh --site <s>` reads every name and size from |
+| `configurations/sites.nix` | a `nixosConfiguration` per node, rig and builder of every site (IFD), on `configurations/nixos/nl-site/` |
+| the flake's `secrets/secrets.nix` | `agenix/<casEnvSecret>.age` scoped to that site's nodes; `agenix/hostkeys/<host>.age` per keys.nix host |
+
+Proofs: the fork-dialect render of the pre-existing hosts is byte-identical before and after
+(render-all → `jq -S` → sha256 `0222538c1ac620ca0e057f8c4e70c8aa21dc13131a26f0243f47023ee8b38587`;
+nl-az-a `b0aac17b…`, nl-az-b/c `53f0d5e7…`, shannon `5d6a2072…`); the generated policy's az
+subset (tag owners, rules, tests) equals the hand-written file parsed as JSON; `nix flake check`
+carries `fleet-example`, `sites-example` and `policy-rendered`.
+
+### The dialect
+
+Upstream NativeLink rejects unknown config keys and has none of the fork's `nix_cache`,
+`oci_registry`, `fetch.oci`, `cas_witness` or `experimental_prometheus`. A site's `dialect`
+decides what `fleet.dhall` emits: `fork` is everything; `upstream` is the common subset (ring,
+scheduler, `worker_api`, the Azure slow tier via `sas_url`, `cache_metrics`, `slow_direction`,
+`max_inflight_tasks`, the worker `entrypoint` the module injects) with no OCI service and no
+Prometheus listener. Verified by running the az2 render through the 1.7.7 binary on the
+operator's box: it deserializes, instantiates every store and dials its ring. Consequence: an
+upstream-dialect node serves no `/metrics`; the rig's worker-count probe is best-effort and the
+OTel scrape of 50051/50052 is empty there (OTLP push still carries the metrics).
+
+### Multi-rev
+
+One flake input per rev under soak, `nativelink-rev-<short>` in `flake.nix`; the site names it
+in `nativelinkRev.input` and `configurations/sites.nix` sets
+`hyper-modern-nixos.nativelink.package` from it, asserting `inputs.<name>.rev` equals the
+site's `rev` (a drifted lock refuses to evaluate). The NixOS module is always the fork's
+(`nativelink-nix`): it only execs `nativelink <json>`. To add a rev: one input line, one
+`nativelinkRev` (+ `dialect`) in the site, `nix flake lock`.
+
+- az: `nativelink-nix`, fork integration branch `7eba9bf` (pre-fix).
+- az2: `nativelink-rev-1-7-7`, upstream `TraceMachina/nativelink` `b1ca26e08296f50935136b2385873354c88286ed`
+  (head of the "Release NativeLink v1.7.7" PR #2937, open at the time), upstream dialect, its
+  own nixpkgs pins so it builds as upstream's CI does. The from-source build took ~25 minutes on
+  the laptop (crate deps substituted).
+
+### The script
+
+`sh/azure-soak.sh --site <s> …` (or `AZS_SITE`); nothing is hard-coded. Every subcommand kept;
+new: `keys` (what `up` runs: generate a host's ed25519 key before the VM exists, land the
+private half in the flake's `agenix/hostkeys/<host>.age` encrypted to the operators, append the
+public half under the `# ── sites …` marker of BOTH `secrets/keys.nix`, rekey both trees; the
+rig also gets its soak root key, public half at the flake's `secrets/pub/<rig>-soak-root.pub`),
+`install` (decrypts those to a mode-0700 scratch dir for `--extra-files`), `sas --put` (lands
+the site's CAS env through put-secret), `builder up|down|rm|status|line`. The az host keys that
+lived only in a session scratch directory are now in the tree too.
+
+A third site, end to end:
+
+```sh
+# hypermodern-nativelink: one record in examples/sites.dhall (fresh names, tag pair, storage
+# account, address space), one casEnvSecret rule in secrets/secrets.nix, then
+nix run .#render-policy -- --write        # paste netops/tailscale-policy.hujson into the console
+nix flake check && git commit && git push
+# nixos-config: one input line in flake.nix if the rev is new; nix flake lock; then
+sh/azure-soak.sh --site az3 up            # RG, net, NAT, VMs, storage, host keys landed + rekeyed
+sh/azure-soak.sh --site az3 sas --put
+nix flake lock --update-input hypermodern-nativelink   # while the input is a path: (see lessons)
+sh/azure-soak.sh --site az3 install       # four nixos-anywhere runs
+sh/azure-soak.sh --site az3 enroll        # untagged first (allowed), then after the paste:
+sh/azure-soak.sh --site az3 tag
+ssh … nl-az3-rig 'soak status; soak build smoke'
+sh/azure-soak.sh --site az3 lockdown
+```
+
+### Lessons
+
+- **eastus2 had no D\*s_v5 capacity** for this subscription (every v4/v5 8-vCPU size failed
+  preflight with `SkuNotAvailable: Capacity Restrictions`); `Standard_D8s_v6` / `D4s_v6` /
+  `D16s_v6` validate (Dsv6 quota 350). az2 runs on v6, one line per machine in the site. The
+  az CLI's own error handler crashes on this preflight error (`The content for this response was
+  already consumed`); `az vm create … --validate` shows the real inner error.
+- **A `path:` input is a snapshot.** nixos-config takes hypermodern-nativelink as `path:`; every
+  change there (a landed secret, a new `secrets/pub` file, a site edit) needs
+  `nix flake lock --update-input hypermodern-nativelink` before nixos-config sees it, or a host
+  evaluates against a stale tree (an az2 node built before its CAS env was landed would have
+  no `age.secrets` entry for it). The input becomes the git URL once the repo is public or a
+  deploy key exists.
+- **The policy is pasted, never applied by a script.** `tag` is safe to run before the paste:
+  an unknown tag is refused and the host stays enrolled untagged.
+- **The install uplink is the bound**, not the build: four parallel nixos-anywhere runs share
+  the laptop's 300 KB/s for the uncached paths (the NativeLink binary ×3, an initrd each). The
+  builder (`builder up`) is the fix: a D16s_v6 in the site's VNet, NixOS via the same wrapper
+  (role `builder`), host key pinned in the `--builders` line it prints; `AZS_BUILDERS=… deploy`
+  builds there. Its copy leg (closures leaving from the builder rather than the laptop) is the
+  documented follow-up below.
+
+### Fold-in of az (TODO[b7r6])
+
+az stays on `configurations/nixos/nl-az/` (lane 1's observability work landed there during
+this session). To fold it onto `nl-site`: drop `"az"` from `handWritten` in
+`configurations/sites.nix`, delete `configurations/nixos/nl-az-{a,b,c,rig}/` and the hosts'
+`default.nix` entries, move `nl-az/rig.nix` to `nl-site/rig-sink.nix` (nl-site already imports
+it by path), copy `nl-az/rig-root-key.pub` to the flake's `secrets/pub/nl-az-rig-soak-root.pub`
+(the same key, already landed as `agenix/hostkeys/nl-az-rig-soak-root.age`), and prove
+`nix eval .#nixosConfigurations.nl-az-{a,b,c,rig}.config.system.build.toplevel.drvPath` is
+byte-identical before and after. Expect two deliberate differences to reconcile first: the
+fleet dir (nl-az renders nixos-config's `modules/flake/nativelink/data`, nl-site renders the
+flake's `examples/`; the JSON is identical, the store path is not) and `expectedWorkers` on the
+rig (nl-site sets it from the node count). Never during a campaign
+(`systemctl list-units 'soak-*'` on nl-az-rig).
