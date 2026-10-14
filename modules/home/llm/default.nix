@@ -123,21 +123,28 @@ in
       description = "Enable Claude Code CLI tool";
     };
 
+    # TODO[b7r6]: default false for the modern migration (re-verify on nixos-
+    # unstable before re-enabling; claude-code + llm-cli are the kept tools).
     aider.enable = lib.mkOption {
       type = lib.types.bool;
-      default = true;
+      default = false;
       description = "Enable aider AI pair programming tool";
     };
 
+    # TODO[b7r6]: default false for the modern migration — its python env pulls
+    # anyio, whose test suite fails on nixos-unstable @ e7439b6b. Re-default true
+    # when upstream anyio settles (claude-code is unaffected; it stays).
     llm-cli.enable = lib.mkOption {
       type = lib.types.bool;
-      default = true;
+      default = false;
       description = "Enable llm CLI tool with various providers";
     };
 
+    # TODO[b7r6]: default false for the modern-nixpkgs migration — opencode's
+    # vendored node_modules hash drifts on nixos-unstable's bun. Re-pin + re-enable.
     opencode.enable = lib.mkOption {
       type = lib.types.bool;
-      default = true;
+      default = false;
       description = "Install the opencode CLI (anomalyco fork) and manage its global config: the searxng web_search plugin + permission:allow.";
     };
 
@@ -179,7 +186,8 @@ in
         (lib.optional cfg.claude-code.enable claude-code)
         (lib.optional cfg.aider.enable aider-chat)
         (lib.optional cfg.opencode.enable opencode)
-        (lib.optional cfg.opencode.enable pkgs.opencode-desktop)
+        # opencode-desktop dropped: it pulls electron-41 (EOL/insecure). Keep the
+        # CLI. Re-add if the fork moves to a supported electron.
       ];
 
     # opencode global config (~/.config/opencode). opencode runs `bun install`

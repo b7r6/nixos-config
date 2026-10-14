@@ -53,9 +53,24 @@ let render =
                 { None = fsStore "nar" p.maxNarBytes
                 , Some =
                     \(x : R2) ->
-                      r.fastSlow
-                        (fsStore "nar" p.fastBytes)
-                        (r.r2 x.account x.bucket "nix-nar/")
+                      -- R2 is READ-ONLY for the nix cache: misses still pull
+                      -- from it, nothing is pushed. Every path that lands in
+                      -- /nix/store (substituted from cache.nixos.org or not)
+                      -- reaches this store via the watcher or read-through,
+                      -- and mirroring that to R2 saturated a laptop uplink:
+                      -- 33 parallel PUTs, RTT 20 → 900 ms, downloads starved
+                      -- to 300 KiB/s (2026-10-12). Flip `pushToR2` when a
+                      -- fleet host with real uplink is the R2 producer again;
+                      -- write-back then keeps narinfo latency off the upload.
+                      let pushToR2 = False
+
+                      let nar = fsStore "nar" p.fastBytes
+
+                      let slow = r.r2 x.account x.bucket "nix-nar/"
+
+                      in  if    pushToR2
+                          then  r.fastSlowWriteBack nar slow
+                          else  r.fastSlowReadSlow nar slow
                 }
                 p.r2
 

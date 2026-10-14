@@ -280,7 +280,14 @@ let
   # autoAddDriverRunpath in its default.nix resolves the real libcuda.
   wintermuteField =
     pkgs.callPackage "${flake.inputs.straylight-nvidia-sdk}/examples/wintermute-field"
-      { cuda = flake.inputs.straylight-nvidia-sdk.packages.${pkgs.stdenv.hostPlatform.system}.cuda; };
+      (
+        {
+          cuda = flake.inputs.straylight-nvidia-sdk.packages.${pkgs.stdenv.hostPlatform.system}.cuda;
+          # nvcc (CUDA 13.3) rejects host GCC > 15; nixpkgs' default is 16.
+          stdenv = pkgs.gcc15Stdenv;
+        }
+        // lib.optionalAttrs (cfg.cudaField.arch != null) { cudaArch = cfg.cudaField.arch; }
+      );
 
   # Daemon launcher: graphical-session units usually inherit WAYLAND_DISPLAY
   # via dbus-update-activation-environment --systemd, but that races the
@@ -302,6 +309,17 @@ in
   options.hyper-modern-nixos.new-suzuki = {
     enable = mkEnableOption "New Suzuki Quickshell desktop shell";
 
+    wintermute.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Run the wintermute theme reconciler (daemon + CLI). It is a Lean 4 build
+        of our own fork with NO public cache. Off, the shell still renders from
+        the Nix-seeded theme.json; only live preset switching is lost. The
+        bootstrap profile turns it off.
+      '';
+    };
+
     exclusive = mkOption {
       type = types.bool;
       default = false;
@@ -317,6 +335,17 @@ in
         field into the compositor's wl_shm pool (zero-copy on GB10) and the
         QML AnimatedWallpaper stands down (HYPERMODERN_CUDA_FIELD=1)
       '';
+
+      arch = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        example = "sm_89";
+        description = ''
+          CUDA SM target for the kernel. null keeps the SDK package's default
+          (sm_121 on aarch64/GB10, sm_120 on x86_64). Set it on hosts whose GPU
+          is OLDER than that default — SASS/PTX never runs on an older SM.
+        '';
+      };
 
       scene = mkOption {
         type = types.enum [
@@ -361,9 +390,9 @@ in
           nerd-fonts.symbols-only # Nerd Font icon glyphs for the vendored shell
           orbitron # geometric sci-fi display font
         ]
+        ++ [ azonixFont ]
+        ++ lib.optional cfg.wintermute.enable wintermute
         ++ [
-          azonixFont
-          wintermute
           wm-alpha
           # Affluent-pole display serif (subset — google-fonts is enormous)
           (pkgs.google-fonts.override { fonts = [ "Cormorant Garamond" ]; })
@@ -374,7 +403,7 @@ in
       # to every live channel and rewrites theme.json for the shell. The
       # daemon is crash-only (adapters are best-effort by construction);
       # systemd supplies the uptime.
-      systemd.user.services.wintermute = {
+      systemd.user.services.wintermute = lib.mkIf cfg.wintermute.enable {
         Unit = {
           Description = "wintermute theme reconciler";
           After = [ "graphical-session.target" ];
@@ -520,6 +549,18 @@ in
           chmod 644 "$_wm_dir/theme.json"
         fi
       '';
+
+      # ── Idle lock → the shell's own lock surface ──────────────────────
+      # swayidle stays the compliance trigger (the shell's IdleMonitor can be
+      # paused by caffeine/media and its timeout is user state); it just
+      # raises the shell's PAM password lock instead of swaylock's bare ring.
+      # swaylock only if the shell isn't up to answer the dispatch.
+      hyper-modern-nixos.lockscreen.idleLock.command = "${pkgs.writeShellScript "suzuki-lock" ''
+        if ${pkgs.procps}/bin/pgrep -u "$USER" -f 'quickshell' >/dev/null; then
+          exec ${pkgs.hyprland}/bin/hyprctl dispatch global quickshell:lock_screen
+        fi
+        exec ${config.programs.swaylock.package}/bin/swaylock -f
+      ''}";
 
       # ── Hyprland Autostart (non-exclusive) ─────────────────────────────
       hyper-modern-nixos.hyprland.autostart = lib.mkIf (!cfg.exclusive) [ quickshellLaunch ];

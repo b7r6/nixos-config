@@ -23,15 +23,17 @@ in
   options.hyper-modern-nixos.emacs = {
     enable = lib.mkEnableOption "Hypermodern Emacs (Nix-managed packages, mutable config)";
 
-    # emacs-unstable-pgtk is the Emacs 31 PRETEST (31.0.90, tracks the emacs-31
-    # release branch) from the emacs-overlay. nixpkgs and the overlay's plain
-    # `emacs-pgtk` are both still 30.2; `emacs-git-pgtk` is post-31 master (more
-    # churn). 31.0.90 is the sweet spot: real 31, branch-frozen. Override to
-    # pkgs.emacs30-pgtk to drop back to nixpkgs stable if a build regresses.
+    # Default: nixpkgs' `emacs-pgtk`, which at the fleet nixpkgs pin is the
+    # Emacs 31.1 RELEASE and is built by Hydra (cache.nixos.org hit). The
+    # emacs-overlay stays applied for its same-day MELPA snapshot
+    # (`emacsPackagesFor`), but its own binaries (`emacs-unstable-pgtk` 31.0.90
+    # pretest, `emacs-git-pgtk` master) follow OUR nixpkgs and so are never on
+    # nix-community's cache — picking one means compiling Emacs on every host
+    # (and on every reinstall). Override per host to chase master.
     emacsPackage = lib.mkOption {
       type = lib.types.package;
-      default = pkgs.emacs-unstable-pgtk;
-      description = "Base Emacs derivation (e.g. emacs-unstable-pgtk [31 pretest], emacs30-pgtk, emacs-git-pgtk)";
+      default = pkgs.emacs-pgtk;
+      description = "Base Emacs derivation (emacs-pgtk [nixpkgs release, cached], emacs-unstable-pgtk, emacs-git-pgtk)";
     };
 
     package = lib.mkOption {

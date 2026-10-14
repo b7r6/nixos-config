@@ -6,6 +6,18 @@ let
   otelAgent = config.hyper-modern-nixos.observability.otel.agent;
 in
 {
+  options.hyper-modern-nixos.nativelink.extraEnvironmentFiles = lib.mkOption {
+    type = lib.types.listOf lib.types.str;
+    default = [ ];
+    example = [ "/run/agenix/nativelink-azure-env" ];
+    description = ''
+      Extra EnvironmentFiles for the RE service. The fork module only wires the
+      R2 credential file; a slow tier on another object store (the Azure soak
+      fleet's `AZURE_CAS_SAS_URL`, consumed by the Dhall `azure` backend via
+      shellexpand) hands its env file in here. Never store paths.
+    '';
+  };
+
   config = lib.mkMerge [
     {
       # The typed Dhall fleet definition is this repo's — the module renders
@@ -36,6 +48,45 @@ in
         "127.0.0.1:50052"
         "127.0.0.1:50051"
       ];
+    })
+    # Telemetry identity. Both servers are service.name=nativelink with a
+    # random instance id per process, and the fork's resource ignores
+    # OTEL_RESOURCE_ATTRIBUTES, so a dashboard could not tell the RE
+    # scheduler/worker from the nix cache, or either from an ad-hoc dev/chaos
+    # nativelink on the same box. Identity by port: each service pushes to its
+    # own tagged receiver on the local agent, which stamps nativelink.role and
+    # deployment.environment=fleet. Unlabelled nativelink data is not ours.
+    (lib.mkIf (otelAgent.enable && (cfg.enable || cfg.nixCache.enable)) {
+      hyper-modern-nixos.observability.otel.agent.taggedOtlp =
+        lib.optionalAttrs cfg.enable {
+          nativelink-re = {
+            port = 4321;
+            attributes = {
+              "nativelink.role" = "re";
+              "deployment.environment" = "fleet";
+            };
+          };
+        }
+        // lib.optionalAttrs cfg.nixCache.enable {
+          nativelink-nix-cache = {
+            port = 4322;
+            attributes = {
+              "nativelink.role" = "nix-cache";
+              "deployment.environment" = "fleet";
+            };
+          };
+        };
+    })
+    (lib.mkIf (otelAgent.enable && cfg.enable) {
+      systemd.services.nativelink.environment.NL_OTEL_ENDPOINT = lib.mkForce "http://127.0.0.1:4321";
+    })
+    (lib.mkIf (cfg.enable && cfg.extraEnvironmentFiles != [ ]) {
+      systemd.services.nativelink.serviceConfig.EnvironmentFile = cfg.extraEnvironmentFiles;
+    })
+    (lib.mkIf (otelAgent.enable && cfg.nixCache.enable) {
+      # The fork's module only wires NL_OTEL_ENDPOINT into the RE service; the
+      # nix cache was silent. TODO[b7r6]: upstream into the fork's module.
+      systemd.services.nativelink-nix-cache.environment.NL_OTEL_ENDPOINT = "http://127.0.0.1:4322";
     })
     (lib.mkIf cfg.nixCache.enable {
       # A reconstructible cache: NARs are re-pushable/re-derivable, so the store

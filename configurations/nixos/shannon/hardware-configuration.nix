@@ -7,21 +7,8 @@
 {
   imports = [ (modulesPath + "/installer/scan/not-detected.nix") ];
 
-  # TODO[b7r6]: move this shit to disko...
-  fileSystems."/" = {
-    device = "/dev/disk/by-uuid/620c4624-cf8f-4b3c-91eb-1fe8b73924b6";
-    fsType = "btrfs";
-    options = [ "subvol=@" ];
-  };
-
-  fileSystems."/boot" = {
-    device = "/dev/disk/by-uuid/2920-8012";
-    fsType = "vfat";
-    options = [
-      "fmask=0077"
-      "dmask=0077"
-    ];
-  };
+  # fileSystems now come from ./disko.nix (LUKS + btrfs @/@home). The old
+  # hand-written mounts lived here (the "move this to disko" TODO — done).
 
   swapDevices = [ ];
 
@@ -41,6 +28,12 @@
     "thunderbolt"
     "usbhid"
     "sdhci_pci"
+    # LUKS root: dm-crypt binds its AES implementation when the volume is
+    # opened in the initrd and never re-binds. nixpkgs' luksroot module ships
+    # "aes" (generic) but not the AES-NI driver, so without this the root disk
+    # runs on software AES for the whole session (verified 2026-10-11: the
+    # installed initrd had no aesni-intel.ko).
+    "aesni_intel"
   ];
 
   hardware.cpu.amd.updateMicrocode = true;

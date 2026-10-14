@@ -121,6 +121,24 @@ let fastSlow = fastSlowWith False
 
 let fastSlowWriteBack = fastSlowWith True
 
+-- Slow tier read-only (slow_direction = get): misses still fall through to
+-- it and populate the fast tier, but nothing is ever written to it. For a
+-- consumer of a shared remote tier that must not spend its uplink on it.
+let fastSlowReadSlow =
+      \(fast : Backend) ->
+      \(slow : Backend) ->
+          [ { mapKey = "fast_slow"
+            , mapValue =
+                obj
+                  [ { mapKey = "fast", mapValue = wrap fast }
+                  , { mapKey = "fast_direction", mapValue = str "both" }
+                  , { mapKey = "slow", mapValue = wrap slow }
+                  , { mapKey = "slow_direction", mapValue = str "get" }
+                  ]
+            }
+          ]
+        : Backend
+
 let cacheMetrics =
       \(cacheType : Text) ->
       \(inner : Backend) ->
@@ -150,6 +168,32 @@ let r2 =
                   , { mapKey = "secret_access_key"
                     , mapValue = str "\${R2_SECRET_ACCESS_KEY}"
                     }
+                  , { mapKey = "key_prefix", mapValue = str keyPrefix }
+                  , { mapKey = "retry"
+                    , mapValue =
+                        obj
+                          [ { mapKey = "max_retries", mapValue = nat 6 }
+                          , { mapKey = "delay", mapValue = JSON.double 0.3 }
+                          , { mapKey = "jitter", mapValue = JSON.double 0.5 }
+                          ]
+                    }
+                  ]
+            }
+          ]
+        : Backend
+
+let azure =
+      \(keyPrefix : Text) ->
+          [ { mapKey = "experimental_cloud_object_store"
+            , mapValue =
+                obj
+                  [ { mapKey = "provider", mapValue = str "azure" }
+                  , -- A container SAS URL from the service's EnvironmentFile
+                    -- (hyper-modern-nixos.nativelink.extraEnvironmentFiles);
+                    -- the fork's Azure store takes a SAS or k8s workload
+                    -- identity, nothing a VM can present. Same shape the
+                    -- enterprise chart's cas.cloudProvider=azure lands on.
+                    { mapKey = "sas_url", mapValue = str "\${AZURE_CAS_SAS_URL}" }
                   , { mapKey = "key_prefix", mapValue = str keyPrefix }
                   , { mapKey = "retry"
                     , mapValue =
@@ -345,7 +389,7 @@ let casWitnessSvcJSON =
             }
           ]
 
-let Opt/fold = https://raw.githubusercontent.com/dhall-lang/dhall-lang/v23.0.0/Prelude/Optional/fold.dhall ? https://prelude.dhall-lang.org/v23.0.0/Optional/fold.dhall
+let Opt/fold = Prelude.Optional.fold
 
 let optStrField =
       \(k : Text) ->
@@ -707,6 +751,17 @@ let workerToJSON =
                       [ { mapKey = "entrypoint", mapValue = str e } ]
                   )
                   ([] : List (Map/Entry Text JSON.Type))
+              # Opt/fold
+                  Natural
+                  w.max_inflight_tasks
+                  (List (Map/Entry Text JSON.Type))
+                  ( \(n : Natural) ->
+                      [ { mapKey = "max_inflight_tasks"
+                        , mapValue = JSON.natural n
+                        }
+                      ]
+                  )
+                  ([] : List (Map/Entry Text JSON.Type))
 
         in  obj [ { mapKey = "local", mapValue = obj localInner } ]
 
@@ -747,20 +802,19 @@ let renderConfig =
                           }
                         ]
                 )
-              # ( if    Prelude.List.null schema.Server.Type c.servers
-                  then  [] : List (Map/Entry Text JSON.Type)
-                  else  [ { mapKey = "servers"
-                          , mapValue =
-                              arr
-                                ( List/map
-                                    schema.Server.Type
-                                    JSON.Type
-                                    serverToJSON
-                                    c.servers
-                                )
-                          }
-                        ]
-                )
+              # [ -- always present: nativelink rejects a config without it,
+                  -- and a worker-only node has none ("missing field servers")
+                  { mapKey = "servers"
+                  , mapValue =
+                      arr
+                        ( List/map
+                            schema.Server.Type
+                            JSON.Type
+                            serverToJSON
+                            c.servers
+                        )
+                  }
+                ]
               # ( if    Prelude.List.null schema.Worker.Type c.workers
                   then  [] : List (Map/Entry Text JSON.Type)
                   else  [ { mapKey = "workers"
@@ -778,14 +832,17 @@ let renderConfig =
 
         in  JSON.render (obj top)
 
-in  { filesystem
+in  { Backend
+    , filesystem
     , memory
     , grpc
     , ref
     , fastSlow
     , fastSlowWriteBack
+    , fastSlowReadSlow
     , cacheMetrics
     , r2
+    , azure
     , verify
     , completeness
     , ShardEntry

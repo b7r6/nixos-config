@@ -58,7 +58,13 @@ let rateBucketed =
       \(extraFilter : Text) ->
       \(groupKeys : Text) ->
       \(groupAliases : Text) ->
-        "SELECT time, ${groupAliases}, sum(rate) as value FROM (SELECT time, ${groupAliases}, runningDifference(val) / 30 as rate FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, ${groupKeys} as ${groupAliases}, max(Value) as val FROM ${sum} WHERE MetricName = '${metric}' AND ${extraFilter} AND ${tf} AND ${hostFilter} GROUP BY time, ${groupAliases} ORDER BY ${groupAliases}, time)) WHERE rate >= 0 GROUP BY time, ${groupAliases} ORDER BY time"
+        -- Rate per SERIES (host x process instance x group), then summed. Each
+        -- process restart is a new service.instance.id with a counter from 0,
+        -- and several processes can emit one metric (nativelink RE + nix
+        -- cache): a max() across them then runningDifference() across group
+        -- boundaries produced garbage. lagInFrame defaults to the row's own
+        -- value (first point = 0) and greatest(0, …) absorbs counter resets.
+        "SELECT time, ${groupAliases}, sum(rate) as value FROM (SELECT time, ${groupAliases}, greatest(0, val - lagInFrame(val, 1, val) OVER (PARTITION BY h, inst, ${groupAliases} ORDER BY time ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)) / 30 as rate FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, ${host} as h, ResourceAttributes['service.instance.id'] as inst, ${groupKeys} as ${groupAliases}, max(Value) as val FROM ${sum} WHERE MetricName = '${metric}' AND ${extraFilter} AND ${tf} AND ${hostFilter} GROUP BY time, h, inst, ${groupAliases})) GROUP BY time, ${groupAliases} ORDER BY time"
 
 let statGauge =
       \(metric : Text) ->

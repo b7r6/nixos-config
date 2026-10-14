@@ -513,7 +513,10 @@ in
 
     programs.jq.enable = lib.mkIf cfg.cliTools.enable true;
     programs.btop.enable = lib.mkIf cfg.cliTools.enable true;
-    programs.tmate = lib.mkIf cfg.cliTools.enable { enable = true; };
+    # tmate dropped: nixpkgs' tmate (unstable-2022-08-07) is EOL/insecure. Use
+    # plain tmux/ssh for pairing, or re-add behind permittedInsecurePackages if
+    # you truly need it.
+    # programs.tmate = lib.mkIf cfg.cliTools.enable { enable = true; };
 
     # Shell packages
     home.packages = [

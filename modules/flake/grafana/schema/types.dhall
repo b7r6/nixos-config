@@ -11,6 +11,7 @@
 --    - runningDifference rate pattern with ORDER BY time wrapper
 --    - threshold steps with color coding
 --    - stacking/fillOpacity field config
+--    - Text panels (markdown `content`, no query) and one-bar-per-row bar gauges
 
 -- ── datasource ─────────────────────────────────────────────────────────────────
 let Datasource =
@@ -30,6 +31,7 @@ let Unit =
       | ReqPerSec
       | RowsPerSec
       | QueriesPerSec
+      | CurrencyUSD
       | None
       >
 
@@ -47,12 +49,22 @@ let unitToGrafana =
           , ReqPerSec = "reqps"
           , RowsPerSec = "rows/s"
           , QueriesPerSec = "qps"
+          , CurrencyUSD = "currencyUSD"
           , None = "none"
           }
           u
 
 let PanelType =
-      < TimeSeries | Stat | Gauge | Table | Logs | BarGauge | Heatmap | Row >
+      < TimeSeries
+      | Stat
+      | Gauge
+      | Table
+      | Logs
+      | BarGauge
+      | Heatmap
+      | Text
+      | Row
+      >
 
 let panelTypeToGrafana =
       \(t : PanelType) ->
@@ -64,6 +76,7 @@ let panelTypeToGrafana =
           , Logs = "logs"
           , BarGauge = "bargauge"
           , Heatmap = "heatmap"
+          , Text = "text"
           , Row = "row"
           }
           t
@@ -139,6 +152,8 @@ let Panel =
           , stacking : Stacking
           , fillOpacity : Natural
           , colorMode : Text
+          , content : Text
+          , datasource : Optional Datasource.Type
           }
       , default =
         { title = ""
@@ -153,6 +168,8 @@ let Panel =
         , stacking = Stacking.None
         , fillOpacity = 10
         , colorMode = "palette-classic"
+        , content = ""
+        , datasource = None Datasource.Type
         }
       }
 
@@ -183,6 +200,23 @@ let Variable =
         }
       }
 
+-- ── datasource variable ─────────────────────────────────────────────────────
+-- a `type = "datasource"` template variable: the viewer picks which datasource
+-- every panel and query variable of the dashboard binds to (`${name}` as the
+-- dashboard's datasource uid). `regex` narrows the candidates by datasource
+-- NAME; `current` is the one selected when the URL says nothing.
+let DatasourceVariable =
+      { Type =
+          { name : Text
+          , label : Text
+          , pluginType : Text
+          , regex : Text
+          , current : { text : Text, value : Text }
+          }
+      , default =
+        { label = "", pluginType = Datasource.default.type, regex = "" }
+      }
+
 let Dashboard =
       { Type =
           { title : Text
@@ -192,6 +226,8 @@ let Dashboard =
           , timeFrom : Text
           , rows : List Row.Type
           , variables : List Variable.Type
+          , datasourceVariables : List DatasourceVariable.Type
+          , datasource : Datasource.Type
           }
       , default =
         { title = ""
@@ -201,6 +237,8 @@ let Dashboard =
         , timeFrom = "now-1h"
         , rows = [] : List Row.Type
         , variables = [] : List Variable.Type
+        , datasourceVariables = [] : List DatasourceVariable.Type
+        , datasource = Datasource.default
         }
       }
 
@@ -223,5 +261,6 @@ in  { Datasource
     , Row
     , Variable
     , VariableType
+    , DatasourceVariable
     , Dashboard
     }

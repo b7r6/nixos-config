@@ -20,7 +20,11 @@
 let
   wintermuteField =
     pkgs.callPackage "${flake.inputs.straylight-nvidia-sdk}/examples/wintermute-field"
-      { cuda = flake.inputs.straylight-nvidia-sdk.packages.${pkgs.stdenv.hostPlatform.system}.cuda; };
+      {
+        cuda = flake.inputs.straylight-nvidia-sdk.packages.${pkgs.stdenv.hostPlatform.system}.cuda;
+        # nvcc (CUDA 13.3) rejects host GCC > 15; nixpkgs' default is 16.
+        stdenv = pkgs.gcc15Stdenv;
+      };
 in
 pkgs.runCommand "eyes-still-${toString width}x${toString height}"
   { nativeBuildInputs = [ pkgs.imagemagick ]; }

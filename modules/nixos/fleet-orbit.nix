@@ -1,0 +1,190 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#                                          // hyper-modern-nixos // fleet-orbit
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+# Secureframe's device agent, OFF BY DEFAULT. Secureframe IS Fleet: the agent is
+# fleetd's `orbit` launcher (→ packages/fleet-orbit, the pinned `orbit` binary),
+# and orbit self-updates osqueryd + fleet-desktop into its --root-dir and execs
+# those DYNAMICALLY-linked binaries, so programs.nix-ld must be on (fleet-wide
+# default).
+#
+# Secureframe does NOT expose a copyable enroll token. Instead "Device
+# Management → Download Agent" builds a PERSONALIZED .deb/.rpm whose
+# /etc/default/orbit holds the ORBIT_* env (fleet URL + enroll secret + update
+# channels) and whose systemd unit passes an osquery --specified_identifier
+# (a user:device:host UUID triple) that links the box to its Secureframe device
+# record. We reproduce that unit declaratively:
+#   - environmentFile : the agenix-decrypted copy of that /etc/default/orbit
+#                       (ORBIT_ENROLL_SECRET lives here → agenix, never the store)
+#   - hostIdentifier  : the --specified_identifier triple from the .deb's unit
+#
+# To (re)provision: download a fresh agent .deb from Secureframe, extract
+# /etc/default/orbit → agenix secret, and copy the --specified_identifier out of
+# its usr/lib/systemd/system/orbit.service into hostIdentifier.
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  cfg = config.hyper-modern-nixos.fleet-orbit;
+in
+{
+  options.hyper-modern-nixos.fleet-orbit = {
+    enable = lib.mkEnableOption "Secureframe fleet-orbit device agent (osquery enrollment)";
+
+    package = lib.mkOption {
+      type = lib.types.package;
+      default = pkgs.fleet-orbit;
+      defaultText = lib.literalExpression "pkgs.fleet-orbit";
+      description = "The fleet-orbit package providing the `orbit` launcher.";
+    };
+
+    environmentFile = lib.mkOption {
+      type = lib.types.str;
+      example = "/run/agenix/fleet-orbit-env";
+      description = ''
+        Path to the agenix-decrypted ORBIT_* environment file (the Secureframe
+        .deb's /etc/default/orbit: ORBIT_FLEET_URL, ORBIT_ENROLL_SECRET,
+        ORBIT_UPDATE_URL, channels, ORBIT_FLEET_DESKTOP). Holds the enroll
+        secret, so it MUST be an agenix path, never the nix store.
+      '';
+    };
+
+    hostIdentifier = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "edaca163-…:aec2d51b-…:17a29c92-…";
+      description = ''
+        Secureframe's osquery --specified_identifier (the user:device:host UUID
+        triple from the personalized .deb's orbit.service). Links this host to
+        its Secureframe device record so it reports as the intended device
+        instead of enrolling as a new one. Not a credential, but installer-
+        specific; refresh it if you re-download the agent.
+      '';
+    };
+
+    rootDir = lib.mkOption {
+      type = lib.types.str;
+      default = "/var/lib/orbit";
+      description = "orbit working dir (self-updated binaries + node key). StateDirectory-persisted.";
+    };
+
+    cpuQuota = lib.mkOption {
+      type = lib.types.str;
+      default = "20%";
+      description = "CPU cap, matching Secureframe's shipped unit (CPUQuota=20%).";
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = cfg.package != null;
+        message = "hyper-modern-nixos.fleet-orbit.package is null — set it to pkgs.fleet-orbit.";
+      }
+    ];
+
+    # orbit's self-updated osqueryd/fleet-desktop are dynamically linked.
+    hyper-modern-nixos.nix-ld.enable = lib.mkDefault true;
+
+    # Secureframe's Linux screen-lock check reads the user's GNOME dconf keys
+    # through fleetd's `dconf_read` table, which execs `sudo -u <user> dconf
+    # read <key>`. orbit ≤ 1.61 hardcodes /usr/bin/{sudo,dconf} (upstream main
+    # also probes /run/wrappers + /run/current-system); without these the table
+    # errors and the check can never pass. The keys themselves are written,
+    # from the same timeout swayidle enforces, by home/lockscreen (idleLock).
+    # Under services.envfs /usr/bin is a read-only FUSE view that resolves
+    # names through the CALLER's PATH — so put both on orbit's PATH (its
+    # osquery extension children inherit it); elsewhere, plain symlinks.
+    # TODO[b7r6]: drop once orbit self-updates past the NixOS-paths fix.
+    programs.dconf.enable = true;
+    systemd.tmpfiles.rules = lib.mkIf (!config.services.envfs.enable) [
+      "L+ /usr/bin/sudo - - - - /run/wrappers/bin/sudo"
+      "L+ /usr/bin/dconf - - - - ${pkgs.dconf}/bin/dconf"
+    ];
+
+    systemd.services.orbit = {
+      description = "Orbit osquery (Secureframe Fleet device agent)";
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
+      wantedBy = [ "multi-user.target" ];
+      path = [
+        "/run/wrappers" # sudo (setuid wrapper) for dconf_read — see above
+        pkgs.dconf
+      ];
+
+      # nix-ld's loader location is only exported to LOGIN sessions by the
+      # nixpkgs module (environment.sessionVariables); a systemd service sees
+      # neither variable and relies on nix-ld's compiled-in fallback. Make it
+      # explicit so orbit's self-downloaded osqueryd/fleet-desktop always find
+      # the loader + base libraries, whatever nix-ld's default does.
+      environment = lib.mkIf config.programs.nix-ld.enable {
+        NIX_LD = "/run/current-system/sw/share/nix-ld/lib/ld.so";
+        NIX_LD_LIBRARY_PATH = "/run/current-system/sw/share/nix-ld/lib";
+      };
+
+      serviceConfig = {
+        Type = "simple";
+        EnvironmentFile = cfg.environmentFile;
+
+        # orbit is fleetd's TUF self-updater: it manages its OWN orbit binary +
+        # osqueryd under <root-dir>/bin and expects to run FROM <root-dir>/bin/
+        # orbit/orbit (that's what Secureframe's .deb installs and its unit runs).
+        # Run it straight from the read-only nix store and its update/symlink
+        # dance fails ("move old symlink … orbit.old: no such file or directory").
+        # So seed the pinned binary into the writable StateDirectory on first
+        # start (if absent), then exec that — orbit keeps it updated via TUF.
+        #
+        # certs.pem: orbit auto-loads <root-dir>/certs.pem as osquery's
+        # --tls_server_certs. WITHOUT it, the self-downloaded generic-linux
+        # osqueryd finds no CA bundle on NixOS and every check-in fails with
+        # "certificate verify failed" (validated live). Seed it from pkgs.cacert.
+        # Dir mode MUST be 0755 — orbit refuses 0700 ("exists with mode … instead
+        # of expected 0755") and skips its own update path.
+        #
+        # Layout matters for self-update: orbit downloads each release into
+        # bin/orbit/linux/<channel>/orbit and swaps bin/orbit/orbit, which MUST
+        # be a symlink to it ("check symlink failed: readlink … invalid
+        # argument" otherwise, and the agent is pinned at the seeded version
+        # forever). Seed the stable target only if orbit hasn't fetched one,
+        # and turn a plain-file bin/orbit/orbit (older seeds) into the link.
+        ExecStartPre = pkgs.writeShellScript "orbit-seed" ''
+          stable=${cfg.rootDir}/bin/orbit/linux/stable/orbit
+          install -d -m0755 ${cfg.rootDir}/bin/orbit/linux/stable
+          if [ ! -x "$stable" ]; then
+            install -m0755 ${cfg.package}/bin/orbit "$stable"
+          fi
+          if [ ! -L ${cfg.rootDir}/bin/orbit/orbit ]; then
+            ln -sfn "$stable" ${cfg.rootDir}/bin/orbit/orbit
+          fi
+          install -m0644 ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt ${cfg.rootDir}/certs.pem
+        '';
+        # Mirror the Secureframe unit: orbit flags, then `--`, then osquery flags.
+        ExecStart = lib.concatStringsSep " " (
+          [
+            "${cfg.rootDir}/bin/orbit/orbit"
+            "--root-dir ${cfg.rootDir}"
+          ]
+          ++ lib.optionals (cfg.hostIdentifier != null) [
+            "--"
+            "--host_identifier specified"
+            "--specified_identifier ${cfg.hostIdentifier}"
+          ]
+        );
+        Restart = "always";
+        RestartSec = 1;
+        StateDirectory = "orbit";
+        # orbit's initialize-root-dir check rejects anything but 0755 on the
+        # root dir itself ("already exists with mode … instead of the expected
+        # …755") and exits 0, so Restart=always spins into start-limit-hit.
+        # Secrets inside (node key, enroll secret) are orbit's own 0600 files.
+        StateDirectoryMode = "0755";
+        KillMode = "control-group";
+        KillSignal = "SIGTERM";
+        CPUQuota = cfg.cpuQuota;
+      };
+    };
+  };
+}

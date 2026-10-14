@@ -15,7 +15,7 @@ in
 
     package = lib.mkOption {
       type = lib.types.raw;
-      default = pkgs.linuxPackages_7_0;
+      default = pkgs.linuxPackages_latest;
 
       description = ''
         Linux kernel package.

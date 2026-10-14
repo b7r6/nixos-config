@@ -20,6 +20,7 @@
     # ── Core system (always-on) ──
 
     ./base.nix
+    ./profile.nix
     ./nix.nix
     ./packages.nix
     ./sddm
@@ -65,6 +66,7 @@
     flake.inputs.nativelink-nix.nixosModules.nativelink
     ../flake/nativelink/shim.nix
     ./clickhouse.nix
+    ./fleet-orbit.nix
     ./otel.nix
     ./postgres.nix
     ./rayfish.nix
@@ -81,6 +83,7 @@
 
     # ── Special ──
 
+    ./azure.nix
     ./impermanence.nix
     ./impurity.nix
     ./xremap.nix

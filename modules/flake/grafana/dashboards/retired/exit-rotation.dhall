@@ -7,10 +7,10 @@
 -- lines, shipped via the otel spine into otel_logs. no scraper, no push — the
 -- log line IS the metric.
 
-let T = ../schema/types.dhall
-let S = ../schema/sql.dhall
-let P = ../schema/panels.dhall
-let R = ../schema/render.dhall
+let T = ../../schema/types.dhall
+let S = ../../schema/sql.dhall
+let P = ../../schema/panels.dhall
+let R = ../../schema/render.dhall
 
 -- all rotation events (incl. pool=0 no-op ticks from unenrolled hosts)
 let f = "${S.unit} = 'tailscale-exit-rotate.service' AND ${S.msg} LIKE 'exit-rotate:%'"

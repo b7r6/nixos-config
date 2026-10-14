@@ -1,6 +1,30 @@
 {
   description = "// hypermodern // nixos";
 
+  # The build must be self-sufficient from PUBLIC caches — never dependent on a
+  # private/self-hosted one. The fleet's nativelink nix_cache (127.0.0.1:50071)
+  # is a pure OPTIONAL accelerator: it lives only in the b7r6 user nix.conf, is
+  # fail-open (a dead endpoint falls through to source), and is deliberately NOT
+  # listed here, so it is never assumed by a root build such as `disko-install`.
+  #
+  # What IS listed are the public substituters the stock installer ISO does not
+  # know about on its own (it ships only cache.nixos.org). Without this block a
+  # fresh `disko-install` rebuilds the entire nix-community + supabase-postgres
+  # closure from source for no reason. `disko-install`/`nix` honor these with
+  # --accept-flake-config (root on the ISO is trusted). The fork packages
+  # (b7r6/nativelink, narsil, wintermute, coredns-zone, …) have no public cache
+  # and still build from source — that is accepted, not a failure.
+  nixConfig = {
+    extra-substituters = [
+      "https://nix-community.cachix.org"
+      "https://nix-postgres-artifacts.s3.amazonaws.com"
+    ];
+    extra-trusted-public-keys = [
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+      "nix-postgres-artifacts:dGZlQOvKcNEjvT7QEeBMKja1bMnGqCiQ5vzg4IZ4Qbk="
+    ];
+  };
+
   outputs =
     inputs:
     inputs.flake-parts.lib.mkFlake { inherit inputs; } {
@@ -15,7 +39,7 @@
   inputs = {
     # nixpkgs: the sensenet-ai fork at HEAD (NOT upstream nixpkgs-unstable). The
     # whole tree rides this via `follows = "nixpkgs"`; pin anything we touch to it.
-    nixpkgs.url = "github:sensenet-ai/nixpkgs";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     systems.url = "github:nix-systems/default-linux";
 
@@ -101,8 +125,6 @@
     nixos-generators.url = "github:nix-community/nixos-generators";
     nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
 
-    nix-compile.url = "github:sensenet-ai/nix-compile";
-    nix-compile.inputs.nixpkgs.follows = "nixpkgs";
 
     nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
 
@@ -143,6 +165,42 @@
     # of migrate-1.7.3.
     nativelink-nix.url = "github:b7r6/nativelink?ref=integration/straylight-plus-all-fixes-2026-10-05";
     nativelink-nix.inputs.nixpkgs.follows = "nixpkgs";
+
+    # ── NativeLink revs under soak (docs/azure-soak-fleet.md, "Sites") ──────────
+    # One input per rev a site soaks, named `nativelink-rev-<short>`; a site in
+    # hypermodern-nativelink's sites.dhall names its rev by this input name
+    # (`nativelinkRev.input`) and the site consumer (configurations/sites.nix)
+    # sets `hyper-modern-nixos.nativelink.package` from it, asserting the
+    # locked rev is the one the site says. The NixOS MODULE always comes from
+    # `nativelink-nix` (the fork; it only execs `nativelink <json>`); the
+    # Dhall render follows the site's `dialect` (fork | upstream) so an
+    # upstream binary never sees a fork-only config key. The az site itself is
+    # `nativelink-nix` (7eba9bf, the fork's integration branch: pre-fix).
+    #
+    # To add a rev: one input line here + `nativelinkRev` in the site +
+    # `nix flake lock` (the lock gains one node; nothing else moves).
+    #
+    # 1.7.7: UPSTREAM main at the head of "Release NativeLink v1.7.7" (PR
+    # #2937), the post-fix side of the scheduler-race differential az2 soaks
+    # against az. Deliberately does NOT follow our nixpkgs: it builds exactly
+    # as upstream's CI builds it (musl static via its own pins).
+    nativelink-rev-1-7-7.url = "github:TraceMachina/nativelink/b1ca26e08296f50935136b2385873354c88286ed";
+
+    # rechaos — the black-box REAPI chaos + determinism gateway that drives the
+    # Azure soak rig (modules/flake/nativelink/soak). Pinned by REV on purpose:
+    # the repo lands hot while a soak runs, and a soak's rechaos must not move
+    # under it. Bump deliberately (`nix flake update rechaos`) between runs;
+    # the run manifest records the rev. Own nixpkgs (Haskell package set).
+    rechaos.url = "github:b7r6/rechaos/c65dd7d0e9d745fc58c50beda98f5ce19a274f2d";
+
+    # hypermodern-nativelink — the Dhall-native NativeLink flake being split out
+    # of modules/flake/nativelink (typed fleet, modules, soak rig, telemetry,
+    # and the Azure site's OWN agenix secrets: tailnet key + CAS SAS). Local
+    # path only until it is pushed; then github:b7r6/hypermodern-nativelink.
+    hypermodern-nativelink.url = "path:/home/b7r6/src/hypermodern/hypermodern-nativelink-0x01";
+    hypermodern-nativelink.inputs.nixpkgs.follows = "nixpkgs";
+    hypermodern-nativelink.inputs.nativelink.follows = "nativelink-nix";
+    hypermodern-nativelink.inputs.rechaos.follows = "rechaos";
 
     # rayfish — our vendored fork of the iroh-powered P2P mesh VPN (rayfish/rayfish),
     # remapped off Tailscale's 100.64.0.0/10 CGNAT block onto 10.64.0.0/10 so it

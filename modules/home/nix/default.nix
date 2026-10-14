@@ -38,6 +38,16 @@ in
 
       description = "Enable nixd language server configuration";
     };
+
+    nativelinkClient.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Put the NativeLink Nix cache client (nl-nix / nl-watch-store) on PATH.
+        It is a Rust build of our fork with NO public cache; the bootstrap
+        profile turns it off so a reinstall never compiles it.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -89,21 +99,22 @@ in
     # nl-nix on PATH — the cache client for the substituter configured above.
     # `nl-nix flake .` builds a flake and pushes its closures; NL_NIX_CACHE
     # defaults it at the local cache so no --to is needed interactively.
-    home.packages = [
-      nlClient
-    ]
-    ++ lib.optionals cfg.development.enable (
-      with pkgs;
-      [
-        nixd
-        nixfmt
-        manix
-        statix
-        treefmt
-      ]
-    );
+    home.packages =
+      lib.optional cfg.nativelinkClient.enable nlClient
+      ++ lib.optionals cfg.development.enable (
+        with pkgs;
+        [
+          nixd
+          nixfmt
+          manix
+          statix
+          treefmt
+        ]
+      );
 
-    home.sessionVariables.NL_NIX_CACHE = "http://127.0.0.1:50071/nix/main";
+    home.sessionVariables = lib.mkIf cfg.nativelinkClient.enable {
+      NL_NIX_CACHE = "http://127.0.0.1:50071/nix/main";
+    };
 
     # nix-index for command-not-found suggestions
     programs.nix-index = lib.mkIf cfg.nix-index.enable {

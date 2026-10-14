@@ -12,6 +12,9 @@
 #
 # Adding a NixOS host = one entry in `hosts` + a configurations/nixos/<name>/.
 # Adding a standalone home user = one configurations/home/<name>.nix (auto-found).
+# The soak SITES' hosts are not entries here: ./sites.nix generates one per
+# node/rig/builder of every site in hypermodern-nativelink's sites.dhall
+# (except the hand-written az site, until it is folded onto the same path).
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 {
@@ -66,27 +69,66 @@ let
     # shimmer.system = "aarch64-linux";
 
     guccimane = { };
+    # Azure soak fleet (docs/azure-soak-fleet.md): nixos-anywhere installs, no
+    # bootstrap variants — the VMs never build, closures come from the builder.
+    nl-az-a.bootstrap = false;
+    nl-az-b.bootstrap = false;
+    nl-az-c.bootstrap = false;
+    nl-az-rig.bootstrap = false;
     shannon = { };
-    test-vm = { };
+    test-vm.bootstrap = false;
     ultraviolence = { };
     watchtower = { };
     weyl = { };
-  };
+  }
+  # Guarded: a broken site render must never take the hand-written hosts down
+  # with it (an operator deploying nl-az-rig does not care about az2's eval).
+  // (
+    let
+      r = builtins.tryEval (import ./sites.nix { inherit inputs lib; });
+    in
+    if r.success then r.value else builtins.trace "configurations/sites.nix failed to evaluate; site hosts omitted" { }
+  );
 
   mkHost =
     name:
     {
       system ? "x86_64-linux",
       nixpkgs ? inputs.nixpkgs,
+      extraModules ? [ ],
+      # consumed by bootstrapHosts below; accepted here so a `bootstrap = false`
+      # host still evaluates (test-vm had this latent since the flag landed).
+      bootstrap ? true,
+      # the host's module; default the per-host directory. A generated site
+      # host (./sites.nix) passes the generic wrapper instead.
+      module ? ./nixos/${name}/default.nix,
     }:
     nixpkgs.lib.nixosSystem {
       inherit specialArgs;
       modules = [
         { nixpkgs.hostPlatform = system; }
         homeManagerNixosModule
-        ./nixos/${name}/default.nix
-      ];
+        module
+      ]
+      ++ extraModules;
     };
+
+  # `<name>-bootstrap`: the same host with hyper-modern-nixos.profile =
+  # "bootstrap" (modules/nixos/profile.nix) — no from-source fork builds, so it
+  # installs from a stock ISO in RAM. Install THAT, reboot, then
+  # `nh os switch .#<name>` for the full profile. Opt a host out with
+  # `bootstrap = false` (test-vm: it doesn't import the fleet module tree).
+  bootstrapHosts = lib.mapAttrs' (
+    name: host:
+    lib.nameValuePair "${name}-bootstrap" (
+      mkHost name (
+        host
+        // {
+          extraModules = (host.extraModules or [ ]) ++ [ { hyper-modern-nixos.profile = "bootstrap"; } ];
+        }
+      )
+    )
+  ) (lib.filterAttrs (_: host: host.bootstrap or true) hosts);
 
   # Standalone home configs (configurations/home/<user>.nix) for `nh home switch`.
   homeUsers = lib.pipe (builtins.readDir ./home) [
@@ -105,7 +147,7 @@ in
 
     homeModules.default = ../modules/home;
 
-    nixosConfigurations = lib.mapAttrs mkHost hosts;
+    nixosConfigurations = lib.mapAttrs mkHost hosts // bootstrapHosts;
   };
 
   perSystem = { pkgs, ... }: {
