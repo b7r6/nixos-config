@@ -22,6 +22,8 @@
 # `clickhouse-keeper` service is a member, sorted by physical name for a stable
 # Raft server_id assignment. Adding/moving a node is a registry edit + re-render,
 # exactly like CoreDNS service records — never a hand-maintained node list.
+# The one exception is `keeper.members`: a box the registry cannot describe
+# (the Azure soak rig, on another tailnet) names itself at 127.0.0.1.
 #
 # State: Keeper's coordination log + snapshots are small and rebuildable from
 # quorum, so /var/lib/clickhouse-keeper is `reconstructible` (persisted across an
@@ -45,11 +47,12 @@ let
   # ── Ensemble, derived from the topology registry ────────────────────────────
   # Every host tagged `clickhouse-keeper`, sorted by physical name so the Raft
   # server_id assignment (index + 1) is stable and deployment-order-independent.
-  ensembleHosts = lib.sort (a: b: a.physical < b.physical) (
+  registryEnsemble = lib.sort (a: b: a.physical < b.physical) (
     lib.attrValues (topo.helpers.hostsWithService "clickhouse-keeper")
   );
 
-  # How a member is addressed in the raft_configuration / zookeeper blocks.
+  # How a registry member is addressed in the raft_configuration / zookeeper
+  # blocks.
   #   "tailnet-fqdn" → <tailnet>.<tailnetSuffix> (MagicDNS; resolves fleet-wide)
   #   "tailnet-ip"   → tailnet_ipv4 (pin past DNS, e.g. for early-boot races)
   addrOf =
@@ -58,6 +61,11 @@ let
       h.tailnet_ipv4
     else
       "${h.tailnet}.${topo.registry.tailnetSuffix}";
+
+  # The ensemble this host configures against: `keeper.members` — the registry
+  # list above unless a host outside the registry (the Azure soak rig, on its
+  # own tailnet) names its own. Each member = { physical; address; }.
+  ensembleHosts = keeper.members;
 
   # This host's 1-based index in the ensemble = its Raft server_id.
   selfIndex = lib.lists.findFirstIndex (
@@ -70,7 +78,7 @@ let
     lib.imap1 (id: h: ''
       <server>
         <id>${toString id}</id>
-        <hostname>${addrOf h}</hostname>
+        <hostname>${h.address}</hostname>
         <port>${toString keeper.ports.raft}</port>
       </server>
     '') ensembleHosts
@@ -136,7 +144,7 @@ let
   zookeeperNodes = lib.concatStrings (
     map (h: ''
       <node>
-        <host>${addrOf h}</host>
+        <host>${h.address}</host>
         <port>${toString keeper.ports.client}</port>
       </node>
     '') ensembleHosts
@@ -150,7 +158,7 @@ let
       <shard>
         <internal_replication>true</internal_replication>
         <replica>
-          <host>${config.networking.hostName}.${topo.registry.tailnetSuffix}</host>
+          <host>${server.replicaHost}</host>
           <port>${toString server.ports.native}</port>
         </replica>
       </shard>
@@ -239,6 +247,36 @@ in
           deliberately one box (e.g. the whole fleet is one laptop) and
           durability comes from elsewhere (S3/R2 data tier). Even sizes are
           still rejected.
+        '';
+      };
+
+      members = lib.mkOption {
+        type = lib.types.listOf (
+          lib.types.submodule {
+            options = {
+              physical = lib.mkOption {
+                type = lib.types.str;
+                description = "The member's physical host name (matched against networking.hostName for server_id).";
+              };
+              address = lib.mkOption {
+                type = lib.types.str;
+                description = "How the other members (and the server) dial it.";
+              };
+            };
+          }
+        );
+        default = map (h: {
+          inherit (h) physical;
+          address = addrOf h;
+        }) registryEnsemble;
+        defaultText = "every host tagged `clickhouse-keeper` in the topology registry, by physical name";
+        description = ''
+          The ensemble, in Raft server_id order (index + 1). Registry-derived by
+          default — the only right answer inside the fleet. Set it by hand only
+          for a box the registry cannot describe: the Azure soak rig lives on a
+          different tailnet, so the registry's MagicDNS names (and its
+          `clickhouse-keeper` tag) mean nothing there; it names itself at
+          127.0.0.1 with allowSolo.
         '';
       };
 
@@ -366,6 +404,17 @@ in
         '';
       };
 
+      replicaHost = lib.mkOption {
+        type = lib.types.str;
+        default = "${config.networking.hostName}.${topo.registry.tailnetSuffix}";
+        defaultText = "<hostName>.<tailnetSuffix> (from the registry)";
+        description = ''
+          This replica's address in `remote_servers` (ON CLUSTER DDL dials it).
+          Registry MagicDNS by default; a host outside the registry's tailnet
+          (the Azure soak rig) sets 127.0.0.1.
+        '';
+      };
+
       listenHost = lib.mkOption {
         type = lib.types.str;
         default = "127.0.0.1";
@@ -450,10 +499,11 @@ in
           assertion = serverId != null;
           message = ''
             hyper-modern-nixos.databases.clickhouse.keeper is enabled on
-            ${config.networking.hostName}, but this host is not tagged
-            `clickhouse-keeper` in the topology registry (registry/hosts.dhall).
-            The ensemble is registry-derived; add the tag + re-render
-            (nix run .#topology-render).
+            ${config.networking.hostName}, but this host is not in the ensemble
+            (keeper.members): not tagged `clickhouse-keeper` in the topology
+            registry (registry/hosts.dhall), and no explicit members list names
+            it. Add the tag + re-render (nix run .#topology-render), or set
+            keeper.members for a host outside the registry.
           '';
         }
         {
@@ -562,9 +612,10 @@ in
         {
           assertion = (lib.length ensembleHosts) >= 1;
           message = ''
-            hyper-modern-nixos.databases.clickhouse.server is enabled but no host
-            is tagged `clickhouse-keeper` in the topology registry — the server
-            needs a Keeper ensemble to dial. Tag the ensemble nodes + re-render.
+            hyper-modern-nixos.databases.clickhouse.server is enabled but the
+            ensemble (keeper.members) is empty: no host is tagged
+            `clickhouse-keeper` in the topology registry — the server needs a
+            Keeper ensemble to dial. Tag the ensemble nodes + re-render.
           '';
         }
         {
