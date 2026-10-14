@@ -35,12 +35,17 @@
 #
 # Decommissioned & removed from the fleet (do not re-add without a real host):
 #   beratna, flatline, galois, noether, railgun, ultralight
-#   ultraviolence, watchtower, weyl, guccimane, shimmer, gossamer — wiped and
-#   sold 2026-10-07 (docs/salvage-checklist-2026-10.md). Their host keys were
-#   dropped as recipients and every secret rekeyed 2026-10-14: this repo is
-#   public, so a sold disk with an unwiped /etc/ssh host key must not be able
-#   to decrypt anything committed from here on. Older ciphertexts in git
-#   history remain encrypted to them: rotate any credential that matters.
+#   ultraviolence, watchtower, weyl, guccimane — wiped and sold 2026-10-07
+#   (docs/salvage-checklist-2026-10.md).
+#   shimmer, gossamer — the DGX Sparks, parked out of the fleet (shimmer is on
+#   the salvage checklist's "before hardware leaves" list). To bring one back:
+#   re-add its live host key here, agenix -r, and uncomment it in
+#   configurations/default.nix.
+#   All six host keys were dropped as recipients and every secret rekeyed
+#   2026-10-14: this repo is public, so a machine out of our hands with an
+#   unwiped /etc/ssh host key must not decrypt anything committed from here on.
+#   Older ciphertexts in git history remain encrypted to them: rotate any
+#   credential that matters.
 #
 {
   # ── Host Keys ────────────────────────────────────────────────────────────────

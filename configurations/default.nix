@@ -68,7 +68,6 @@ let
     # gossamer.system = "aarch64-linux";
     # shimmer.system = "aarch64-linux";
 
-    guccimane = { };
     # Azure soak fleet (docs/azure-soak-fleet.md): nixos-anywhere installs, no
     # bootstrap variants — the VMs never build, closures come from the builder.
     nl-az-a.bootstrap = false;
@@ -76,10 +75,11 @@ let
     nl-az-c.bootstrap = false;
     nl-az-rig.bootstrap = false;
     shannon = { };
+    # guccimane, ultraviolence, watchtower, weyl: wiped and sold 2026-10-07
+    # (docs/salvage-checklist-2026-10.md). Their configurations/nixos/<name>/
+    # trees stay as history. Reviving one also needs its host key back in
+    # secrets/keys.nix and an agenix -r (dropped as recipients 2026-10-14).
     test-vm.bootstrap = false;
-    ultraviolence = { };
-    watchtower = { };
-    weyl = { };
   }
   # Guarded: a broken site render must never take the hand-written hosts down
   # with it (an operator deploying nl-az-rig does not care about az2's eval).
