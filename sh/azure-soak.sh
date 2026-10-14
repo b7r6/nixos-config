@@ -17,9 +17,19 @@
 #                                            keys are decrypted to a scratch dir for --extra-files
 #   azure-soak --site <s> sas [--put]        print AZURE_CAS_SAS_URL=… ; --put lands it in the site's
 #                                            CAS env secret (sites.dhall casEnvSecret) via put-secret
-#   azure-soak --site <s> enroll [host...]   tailscale up on hosts stuck in NeedsLogin, with the site's
-#                                            auth key (env TS_AUTHKEY, or the site flake's secret)
-#   azure-soak --site <s> tag [host...]      advertise the site's tags on enrolled hosts
+#   azure-soak --site <s> policy validate|push
+#                                            the GENERATED policy (render-policy) against the tailnet
+#                                            API: validate runs its tests; push applies it (If-Match
+#                                            on the live etag) after validating. The whole tailnet's
+#                                            policy, every site in it.
+#   azure-soak --site <s> tskey              mint the site's TAGGED enrollment keys (one per role,
+#                                            reusable, pre-authorized) through the API and land them
+#                                            in the site flake (tailscaleAuthKeySecret.{nodes,rig})
+#   azure-soak --site <s> enroll [host...]   tailscale up with the host's role key (tagged keys
+#                                            enroll a host already tagged); env TS_AUTHKEY overrides
+#   azure-soak --site <s> devices            the site's devices on the tailnet, with their tags
+#   azure-soak --site <s> tag [host...]      advertise the site's tags on enrolled hosts (the
+#                                            legacy path for a host enrolled with an untagged key)
 #   azure-soak --site <s> lockdown           nodes lose their public IPs; the rig stays the ssh bastion
 #   azure-soak --site <s> deploy [host...]   build here, copy + switch (nodes via ProxyJump through the rig)
 #   azure-soak --site <s> status             what exists
@@ -28,6 +38,10 @@
 #                                            the site's builder VM (D16s_v5): create + install (up),
 #                                            deallocate when idle (down), delete (rm), and `line`
 #                                            prints the nix `--builders` spec for the laptop
+#
+# The Tailscale API token (policy, tskey, devices) is the site flake's
+# agenix/tailscale-api-token.age (operators only), read with an operator
+# identity, handed to curl as a config on stdin, never in argv or output.
 #
 # Env: AZS_SITE=<name> (or --site), AZS_SITE_FLAKE=<hypermodern-nativelink checkout>
 #   AZS_FLAKE=<nixos-config checkout> AZS_SSH_PUB=~/.ssh/id_ed25519_b7r6.pub
@@ -50,7 +64,7 @@ IMAGE="${AZS_IMAGE:-Canonical:ubuntu-24_04-lts:server:latest}"
 ADMIN="${AZS_SSH_USER:-azureuser}"   # the stock Ubuntu image's user, until the kexec installer takes over
 DEPLOY_USER="${AZS_DEPLOY_USER:-b7r6}"
 
-usage() { sed -n '2,36p' "$0" | sed 's/^# \{0,1\}//'; exit 64; }
+usage() { sed -n '2,49p' "$0" | sed 's/^# \{0,1\}//'; exit 64; }
 [[ -n "$SITE" ]] || { log "no site: --site <name> or AZS_SITE"; usage; }
 
 SITE_JSON=$(nix run "$SITE_FLAKE#render-sites" -- "$SITE_FLAKE/examples/sites.dhall" "$SITE" 2>/dev/null) \
@@ -63,13 +77,15 @@ NSG=$(s .azure.nsg); NAT=$(s .azure.natGateway)
 STORAGE=$(s .azure.storageAccount); CONTAINER=$(s .azure.container)
 TAILNET=$(s .tailnet); TAG_NODES=$(s .tags.nodes); TAG_RIG=$(s .tags.rig)
 RIG=$(s .rig.name); BUILDER=$(s .builder.name)
-CAS_ENV_SECRET=$(s .casEnvSecret); TS_KEY_SECRET=$(s .tailscaleAuthKeySecret)
+CAS_ENV_SECRET=$(s .casEnvSecret)
+TS_KEY_SECRET_NODES=$(s .tailscaleAuthKeySecret.nodes); TS_KEY_SECRET_RIG=$(s .tailscaleAuthKeySecret.rig)
 mapfile -t NODES < <(s '.nodeNames[]')
 ALL=("${NODES[@]}" "$RIG")
 
 vm_size_of() { jq -r --arg h "$1" '(.nodes[] | select(.name==$h) | .size) // (if .rig.name==$h then .rig.size elif .builder.name==$h then .builder.size else empty end)' <<<"$SITE_JSON"; }
 vm_disk_of() { jq -r --arg h "$1" '(.nodes[] | select(.name==$h) | .diskGb) // (if .rig.name==$h then .rig.diskGb elif .builder.name==$h then .builder.diskGb else empty end)' <<<"$SITE_JSON"; }
 tag_of() { case "$1" in "$RIG") echo "$TAG_RIG" ;; *) echo "$TAG_NODES" ;; esac; }
+ts_key_secret_of() { case "$1" in "$RIG") echo "$TS_KEY_SECRET_RIG" ;; *) echo "$TS_KEY_SECRET_NODES" ;; esac; }
 admin_cidr() { echo "${AZS_ADMIN_CIDR:-$(curl -s -4 https://ifconfig.me)/32}"; }
 public_ip_of() { az vm list-ip-addresses -g "$RG" -n "$1" --query '[0].virtualMachine.network.publicIpAddresses[0].ipAddress' -o tsv; }
 
@@ -244,10 +260,10 @@ cmd_sas() {
   fi
 }
 
-site_auth_key() {
+site_auth_key() { # host
   if [[ -n "${TS_AUTHKEY:-}" ]]; then printf '%s' "$TS_AUTHKEY"; return; fi
-  local age_file="$SITE_FLAKE/secrets/agenix/$TS_KEY_SECRET.age"
-  [[ -f "$age_file" ]] || die "no TS_AUTHKEY and no $age_file"
+  local age_file="$SITE_FLAKE/secrets/agenix/$(ts_key_secret_of "$1").age"
+  [[ -f "$age_file" ]] || die "no TS_AUTHKEY and no $age_file (azure-soak --site $SITE tskey)"
   local ids; mapfile -t ids < <(operator_ids)
   local key; key=$(age -d "${ids[@]}" "$age_file" | tr -d '\n')
   # An auth key is `tskey-auth-…`; refuse anything else (a pasted command line,
@@ -276,11 +292,10 @@ ssh_dest_for() { # host -> user@addr (tailnet name for a node, public IP for the
 # NixOS module uses, plus the key; state persists in /var/lib/tailscale.
 cmd_enroll() {
   local hosts=("$@"); (( ${#hosts[@]} )) || hosts=("${ALL[@]}")
-  local key; key=$(site_auth_key)
   for h in "${hosts[@]}"; do
-    local tag; tag=$(tag_of "$h")
+    local key tag; key=$(site_auth_key "$h"); tag=$(tag_of "$h")
     local opts dest; opts=$(ssh_opts_for "$h"); dest=$(ssh_dest_for "$h")
-    log "enroll $h -> $dest ($tag)"
+    log "enroll $h -> $dest ($tag, key $(ts_key_secret_of "$h"))"
     # the key travels on stdin, never in argv/logs; same up-flags as the NixOS module
     # shellcheck disable=SC2086
     printf '%s' "$key" | ssh $opts "$dest" \
@@ -347,6 +362,77 @@ cmd_down() {
   az group delete -n "$RG" --yes --no-wait
 }
 
+# ── the tailnet API: policy, enrollment keys, devices ─────────────────────────
+TS_API="https://api.tailscale.com/api/v2/tailnet/-"
+
+# curl against the API with the operator-only token as a config on stdin
+# (never argv). Prints the body, then the HTTP status as the last line;
+# `ts_split "$out"` puts them in $TS_BODY / $TS_STATUS.
+ts_api() { # METHOD PATH [extra curl args…]
+  local method="$1" path="$2"; shift 2
+  local ids; mapfile -t ids < <(operator_ids)
+  local token; token=$(age -d "${ids[@]}" "$SITE_FLAKE/secrets/agenix/tailscale-api-token.age" | sed -n '1{s/^TS_API_KEY=//;p}' | tr -d '\n')
+  [[ "$token" == tskey-api-* ]] || die "agenix/tailscale-api-token.age is not an API access token (expected tskey-api-…)"
+  printf 'user = "%s:"\n' "$token" | curl --silent --show-error --config - \
+    --request "$method" "$TS_API$path" "$@" --write-out '\n%{http_code}'
+}
+ts_split() { TS_STATUS="${1##*$'\n'}"; TS_BODY="${1%$'\n'*}"; }
+
+rendered_policy() { (cd "$SITE_FLAKE" && nix run .#render-policy 2>/dev/null); }
+
+cmd_policy() {
+  local work; work=$(mktemp -d); chmod 700 "$work"; trap 'rm -rf "$work"' RETURN
+  rendered_policy > "$work/policy.hujson"
+  [[ -s "$work/policy.hujson" ]] || die "render-policy produced nothing"
+  case "${1:-}" in
+    validate|push)
+      # the validate endpoint parses the file and runs its `tests`; a failing
+      # test is a non-empty message / data. Nothing live is touched.
+      ts_split "$(ts_api POST /acl/validate --header 'Content-Type: application/hujson' --data-binary "@$work/policy.hujson")"
+      [[ "$TS_STATUS" == 200 ]] || die "validate: HTTP $TS_STATUS: $TS_BODY"
+      if [[ -n "$TS_BODY" ]] && ! jq -e '((.message // "") == "") and ((.data // []) == [])' <<<"$TS_BODY" >/dev/null; then
+        die "the generated policy FAILS validation: $(jq -r '.message // empty' <<<"$TS_BODY") $(jq -c '.data // empty' <<<"$TS_BODY")"
+      fi
+      log "policy: valid (parses, every test passes: $(grep -c '"src":' "$work/policy.hujson") tests)"
+      [[ "$1" == push ]] || return 0
+      # push with If-Match on the live etag so a concurrent console edit is
+      # refused (412) rather than overwritten
+      ts_api GET /acl --header 'Accept: application/hujson' --dump-header "$work/h" >"$work/live.hujson"
+      local etag; etag=$(sed -n 's/^[Ee][Tt]ag: *//p' "$work/h" | tr -d '\r\n')
+      [[ -n "$etag" ]] || die "no ETag on GET /acl"
+      ts_split "$(ts_api POST /acl --header 'Content-Type: application/hujson' --header "If-Match: $etag" --data-binary "@$work/policy.hujson")"
+      [[ "$TS_STATUS" == 200 ]] || die "push: HTTP $TS_STATUS: $TS_BODY"
+      log "policy: PUSHED (etag was $etag); the generated file and the live ACL are the same artifact"
+      ;;
+    *) usage ;;
+  esac
+}
+
+# Mint the site's tagged enrollment keys: one per role, reusable, pre-authorized,
+# non-ephemeral, 90 days. The key travels API → pipe → put-secret; it is never
+# printed. A device enrolling with it is tagged from its first packet.
+cmd_tskey() {
+  local role tag secret
+  for role in nodes rig; do
+    if [[ $role == nodes ]]; then tag="$TAG_NODES"; secret="$TS_KEY_SECRET_NODES"; else tag="$TAG_RIG"; secret="$TS_KEY_SECRET_RIG"; fi
+    local req; req=$(jq -nc --arg d "site $SITE $role - azure-soak" --arg t "$tag" \
+      '{capabilities:{devices:{create:{reusable:true,ephemeral:false,preauthorized:true,tags:[$t]}}},expirySeconds:7776000,description:$d}')
+    ts_split "$(ts_api POST /keys --header 'Content-Type: application/json' --data "$req")"
+    [[ "$TS_STATUS" == 200 ]] || die "mint $role key: HTTP $TS_STATUS: $(jq -r '.message // .' <<<"$TS_BODY" 2>/dev/null)"
+    jq -r '.key' <<<"$TS_BODY" | tr -d '\n' | (cd "$SITE_FLAKE" && nix run .#put-secret -- "agenix/$secret.age" >&2)
+    log "tskey: $tag → agenix/$secret.age (id $(jq -r .id <<<"$TS_BODY"), expires $(jq -r .expires <<<"$TS_BODY"))"
+  done
+  (cd "$SITE_FLAKE" && git add -N secrets/agenix 2>/dev/null || true)
+  log "next: commit the flake, nix flake lock --update-input hypermodern-nativelink, then enroll / deploy"
+}
+
+cmd_devices() {
+  ts_split "$(ts_api GET "/devices?fields=default")"
+  [[ "$TS_STATUS" == 200 ]] || die "devices: HTTP $TS_STATUS"; local body="$TS_BODY"
+  local names; names=$(printf '%s\n' "${ALL[@]}" "$BUILDER" | jq -R . | jq -sc .)
+  jq -r --argjson names "$names" '.devices[] | select(.hostname as $h | $names | index($h)) | "\(.hostname)\t\(.name)\t\(.addresses[0])\ttags=\(.tags // [] | join(","))\tauthorized=\(.authorized)\tlast=\(.lastSeen)"' <<<"$body" | sort
+}
+
 # ── the builder ────────────────────────────────────────────────────────────────
 # A D16s_v5 in the site's VNet with its own public IP (the same admin-only ssh
 # rule as the rig): a Nix remote builder for the laptop, and a box to deploy
@@ -386,6 +472,9 @@ case "${1:-}" in
   ips) cmd_ips ;;
   install) shift; cmd_install "$@" ;;
   sas) shift; cmd_sas "$@" ;;
+  policy) shift; cmd_policy "$@" ;;
+  tskey) cmd_tskey ;;
+  devices) cmd_devices ;;
   enroll) shift; cmd_enroll "$@" ;;
   tag) shift; cmd_tag "$@" ;;
   lockdown) cmd_lockdown ;;

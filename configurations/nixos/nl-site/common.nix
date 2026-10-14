@@ -12,6 +12,8 @@
 { flake, lib, ... }:
 let
   onTailnet = role != "builder";
+  # the role's enrollment key (a tagged key enrolls the host already tagged)
+  authKey = if role == "rig" then site.tailscaleAuthKeySecret.rig else site.tailscaleAuthKeySecret.nodes;
 in
 {
   hyper-modern-nixos.azure.enable = true;
@@ -20,9 +22,11 @@ in
   # The site's enrollment key (and the CAS SAS) are owned by hypermodern-
   # nativelink's agenix tree, imported via nixosModules.site-secrets in
   # ./default.nix — not this repo's global key. The secret name is the site's
-  # (sites.dhall `tailscaleAuthKeySecret`), so a site on a tailnet of its own
-  # is one field + one secret away.
-  hyper-modern-nixos.network.tailscale.authKeyFile = lib.mkIf onTailnet "/run/agenix/${site.tailscaleAuthKeySecret}";
+  # (sites.dhall `tailscaleAuthKeySecret.<role>`, minted tagged per role by
+  # `azure-soak.sh --site <s> tskey`), so a site on a tailnet of its own is
+  # one field + two secrets away.
+  hyper-modern-nixos.network.tailscale.authKeyFile = lib.mkIf onTailnet "/run/agenix/${authKey}";
+  hyper-modern-nativelink.siteSecrets.tailscaleAuthKeyName = lib.mkIf onTailnet authKey;
 
   # ── OTel agent → the rig's gateway, by the SITE's MagicDNS name ────────────
   # The module's default endpoint is the registry's `ch`-tagged host on the
