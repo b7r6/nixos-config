@@ -125,6 +125,12 @@ cmd_up() {
   az network nsg rule create -g "$RG" --nsg-name "$NSG" -n allow-ssh-admin --priority 100 \
     --direction Inbound --access Allow --protocol Tcp --source-address-prefixes "$cidr" \
     --destination-port-ranges 22 -o none
+  # WireGuard in: without this every tailnet peer reaches the rig through a DERP
+  # relay (~150 KB/s from a laptop; Grafana's bundles take a minute). The port
+  # is authenticated WireGuard only; nothing else answers on it.
+  az network nsg rule create -g "$RG" --nsg-name "$NSG" -n allow-wireguard-udp --priority 110 \
+    --direction Inbound --access Allow --protocol Udp --source-address-prefixes '*' \
+    --destination-port-ranges 41641 -o none
 
   log "vnet $VNET $ADDR, subnet $SUBNET $SUBNET_PREFIX"
   az network vnet create -g "$RG" -n "$VNET" --address-prefix "$ADDR" \
