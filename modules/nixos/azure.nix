@@ -101,6 +101,8 @@ in
     system.activationScripts.fhsBinTrue = {
       deps = [ "binsh" ];
       text = ''
+        # an earlier generation mounted envfs over /bin (read-only FUSE); drop it
+        if ${pkgs.util-linux}/bin/mountpoint -q /bin; then ${pkgs.util-linux}/bin/umount -l /bin || true; fi
         mkdir -p /bin
         ln -sfn ${pkgs.coreutils}/bin/true /bin/true
         ln -sfn ${pkgs.coreutils}/bin/false /bin/false
