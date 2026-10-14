@@ -39,14 +39,13 @@ let
 
   # This host's VM size from the site (nodes, rig or builder), and the OS disk
   # device that generation presents (v6 = NVMe; see ./disko.nix).
-  machine =
-    lib.findFirst (m: m.name == host) (throw "nl-site: ${host} is not in site ${site.name}") (
-      site.nodes
-      ++ [
-        site.rig
-        site.builder
-      ]
-    );
+  machine = lib.findFirst (m: m.name == host) (throw "nl-site: ${host} is not in site ${site.name}") (
+    site.nodes
+    ++ [
+      site.rig
+      site.builder
+    ]
+  );
   nvme = lib.hasSuffix "_v6" machine.size;
 in
 {
@@ -61,7 +60,12 @@ in
     if role == "rig" then
       [
         hypermodern-nativelink.nixosModules.site-secrets # tailnet key (+ CAS env, opted out below)
-        ../../../modules/flake/nativelink/soak/rig.nix
+        # The soak driver is the FLAKE's (`soak` CLI + the continuous, savage
+        # soak-loop + `soak load` into the sink), the same module nl-az's rig
+        # runs. nixos-config's modules/flake/nativelink/soak/rig.nix is the
+        # older oneshot-only driver and has no soak-loop: az2 ran without one
+        # until 2026-10-14.
+        hypermodern-nativelink.nixosModules.soak-rig
         # The site's observability sink: ClickHouse + OTel gateway + Grafana.
         # Shared with the hand-written az site verbatim (it is self-contained:
         # loopback ClickHouse, the agents are pointed at the rig by common.nix);
@@ -73,8 +77,17 @@ in
           hyper-modern-nixos.soakRig = {
             enable = true;
             targetHost = site.schedulerFqdn; # the site's scheduler, on the site's tailnet
+            # the other nodes (CAS shard + worker): targets for the savage
+            # CAS-node SIGKILL / pause / netem faults, by tailnet name
+            casNodes = map (n: "${n.name}.${site.tailnet}") (builtins.filter (n: !n.isScheduler) site.nodes);
+            continuous = true;
+            intensity = "savage";
             expectedWorkers = builtins.length site.nodes;
+            site = site.name; # the manifest's and soak.runs' site column
           };
+          # Every generated site's sink is readable from the wall (the
+          # differential on az's Grafana); the tailnet policy decides who may.
+          hyper-modern-nixos.soakSink.wall.serve = true;
         }
       ]
     else if role == "builder" then

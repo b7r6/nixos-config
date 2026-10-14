@@ -365,6 +365,28 @@ sh/azure-soak.sh --site az3 lockdown
   agent forwarding) is the follow-up; `AZS_BUILDERS=… deploy` builds there but still copies
   from here.
 
+### The wall (2026-10-14, ~12:30Z)
+
+Both sites on az's Grafana. `configurations/nixos/nl-az/rig.nix` grew
+`hyper-modern-nixos.soakSink.wall.{serve,peers}`: a generated site's rig (`nl-site`) serves its
+ClickHouse read-only on the tailnet (HTTP 8123 on tailscale0 only, user `grafana` = SELECT on
+`soak.*` + `otel.*`, readonly=2, networks pinned to the CGNAT range, the `default` user pinned to
+loopback; no password, because reach is the interface + the policy's one `walls` rule + that
+network clause); az's rig lists az2 as a peer and gets a second datasource `clickhouse-az2`. The
+flake's `nl-differential` is provisioned beside the projector; the projector and the runs view take
+`?var-site=clickhouse-az2`. The reach is the typed `S.Wall` relation in the flake's
+`netops/policy.dhall` (az rig → az2 rig:8123, tests pin the port and deny the reverse), pushed
+through the API. Verified from nl-az-rig: `grafana` reads, `default` is refused, INSERT is refused,
+9000 and 4317 are closed; both datasources report healthy.
+
+Two az2 fixes found on the way: nl-site's rig imported nixos-config's older oneshot soak driver
+instead of the flake's `nixosModules.soak-rig`, so az2 had no `soak-loop` unit (now the flake's,
+`casNodes` derived from the site, `site = site.name` into the run manifest); and the rig's
+worker-count probe (`curl -sf …/metrics | awk`) killed a campaign in 2 s under `pipefail` on an
+upstream-dialect scheduler, which serves no `/metrics` (az2 campaigns #1–#3 died this way; the
+probe is best-effort now). az2's first real campaign is `20261014T121520Z`, started after the three
+az2 nodes were deployed with envfs.
+
 ### Fold-in of az (TODO[b7r6])
 
 az stays on `configurations/nixos/nl-az/` (lane 1's observability work landed there during

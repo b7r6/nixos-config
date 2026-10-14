@@ -87,7 +87,23 @@ let FullPanelJSON =
 
 let TimeJSON = { from : Text, to : Text }
 
-let TemplatingJSON = { list : List VariableJSON }
+let DsVariableJSON =
+      { name : Text
+      , label : Text
+      , type : Text
+      , query : Text
+      , regex : Text
+      , current : { text : Text, value : Text }
+      , multi : Bool
+      , includeAll : Bool
+      , refresh : Natural
+      }
+
+--  a union so one list carries both shapes; dhall-to-json emits the payload
+let TemplateVariableJSON =
+      < Query : VariableJSON | Datasource : DsVariableJSON >
+
+let TemplatingJSON = { list : List TemplateVariableJSON }
 
 let DashboardJSON =
       { title : Text
@@ -138,6 +154,7 @@ let defaultOptions
       }
 
 let makePanel =
+      \(ds : DatasourceJSON) ->
       \(id : Natural) ->
       \(pos : GridPos) ->
       \(p : T.Panel.Type) ->
@@ -205,7 +222,13 @@ let makePanel =
               , type = T.panelTypeToGrafana p.type
               , description = p.description
               , gridPos = pos
-              , datasource = defaultDs
+              , datasource =
+                  merge
+                    { None = ds
+                    , Some =
+                        \(d : T.Datasource.Type) -> { type = d.type, uid = d.uid }
+                    }
+                    p.datasource
               , targets =
                   if    isText
                   then  [] : List TargetJSON
@@ -261,6 +284,7 @@ let makeRow =
         : FullPanelJSON
 
 let makeVariable =
+      \(ds : DatasourceJSON) ->
       \(v : T.Variable.Type) ->
           { name = v.name
           , label = v.label
@@ -269,14 +293,32 @@ let makeVariable =
                 { Query = "query", Textbox = "textbox", Custom = "custom" }
                 v.type
           , query = v.query
-          , datasource = defaultDs
+          , datasource = ds
           , multi = v.multi
           , includeAll = v.includeAll
           }
         : VariableJSON
 
+let makeDsVariable =
+      \(v : T.DatasourceVariable.Type) ->
+          { name = v.name
+          , label = v.label
+          , type = "datasource"
+          , query = v.pluginType
+          , regex = v.regex
+          , current = v.current
+          , multi = False
+          , includeAll = False
+          , refresh = 1
+          }
+        : DsVariableJSON
+
 let renderDashboard =
       \(d : T.Dashboard.Type) ->
+        let ds
+            : DatasourceJSON
+            = { type = d.datasource.type, uid = d.datasource.uid }
+
         let State =
               { panels : List FullPanelJSON, nextId : Natural, y : Natural }
 
@@ -389,6 +431,7 @@ let renderDashboard =
 
                                 let panelJson =
                                       makePanel
+                                        ds
                                         ea.nextId
                                         { x = ea.x, y = la.y, w, h = maxH }
                                         p
@@ -445,11 +488,20 @@ let renderDashboard =
               , tags = d.tags
               , templating.list
                 =
-                  Prelude.List.map
-                    T.Variable.Type
-                    VariableJSON
-                    makeVariable
-                    d.variables
+                    Prelude.List.map
+                      T.DatasourceVariable.Type
+                      TemplateVariableJSON
+                      ( \(v : T.DatasourceVariable.Type) ->
+                          TemplateVariableJSON.Datasource (makeDsVariable v)
+                      )
+                      d.datasourceVariables
+                  # Prelude.List.map
+                      T.Variable.Type
+                      TemplateVariableJSON
+                      ( \(v : T.Variable.Type) ->
+                          TemplateVariableJSON.Query (makeVariable ds v)
+                      )
+                      d.variables
               , panels = finalState.panels
               }
             : DashboardJSON
