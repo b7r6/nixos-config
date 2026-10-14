@@ -26,7 +26,6 @@ in
   # `azure-soak.sh --site <s> tskey`), so a site on a tailnet of its own is
   # one field + two secrets away.
   hyper-modern-nixos.network.tailscale.authKeyFile = lib.mkIf onTailnet "/run/agenix/${authKey}";
-  hyper-modern-nativelink.siteSecrets.tailscaleAuthKeyName = lib.mkIf onTailnet authKey;
 
   # ── OTel agent → the rig's gateway, by the SITE's MagicDNS name ────────────
   # The module's default endpoint is the registry's `ch`-tagged host on the
@@ -49,4 +48,9 @@ in
   ];
 
   system.stateVersion = "25.11";
+}
+# The builder imports no site-secrets module, so the option below must not
+# even be mentioned for it (a mkIf still names the option).
+// lib.optionalAttrs onTailnet {
+  hyper-modern-nativelink.siteSecrets.tailscaleAuthKeyName = authKey;
 }
