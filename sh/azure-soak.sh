@@ -58,7 +58,11 @@ need az; need jq; need nix; need ssh-keygen; need age
 SITE="${AZS_SITE:-}"
 if [[ "${1:-}" == "--site" ]]; then SITE="${2:?--site needs a name}"; shift 2; fi
 SITE_FLAKE="${AZS_SITE_FLAKE:-$HOME/src/hypermodern/hypermodern-nativelink-0x01}"
-FLAKE="${AZS_FLAKE:-$(cd "$(dirname "$0")/.." && pwd)}"
+# The flake is the git toplevel of the CALLER's cwd, not this script's parent:
+# the script is meant to be run from a COPY (bash reads scripts lazily, and an
+# edit mid-run would be executed), and a copy in /tmp has no flake beside it.
+FLAKE="${AZS_FLAKE:-$(git rev-parse --show-toplevel 2>/dev/null || (cd "$(dirname "$0")/.." && pwd))}"
+[[ -f "$FLAKE/flake.nix" ]] || die "no flake.nix in $FLAKE — run from the nixos-config checkout or set AZS_FLAKE"
 SSH_PUB="${AZS_SSH_PUB:-$HOME/.ssh/id_ed25519_b7r6.pub}"
 IMAGE="${AZS_IMAGE:-Canonical:ubuntu-24_04-lts:server:latest}"
 ADMIN="${AZS_SSH_USER:-azureuser}"   # the stock Ubuntu image's user, until the kexec installer takes over
