@@ -8,6 +8,9 @@
 --  the output record types mirror Grafana's schema:
 --    Dashboard → { title, uid, panels : List PanelJSON, ... }
 --    PanelJSON → { id, title, type, gridPos, targets, fieldConfig, ... }
+--
+--  options carries reduceOptions (one bar per row for bar gauges, last value
+--  for stats), and content/mode for Text panels, which get no targets.
 let T = ./types.dhall
 
 let Prelude = ./Prelude/package.dhall
@@ -46,7 +49,16 @@ let TooltipJSON = { mode : Text, sort : Text }
 
 let LegendJSON = { displayMode : Text, placement : Text, calcs : List Text }
 
-let OptionsJSON = { tooltip : TooltipJSON, legend : LegendJSON }
+let ReduceOptionsJSON = { values : Bool, calcs : List Text, fields : Text }
+
+let OptionsJSON =
+      { tooltip : TooltipJSON
+      , legend : LegendJSON
+      , reduceOptions : ReduceOptionsJSON
+      , orientation : Text
+      , content : Text
+      , mode : Text
+      }
 
 let DatasourceJSON = { type : Text, uid : Text }
 
@@ -118,6 +130,11 @@ let defaultOptions
         , placement = "bottom"
         , calcs = [ "mean", "max", "last" ]
         }
+      , reduceOptions =
+        { values = False, calcs = [ "lastNotNull" ], fields = "" }
+      , orientation = "auto"
+      , content = ""
+      , mode = "markdown"
       }
 
 let makePanel =
@@ -153,6 +170,36 @@ let makePanel =
                 }
                 p.thresholds
 
+        let isText
+            : Bool
+            = merge
+                { TimeSeries = False
+                , Stat = False
+                , Gauge = False
+                , Table = False
+                , Logs = False
+                , BarGauge = False
+                , Heatmap = False
+                , Text = True
+                , Row = False
+                }
+                p.type
+
+        let isBarGauge
+            : Bool
+            = merge
+                { TimeSeries = False
+                , Stat = False
+                , Gauge = False
+                , Table = False
+                , Logs = False
+                , BarGauge = True
+                , Heatmap = False
+                , Text = False
+                , Row = False
+                }
+                p.type
+
         in    { id
               , title = p.title
               , type = T.panelTypeToGrafana p.type
@@ -160,12 +207,14 @@ let makePanel =
               , gridPos = pos
               , datasource = defaultDs
               , targets =
-                [ { rawSql = p.sql
-                  , format = T.formatToNat p.format
-                  , queryType = "sql"
-                  , refId = "A"
-                  }
-                ]
+                  if    isText
+                  then  [] : List TargetJSON
+                  else  [ { rawSql = p.sql
+                          , format = T.formatToNat p.format
+                          , queryType = "sql"
+                          , refId = "A"
+                          }
+                        ]
               , fieldConfig.defaults
                 =
                 { unit = T.unitToGrafana p.unit
@@ -179,7 +228,17 @@ let makePanel =
                   }
                 , thresholds = threshJson
                 }
-              , options = defaultOptions
+              , options =
+                      defaultOptions
+                  //  { reduceOptions =
+                        { values = isBarGauge
+                        , calcs = [ "lastNotNull" ]
+                        , fields = ""
+                        }
+                      , orientation =
+                          if isBarGauge then "horizontal" else "auto"
+                      , content = p.content
+                      }
               , collapsed = False
               }
             : FullPanelJSON

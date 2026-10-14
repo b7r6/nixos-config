@@ -11,6 +11,7 @@
 --    - runningDifference rate pattern with ORDER BY time wrapper
 --    - threshold steps with color coding
 --    - stacking/fillOpacity field config
+--    - Text panels (markdown `content`, no query) and one-bar-per-row bar gauges
 
 -- ── datasource ─────────────────────────────────────────────────────────────────
 let Datasource =
@@ -30,6 +31,7 @@ let Unit =
       | ReqPerSec
       | RowsPerSec
       | QueriesPerSec
+      | CurrencyUSD
       | None
       >
 
@@ -47,12 +49,22 @@ let unitToGrafana =
           , ReqPerSec = "reqps"
           , RowsPerSec = "rows/s"
           , QueriesPerSec = "qps"
+          , CurrencyUSD = "currencyUSD"
           , None = "none"
           }
           u
 
 let PanelType =
-      < TimeSeries | Stat | Gauge | Table | Logs | BarGauge | Heatmap | Row >
+      < TimeSeries
+      | Stat
+      | Gauge
+      | Table
+      | Logs
+      | BarGauge
+      | Heatmap
+      | Text
+      | Row
+      >
 
 let panelTypeToGrafana =
       \(t : PanelType) ->
@@ -64,6 +76,7 @@ let panelTypeToGrafana =
           , Logs = "logs"
           , BarGauge = "bargauge"
           , Heatmap = "heatmap"
+          , Text = "text"
           , Row = "row"
           }
           t
@@ -139,6 +152,7 @@ let Panel =
           , stacking : Stacking
           , fillOpacity : Natural
           , colorMode : Text
+          , content : Text
           }
       , default =
         { title = ""
@@ -153,6 +167,7 @@ let Panel =
         , stacking = Stacking.None
         , fillOpacity = 10
         , colorMode = "palette-classic"
+        , content = ""
         }
       }
 

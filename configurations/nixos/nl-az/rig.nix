@@ -37,7 +37,9 @@ let
   # The NativeLink dashboard is the FLAKE's (its telemetry contract and its
   # dashboard move together); nixos-config's copy under modules/flake/grafana
   # is the fleet's and is not provisioned here.
-  nativelinkDashboard = flake.inputs.hypermodern-nativelink.packages.${system}.grafana-dashboard;
+  # Every dashboard the flake ships (nativelink, projector, soak-runs) as one
+  # directory; Grafana's file provider reads the whole directory.
+  nativelinkDashboards = flake.inputs.hypermodern-nativelink.packages.${system}.grafana-dashboards;
 
   clickhouseNative = "127.0.0.1:${toString config.hyper-modern-nixos.databases.clickhouse.server.ports.native}";
 
@@ -258,5 +260,5 @@ in
     fi
   '';
 
-  environment.etc."grafana/dashboards/nativelink.json".source = nativelinkDashboard;
+  environment.etc."grafana/dashboards".source = nativelinkDashboards;
 }
