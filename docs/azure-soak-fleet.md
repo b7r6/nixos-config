@@ -306,8 +306,9 @@ sh/azure-soak.sh --site az3 up            # RG, net, NAT, VMs, storage, host key
 sh/azure-soak.sh --site az3 sas --put
 nix flake lock --update-input hypermodern-nativelink   # while the input is a path: (see lessons)
 sh/azure-soak.sh --site az3 install       # four nixos-anywhere runs
-sh/azure-soak.sh --site az3 enroll        # untagged first (allowed), then after the paste:
-sh/azure-soak.sh --site az3 tag
+sh/azure-soak.sh --site az3 policy push   # the generated policy, validated, then live
+sh/azure-soak.sh --site az3 tskey         # tagged enrollment keys, landed in the flake
+sh/azure-soak.sh --site az3 devices       # hosts enroll tagged at first boot; verify
 ssh … nl-az3-rig 'soak status; soak build smoke'
 sh/azure-soak.sh --site az3 lockdown
 ```
@@ -319,14 +320,27 @@ sh/azure-soak.sh --site az3 lockdown
   `D16s_v6` validate (Dsv6 quota 350). az2 runs on v6, one line per machine in the site. The
   az CLI's own error handler crashes on this preflight error (`The content for this response was
   already consumed`); `az vm create … --validate` shows the real inner error.
+- **v6 = NVMe behind Hyper-V PCI.** D\*s_v6 presents the OS disk as `/dev/nvme0n1` ("MSFT NVMe
+  Accelerator", on a passthrough bus `pci-c05b:…`), not `/dev/sda`: disko's device is now chosen
+  by the host's size, and the v6 initrd force-loads `pci_hyperv` + `nvme` — with `nvme` merely
+  available, stage 1 waited 90 s for `/dev/disk/by-partlabel/nixos` and dropped to emergency
+  (serial log via `az vm boot-diagnostics enable` + `get-boot-log`, which returns one
+  JSON-escaped string). Four installed-but-unbootable VMs were recreated; the fix is in nl-site.
+- **Never edit `sh/azure-soak.sh` while an instance runs:** bash reads the file as it goes, and
+  two installs died mid-run with "line N: … Is a directory" after an edit. Run long subcommands
+  from a copy (`cp sh/azure-soak.sh "$scratch"/ && bash "$scratch"/azure-soak.sh …`).
 - **A `path:` input is a snapshot.** nixos-config takes hypermodern-nativelink as `path:`; every
   change there (a landed secret, a new `secrets/pub` file, a site edit) needs
   `nix flake lock --update-input hypermodern-nativelink` before nixos-config sees it, or a host
   evaluates against a stale tree (an az2 node built before its CAS env was landed would have
   no `age.secrets` entry for it). The input becomes the git URL once the repo is public or a
   deploy key exists.
-- **The policy is pasted, never applied by a script.** `tag` is safe to run before the paste:
-  an unknown tag is refused and the host stays enrolled untagged.
+- **The policy is pushed, not pasted:** `azure-soak.sh --site <s> policy validate|push` runs the
+  generated file's tests server-side and pushes it with `If-Match` on the live etag (a concurrent
+  console edit is refused, not overwritten); the API token is the flake's operators-only
+  `agenix/tailscale-api-token.age`. `tskey` mints a site's TAGGED enrollment keys (one per role,
+  reusable, pre-authorized) so hosts enroll already tagged: no untagged window, no `tag` step.
+  The az site predates this and still enrolls with the untagged shared key + `tag`.
 - **The install uplink is the bound**, not the build: four parallel nixos-anywhere runs share
   the laptop's 300 KB/s for the uncached paths (the NativeLink binary ×3, an initrd each). The
   builder (`builder up`) is the fix: a D16s_v6 in the site's VNet, NixOS via the same wrapper
