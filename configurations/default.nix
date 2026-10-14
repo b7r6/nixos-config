@@ -12,6 +12,9 @@
 #
 # Adding a NixOS host = one entry in `hosts` + a configurations/nixos/<name>/.
 # Adding a standalone home user = one configurations/home/<name>.nix (auto-found).
+# The soak SITES' hosts are not entries here: ./sites.nix generates one per
+# node/rig/builder of every site in hypermodern-nativelink's sites.dhall
+# (except the hand-written az site, until it is folded onto the same path).
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 {
@@ -77,7 +80,15 @@ let
     ultraviolence = { };
     watchtower = { };
     weyl = { };
-  };
+  }
+  # Guarded: a broken site render must never take the hand-written hosts down
+  # with it (an operator deploying nl-az-rig does not care about az2's eval).
+  // (
+    let
+      r = builtins.tryEval (import ./sites.nix { inherit inputs lib; });
+    in
+    if r.success then r.value else builtins.trace "configurations/sites.nix failed to evaluate; site hosts omitted" { }
+  );
 
   mkHost =
     name:
@@ -88,13 +99,16 @@ let
       # consumed by bootstrapHosts below; accepted here so a `bootstrap = false`
       # host still evaluates (test-vm had this latent since the flag landed).
       bootstrap ? true,
+      # the host's module; default the per-host directory. A generated site
+      # host (./sites.nix) passes the generic wrapper instead.
+      module ? ./nixos/${name}/default.nix,
     }:
     nixpkgs.lib.nixosSystem {
       inherit specialArgs;
       modules = [
         { nixpkgs.hostPlatform = system; }
         homeManagerNixosModule
-        ./nixos/${name}/default.nix
+        module
       ]
       ++ extraModules;
     };

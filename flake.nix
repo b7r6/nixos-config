@@ -166,6 +166,26 @@
     nativelink-nix.url = "github:b7r6/nativelink?ref=integration/straylight-plus-all-fixes-2026-10-05";
     nativelink-nix.inputs.nixpkgs.follows = "nixpkgs";
 
+    # ── NativeLink revs under soak (docs/azure-soak-fleet.md, "Sites") ──────────
+    # One input per rev a site soaks, named `nativelink-rev-<short>`; a site in
+    # hypermodern-nativelink's sites.dhall names its rev by this input name
+    # (`nativelinkRev.input`) and the site consumer (configurations/sites.nix)
+    # sets `hyper-modern-nixos.nativelink.package` from it, asserting the
+    # locked rev is the one the site says. The NixOS MODULE always comes from
+    # `nativelink-nix` (the fork; it only execs `nativelink <json>`); the
+    # Dhall render follows the site's `dialect` (fork | upstream) so an
+    # upstream binary never sees a fork-only config key. The az site itself is
+    # `nativelink-nix` (7eba9bf, the fork's integration branch: pre-fix).
+    #
+    # To add a rev: one input line here + `nativelinkRev` in the site +
+    # `nix flake lock` (the lock gains one node; nothing else moves).
+    #
+    # 1.7.7: UPSTREAM main at the head of "Release NativeLink v1.7.7" (PR
+    # #2937), the post-fix side of the scheduler-race differential az2 soaks
+    # against az. Deliberately does NOT follow our nixpkgs: it builds exactly
+    # as upstream's CI builds it (musl static via its own pins).
+    nativelink-rev-1-7-7.url = "github:TraceMachina/nativelink/b1ca26e08296f50935136b2385873354c88286ed";
+
     # rechaos — the black-box REAPI chaos + determinism gateway that drives the
     # Azure soak rig (modules/flake/nativelink/soak). Pinned by REV on purpose:
     # the repo lands hot while a soak runs, and a soak's rechaos must not move
