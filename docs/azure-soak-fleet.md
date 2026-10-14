@@ -263,8 +263,15 @@ Upstream NativeLink rejects unknown config keys and has none of the fork's `nix_
 decides what `fleet.dhall` emits: `fork` is everything; `upstream` is the common subset (ring,
 scheduler, `worker_api`, the Azure slow tier via `sas_url`, `cache_metrics`, `slow_direction`,
 `max_inflight_tasks`, the worker `entrypoint` the module injects) with no OCI service and no
-Prometheus listener. Verified by running the az2 render through the 1.7.7 binary on the
-operator's box: it deserializes, instantiates every store and dials its ring. Consequence: an
+Prometheus listener, and the CAS/AC `fast_slow` WRITES THROUGH to the slow tier. That last one
+is a real behavioral difference, found on az2's first smoke build (16/16 `FAILED_PRECONDITION`,
+"Execute pre-check found missing CAS blobs"): upstream's `FastSlowStore::has_with_results`
+asks the slow store first, so with the fork-era `slow_direction: get` (nothing ever written to
+Blob) every input the client had just uploaded read as missing. The fork's `has()` is
+fast-first, one of the fixes az soaks, which is why az runs fine on a read-only tier.
+Verified by running the az2 render through the 1.7.7 binary on the operator's box: it
+deserializes, instantiates every store and dials its ring (then fails to bind 50052, which the
+laptop's own NativeLink holds). Consequence: an
 upstream-dialect node serves no `/metrics`; the rig's worker-count probe is best-effort and the
 OTel scrape of 50051/50052 is empty there (OTLP push still carries the metrics).
 
