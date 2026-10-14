@@ -350,10 +350,20 @@ sh/azure-soak.sh --site az3 lockdown
   The az site predates this and still enrolls with the untagged shared key + `tag`.
 - **The install uplink is the bound**, not the build: four parallel nixos-anywhere runs share
   the laptop's 300 KB/s for the uncached paths (the NativeLink binary ×3, an initrd each). The
-  builder (`builder up`) is the fix: a D16s_v6 in the site's VNet, NixOS via the same wrapper
-  (role `builder`), host key pinned in the `--builders` line it prints; `AZS_BUILDERS=… deploy`
-  builds there. Its copy leg (closures leaving from the builder rather than the laptop) is the
-  documented follow-up below.
+  builder (`builder up`) exists for that: a D16s_v6 in the site's VNet, NixOS via the same
+  wrapper (role `builder`), host key pre-generated and pinned in the `--builders` line it prints.
+  Measured 2026-10-14: a from-source NativeLink build (fork rev `b008762`, 581 derivations
+  including the vendored crates) took **659 s on the builder** run directly over ssh
+  (`ssh <builder> nix build github:…#nativelink`), against **~11.5 min on the laptop** for
+  upstream 1.7.7 — the builder does not win on build time, it wins on what it does not cost:
+  nothing leaves the laptop, and the laptop stays usable. The `--builders` protocol (laptop
+  evaluates, builder builds) is NOT the way to use it for a rev the laptop has already partly
+  built: nix ships every input the builder lacks from the local store (hundreds of
+  `cargo-package-*` paths) over the uplink before building; use `--option
+  builders-use-substitutes true`, or build on the builder directly as above. The copy leg
+  (closures leaving from the builder, `nix copy --to ssh://node` run there through the rig with
+  agent forwarding) is the follow-up; `AZS_BUILDERS=… deploy` builds there but still copies
+  from here.
 
 ### Fold-in of az (TODO[b7r6])
 
