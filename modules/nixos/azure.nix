@@ -89,13 +89,24 @@ in
     hyper-modern-nixos.nativelink.nixCache.enable = lib.mkForce false;
     hyper-modern-nixos.nativelink.nixCache.watchStore = lib.mkForce false;
 
-    # FHS /bin and /usr/bin (envfs): REAPI actions name their binary by absolute
-    # path — rechaos's execution scenarios run `/bin/true` — and a NixOS worker
-    # has only /bin/sh, so every such action exited 127 (11.7k on one node in a
-    # day) while "completing". envfs resolves /bin/<x> against PATH at open time;
-    # the floor entrypoint's toolchain is on that PATH. n.b. not hermetic, and
-    # not meant to be: the soak measures the server, not the toolchain contract.
-    services.envfs.enable = true;
+    # A real /bin/true. REAPI actions name their binary by absolute path —
+    # rechaos's execution scenarios run `/bin/true` — and a NixOS worker has
+    # only /bin/sh, so every such action exited 127 (11.7k on one node in a
+    # day) while "completing". envfs does NOT fix this: it resolves /bin/<x>
+    # against the CALLER's environment, and NativeLink spawns actions with no
+    # inherited PATH (verified on az2: failures kept coming with envfs mounted).
+    # A symlink in the real /bin is what the kernel's execve needs. n.b. not
+    # hermetic, and not meant to be: the soak measures the server, not the
+    # toolchain contract.
+    system.activationScripts.fhsBinTrue = {
+      deps = [ "binsh" ];
+      text = ''
+        mkdir -p /bin
+        ln -sfn ${pkgs.coreutils}/bin/true /bin/true
+        ln -sfn ${pkgs.coreutils}/bin/false /bin/false
+        ln -sfn ${pkgs.coreutils}/bin/sleep /bin/sleep
+      '';
+    };
 
     zramSwap.enable = lib.mkDefault true;
     time.timeZone = lib.mkDefault "UTC";
