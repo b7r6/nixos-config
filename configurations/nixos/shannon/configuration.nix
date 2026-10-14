@@ -63,7 +63,14 @@ in
   # ── CoreDNS as this node's own resolver (serves s4.gl — grafana, ch) ────────
   # Authoritative for sju1.s4.gl, MagicDNS for the tailnet, public upstreams
   # for the rest; owns /etc/resolv.conf (ownResolver). Scraped on :9153.
-  hyper-modern-nixos.coredns.enable = true;
+  hyper-modern-nixos.coredns = {
+    enable = true;
+    # shannon's active tailscale profile is the soak site's tailnet
+    # (deus-ex-b7r6, tail8ec1af.ts.net: the soak wall lives there), not the
+    # fleet's. Without this, accept-dns=false + this resolver would stop every
+    # *.tail8ec1af.ts.net name resolving on the laptop.
+    extraTailnetSuffixes = [ "tail8ec1af.ts.net" ];
+  };
 
   # ── ClickHouse: single-node keeper + server, S3→R2 durable tier ─────────────
   # Keeper membership is registry-derived (shannon is the only host tagged
