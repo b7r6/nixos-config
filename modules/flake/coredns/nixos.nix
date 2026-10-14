@@ -124,14 +124,16 @@ let
         ${optionalString cfg.debug "log"}
     }
 
-    ${topo.registry.tailnetSuffix}:${toString cfg.port} {
-        bind ${cfg.bindAddress}
-        forward . ${cfg.magicDnsServer}
-        cache ${toString cfg.cacheTTL}
-        ${optionalString cfg.prometheus "prometheus ${cfg.bindAddress}:9153"}
-        errors
-        ${optionalString cfg.debug "log"}
-    }
+    ${concatMapStringsSep "\n" (suffix: ''
+      ${suffix}:${toString cfg.port} {
+          bind ${cfg.bindAddress}
+          forward . ${cfg.magicDnsServer}
+          cache ${toString cfg.cacheTTL}
+          ${optionalString cfg.prometheus "prometheus ${cfg.bindAddress}:9153"}
+          errors
+          ${optionalString cfg.debug "log"}
+      }
+    '') ([ topo.registry.tailnetSuffix ] ++ cfg.extraTailnetSuffixes)}
 
     .:${toString cfg.port} {
         bind ${cfg.bindAddress}
@@ -213,6 +215,18 @@ in
         own the sju1.s4.gl zone, send general names to forwardServers, and forward
         ONLY *.<tailnetSuffix> here — keeping MagicDNS's one useful bit without its
         resolv.conf meddling.
+      '';
+    };
+
+    extraTailnetSuffixes = mkOption {
+      type = types.listOf types.str;
+      default = [ ];
+      example = [ "tail8ec1af.ts.net" ];
+      description = ''
+        MagicDNS suffixes forwarded to magicDnsServer besides the registry's
+        tailnetSuffix: the suffix of whatever tailnet this node's ACTIVE
+        tailscale profile is on, when that isn't the fleet's. With ownResolver
+        on, a suffix missing here stops resolving on this node entirely.
       '';
     };
 

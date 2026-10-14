@@ -35,7 +35,10 @@ in
   # Restoring it one role at a time (2026-10-12): each role moves OUT of the
   # `/* … */` block below into the live config once it builds and verifies.
   # Back so far: nativelink nix-cache, NativeLink RE (scheduler+CAS+worker),
-  # ClickHouse (keeper + server), OTel agent + gateway, Grafana.
+  # ClickHouse (keeper + server), OTel agent + gateway, Grafana, nginx + ACME,
+  # CoreDNS (2026-10-14). Still parked: the attic replica — its upstream
+  # (watchtower) is gone, so there is nothing to replicate until attic gets a
+  # standalone profile here.
   # ═══════════════════════════════════════════════════════════════════════════
   /*
     # ── attic api-server replica (module self-wires its secrets) ────────────────
@@ -44,24 +47,30 @@ in
       enable = true;
       profile = "replica";
     };
-
-    # ── nginx vhosts: TLS names for the single-box stack ───────────────────────
-    # Split-horizon: coredns resolves <sub>.sju1.s4.gl here (grafana/ch tags),
-    # nginx terminates the wildcard LE cert and proxies to loopback. No
-    # `protected` vhosts — oauth2-proxy's IdP retired with watchtower.
-    hyper-modern-nixos.reverseProxy = {
-      enable = true;
-
-      services.grafana.port = 3300;
-      services.ch.port = 8123; # clickhouse HTTP interface
-    };
-
-    # ── CoreDNS as this node's own resolver (serves s4.gl — git, auth, grafana) ─
-    # Last fleet holdout: without it, flake inputs from git.s4.gl can't resolve
-    # off-tailnet-DNS and the attic replica can't look up watchtower.
-    hyper-modern-nixos.coredns.enable = true;
-    hyper-modern-nixos.observability.otel.agent.scrapeTargets = [ "127.0.0.1:9153" ]; # coredns
   */
+
+  # ── nginx vhosts: TLS names for the single-box stack ───────────────────────
+  # Split-horizon: coredns resolves <sub>.sju1.s4.gl here (grafana/ch tags),
+  # nginx terminates the wildcard LE cert and proxies to loopback. No
+  # `protected` vhosts — oauth2-proxy's IdP retired with watchtower.
+  hyper-modern-nixos.reverseProxy = {
+    enable = true;
+
+    services.grafana.port = 3300;
+    services.ch.port = 8123; # clickhouse HTTP interface
+  };
+
+  # ── CoreDNS as this node's own resolver (serves s4.gl — grafana, ch) ────────
+  # Authoritative for sju1.s4.gl, MagicDNS for the tailnet, public upstreams
+  # for the rest; owns /etc/resolv.conf (ownResolver). Scraped on :9153.
+  hyper-modern-nixos.coredns = {
+    enable = true;
+    # shannon's active tailscale profile is the soak site's tailnet
+    # (deus-ex-b7r6, tail8ec1af.ts.net: the soak wall lives there), not the
+    # fleet's. Without this, accept-dns=false + this resolver would stop every
+    # *.tail8ec1af.ts.net name resolving on the laptop.
+    extraTailnetSuffixes = [ "tail8ec1af.ts.net" ];
+  };
 
   # ── ClickHouse: single-node keeper + server, S3→R2 durable tier ─────────────
   # Keeper membership is registry-derived (shannon is the only host tagged
@@ -84,9 +93,8 @@ in
   hyper-modern-nixos.observability.otel.agent = {
     enable = true;
 
-    # coredns (:9153) rejoins this list with its role (disabled block above);
-    # scraping it while parked is a down target and a warn every 30s.
     scrapeTargets = [
+      "127.0.0.1:9153" # coredns
       "127.0.0.1:9363" # clickhouse
       "127.0.0.1:9364" # clickhouse-keeper
     ];

@@ -8,24 +8,24 @@
 # config, so a miscategorization (path not backed up, path not persisted, path
 # excluded by a glob) that would silently lose data FAILS THE BUILD.
 #
-# The test exercises watchtower (the richest state: atticd cluster + supabase +
-# postgres dumps + rclone) — if its classification is safe, the fleet is safe
-# (other hosts have a subset of watchtower's state dirs). If a future service
-# adds a state dir with a typo/relative-path/wrong-class, this catches it at
-# `nix flake check` time, not at restore time.
+# The test exercises shannon: since the 2026-10-07 sell-off it holds every
+# stateful role the fleet still runs (clickhouse + keeper, nativelink + its nix
+# cache, grafana). It used to audit watchtower, which no longer exists. If a
+# future service adds a state dir with a typo/relative-path/wrong-class, this
+# catches it at `nix flake check` time, not at restore time.
 { pkgs, inputs }:
 let
   inherit (inputs) self;
 
-  # Evaluate watchtower's config to extract the real state classification +
+  # Evaluate shannon's config to extract the real state classification +
   # backup config. This is the evaluated-at-check-time data (not runtime) — it's
   # the same values backup.nix and impermanence.nix would use.
-  wtCfg = self.nixosConfigurations.watchtower.config;
-  stateCfg = wtCfg.hyper-modern-nixos.state;
-  backupCfg = wtCfg.hyper-modern-nixos.backup;
+  hostCfg = self.nixosConfigurations.shannon.config;
+  stateCfg = hostCfg.hyper-modern-nixos.state;
+  backupCfg = hostCfg.hyper-modern-nixos.backup;
 
   # Serialize the state classification into the JSON shape state-audit expects.
-  auditInput = pkgs.writeText "state-audit-watchtower.json" (
+  auditInput = pkgs.writeText "state-audit-shannon.json" (
     builtins.toJSON {
       dirs = builtins.map (name: {
         inherit name;
