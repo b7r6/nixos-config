@@ -409,7 +409,16 @@ in
   hyper-modern-nixos.wayland.enable = true;
 
   # Battery reporting for the new-suzuki shell (BatteryService reads UPower)
-  services.upower.enable = true;
+  services.upower = {
+    enable = true;
+    # The default action at 2% is too late. On 2026-10-14 the box was drawing
+    # ~51 W (builds + cache push), so 1% lasted ~45 s. Hybrid-sleep at 2% never
+    # finished writing its ~12 GB image through dm-crypt ("PM: Image not found"
+    # on the next boot), and the battery died. 6% leaves ~4 min at that draw.
+    # upower wants low > critical > action.
+    percentageCritical = 10;
+    percentageAction = 6;
+  };
 
   # ── Per-host monitor & display config ──────────────────────────────────────
   home-manager.users.b7r6 = {

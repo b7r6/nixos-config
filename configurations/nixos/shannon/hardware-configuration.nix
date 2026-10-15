@@ -16,7 +16,14 @@
   # asus specific
   # =====================================================
 
-  boot.initrd.kernelModules = [ ];
+  # rtc_cmos is a module (CONFIG_RTC_DRV_CMOS=m, HCTOSYS=y): left to udev it
+  # registers ~17s in, AFTER systemd has advanced the clock to the timesync
+  # clock-file stamp, and hctosys sets it straight back to the RTC. On
+  # 2026-10-15 a dead battery reset the RTC to 2024-10-29; services started on
+  # that clock, NTP then stepped two years forward, and grafana's ngalert
+  # ticker replayed every missed tick (180% CPU). Loaded in the initrd, the RTC
+  # is read first and the later bumps can only move time forward.
+  boot.initrd.kernelModules = [ "rtc_cmos" ];
 
   boot.kernelModules = [ "kvm-amd" ];
   boot.kernelParams = [ "mem_sleep_default=deep" ];
