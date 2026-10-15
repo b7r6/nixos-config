@@ -2973,6 +2973,18 @@ silently disconnect diagnostic delivery until the next edit starts a check."
      :type-checker nil
      :notes "buck2: `buck2 lsp` over stdio; buildifier formats + lints .bzl/BUCK")
 
+    (protobuf
+     :mode protobuf-mode
+     :client buf
+     :extensions ("\\.proto\\'")
+     :backend lsp
+     :server buf
+     :formatter clang-format
+     :format-all-formatter clang-format
+     :linter buf
+     :type-checker buf
+     :notes "`buf lsp serve` (lsp-mode's buf client); clang-format matches treefmt")
+
     (dhall :mode dhall-mode :backend lsp :client dhallls
            :server dhall-lsp-server :formatter dhall :format-all-formatter dhall)
     (css :mode css-mode :extra-modes (css-ts-mode)
@@ -3299,6 +3311,14 @@ Keep native diagnostics if no server attaches, and keep complementary linters."
 (use-package bazel
   :mode (("\\.bzl\\'" . bazel-starlark-mode)
          ("BUCK\\'" . bazel-starlark-mode)))
+
+;; Protocol Buffers: upstream's protobuf-mode (protocolbuffers/protobuf
+;; editors/) for syntax and indentation; buf's language server for
+;; diagnostics, completion and navigation. protobuf-ts-mode is abandoned
+;; (emacsattic) and was written against mitchellh's grammar, not the
+;; coder3101 tree-sitter-proto that nixpkgs ships, so treesit-auto's proto
+;; recipe stays inert: it only remaps when that ts-mode exists.
+(use-package protobuf-mode :mode "\\.proto\\'")
 
 ;; ───────────────────────────────────────────────────────────────────
 ;;                                                       // formatting

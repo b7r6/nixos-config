@@ -133,6 +133,7 @@ emacsPkgs.emacsWithPackages (
         fsharp-mode
         cuda-mode
         bazel # mode only; let projects provide bazel binary
+        protobuf-mode # upstream's; `buf` (languageServers) is the LSP
 
         # lisp
         paredit

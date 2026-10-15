@@ -81,6 +81,7 @@ pkgs.runCommand "emacs-config"
       pkgs.buildifier
       pkgs.buck2
       pkgs.taplo
+      pkgs.buf
       pkgs.dhall
       pkgs.dhall-lsp-server
       pkgs.haskell-language-server

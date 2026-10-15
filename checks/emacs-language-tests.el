@@ -9,7 +9,7 @@
                    python cc-mode c-ts-mode cuda-mode typescript-mode typescript-ts-mode
                    js json-mode json-ts-mode yaml-mode yaml-ts-mode sh-script
                    purescript-mode lean4-mode bazel dhall-mode markdown-mode
-                   css-mode sgml-mode html-ts-mode toml-ts-mode))
+                   css-mode sgml-mode html-ts-mode toml-ts-mode protobuf-mode))
   (require library))
 (lsp--require-packages)
 
@@ -91,6 +91,7 @@
     (css-ts-mode "sample.css" "body{color:red;background:white}\n")
     (html-ts-mode "sample.html" "<html><body><div>hi</div></body></html>\n")
     (toml-ts-mode "sample.toml" "answer=42\nvalues=[1,2,3]\n")
+    (protobuf-mode "sample.proto" "syntax=\"proto3\";\nmessage Answer{int32 value=1;}\n")
     (markdown-mode "sample.md" "# Hi\n\n-   one\n-   two\n")
     (emacs-lisp-mode "sample.el" "(let ((x 1))\n(+ x 2))\n")))
 

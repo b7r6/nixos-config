@@ -212,6 +212,7 @@ in
           yaml-language-server
           bash-language-server
           taplo # TOML language server and formatter
+          buf # Protocol Buffers: `buf lsp serve`, plus buf lint/format/breaking
         ])
 
         # Haskell (heavy ~1GB)

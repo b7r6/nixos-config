@@ -66,7 +66,13 @@
             "module Sample where\nanswer :: Int\nanswer = \"wrong\"\n" "answer" nil)
     (buck2 bazel-starlark-mode "sample.bzl" "def answer():\n    return 42\n"
            "def answer(:\n    return 42\n" nil
-           ((".buckconfig" . "[cells]\nroot = .\n[buildfile]\nname = BUCK\n")))))
+           ((".buckconfig" . "[cells]\nroot = .\n[buildfile]\nname = BUCK\n")))
+    ;; buf's default lint wants the package's directory to match `sample.v1`;
+    ;; buf answers hover from doc comments only.
+    (buf protobuf-mode "sample/v1/sample.proto"
+         "syntax = \"proto3\";\n\npackage sample.v1;\n\n// Answer is the answer.\nmessage Answer {\n  int32 value = 1;\n}\n\nmessage Wrapper {\n  Answer answer = 1;\n}\n"
+         "syntax = \"proto3\";\n\npackage sample.v1;\n\n// Answer is the answer.\nmessage Answer {\n  int32 value = 1;\n}\n\nmessage Wrapper {\n  Missing answer = 1;\n}\n"
+         "message Answer" (("buf.yaml" . "version: v2\n")))))
 
 (defun hypermodern-lsp-test/workflow (case)
   (pcase-let* ((`(,client ,mode ,filename ,valid ,invalid ,hover ,files) case)
@@ -128,6 +134,13 @@
               (goto-char (point-max)) (search-backward "answer")
               (hypermodern-lsp-test/wait
                "Nix definition"
+               (lambda () (lsp-request "textDocument/definition" (lsp--text-document-position-params)))))
+            (when (eq client 'buf)
+              ;; Navigate from the field's type to the message declaration.
+              (goto-char (point-max))
+              (let ((case-fold-search nil)) (search-backward "Answer answer"))
+              (hypermodern-lsp-test/wait
+               "Protobuf definition"
                (lambda () (lsp-request "textDocument/definition" (lsp--text-document-position-params)))))
             (when invalid
               (erase-buffer) (insert invalid)
