@@ -133,6 +133,20 @@ let thresholdHealth =
 
 let Stacking = < None | Normal | Percent >
 
+-- How a series chart shows its legend. `List` is the quiet default (names
+-- only, bottom); `Table` adds mean/max/last for charts people read numbers
+-- off; `Hidden` for a chart whose title already names its only series.
+let Legend = < Hidden | List | Table >
+
+let legendToGrafana =
+      \(l : Legend) ->
+        merge
+          { Hidden = { displayMode = "list", placement = "bottom", calcs = [] : List Text, showLegend = False }
+          , List = { displayMode = "list", placement = "bottom", calcs = [] : List Text, showLegend = True }
+          , Table = { displayMode = "table", placement = "bottom", calcs = [ "mean", "max", "lastNotNull" ], showLegend = True }
+          }
+          l
+
 let Target =
       { Type = { sql : Text, format : Format, refId : Text }
       , default = { sql = "", format = Format.Auto, refId = "A" }
@@ -154,6 +168,10 @@ let Panel =
           , colorMode : Text
           , content : Text
           , datasource : Optional Datasource.Type
+          , decimals : Optional Natural
+          , min : Optional Natural
+          , legend : Legend
+          , noValue : Text
           }
       , default =
         { title = ""
@@ -167,9 +185,13 @@ let Panel =
         , thresholds = None Thresholds.Type
         , stacking = Stacking.None
         , fillOpacity = 10
-        , colorMode = "palette-classic"
+        , colorMode = "none"
         , content = ""
         , datasource = None Datasource.Type
+        , decimals = None Natural
+        , min = None Natural
+        , legend = Legend.List
+        , noValue = "no data in range"
         }
       }
 
@@ -256,6 +278,8 @@ in  { Datasource
     , thresholdErrors
     , thresholdHealth
     , Stacking
+    , Legend
+    , legendToGrafana
     , Target
     , Panel
     , Row

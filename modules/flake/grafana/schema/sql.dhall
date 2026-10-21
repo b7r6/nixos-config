@@ -30,11 +30,30 @@ let hostFilterSingle = "${host} = '\$host'"
 let hostInventory =
       "SELECT DISTINCT ${host} FROM ${gauge} WHERE MetricName = 'system.cpu.load_average.1m' AND TimeUnix > now() - INTERVAL 30 DAY AND ${host} != '' ORDER BY 1"
 
-let unit = "JSONExtractString(Body, '_SYSTEMD_UNIT')"
+--  Two log shapes share otel_logs: journald rows (Body is the JSON record:
+--  _SYSTEMD_UNIT / MESSAGE / PRIORITY) and OTLP rows from instrumented
+--  services (NativeLink: Body is the message, severity in SeverityNumber,
+--  no PRIORITY at all). JSONExtractInt on a non-JSON Body is 0, which used
+--  to count every NativeLink line as a priority-0 "error" — so each
+--  expression falls back to the OTLP field when the journald key is absent.
+let unit =
+      "if(JSONHas(Body, '_SYSTEMD_UNIT'), JSONExtractString(Body, '_SYSTEMD_UNIT'), ServiceName)"
 
-let msg = "JSONExtractString(Body, 'MESSAGE')"
+--  journald hands a MESSAGE that is not valid UTF-8 (or carries ANSI colour,
+--  as every tracing-formatted NativeLink line does) as a JSON ARRAY of bytes;
+--  JSONExtractString returns '' for it and the raw record shows [32,32,27,91,…].
+--  Decode the byte array back into text and strip the escape sequences, so a
+--  log panel reads like a log.
+let msgRaw =
+      "multiIf(JSONType(Body, 'MESSAGE') = 'Array', arrayStringConcat(arrayMap(x -> char(x), JSONExtract(Body, 'MESSAGE', 'Array(UInt8)')), ''), JSONHas(Body, 'MESSAGE'), JSONExtractString(Body, 'MESSAGE'), Body)"
 
-let pri = "JSONExtractInt(Body, 'PRIORITY')"
+let msg =
+      "replaceRegexpAll(${msgRaw}, '\\x1b\\[[0-9;?]*[A-Za-z]', '')"
+
+--  syslog priority: journald's own, or mapped from the OTLP SeverityNumber
+--  (ERROR 17+ → 3, WARN 13+ → 4, INFO 9+ → 6, else debug 7).
+let pri =
+      "if(JSONHas(Body, 'PRIORITY'), JSONExtractInt(Body, 'PRIORITY'), multiIf(SeverityNumber >= 17, 3, SeverityNumber >= 13, 4, SeverityNumber >= 9, 6, 7))"
 
 let isErr = "${pri} <= 3"
 

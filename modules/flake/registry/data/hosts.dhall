@@ -44,6 +44,10 @@ in  schema.Registry::{
         , name = "sju1"
         , description = "San Juan (single-site homelab; nearest Equinix = sju1)"
         }
+      , schema.Zone::{
+        , name = "sk1"
+        , description = "Stockholm (Azure swedencentral; nearest Equinix = sk1) — railgun, the dev box"
+        }
       ]
     , hosts =
       [ Host::{
@@ -60,8 +64,8 @@ in  schema.Registry::{
           , "attic"
           , "registry"
           , "studio"
-          , "git"
-          , "auth"
+          , -- `git` moved to railgun 2026-10-17 (watchtower sold 2026-10-07)
+            "auth"
           ]
         }
       , Host::{
@@ -73,9 +77,9 @@ in  schema.Registry::{
         , lan_ipv4 = Some "192.168.40.115"
         , zone = "sju1"
         , role = "workstation"
-        , services =
-          [ "nativelink"
-          , "searxng"
+        , -- sold 2026-10-07; `nativelink` dropped (railgun owns the tag now)
+          services =
+          [ "searxng"
           , "torrents"
           , "attic-replica"
           ]
@@ -104,6 +108,17 @@ in  schema.Registry::{
           [ "drop", "navidrome", "jellyfin", "pinchflat" ]
         }
       , Host::{
+        , physical = "railgun"
+        , tailnet = "railgun"
+        , dc = "sk1"
+        , logical = logicalOf "railgun" "sk1"
+        , tailnet_ipv4 = "100.76.101.10"
+        , provider_ipv4 = Some "20.91.238.153"
+        , zone = "sk1"
+        , role = "server"
+        , services = [ "nativelink", "ch", "grafana", "monitoring", "git", "forge" ]
+        }
+      , Host::{
         , physical = "shannon"
         , tailnet = "shannon"
         , dc = "sju1"
@@ -111,7 +126,12 @@ in  schema.Registry::{
         , tailnet_ipv4 = "100.113.120.45"
         , zone = "sju1"
         , role = "laptop"
-        , services = [ "clickhouse-keeper", "ch", "grafana", "monitoring" ]
+        , -- 2026-10-17: the services moved to railgun (the Azure box); shannon
+          -- is a laptop again. Its own ClickHouse/Grafana keep running until
+          -- its next deploy, which will point its agent at railgun's gateway.
+          -- `clickhouse-keeper` stays: shannon's Keeper is registry-derived and
+          -- must find itself in the ensemble (railgun's is an explicit solo).
+          services = [ "clickhouse-keeper" ]
         }
       , Host::{
         , physical = "weyl"

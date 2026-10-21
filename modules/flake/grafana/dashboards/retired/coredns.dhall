@@ -47,7 +47,7 @@ let dashboard =
           , title = "Health"
           , panels =
             [     P.stat
-                    "Queries/sec (fleet)"
+                    "Queries / s, fleet"
                     "SELECT sum(rate) as value FROM (SELECT runningDifference(Value) / 30 as rate FROM ${S.sum} WHERE MetricName = 'coredns_dns_requests_total' AND TimeUnix > now() - INTERVAL 2 MINUTE ORDER BY TimeUnix) WHERE rate >= 0"
               //  { width = 4, unit = T.Unit.ReqPerSec }
             ,     P.stat
@@ -55,7 +55,7 @@ let dashboard =
                     "SELECT sum(Value) as value FROM ${S.gauge} WHERE MetricName = 'coredns_cache_entries' AND TimeUnix > now() - INTERVAL 2 MINUTE"
               //  { width = 4 }
             ,     P.statWithThreshold
-                    "SERVFAIL/sec"
+                    "SERVFAIL / s"
                     "SELECT sum(rate) as value FROM (SELECT runningDifference(Value) / 30 as rate FROM ${S.sum} WHERE MetricName = 'coredns_dns_responses_total' AND Attributes['rcode'] = 'SERVFAIL' AND TimeUnix > now() - INTERVAL 2 MINUTE ORDER BY TimeUnix) WHERE rate >= 0"
                     T.thresholdErrors
               //  { width = 4 }
@@ -81,7 +81,7 @@ let dashboard =
             ]
           }
         , T.Row::{
-          , title = "Query Rate"
+          , title = "Query rate"
           , panels =
             [ P.timeseries
                 "By node"
@@ -109,7 +109,7 @@ let dashboard =
             ]
           }
         , T.Row::{
-          , title = "Plugins & Upstream"
+          , title = "Plugins and upstream"
           , panels =
             [ P.timeseries
                 "Responses by plugin"

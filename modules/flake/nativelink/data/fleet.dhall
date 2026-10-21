@@ -36,7 +36,7 @@ let r2Bucket = "straylight-nativelink-cas"
 
 let Arch = < x86_64 | aarch64 >
 
-let Site = < sju1 | az >
+let Site = < sju1 | az | sk1 >
 
 let SlowTier = < r2 | azure >
 
@@ -113,13 +113,28 @@ let hosts =
       , (azHost "nl-az-a") // { isScheduler = True }
       , azHost "nl-az-b"
       , azHost "nl-az-c"
+      , -- sk1: railgun, the Azure (Sweden Central) dev box — a one-host site
+        -- like shannon's: scheduler + the only CAS shard + worker, R2 slow tier.
+        -- 64 vCPU / 256 GiB / 1 TiB: a 200 GiB CAS fast tier beside the nix
+        -- cache's 256 GiB. The fqdn is pinned to loopback on the host itself
+        -- (configurations/nixos/railgun) until the sk1 zone is served.
+        HostDef::{
+        , name = "railgun"
+        , fqdn = "railgun.sk1.s4.gl"
+        , arch = Arch.x86_64
+        , site = Site.sk1
+        , casWeight = 1
+        , casFastBytes = 214748364800
+        , isScheduler = True
+        , maxInflightTasks = Some 48
+        }
       ]
 
 let archCpu = \(a : Arch) -> merge { x86_64 = "x86_64", aarch64 = "aarch64" } a
 
 let archISA = \(a : Arch) -> merge { x86_64 = "x86-64", aarch64 = "aarch64" } a
 
-let siteId = \(s : Site) -> merge { sju1 = 0, az = 1 } s
+let siteId = \(s : Site) -> merge { sju1 = 0, az = 1, sk1 = 2 } s
 
 let sameSite =
       \(a : HostDef.Type) ->

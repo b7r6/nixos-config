@@ -38,30 +38,30 @@ let dashboard =
                     "Hosts reporting"
                     "SELECT uniq(${S.host}) as value FROM ${S.gauge} WHERE TimeUnix > now() - INTERVAL 2 MINUTE"
                     T.thresholdHealth
-              //  { width = 4 }
+              //  { width = 4, decimals = Some 0 }
             ,     P.statWithThreshold
                     "Fleet load avg"
                     (Q.statGauge "system.cpu.load_average.1m")
                     T.thresholdLoad
-              //  { width = 4 }
+              //  { width = 4, decimals = Some 2 }
             ,     P.statWithThreshold
-                    "Fleet memory %"
+                    "Fleet memory used"
                     "SELECT sum(case when Attributes['state'] = 'used' then Value else 0 end) / sum(Value) as value FROM ${S.sum} WHERE MetricName = 'system.memory.usage' AND TimeUnix > now() - INTERVAL 2 MINUTE AND TimeUnix = (SELECT max(TimeUnix) FROM ${S.sum} WHERE MetricName = 'system.memory.usage' AND TimeUnix > now() - INTERVAL 2 MINUTE)"
                     T.thresholdPct
-              //  { width = 4 }
+              //  { width = 4, unit = T.Unit.Percentunit, decimals = Some 1 }
             ,     P.statWithThreshold
                     "Errors (5m)"
                     "SELECT count() as value FROM ${S.logs} WHERE ${S.isErr} AND Timestamp > now() - INTERVAL 5 MINUTE"
                     T.thresholdErrors
-              //  { width = 4 }
+              //  { width = 4, decimals = Some 0 }
             ,     P.stat
-                    "OTel points/min"
+                    "OTel points / min"
                     "SELECT count() / 5 as value FROM ${S.gauge} WHERE TimeUnix > now() - INTERVAL 5 MINUTE"
-              //  { width = 4 }
+              //  { width = 4, decimals = Some 0 }
             ,     P.stat
-                    "DNS queries/s"
+                    "DNS queries / s"
                     "SELECT avg(rate) as value FROM (SELECT ${S.host} as h, runningDifference(Value) / 30 as rate FROM ${S.sum} WHERE MetricName = 'coredns_dns_requests_total' AND TimeUnix > now() - INTERVAL 2 MINUTE ORDER BY TimeUnix) WHERE rate >= 0"
-              //  { width = 4, unit = T.Unit.ReqPerSec }
+              //  { width = 4, unit = T.Unit.ReqPerSec, decimals = Some 2 }
             ]
           }
         , T.Row::{
@@ -81,7 +81,7 @@ let dashboard =
                     )
               //  { width = 8, height = 7 }
             ,     P.timeseries
-                    "Paging ops/sec by host"
+                    "Paging ops / s by host"
                     T.Unit.OpsPerSec
                     ( Q.rateBucketed
                         "system.paging.operations"
@@ -109,7 +109,7 @@ let dashboard =
                     )
               //  { height = 7 }
             ,     P.timeseries
-                    "Filesystem used % by host"
+                    "Filesystem used by host"
                     T.Unit.Percentunit
                     "SELECT TimeUnix as time, ${S.host} as host, Attributes['mountpoint'] as mount, sumIf(Value, Attributes['state'] = 'used') / sum(Value) as value FROM ${S.sum} WHERE MetricName = 'system.filesystem.usage' AND Attributes['mountpoint'] NOT LIKE '/nix%' AND ${S.tf} AND ${S.hostFilter} GROUP BY time, host, mount HAVING sum(Value) > 0 ORDER BY time"
               //  { height = 7, thresholds = Some T.thresholdPct }
@@ -144,7 +144,7 @@ let dashboard =
           , title = "Services"
           , panels =
             [     P.timeseries
-                    "CoreDNS queries/sec"
+                    "CoreDNS queries / s"
                     T.Unit.ReqPerSec
                     (Q.rateByHost "coredns_dns_requests_total")
               //  { width = 8, height = 7 }
@@ -154,13 +154,9 @@ let dashboard =
                     "SELECT h.TimeUnix as time, h.${S.host} as host, sum(h.Value) / (sum(h.Value) + sum(m.Value)) as value FROM ${S.sum} h INNER JOIN ${S.sum} m ON h.TimeUnix = m.TimeUnix AND h.${S.host} = m.${S.host} WHERE h.MetricName = 'coredns_cache_hits_total' AND m.MetricName = 'coredns_cache_misses_total' AND h.${S.tf} GROUP BY time, host ORDER BY time"
               //  { width = 8, height = 7 }
             ,     P.timeseries
-                    "PostgREST JWT cache"
+                    "NativeLink actions completed / s"
                     T.Unit.OpsPerSec
-                    ( Q.rateByKey
-                        "pgrst_jwt_cache_requests_total"
-                        "MetricName"
-                        "metric"
-                    )
+                    (Q.rateByHost "execution.completed.count")
               //  { width = 8, height = 7 }
             ]
           }

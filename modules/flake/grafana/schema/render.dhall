@@ -32,6 +32,7 @@ let CustomJSON =
       , spanNulls : Bool
       , showPoints : Text
       , stacking : StackingJSON
+      , thresholdsStyle : { mode : Text }
       }
 
 let ColorJSON = { mode : Text }
@@ -41,13 +42,16 @@ let DefaultsJSON =
       , color : ColorJSON
       , custom : CustomJSON
       , thresholds : Optional ThresholdsJSON
+      , decimals : Optional Natural
+      , min : Optional Natural
+      , noValue : Text
       }
 
 let FieldConfigJSON = { defaults : DefaultsJSON }
 
 let TooltipJSON = { mode : Text, sort : Text }
 
-let LegendJSON = { displayMode : Text, placement : Text, calcs : List Text }
+let LegendJSON = { displayMode : Text, placement : Text, calcs : List Text, showLegend : Bool }
 
 let ReduceOptionsJSON = { values : Bool, calcs : List Text, fields : Text }
 
@@ -58,6 +62,14 @@ let OptionsJSON =
       , orientation : Text
       , content : Text
       , mode : Text
+      , colorMode : Text
+      , graphMode : Text
+      , textMode : Text
+      , justifyMode : Text
+      , wideLayout : Bool
+      , showPercentChange : Bool
+      , cellHeight : Text
+      , showHeader : Bool
       }
 
 let DatasourceJSON = { type : Text, uid : Text }
@@ -114,6 +126,7 @@ let DashboardJSON =
       , timezone : Text
       , editable : Bool
       , tags : List Text
+      , graphTooltip : Natural
       , templating : TemplatingJSON
       , panels : List FullPanelJSON
       }
@@ -133,8 +146,12 @@ let emptyFieldConfig
           , spanNulls = True
           , showPoints = "never"
           , stacking = { mode = "none", group = "A" }
+          , thresholdsStyle.mode = "off"
           }
         , thresholds = None ThresholdsJSON
+        , decimals = None Natural
+        , min = None Natural
+        , noValue = ""
         }
       }
 
@@ -142,15 +159,24 @@ let defaultOptions
     : OptionsJSON
     = { tooltip = { mode = "multi", sort = "desc" }
       , legend =
-        { displayMode = "table"
+        { displayMode = "list"
         , placement = "bottom"
-        , calcs = [ "mean", "max", "last" ]
+        , calcs = [] : List Text
+        , showLegend = True
         }
       , reduceOptions =
         { values = False, calcs = [ "lastNotNull" ], fields = "" }
       , orientation = "auto"
       , content = ""
       , mode = "markdown"
+      , colorMode = "none"
+      , graphMode = "none"
+      , textMode = "value"
+      , justifyMode = "auto"
+      , wideLayout = True
+      , showPercentChange = False
+      , cellHeight = "sm"
+      , showHeader = True
       }
 
 let makePanel =
@@ -202,6 +228,20 @@ let makePanel =
                 }
                 p.type
 
+        let isStatLike
+            : Bool
+            = merge
+                { TimeSeries = False
+                , Stat = True
+                , Gauge = True
+                , Table = False
+                , Logs = False
+                , BarGauge = True
+                , Heatmap = False
+                , Text = False
+                , Row = False
+                }
+                p.type
         let isBarGauge
             : Bool
             = merge
@@ -241,19 +281,44 @@ let makePanel =
               , fieldConfig.defaults
                 =
                 { unit = T.unitToGrafana p.unit
-                , color.mode = p.colorMode
+                -- Colour follows thresholds only where the panel IS the status
+                -- (stat, gauge, bar gauge). A series chart keeps the palette and
+                -- draws its thresholds as dashed guide lines instead.
+                , color.mode
+                  =
+                  merge
+                    { Some =
+                        \(_ : T.Thresholds.Type) ->
+                          if isStatLike then "thresholds" else "palette-classic"
+                    , None = "palette-classic"
+                    }
+                    p.thresholds
                 , custom =
                   { lineWidth = 1
                   , fillOpacity = p.fillOpacity
                   , spanNulls = True
                   , showPoints = "never"
                   , stacking = stackJson
+                  , thresholdsStyle.mode
+                    =
+                    merge
+                      { Some =
+                          \(_ : T.Thresholds.Type) ->
+                            if isStatLike then "off" else "dashed"
+                      , None = "off"
+                      }
+                      p.thresholds
                   }
                 , thresholds = threshJson
+                , decimals = p.decimals
+                , min = p.min
+                , noValue = p.noValue
                 }
               , options =
                       defaultOptions
-                  //  { reduceOptions =
+                  //  { legend = T.legendToGrafana p.legend
+                      , colorMode = p.colorMode
+                      , reduceOptions =
                         { values = isBarGauge
                         , calcs = [ "lastNotNull" ]
                         , fields = ""
@@ -483,7 +548,8 @@ let renderDashboard =
               , schemaVersion = 39
               , refresh = d.refresh
               , time = { from = d.timeFrom, to = "now" }
-              , timezone = "browser"
+              , timezone = "utc"
+              , graphTooltip = 1
               , editable = True
               , tags = d.tags
               , templating.list

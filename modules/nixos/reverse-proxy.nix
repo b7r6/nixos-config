@@ -33,8 +33,11 @@ let
     nameValuePair
     ;
 
-  # The internal zone this host fronts vhosts under, e.g. sju1.s4.gl.
-  zone = "${cfg.dc}.${topo.registry.internalDomain}";
+  # The zone this host fronts vhosts under: <dc>.<internalDomain> (sju1.s4.gl)
+  # by default, or the apex itself when `zone` is set (railgun: s4.gl — flat
+  # names, no dc in what a person types; CoreDNS's apex template already maps
+  # <name>.s4.gl onto the dc zone, so both spellings resolve).
+  zone = if cfg.zone != null then cfg.zone else "${cfg.dc}.${topo.registry.internalDomain}";
 
   # The wildcard cert name; one cert (*.<zone>) covers all vhosts.
   wildcardCert = "${zone}-wildcard";
@@ -47,6 +50,13 @@ in
       type = types.str;
       default = "sju1";
       description = "DC subdomain whose zone this host fronts vhosts under (<dc>.<internalDomain>).";
+    };
+
+    zone = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      example = "s4.gl";
+      description = "Override the vhost zone outright (e.g. the apex, for flat <name>.s4.gl names). null = <dc>.<internalDomain>.";
     };
 
     acme = {

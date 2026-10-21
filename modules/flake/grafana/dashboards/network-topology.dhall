@@ -60,7 +60,7 @@ let dashboard =
             ]
           }
         , T.Row::{
-          , title = "Errors & Drops"
+          , title = "Errors and drops"
           , panels =
             [     P.timeseries
                     "Errors by host"

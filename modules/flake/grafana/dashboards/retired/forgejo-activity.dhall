@@ -37,13 +37,13 @@ let dashboard =
                 "Git fetches"
                 "SELECT count() as value FROM ${S.logs} WHERE Body LIKE '%git-upload-pack%' AND ${S.tfLog}"
             ,     P.stat
-                    "Process CPU"
-                    "SELECT runningDifference(max(Value)) as value FROM ${S.sum} WHERE MetricName = 'process_cpu_seconds_total' AND ${S.host} = 'watchtower' AND TimeUnix > now() - INTERVAL 2 MINUTE"
+                    "Process CPU, 2 min"
+                    "SELECT max(Value) - min(Value) as value FROM ${S.sum} WHERE MetricName = 'process_cpu_seconds_total' AND ${S.unit} = 'forgejo.service' AND TimeUnix > now() - INTERVAL 2 MINUTE"
               //  { unit = T.Unit.Seconds }
             ]
           }
         , T.Row::{
-          , title = "Go Runtime"
+          , title = "Go runtime"
           , panels =
             [     P.timeseries
                     "Goroutines"
@@ -58,17 +58,17 @@ let dashboard =
                     )
               //  { width = 8 }
             ,     P.timeseries
-                    "Process CPU/interval"
+                    "Process CPU per interval"
                     T.Unit.Seconds
                     (Q.rate "process_cpu_seconds_total")
               //  { width = 8 }
             ]
           }
         , T.Row::{
-          , title = "Git Operations"
+          , title = "Git operations"
           , panels =
             [     P.timeseriesStacked
-                    "Push/fetch rate"
+                    "Pushes and fetches"
                     T.Unit.Short
                     "SELECT toStartOfFiveMinutes(Timestamp) as time, multiIf(Body LIKE '%git-receive-pack%', 'push', Body LIKE '%git-upload-pack%', 'fetch', 'other') as op, count() as value FROM ${S.logs} WHERE (Body LIKE '%git-receive-pack%' OR Body LIKE '%git-upload-pack%') AND ${S.tfLog} GROUP BY time, op ORDER BY time"
               //  { fillOpacity = 60 }
@@ -86,7 +86,7 @@ let dashboard =
             ]
           }
         , T.Row::{
-          , title = "Errors & Activity"
+          , title = "Errors and activity"
           , panels =
             [ P.errorTable "Errors" "forgejo.service" // { height = 8 }
             ,     P.table

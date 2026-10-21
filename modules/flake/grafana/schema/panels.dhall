@@ -33,7 +33,7 @@ let statWithThreshold =
         , width = 4
         , height = 4
         , thresholds = Some t
-        , colorMode = "background"
+        , colorMode = "value"
         }
 
 let timeseries =
@@ -46,6 +46,7 @@ let timeseries =
         , sql
         , format = T.Format.Auto
         , unit
+        , min = Some 0
         }
 
 let timeseriesWide =
@@ -59,6 +60,7 @@ let timeseriesWide =
         , format = T.Format.Auto
         , unit
         , width = 24
+        , min = Some 0
         }
 
 let timeseriesStacked =
@@ -73,6 +75,7 @@ let timeseriesStacked =
         , unit
         , stacking = T.Stacking.Normal
         , fillOpacity = 80
+        , min = Some 0
         }
 
 let table =
@@ -138,10 +141,17 @@ let errorTable =
       \(unitName : Text) ->
         table title (S.logErrors unitName 100)
 
+let timeseriesSingle =
+      \(title : Text) ->
+      \(unit : T.Unit) ->
+      \(sql : Text) ->
+        timeseries title unit sql // { legend = T.Legend.Hidden }
+
 in  { stat
     , statWithThreshold
     , timeseries
     , timeseriesWide
+    , timeseriesSingle
     , timeseriesStacked
     , table
     , gauge

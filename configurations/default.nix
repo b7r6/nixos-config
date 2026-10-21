@@ -75,6 +75,7 @@ let
     nl-az-c.bootstrap = false;
     nl-az-rig.bootstrap = false;
     shannon = { };
+    railgun = { }; # the Azure dev box (configurations/nixos/railgun)
     # guccimane, ultraviolence, watchtower, weyl: wiped and sold 2026-10-07
     # (docs/salvage-checklist-2026-10.md). Their configurations/nixos/<name>/
     # trees stay as history. Reviving one also needs its host key back in
