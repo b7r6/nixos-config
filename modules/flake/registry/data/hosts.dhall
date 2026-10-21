@@ -64,8 +64,8 @@ in  schema.Registry::{
           , "attic"
           , "registry"
           , "studio"
-          , -- `git` moved to railgun 2026-10-17 (watchtower sold 2026-10-07)
-            "auth"
+          -- `git` moved to railgun 2026-10-17, `auth` (Kanidm) 2026-10-21
+          -- (watchtower sold 2026-10-07)
           ]
         }
       , Host::{
@@ -116,7 +116,7 @@ in  schema.Registry::{
         , provider_ipv4 = Some "20.91.238.153"
         , zone = "sk1"
         , role = "server"
-        , services = [ "nativelink", "ch", "grafana", "monitoring", "git", "forge" ]
+        , services = [ "nativelink", "ch", "grafana", "monitoring", "git", "forge", "auth" ]
         }
       , Host::{
         , physical = "shannon"

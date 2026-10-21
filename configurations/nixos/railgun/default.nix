@@ -20,6 +20,7 @@ in
     ./nl-traffic.nix # continuous Bazel traffic against the scheduler (lane: traffic)
     ./nativelink-ui.nix # ORBITAL // NATIVELINK: the console at nativelink.s4.gl
     ./previews.nix # nlp-<screen>/fgp-<screen>.s4.gl: per-screen preview hosts (design program)
+    ./auth.nix # Kanidm at auth.s4.gl: OIDC for Forgejo + Grafana
   ];
 
   networking.hostName = "railgun";
