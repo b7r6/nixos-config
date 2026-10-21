@@ -18,7 +18,12 @@
 #   - Headless: no display manager, no R2 FUSE mounts, no local nix cache (the
 #     VMs never build; closures arrive from the builder over the tailnet).
 #
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.hyper-modern-nixos.azure;
   mlxDrivers = [
@@ -92,23 +97,11 @@ in
     # A real /bin/true. REAPI actions name their binary by absolute path —
     # rechaos's execution scenarios run `/bin/true` — and a NixOS worker has
     # only /bin/sh, so every such action exited 127 (11.7k on one node in a
-    # day) while "completing". envfs does NOT fix this: it resolves /bin/<x>
-    # against the CALLER's environment, and NativeLink spawns actions with no
-    # inherited PATH (verified on az2: failures kept coming with envfs mounted).
-    # A symlink in the real /bin is what the kernel's execve needs. n.b. not
-    # hermetic, and not meant to be: the soak measures the server, not the
-    # toolchain contract.
-    system.activationScripts.fhsBinTrue = {
-      deps = [ "binsh" ];
-      text = ''
-        # an earlier generation mounted envfs over /bin (read-only FUSE); drop it
-        if ${pkgs.util-linux}/bin/mountpoint -q /bin; then ${pkgs.util-linux}/bin/umount -l /bin || true; fi
-        mkdir -p /bin
-        ln -sfn ${pkgs.coreutils}/bin/true /bin/true
-        ln -sfn ${pkgs.coreutils}/bin/false /bin/false
-        ln -sfn ${pkgs.coreutils}/bin/sleep /bin/sleep
-      '';
-    };
+    # day) while "completing". fhs-bin.nix has the why (and why not envfs); it
+    # defaults on with NativeLink, forced here because the soak depends on it.
+    # n.b. not hermetic, and not meant to be: the soak measures the server, not
+    # the toolchain contract.
+    hyper-modern-nixos.fhsBin.enable = true;
 
     zramSwap.enable = lib.mkDefault true;
     time.timeZone = lib.mkDefault "UTC";

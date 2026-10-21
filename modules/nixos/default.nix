@@ -79,6 +79,7 @@
 
     ./android.nix
     ./appimage.nix
+    ./fhs-bin.nix
     ./nix-ld.nix
 
     # ── Special ──
