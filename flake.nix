@@ -125,8 +125,12 @@
     nixos-generators.url = "github:nix-community/nixos-generators";
     nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
 
-
     nix-vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
+
+    # Vendored Codex CLI, exposed as `nix run .#codex` and installed by
+    # modules/home/llm. Keep the vendor's nixpkgs and Rust toolchain pins so
+    # its existing builds remain reusable. Update with `nix flake update codex`.
+    codex.url = "github:hypermodern-src/orbital-vendor-codex";
 
     # opencode — the Anomaly fork (github:anomalyco/opencode, default branch
     # `dev`). Its overlay (opencode.overlays.default) provides pkgs.opencode +
@@ -206,8 +210,13 @@
     # hypermodern-nativelink — the Dhall-native NativeLink flake being split out
     # of modules/flake/nativelink (typed fleet, modules, soak rig, telemetry,
     # and the Azure site's OWN agenix secrets: tailnet key + CAS SAS). Local
-    # path only until it is pushed; then github:b7r6/hypermodern-nativelink.
-    hypermodern-nativelink.url = "path:/home/b7r6/src/hypermodern/hypermodern-nativelink-0x01";
+    # checkout only until it is pushed; then github:b7r6/hypermodern-nativelink.
+    # `git+file` with a ref locks a COMMIT. A `path:` input locks the whole
+    # directory's NAR hash: uncommitted edits, .direnv/, result and .ruff_cache
+    # included. So any edit or direnv reload there broke every build here with
+    # "NAR hash mismatch". Commit in the checkout, then
+    # `nix flake update hypermodern-nativelink`.
+    hypermodern-nativelink.url = "git+file:///home/b7r6/src/hypermodern/hypermodern-nativelink-0x01?ref=main";
     hypermodern-nativelink.inputs.nixpkgs.follows = "nixpkgs";
     hypermodern-nativelink.inputs.nativelink.follows = "nativelink-nix";
     hypermodern-nativelink.inputs.rechaos.follows = "rechaos";
@@ -236,6 +245,7 @@
     # triton, tensorrt_llm) and does NOT follow our nixpkgs fork, so the NGC
     # packages stay pinned to upstream nixos-unstable.
     vllm-stack.url = "github:hypermodern-src/orbital-hypermodern-vllm";
+
     # Transitive forge refs, overridden onto mirrors (the forge retired with
     # watchtower 2026-10-07): vllm-stack's `nvidia-sdk` is the same repo as
     # straylight-nvidia-sdk under its pre-rename name.

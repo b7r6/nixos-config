@@ -62,6 +62,7 @@
     packages = {
       berkeley-mono = pkgs.callPackage ../home/themes/fonts/berkeley-mono { };
       default = pkgs.callPackage ../home/themes/fonts/berkeley-mono { };
+      codex = inputs.codex.packages.${system}.codex-rs;
       gen-supabase-secrets = pkgs.callPackage ../../packages/gen-supabase-secrets { };
       ono-sendai-generator = pkgs.callPackage ./themes/packages/ono-sendai-generator { };
       state-audit = pkgs.callPackage ../../packages/state-audit { };

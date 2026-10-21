@@ -1,5 +1,6 @@
 {
   config,
+  flake,
   lib,
   pkgs,
   ...
@@ -123,6 +124,12 @@ in
       description = "Enable Claude Code CLI tool";
     };
 
+    codex.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable the vendored Codex CLI";
+    };
+
     # TODO[b7r6]: default false for the modern migration (re-verify on nixos-
     # unstable before re-enabling; claude-code + llm-cli are the kept tools).
     aider.enable = lib.mkOption {
@@ -184,6 +191,9 @@ in
           ]))
         ])
         (lib.optional cfg.claude-code.enable claude-code)
+        (lib.optional cfg.codex.enable
+          flake.inputs.codex.packages.${pkgs.stdenv.hostPlatform.system}.codex-rs
+        )
         (lib.optional cfg.aider.enable aider-chat)
         (lib.optional cfg.opencode.enable opencode)
         # opencode-desktop dropped: it pulls electron-41 (EOL/insecure). Keep the
