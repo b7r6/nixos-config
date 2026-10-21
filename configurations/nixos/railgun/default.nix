@@ -181,12 +181,20 @@ in
     services.nativelink.root = "/var/www/nativelink"; # ORBITAL // NATIVELINK console (./nativelink-ui.nix)
   };
 
-  # Bazel RBE against the local scheduler, like shannon's.
+  # Bazel RBE against the local scheduler, like shannon's. The build events go
+  # to nl-bes (./nl-bes.nix), which is the console's Builds list; the flags are
+  # nl-traffic's `bes` config (orbital-nativelink traffic/rbe-smoke/.bazelrc).
+  # wait_for_upload_complete: with nl-bes down, a build that passed still
+  # exits non-zero (BES upload failed).
   home-manager.users.b7r6.home.file.".bazelrc".text = ''
     build:rbe-local --remote_executor=grpc://127.0.0.1:50051
     build:rbe-local --remote_instance_name=main
     build:rbe-local --remote_timeout=3600
     build:rbe-local --jobs=48
+    build:rbe-local --bes_backend=grpc://127.0.0.1:50075
+    build:rbe-local --bes_results_url=https://nativelink.s4.gl/builds/
+    build:rbe-local --bes_upload_mode=wait_for_upload_complete
+    build:rbe-local --build_event_publish_all_actions
   '';
 
   # 64 cores, 256 GiB: build everything here, keep the store from eating the disk.
