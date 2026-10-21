@@ -6,7 +6,8 @@
 # inputs.nativelink-nix.nixosModules.nativelink. This repo keeps what is OURS:
 #   - the typed Dhall fleet topology (./data/) — rendered at eval via IFD
 #   - the shim (./shim.nix) wiring fleetDir + telemetry + the state registry
-#   - the VM test (./checks/serve.nix)
+#   - one unit per process for a `split` host (./split.nix)
+#   - the VM tests (./checks/serve.nix, ./checks/split.nix)
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 { inputs, ... }: {
@@ -14,12 +15,14 @@
     imports = [
       inputs.nativelink-nix.nixosModules.nativelink
       ./shim.nix
+      ./split.nix
     ];
   };
 
   perSystem = { pkgs, system, ... }: {
     checks = inputs.nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
       nativelink = import ./checks/serve.nix { inherit pkgs inputs; };
+      nativelink-split = import ./checks/split.nix { inherit pkgs inputs; };
     };
   };
 }

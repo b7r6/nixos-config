@@ -26,7 +26,10 @@ let
   projectsDir = "${flake.inputs.orbital-forge}/..";
 
   units = [
-    "nativelink.service"
+    # split (fleet.dhall layout): one unit per process under nativelink.target
+    "nativelink-scheduler.service"
+    "nativelink-cas.service"
+    "nativelink-worker.service"
     "nativelink-nix-cache.service"
     "nativelink-nix-cache-watch.service"
     "nativelink-nix-cache-reconcile.timer"

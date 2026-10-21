@@ -65,6 +65,7 @@
     # the shim wires OUR fleet topology, telemetry, and state registry.
     flake.inputs.nativelink-nix.nixosModules.nativelink
     ../flake/nativelink/shim.nix
+    ../flake/nativelink/split.nix
     ./clickhouse.nix
     ./fleet-orbit.nix
     ./otel.nix

@@ -40,7 +40,10 @@ let histAvg =
       \(alias : Text) ->
         "SELECT time, ${alias}, sum(ds) / sum(dc) as value FROM (${histDeltas metric groupKey alias}) GROUP BY time, ${alias} HAVING sum(dc) > 0 ORDER BY time"
 
-let svc = "nativelink.service"
+--  The RE service's journal units: nativelink.service on a monolithic host,
+--  one unit per process on a split one (nativelink/data/fleet.dhall layout).
+let reUnits =
+      "${S.unit} IN ('nativelink.service', 'nativelink-scheduler.service', 'nativelink-cas.service', 'nativelink-worker.service')"
 
 let cacheSvc = "nativelink-nix-cache.service"
 
@@ -103,22 +106,22 @@ let dashboard =
         , T.Row::{
           , title = "Remote Execution — Health"
           , panels =
-            [ P.statLogs "Log lines" svc // { width = 6 }
-            , P.statErrors "Errors" svc // { width = 6 }
+            [ P.statLogsWhere "Log lines" reUnits // { width = 6 }
+            , P.statErrorsWhere "Errors" reUnits // { width = 6 }
             ,     P.stat
                     "Active nodes"
-                    "SELECT uniq(${S.host}) as value FROM ${S.logs} WHERE ${S.unit} = '${svc}' AND Timestamp > now() - INTERVAL 1 HOUR"
+                    "SELECT uniq(${S.host}) as value FROM ${S.logs} WHERE ${reUnits} AND Timestamp > now() - INTERVAL 1 HOUR"
               //  { width = 6 }
             ,     P.stat
                     "Lines/min"
-                    "SELECT count() / 360 as value FROM ${S.logs} WHERE ${S.unit} = '${svc}' AND ${S.tfLog}"
+                    "SELECT count() / 360 as value FROM ${S.logs} WHERE ${reUnits} AND ${S.tfLog}"
               //  { width = 6 }
             ]
           }
         , T.Row::{
           , title = "Remote Execution — Activity"
           , panels =
-            [ P.logVolume "Log volume" svc
+            [ P.logVolumeWhere "Log volume" reUnits
             , P.timeseries
                 "Events by host"
                 T.Unit.Short

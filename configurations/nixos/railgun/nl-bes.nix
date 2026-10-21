@@ -40,7 +40,7 @@ in
   systemd.services.nl-bes = {
     description = "nl-bes — Build Event Service (BEP → ClickHouse) + /api/bes";
     wantedBy = [ "multi-user.target" ];
-    after = [ "network-online.target" "clickhouse.service" "nativelink.service" ];
+    after = [ "network-online.target" "clickhouse.service" "nativelink-scheduler.service" ];
     wants = [ "network-online.target" "clickhouse.service" ];
     environment = {
       NL_BES_CLICKHOUSE = "http://127.0.0.1:8123";

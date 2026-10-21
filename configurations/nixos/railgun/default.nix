@@ -81,6 +81,7 @@ in
   hyper-modern-nixos.nativelink = {
     enable = true;
     dhallHost = "railgun";
+    split.enable = true; # scheduler, cas, worker as their own units (fleet.dhall layout)
     openFirewall = true; # tailscale0 only, per the module
   };
   # The rendered config dials itself by its fleet fqdn; nothing serves the sk1

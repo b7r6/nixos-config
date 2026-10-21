@@ -37,7 +37,7 @@ in
     wantedBy = [ "multi-user.target" ];
     after = [
       "network.target"
-      "nativelink.service"
+      "nativelink-scheduler.service"
     ];
     environment = {
       NL_INSPECT_LISTEN = "127.0.0.1:3310";

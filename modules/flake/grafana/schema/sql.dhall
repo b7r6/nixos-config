@@ -103,17 +103,28 @@ let rateGaugeByExtract =
       \(keyAlias : Text) ->
         "SELECT time, ${keyAlias}, sum(rate) as value FROM (SELECT toStartOfInterval(TimeUnix, INTERVAL 30 SECOND) as time, extractGroups(MetricName, '${regex}')[1] as ${keyAlias}, runningDifference(max(Value)) / 30 as rate FROM ${gauge} WHERE MetricName LIKE '${likePattern}' AND ${tf} AND ${hostFilter} GROUP BY time, ${keyAlias} ORDER BY ${keyAlias}, time) WHERE rate >= 0 GROUP BY time, ${keyAlias} ORDER BY time"
 
-let statLogCount =
-      \(unitName : Text) ->
-        "SELECT count() as value FROM ${logs} WHERE ${unit} = '${unitName}' AND ${tfLog}"
+--  The journal-log queries over a row predicate, for a panel that spans several
+--  units (one service run as several, e.g. a split NativeLink). The per-unit
+--  forms below are these with `unit = '<name>'`.
+let statLogCountWhere =
+      \(predicate : Text) ->
+        "SELECT count() as value FROM ${logs} WHERE ${predicate} AND ${tfLog}"
 
-let statLogErrors =
-      \(unitName : Text) ->
-        "SELECT count() as value FROM ${logs} WHERE ${unit} = '${unitName}' AND ${isErr} AND ${tfLog}"
+let statLogErrorsWhere =
+      \(predicate : Text) ->
+        "SELECT count() as value FROM ${logs} WHERE ${predicate} AND ${isErr} AND ${tfLog}"
 
-let logVolume =
-      \(unitName : Text) ->
-        "SELECT toStartOfFiveMinutes(Timestamp) as time, ${severityExpr} as severity, count() as value FROM ${logs} WHERE ${unit} = '${unitName}' AND ${tfLog} GROUP BY time, severity ORDER BY time"
+let logVolumeWhere =
+      \(predicate : Text) ->
+        "SELECT toStartOfFiveMinutes(Timestamp) as time, ${severityExpr} as severity, count() as value FROM ${logs} WHERE ${predicate} AND ${tfLog} GROUP BY time, severity ORDER BY time"
+
+let unitIs = \(unitName : Text) -> "${unit} = '${unitName}'"
+
+let statLogCount = \(unitName : Text) -> statLogCountWhere (unitIs unitName)
+
+let statLogErrors = \(unitName : Text) -> statLogErrorsWhere (unitIs unitName)
+
+let logVolume = \(unitName : Text) -> logVolumeWhere (unitIs unitName)
 
 let logErrors =
       \(unitName : Text) ->
@@ -146,5 +157,8 @@ in  { gauge
     , statLogCount
     , statLogErrors
     , logVolume
+    , statLogCountWhere
+    , statLogErrorsWhere
+    , logVolumeWhere
     , logErrors
     }

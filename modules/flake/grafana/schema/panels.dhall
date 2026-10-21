@@ -136,6 +136,22 @@ let logVolume =
       \(unitName : Text) ->
         timeseriesStacked title T.Unit.Short (S.logVolume unitName)
 
+--  The same three over a row predicate (S.statLogCountWhere etc.).
+let statLogsWhere =
+      \(title : Text) ->
+      \(predicate : Text) ->
+        stat title (S.statLogCountWhere predicate)
+
+let statErrorsWhere =
+      \(title : Text) ->
+      \(predicate : Text) ->
+        statWithThreshold title (S.statLogErrorsWhere predicate) T.thresholdErrors
+
+let logVolumeWhere =
+      \(title : Text) ->
+      \(predicate : Text) ->
+        timeseriesStacked title T.Unit.Short (S.logVolumeWhere predicate)
+
 let errorTable =
       \(title : Text) ->
       \(unitName : Text) ->
@@ -160,5 +176,8 @@ in  { stat
     , statLogs
     , statErrors
     , logVolume
+    , statLogsWhere
+    , statErrorsWhere
+    , logVolumeWhere
     , errorTable
     }

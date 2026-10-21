@@ -11,7 +11,7 @@
   "Push failures": "nl-watch-store pushes the cache rejected; anything above 0 means a path is missing from R2.",
   "Active nodes": "hosts whose nativelink unit logged in the last 5 minutes.",
   "Lines/min": "scheduler, CAS and worker log volume; a flat line is a quiet scheduler, not a dead one.",
-  "Log volume": "nativelink.service journal lines per minute, by severity.",
+  "Log volume": "NativeLink RE journal lines per minute, by severity (nativelink.service, or one unit per process on a split host).",
   "Events by host": "nativelink events per minute, one series per host.",
   "Actions completed / s": "remote actions the scheduler marked complete, per second, 30 s buckets.",
   "Action time, avg — queue vs total": "mean seconds an action waited in the queue versus its total time; a widening gap is worker starvation.",

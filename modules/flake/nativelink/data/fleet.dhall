@@ -40,6 +40,15 @@ let Site = < sju1 | az | sk1 >
 
 let SlowTier = < r2 | azure >
 
+--  How a host's roles map onto processes. `monolithic`: one nativelink runs
+--  every role the host has (configFor). `split`: one process per role —
+--  scheduler (public :50051 + worker_api :50061), cas (:50052), worker (no
+--  listener) — cut along the seams the roles already talk over (gRPC to the
+--  CAS port, the worker API), so ports, data dirs and hops are the monolith's.
+let Layout = < monolithic | split >
+
+let Process = { name : Text, config : schema.Config.Type }
+
 let HostDef =
       { Type =
           { name : Text
@@ -52,6 +61,7 @@ let HostDef =
           , isScheduler : Bool
           , enabled : Bool
           , maxInflightTasks : Optional Natural
+          , layout : Layout
           }
       , default =
         { site = Site.sju1
@@ -59,6 +69,7 @@ let HostDef =
         , isScheduler = False
         , enabled = True
         , maxInflightTasks = None Natural
+        , layout = Layout.monolithic
         }
       }
 
@@ -117,7 +128,9 @@ let hosts =
         -- like shannon's: scheduler + the only CAS shard + worker, R2 slow tier.
         -- 64 vCPU / 256 GiB / 1 TiB: a 200 GiB CAS fast tier beside the nix
         -- cache's 256 GiB. The fqdn is pinned to loopback on the host itself
-        -- (configurations/nixos/railgun) until the sk1 zone is served.
+        -- (configurations/nixos/railgun) until the sk1 zone is served. Split:
+        -- the box also runs Forgejo, Kanidm, ClickHouse and Postgres, so a
+        -- worker crash must not take the CAS and the queue down with it.
         HostDef::{
         , name = "railgun"
         , fqdn = "railgun.sk1.s4.gl"
@@ -127,6 +140,7 @@ let hosts =
         , casFastBytes = 214748364800
         , isScheduler = True
         , maxInflightTasks = Some 48
+        , layout = Layout.split
         }
       ]
 
@@ -430,9 +444,38 @@ let configFor =
             then  mergeConfigs (schedulerConfig h) casPlusWorker
             else  casPlusWorker
 
+--  The processes a host runs. A monolithic host's single process is configFor,
+--  exactly what render-all.dhall hands the fork's module.
+let processesFor =
+      \(h : HostDef.Type) ->
+        merge
+          { monolithic = [ { name = "nativelink", config = configFor h } ]
+          , split =
+                ( if    h.isScheduler
+                  then  [ { name = "scheduler", config = schedulerConfig h } ]
+                  else  [] : List Process
+                )
+              # [ { name = "cas", config = casServerConfig h }
+                , { name = "worker", config = workerConfig h }
+                ]
+          }
+          h.layout
+
 in  { hosts
     , enabledHosts
     , HostDef
+    , Layout
+    , Process
     , configFor
+    , processesFor
     , renderFor = \(h : HostDef.Type) -> r.renderConfig (configFor h)
+    , renderProcessesFor =
+        \(h : HostDef.Type) ->
+          List/map
+            Process
+            { process : Text, json : Text }
+            ( \(p : Process) ->
+                { process = p.name, json = r.renderConfig p.config }
+            )
+            (processesFor h)
     }

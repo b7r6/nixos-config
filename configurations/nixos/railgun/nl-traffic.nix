@@ -91,7 +91,7 @@ in
 
   systemd.services.nl-traffic = {
     description = "Bazel traffic against the local NativeLink (console build view)";
-    after = [ "nativelink.service" "network-online.target" ];
+    after = [ "nativelink-scheduler.service" "network-online.target" ];
     wants = [ "network-online.target" ];
     serviceConfig = {
       Type = "oneshot";
