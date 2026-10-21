@@ -2,7 +2,7 @@
 # the full home config is ON (this is the point of the machine), the desktop
 # layers (Hyprland/Wayland/desktop apps) are OFF because there is no seat.
 # Installed with nixos-anywhere --build-on remote; later deploys build here.
-{ flake, lib, pkgs, ... }:
+{ flake, lib, ... }:
 let
   inherit (flake) inputs;
   inherit (inputs) self disko agenix;
@@ -120,7 +120,38 @@ in
   };
 
   # Postgres: the shared fleet database, fresh (watchtower's data was wiped).
+  # Its daily logical dump (/var/backup/postgres, the forgejo DB included) is
+  # an authoritative state path, so the restic run below picks it up.
   hyper-modern-nixos.databases.postgres.enable = true;
+
+  # ── restic → R2 (backups-restic/railgun) ───────────────────────────────────
+  # The Forge is the ONLY home of straylight/orbital-nativelink and
+  # straylight/orbital-www (pushed here, mirrored nowhere), so Forgejo's repos
+  # and data plus the working checkouts under ~/src must leave this disk.
+  # NOT the default /var/lib: that would sweep in the NativeLink CAS fast tier
+  # and ClickHouse, both reconstructible and far larger than what matters.
+  # First run: `systemctl start restic-backups-init` creates the repo once.
+  hyper-modern-nixos.backup = {
+    enable = true;
+    passwordSecret = "restic-password";
+    environmentSecret = "restic-r2-env.railgun";
+    paths = [
+      "/var/lib/forgejo"
+      "/home"
+      "/etc"
+    ];
+    # Merged with the module's default excludes (same priority as the default):
+    # the PureScript/esbuild build output in the orbital worktrees is ~3 GiB
+    # and every byte of it regenerates from the sources it sits beside.
+    exclude = lib.mkOptionDefault [
+      "**/.spago"
+      "**/.build"
+      "/home/*/src/hypermodern/*/output"
+      "/home/*/src/hypermodern/*/dist"
+      "/home/*/src/hypermodern/*/projects/*/output"
+      "/home/*/src/hypermodern/*/projects/*/dist"
+    ];
+  };
 
   # Grafana lives in ./grafana.nix; Orbital Forge (Forgejo + backend + UI) in ./forge.nix.
 
