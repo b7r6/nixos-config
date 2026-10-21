@@ -96,6 +96,17 @@ let
         default = false;
         description = "Is this the primary monitor?";
       };
+
+      internal = mkOption {
+        type = types.bool;
+        default = false;
+        description = ''
+          Built-in laptop panel. Closing the lid disables it, but only while
+          another monitor is active to take over; with nothing else attached,
+          logind's lid policy (suspend) applies instead. Opening the lid
+          restores it with the same rule `monitor` generates.
+        '';
+      };
     };
   };
 
@@ -321,6 +332,55 @@ let
       ) monitors
     );
 
+  # Lid handling for `internal` panels. Guarded so it never disables the last
+  # active output (undocked lid close is logind's job: suspend), and only
+  # re-applies the rule when the panel is actually disabled (no modeset
+  # flicker on resume). `sync` reads the real lid state; it runs via `exec` on
+  # every config load, so a session started or reloaded with the lid shut
+  # still ends up with the panel off.
+  lidPanel = pkgs.writeShellApplication {
+    name = "hypr-lid-panel";
+    runtimeInputs = [
+      config.wayland.windowManager.hyprland.package
+      pkgs.jq
+      pkgs.gawk
+    ];
+    text = ''
+      mode=$1 desc=$2 rule=''${3:-}
+
+      if [ "$mode" = sync ]; then
+        state=$(awk '{ print $2; exit }' /proc/acpi/button/lid/*/state 2>/dev/null || true)
+        [ "$state" = closed ] || exit 0
+        mode=close
+      fi
+
+      case $mode in
+        close)
+          others=$(hyprctl monitors -j | jq --arg d "$desc" '[.[] | select(.description != $d)] | length')
+          [ "$others" -gt 0 ] || exit 0
+          hyprctl keyword monitor "desc:$desc, disable"
+          ;;
+        open)
+          disabled=$(hyprctl monitors all -j | jq --arg d "$desc" 'any(.[]; .description == $d and .disabled)')
+          [ "$disabled" = true ] || exit 0
+          hyprctl keyword monitor "$rule"
+          ;;
+      esac
+    '';
+  };
+
+  mkLidBinds =
+    name: mon:
+    let
+      exe = lib.getExe lidPanel;
+    in
+    [
+      ",switch:on:Lid Switch, exec, ${exe} close '${mon.description}'"
+      ",switch:off:Lid Switch, exec, ${exe} open '${mon.description}' '${mkMonitorConfig name mon}'"
+    ];
+
+  internalMonitors = lib.filterAttrs (_: mon: mon.internal) cfg.monitors;
+
   # Animation speed multipliers
   animationSpeed = {
     fast = 3;
@@ -536,6 +596,10 @@ in
 
           monitor = mapAttrsToList mkMonitorConfig cfg.monitors;
           workspace = mkWorkspaceBindings cfg.monitors;
+
+          # lid close/open toggles `internal` panels (see `lidPanel`)
+          bindl = lib.flatten (mapAttrsToList mkLidBinds internalMonitors);
+          exec = mapAttrsToList (_: mon: "${lib.getExe lidPanel} sync '${mon.description}'") internalMonitors;
 
           # ── Autostart ───────────────────────────────────────────────────────
           # session daemons from `autostart`, then the systray toggles

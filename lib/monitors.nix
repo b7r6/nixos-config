@@ -103,9 +103,11 @@ in
   shimmer = b7r6-desk;
 
   # ── shannon (laptop): Samsung OLED 2880x1800 internal panel ─────────────────
+  # `internal`: lid close turns the panel off when an external screen is up.
   shannon = {
     center = {
       description = "Samsung Display Corp. ATNA33AA08-0";
+      internal = true;
       resolution = "2880x1800";
       refreshRate = 60;
       position = "0x0";
