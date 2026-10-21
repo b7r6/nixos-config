@@ -41,9 +41,10 @@ let histAvg =
         "SELECT time, ${alias}, sum(ds) / sum(dc) as value FROM (${histDeltas metric groupKey alias}) GROUP BY time, ${alias} HAVING sum(dc) > 0 ORDER BY time"
 
 --  The RE service's journal units: nativelink.service on a monolithic host,
---  one unit per process on a split one (nativelink/data/fleet.dhall layout).
+--  one unit per process on a split one (nativelink/data/fleet.dhall layout):
+--  nativelink-scheduler, nativelink-cas, nativelink-worker-<n>.
 let reUnits =
-      "${S.unit} IN ('nativelink.service', 'nativelink-scheduler.service', 'nativelink-cas.service', 'nativelink-worker.service')"
+      "match(${S.unit}, '^nativelink(-(scheduler|cas|worker(-[0-9]+)?))?[.]service\$')"
 
 let cacheSvc = "nativelink-nix-cache.service"
 

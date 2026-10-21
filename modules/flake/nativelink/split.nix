@@ -92,6 +92,14 @@ let
         fi
       '';
 
+  # Each unit runs its own copy of its config, read out of the render at eval
+  # (import-from-derivation, the fleet's deliberate policy: modules/nixos/nix.nix),
+  # so the gates above still run but the store path depends only on that
+  # process's JSON. A Dhall change then restarts only the processes it changed:
+  # adding a worker leaves the CAS and the scheduler (and its queue) running.
+  processFile =
+    p: pkgs.writeText "nativelink-${cfg.dhallHost}-${p}.json" (builtins.readFile "${rendered}/${p}.json");
+
   # What each process waits for. The scheduler's CAS stores and the worker's
   # fast_slow both dial :50052; the worker also dials the worker API.
   deps = {
@@ -100,28 +108,33 @@ let
     worker = [
       "nativelink-cas.service"
     ]
-    ++ lib.optional (lib.elem "scheduler" sp.processes) "nativelink-scheduler.service";
+    ++ lib.optional sp.scheduler "nativelink-scheduler.service";
   };
+
+  # worker-<n> is a worker; every other process is its own role.
+  roleOf = p: if lib.hasPrefix "worker-" p then "worker" else p;
 
   # Per-process OTLP receivers on the local agent: all nativelink.role=re (so
   # the dashboards keyed on it still see the RE service), plus which process.
-  otlpPort = {
-    scheduler = 4321;
-    cas = 4323;
-    worker = 4324;
-  };
+  otlpPort =
+    p:
+    {
+      scheduler = 4321;
+      cas = 4323;
+    }
+    .${p} or (4323 + lib.toInt (lib.removePrefix "worker-" p));
 
   unitFor = p: {
     description = "NativeLink ${p} (split: fleet.dhall processesFor)";
     wantedBy = [ "nativelink.target" ];
     partOf = [ "nativelink.target" ];
-    after = fork.after ++ deps.${p};
-    wants = fork.wants ++ deps.${p};
+    after = fork.after ++ deps.${roleOf p};
+    wants = fork.wants ++ deps.${roleOf p};
     inherit (fork) path;
     environment =
       removeAttrs fork.environment [ "PATH" ]
       // lib.optionalAttrs otelAgent.enable {
-        NL_OTEL_ENDPOINT = "http://127.0.0.1:${toString otlpPort.${p}}";
+        NL_OTEL_ENDPOINT = "http://127.0.0.1:${toString (otlpPort p)}";
       };
     serviceConfig =
       removeAttrs fork.serviceConfig [
@@ -129,7 +142,7 @@ let
         "EnvironmentFile"
       ]
       // {
-        ExecStart = "${bin} ${rendered}/${p}.json";
+        ExecStart = "${bin} ${processFile p}";
       }
       # Only the CAS reaches the slow tier, so only it gets the credentials.
       // lib.optionalAttrs (p == "cas" && fork.serviceConfig ? EnvironmentFile) {
@@ -140,23 +153,28 @@ in
 {
   options.hyper-modern-nixos.nativelink.split = {
     enable = lib.mkEnableOption "one unit per NativeLink process (the host's Dhall layout must be `split`)";
+    scheduler = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Whether this host runs its site's scheduler (fleet.dhall `isScheduler`).";
+    };
+    workers = lib.mkOption {
+      type = lib.types.ints.positive;
+      default = 1;
+      description = "Worker processes on this host (fleet.dhall `Layout.split { workers }`).";
+    };
     processes = lib.mkOption {
-      type = lib.types.listOf (
-        lib.types.enum [
-          "scheduler"
-          "cas"
-          "worker"
-        ]
-      );
-      default = [
-        "scheduler"
-        "cas"
-        "worker"
-      ];
+      type = lib.types.listOf lib.types.str;
+      readOnly = true;
+      default =
+        lib.optional sp.scheduler "scheduler"
+        ++ [ "cas" ]
+        ++ map (n: "worker-${toString n}") (lib.range 1 sp.workers);
+      defaultText = lib.literalExpression ''[ "scheduler" "cas" "worker-1" … ]'';
       description = ''
-        The processes fleet.dhall `processesFor` renders for this host, in its
-        order. Checked against the render at build time; drop "scheduler" on a
-        split host whose site schedules elsewhere.
+        The processes this host runs, one unit each (nativelink-<process>), in
+        fleet.dhall `processesFor` order. The build fails unless the Dhall
+        renders exactly these.
       '';
     };
   };
@@ -192,14 +210,14 @@ in
       }
       (lib.mkIf otelAgent.enable {
         hyper-modern-nixos.observability.otel.agent.taggedOtlp =
-          lib.optionalAttrs (lib.elem "scheduler" sp.processes) {
+          lib.optionalAttrs sp.scheduler {
             nativelink-re.attributes."nativelink.process" = "scheduler";
           }
           // lib.listToAttrs (
             map (
               p:
               lib.nameValuePair "nativelink-re-${p}" {
-                port = otlpPort.${p};
+                port = otlpPort p;
                 attributes = {
                   "nativelink.role" = "re";
                   "nativelink.process" = p;

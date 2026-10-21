@@ -16,7 +16,7 @@
 #
 # The bundle is built ON railgun by `nativelink-ui-build` (spago fetches the
 # package registry at build time, so it is not a pure derivation yet).
-{ flake, pkgs, lib, ... }:
+{ config, flake, pkgs, lib, ... }:
 let
   webRoot = "/var/www/nativelink";
   apiDir = "/var/lib/nativelink-console";
@@ -25,11 +25,10 @@ let
   # forge is built from; spago.yaml points at ../hydrogen.
   projectsDir = "${flake.inputs.orbital-forge}/..";
 
-  units = [
+  units =
     # split (fleet.dhall layout): one unit per process under nativelink.target
-    "nativelink-scheduler.service"
-    "nativelink-cas.service"
-    "nativelink-worker.service"
+    map (p: "nativelink-${p}.service") config.hyper-modern-nixos.nativelink.split.processes
+    ++ [
     "nativelink-nix-cache.service"
     "nativelink-nix-cache-watch.service"
     "nativelink-nix-cache-reconcile.timer"

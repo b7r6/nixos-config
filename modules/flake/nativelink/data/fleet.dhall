@@ -42,10 +42,17 @@ let SlowTier = < r2 | azure >
 
 --  How a host's roles map onto processes. `monolithic`: one nativelink runs
 --  every role the host has (configFor). `split`: one process per role —
---  scheduler (public :50051 + worker_api :50061), cas (:50052), worker (no
---  listener) — cut along the seams the roles already talk over (gRPC to the
---  CAS port, the worker API), so ports, data dirs and hops are the monolith's.
-let Layout = < monolithic | split >
+--  scheduler (public :50051 + worker_api :50061), cas (:50052), and
+--  `workers` worker processes (no listener) — cut along the seams the roles
+--  already talk over (gRPC to the CAS port, the worker API), so ports and hops
+--  are the monolith's. Each split worker has `slots` in-flight actions and its
+--  own `fastBytes` fast tier, temp and work directory under workers/<n>: two
+--  workers on one host must not share those paths (the work directory is
+--  wiped at startup). Dhall has no division, so a host states the per-worker
+--  numbers rather than a total to split.
+let WorkerPlan = { workers : Natural, slots : Natural, fastBytes : Natural }
+
+let Layout = < monolithic | split : WorkerPlan >
 
 let Process = { name : Text, config : schema.Config.Type }
 
@@ -131,6 +138,8 @@ let hosts =
         -- (configurations/nixos/railgun) until the sk1 zone is served. Split:
         -- the box also runs Forgejo, Kanidm, ClickHouse and Postgres, so a
         -- worker crash must not take the CAS and the queue down with it.
+        -- Three workers: 3 × 16 slots is the monolith's 48, 3 × 64 GiB of
+        -- worker fast tier its 200 GiB.
         HostDef::{
         , name = "railgun"
         , fqdn = "railgun.sk1.s4.gl"
@@ -140,7 +149,7 @@ let hosts =
         , casFastBytes = 214748364800
         , isScheduler = True
         , maxInflightTasks = Some 48
-        , layout = Layout.split
+        , layout = Layout.split { workers = 3, slots = 16, fastBytes = 68719476736 }
         }
       ]
 
@@ -389,8 +398,16 @@ let schedulerConfig =
           ]
         }
 
-let workerConfig =
+--  A worker process: the shard-ring stores, a filesystem fast tier over them,
+--  and one local worker. The monolith's worker (workerConfig) keeps its
+--  historical paths; each split worker gets its own (processesFor).
+let WorkerDirs = { content : Text, temp : Text, work : Text }
+
+let workerConfigWith =
       \(h : HostDef.Type) ->
+      \(dirs : WorkerDirs) ->
+      \(fastBytes : Natural) ->
+      \(slots : Optional Natural) ->
         schema.Config::{
         , stores =
           [ schema.Store::{ name = "REMOTE_CAS", backend = casShardRing h }
@@ -399,11 +416,7 @@ let workerConfig =
             , name = "WORKER_FAST_SLOW_STORE"
             , backend =
                 r.fastSlow
-                  ( r.filesystem
-                      "${storeRoot}/worker-content"
-                      "${storeRoot}/worker-tmp"
-                      h.casFastBytes
-                  )
+                  (r.filesystem dirs.content dirs.temp fastBytes)
                   (r.ref "REMOTE_CAS")
             }
           ]
@@ -413,8 +426,8 @@ let workerConfig =
                 "grpc://${schedulerFqdnFor h}:${workerApiPort}"
             , cas_fast_slow_store = "WORKER_FAST_SLOW_STORE"
             , ac_store = "REMOTE_AC"
-            , work_directory = "${storeRoot}/work"
-            , max_inflight_tasks = h.maxInflightTasks
+            , work_directory = dirs.work
+            , max_inflight_tasks = slots
             , platform_properties =
               [ { name = "cpu_arch", values = [ archCpu h.arch ] }
               , { name = "OSFamily", values = [ "linux" ] }
@@ -425,6 +438,17 @@ let workerConfig =
             }
           ]
         }
+
+let workerConfig =
+      \(h : HostDef.Type) ->
+        workerConfigWith
+          h
+          { content = "${storeRoot}/worker-content"
+          , temp = "${storeRoot}/worker-tmp"
+          , work = "${storeRoot}/work"
+          }
+          h.casFastBytes
+          h.maxInflightTasks
 
 let mergeConfigs =
       \(a : schema.Config.Type) ->
@@ -451,13 +475,32 @@ let processesFor =
         merge
           { monolithic = [ { name = "nativelink", config = configFor h } ]
           , split =
-                ( if    h.isScheduler
-                  then  [ { name = "scheduler", config = schedulerConfig h } ]
-                  else  [] : List Process
-                )
-              # [ { name = "cas", config = casServerConfig h }
-                , { name = "worker", config = workerConfig h }
-                ]
+              \(plan : WorkerPlan) ->
+                  ( if    h.isScheduler
+                    then  [ { name = "scheduler", config = schedulerConfig h } ]
+                    else  [] : List Process
+                  )
+                # [ { name = "cas", config = casServerConfig h } ]
+                # Prelude.List.generate
+                    plan.workers
+                    Process
+                    ( \(i : Natural) ->
+                        let n = Natural/show (i + 1)
+
+                        let root = "${storeRoot}/workers/${n}"
+
+                        in  { name = "worker-${n}"
+                            , config =
+                                workerConfigWith
+                                  h
+                                  { content = "${root}/content"
+                                  , temp = "${root}/tmp"
+                                  , work = "${root}/work"
+                                  }
+                                  plan.fastBytes
+                                  (Some plan.slots)
+                            }
+                    )
           }
           h.layout
 
@@ -465,6 +508,7 @@ in  { hosts
     , enabledHosts
     , HostDef
     , Layout
+    , WorkerPlan
     , Process
     , configFor
     , processesFor
