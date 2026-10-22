@@ -32,8 +32,12 @@ NativeLink is four RE-API roles that scale independently
 
 - **CAS** — content-addressed blob store; the *only* stateful role.
 - **AC** — action cache (`hash(Action) → ActionResult`); disposable.
-- **Scheduler** — stateless dispatcher; matches actions to workers by platform
-  properties.
+- **Scheduler** — dispatcher; matches actions to workers by platform
+  properties. Its queue is in-process memory unless a site gives it a Redis
+  store (`fleet.dhall` `siteScheduling`): `single` trim is one scheduler per
+  site, memory- or Redis-backed; `ha` trim runs a scheduler on every
+  `isScheduler` host of the site over one shared Redis queue, and the Dhall
+  refuses `ha` without Redis, or `single` with two scheduler hosts.
 - **Workers** — stateless executors; fetch inputs from CAS, run the action,
   upload outputs.
 

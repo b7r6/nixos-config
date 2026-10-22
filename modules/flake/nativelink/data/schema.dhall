@@ -33,8 +33,50 @@ let Store =
 
 let PropEntry = { name : Text, mode : MatchMode }
 
+--  A Redis store (`redis_store` in NativeLink's JSON): the backing for a
+--  scheduler whose queue must outlive the process, or be shared by several
+--  scheduler processes (HA). Only the fields a deployment decides are typed;
+--  an unset Optional is left out of the JSON so NativeLink's own default
+--  applies (RedisSpec in nativelink-config/src/stores.rs). `pub_sub_channel`
+--  is `experimental_pub_sub_channel`: the scheduler backend needs it to hear
+--  another process's writes, so a shared scheduler store sets it.
+let RedisMode = < standard | cluster | sentinel >
+
+let Redis =
+      { Type =
+          { addresses : List Text
+          , mode : RedisMode
+          , key_prefix : Optional Text
+          , pub_sub_channel : Optional Text
+          , connection_pool_size : Optional Natural
+          , key_ttl_s : Optional Natural
+          , command_timeout_ms : Optional Natural
+          , connection_timeout_ms : Optional Natural
+          }
+      , default =
+        { mode = RedisMode.standard
+        , key_prefix = None Text
+        , pub_sub_channel = None Text
+        , connection_pool_size = None Natural
+        , key_ttl_s = None Natural
+        , command_timeout_ms = None Natural
+        , connection_timeout_ms = None Natural
+        }
+      }
+
+--  Where a simple scheduler keeps its queue (`simple.experimental_backend`):
+--  in process memory (lost with the process, one scheduler only) or in a
+--  Redis store, named by the store's `name`, which MUST be a `Redis` backend.
+let SchedulerBackend = < memory | redis : Text >
+
 let Scheduler =
-      { Type = { name : Text, properties : List PropEntry }, default = {=} }
+      { Type =
+          { name : Text
+          , properties : List PropEntry
+          , backend : SchedulerBackend
+          }
+      , default.backend = SchedulerBackend.memory
+      }
 
 let CasSvc = { instance_name : Text, cas_store : Text }
 
@@ -215,6 +257,9 @@ in  { Prelude
     , MatchMode
     , Store
     , PropEntry
+    , RedisMode
+    , Redis
+    , SchedulerBackend
     , Scheduler
     , CasSvc
     , AcSvc

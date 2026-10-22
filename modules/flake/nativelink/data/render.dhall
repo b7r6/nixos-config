@@ -280,7 +280,7 @@ let schedToJSON =
           , { mapKey = "simple"
             , mapValue =
                 obj
-                  [ { mapKey = "supported_platform_properties"
+                  ( [ { mapKey = "supported_platform_properties"
                     , mapValue =
                         obj
                           ( List/map
@@ -295,6 +295,27 @@ let schedToJSON =
                           )
                     }
                   ]
+                # merge
+                    { memory = [] : List (Map/Entry Text JSON.Type)
+                    , redis =
+                        \(store : Text) ->
+                          [ { mapKey = "experimental_backend"
+                            , mapValue =
+                                obj
+                                  [ { mapKey = "redis"
+                                    , mapValue =
+                                        obj
+                                          [ { mapKey = "redis_store"
+                                            , mapValue = str store
+                                            }
+                                          ]
+                                    }
+                                  ]
+                            }
+                          ]
+                    }
+                    s.backend
+                )
             }
           ]
 
@@ -400,6 +421,43 @@ let optStrField =
           (List (Map/Entry Text JSON.Type))
           (\(s : Text) -> [ { mapKey = k, mapValue = str s } ])
           ([] : List (Map/Entry Text JSON.Type))
+
+let optNatField =
+      \(k : Text) ->
+      \(v : Optional Natural) ->
+        Opt/fold
+          Natural
+          v
+          (List (Map/Entry Text JSON.Type))
+          (\(n : Natural) -> [ { mapKey = k, mapValue = nat n } ])
+          ([] : List (Map/Entry Text JSON.Type))
+
+let redisModeText =
+      \(m : schema.RedisMode) ->
+        merge { standard = "standard", cluster = "cluster", sentinel = "sentinel" } m
+
+--  A `redis_store`. Unset Optionals are omitted so NativeLink's own defaults
+--  apply.
+let redis =
+      \(c : schema.Redis.Type) ->
+          [ { mapKey = "redis_store"
+            , mapValue =
+                obj
+                  (   [ { mapKey = "addresses"
+                        , mapValue = arr (List/map Text JSON.Type str c.addresses)
+                        }
+                      , { mapKey = "mode", mapValue = str (redisModeText c.mode) }
+                      ]
+                    # optStrField "key_prefix" c.key_prefix
+                    # optStrField "experimental_pub_sub_channel" c.pub_sub_channel
+                    # optNatField "connection_pool_size" c.connection_pool_size
+                    # optNatField "key_ttl_s" c.key_ttl_s
+                    # optNatField "command_timeout_ms" c.command_timeout_ms
+                    # optNatField "connection_timeout_ms" c.connection_timeout_ms
+                  )
+            }
+          ]
+        : Backend
 
 let ociRegistryJSON =
       \(x : schema.OciRegistry.Type) ->
@@ -835,6 +893,7 @@ let renderConfig =
 in  { Backend
     , filesystem
     , memory
+    , redis
     , grpc
     , ref
     , fastSlow

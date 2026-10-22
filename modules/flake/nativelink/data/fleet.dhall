@@ -40,6 +40,62 @@ let Site = < sju1 | az | sk1 >
 
 let SlowTier = < r2 | azure >
 
+--  How a site's scheduler is trimmed. `single`: the site's first `isScheduler`
+--  host runs its one scheduler, and the queue lives where `redis` says — in
+--  that process (None: lost with it) or in Redis (Some: it survives a restart
+--  of the process). `ha`: EVERY `isScheduler` host in the site runs a
+--  scheduler over the same Redis queue (required; the assert below refuses
+--  `ha` without it): a client may dial any of them, and each dispatches the
+--  shared queue to the workers that registered with it. A worker on a
+--  scheduler host registers with its own; one elsewhere with the site's first.
+--  What `ha` does not give is a name clients dial that follows a live
+--  scheduler — that is the DNS/tailnet's job, not this file's.
+let SchedulerTrim = < single | ha >
+
+let SiteScheduling =
+      { Type = { trim : SchedulerTrim, redis : Optional schema.Redis.Type }
+      , default =
+        { trim = SchedulerTrim.single, redis = None schema.Redis.Type }
+      }
+
+--  Every site is memory-backed and single today. To move one, e.g. sk1 to
+--  a Redis-backed HA pair:
+--    sk1 = SiteScheduling::{
+--          , trim = SchedulerTrim.ha
+--          , redis = Some schema.Redis::{
+--            , addresses = [ "redis://redis.sk1.s4.gl:6379" ]
+--            , pub_sub_channel = Some "scheduler_key_change"
+--            }
+--          }
+let siteScheduling =
+      \(s : Site) ->
+        merge
+          { sju1 = SiteScheduling.default
+          , az = SiteScheduling.default
+          , sk1 = SiteScheduling.default
+          }
+          s
+
+let haHasRedis =
+      \(sc : SiteScheduling.Type) ->
+        merge
+          { single = True
+          , ha =
+              merge
+                { None = False, Some = \(_ : schema.Redis.Type) -> True }
+                sc.redis
+          }
+          sc.trim
+
+--  Two memory-backed schedulers would be two queues: `ha` needs Redis.
+let _ =
+        assert
+      :     Prelude.List.all
+              Site
+              (\(s : Site) -> haHasRedis (siteScheduling s))
+              [ Site.sju1, Site.az, Site.sk1 ]
+        ===  True
+
 --  How a host's roles map onto processes. `monolithic`: one nativelink runs
 --  every role the host has (configFor). `split`: one process per role —
 --  scheduler (public :50051 + worker_api :50061), cas (:50052), and
@@ -172,18 +228,77 @@ let siteHosts =
       \(h : HostDef.Type) ->
         List/filter HostDef.Type (\(x : HostDef.Type) -> sameSite h x) enabledHosts
 
+--  Whether h runs a scheduler is `isScheduler`, in either trim; `single`
+--  trim is the promise that a site has at most one such host (asserted
+--  below), `ha` that they all share one Redis queue.
+let runsScheduler = \(h : HostDef.Type) -> h.isScheduler
+
+let schedulerHostsFor =
+      \(h : HostDef.Type) ->
+        List/filter HostDef.Type runsScheduler (siteHosts h)
+
+--  The scheduler a worker on h registers with: its own host's when that runs
+--  one, else the site's first.
 let schedulerFqdnFor =
       \(h : HostDef.Type) ->
+        if    runsScheduler h
+        then  h.fqdn
+        else  merge
+                { None = h.fqdn, Some = \(s : HostDef.Type) -> s.fqdn }
+                (Prelude.List.head HostDef.Type (schedulerHostsFor h))
+
+--  A `single` site with two `isScheduler` hosts would be two queues with one
+--  name: refused here, not discovered on the wire.
+let singleHasOneScheduler =
+      \(s : Site) ->
+        let n =
+              Prelude.List.length
+                HostDef.Type
+                ( List/filter
+                    HostDef.Type
+                    ( \(h : HostDef.Type) ->
+                            runsScheduler h
+                        &&  Prelude.Natural.equal (siteId h.site) (siteId s)
+                    )
+                    enabledHosts
+                )
+
+        in  merge
+              { single = Prelude.Natural.lessThanEqual n 1, ha = True }
+              (siteScheduling s).trim
+
+let _ =
+        assert
+      :     Prelude.List.all Site singleHasOneScheduler [ Site.sju1, Site.az, Site.sk1 ]
+        ===  True
+
+--  The scheduler's queue: a Redis store beside the CAS rings when the site
+--  says so, named for the scheduler's `experimental_backend`.
+let schedulerRedisStore = "SCHEDULER_REDIS_STORE"
+
+let schedulerRedisStores =
+      \(h : HostDef.Type) ->
         merge
-          { None = h.fqdn, Some = \(s : HostDef.Type) -> s.fqdn }
-          ( Prelude.List.head
-              HostDef.Type
-              ( List/filter
-                  HostDef.Type
-                  (\(x : HostDef.Type) -> x.isScheduler)
-                  (siteHosts h)
-              )
-          )
+          { None = [] : List schema.Store.Type
+          , Some =
+              \(c : schema.Redis.Type) ->
+                [ schema.Store::{
+                  , name = schedulerRedisStore
+                  , backend = r.redis c
+                  }
+                ]
+          }
+          (siteScheduling h.site).redis
+
+let schedulerBackendFor =
+      \(h : HostDef.Type) ->
+        merge
+          { None = schema.SchedulerBackend.memory
+          , Some =
+              \(_ : schema.Redis.Type) ->
+                schema.SchedulerBackend.redis schedulerRedisStore
+          }
+          (siteScheduling h.site).redis
 
 --  The site's durable slow tier, per store prefix.
 let slowStore =
@@ -312,10 +427,12 @@ let schedulerConfig =
                   1073741824
             }
           ]
+          # schedulerRedisStores h
         , schedulers =
           [ schema.Scheduler::{
             , name = "MAIN_SCHEDULER"
             , properties = schedulerProps
+            , backend = schedulerBackendFor h
             }
           ]
         , servers =
@@ -464,7 +581,7 @@ let configFor =
       \(h : HostDef.Type) ->
         let casPlusWorker = mergeConfigs (casServerConfig h) (workerConfig h)
 
-        in  if    h.isScheduler
+        in  if    runsScheduler h
             then  mergeConfigs (schedulerConfig h) casPlusWorker
             else  casPlusWorker
 
@@ -476,7 +593,7 @@ let processesFor =
           { monolithic = [ { name = "nativelink", config = configFor h } ]
           , split =
               \(plan : WorkerPlan) ->
-                  ( if    h.isScheduler
+                  ( if    runsScheduler h
                     then  [ { name = "scheduler", config = schedulerConfig h } ]
                     else  [] : List Process
                   )
