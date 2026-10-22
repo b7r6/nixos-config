@@ -34,6 +34,7 @@
     # ── Hardware (gated) ──
 
     ./bluetooth.nix
+    ./mediatek-bluetooth.nix
     ./nvidia.nix
     ./radeon.nix
     ./usb.nix

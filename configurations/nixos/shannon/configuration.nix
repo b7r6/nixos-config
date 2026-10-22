@@ -403,6 +403,12 @@ in
     pulse.enable = true;
   };
 
+  # MT7925 Bluetooth: no USB autosuspend, and no HSP/HFP roles — this
+  # controller's (e)SCO RX path is broken in firmware, so a headset mic only
+  # ever yields silence, and letting an app autoswitch into HFP kills working
+  # A2DP playback with it. Use the built-in analog mic on calls.
+  hyper-modern-nixos.mediatekBluetooth.enable = true;
+
   environment.sessionVariables.NIXOS_OZONE_WL = "1";
 
   # ── Wayland/Hyprland ────────────────────────────────────────────────────────
