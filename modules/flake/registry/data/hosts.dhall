@@ -48,6 +48,18 @@ in  schema.Registry::{
         , name = "sk1"
         , description = "Stockholm (Azure swedencentral; nearest Equinix = sk1) — railgun, the dev box"
         }
+      , schema.Zone::{
+        , name = "wa1"
+        , description = "Warsaw (Azure polandcentral; nearest Equinix = wa1) — nl-wa1-a, a NativeLink cache node"
+        }
+      , schema.Zone::{
+        , name = "va1"
+        , description = "Ashburn (Azure eastus; Equinix is dc1 there, va1 so it does not read as 'DC one') — nl-va1-a, a NativeLink cache node"
+        }
+      , schema.Zone::{
+        , name = "px1"
+        , description = "Phoenix (Azure westus3; nearest Equinix = ph1, px1 after the airport) — nl-px1-a, a NativeLink cache node"
+        }
       ]
     , hosts =
       [ Host::{
@@ -117,6 +129,48 @@ in  schema.Registry::{
         , zone = "sk1"
         , role = "server"
         , services = [ "nativelink", "ch", "grafana", "monitoring", "git", "forge", "auth" ]
+        }
+      , -- nl-wa1-a: a NativeLink cache node (2026-10-23) — its own one-host site in
+        -- the Dhall fleet, a producer of the shared R2 Nix cache. Azure, 64 vCPU,
+        -- 2 TiB disk; the public address is the install/deploy path from railgun.
+        Host::{
+        , physical = "nl-wa1-a"
+        , tailnet = "nl-wa1-a"
+        , dc = "wa1"
+        , logical = logicalOf "nl-wa1-a" "wa1"
+        , tailnet_ipv4 = "100.91.107.49"
+        , provider_ipv4 = Some "74.248.20.192"
+        , zone = "wa1"
+        , role = "server"
+        , services = [] : List Text
+        }
+      , -- nl-va1-a: a NativeLink cache node (2026-10-23) — its own one-host site in
+        -- the Dhall fleet, a producer of the shared R2 Nix cache. Azure, 64 vCPU,
+        -- 2 TiB disk; the public address is the install/deploy path from railgun.
+        Host::{
+        , physical = "nl-va1-a"
+        , tailnet = "nl-va1-a"
+        , dc = "va1"
+        , logical = logicalOf "nl-va1-a" "va1"
+        , tailnet_ipv4 = "100.101.38.5"
+        , provider_ipv4 = Some "20.85.225.135"
+        , zone = "va1"
+        , role = "server"
+        , services = [] : List Text
+        }
+      , -- nl-px1-a: a NativeLink cache node (2026-10-23) — its own one-host site in
+        -- the Dhall fleet, a producer of the shared R2 Nix cache. Azure, 64 vCPU,
+        -- 2 TiB disk; the public address is the install/deploy path from railgun.
+        Host::{
+        , physical = "nl-px1-a"
+        , tailnet = "nl-px1-a"
+        , dc = "px1"
+        , logical = logicalOf "nl-px1-a" "px1"
+        , tailnet_ipv4 = "100.105.126.42"
+        , provider_ipv4 = Some "20.118.184.142"
+        , zone = "px1"
+        , role = "server"
+        , services = [] : List Text
         }
       , Host::{
         , physical = "shannon"
