@@ -36,7 +36,12 @@ let r2Bucket = "straylight-nativelink-cas"
 
 let Arch = < x86_64 | aarch64 >
 
-let Site = < sju1 | az | sk1 >
+--  sk1 is Sweden Central; wa1 / va1 / px1 (Poland Central, East US, West US 3)
+--  are the one-host sites of 2026-10-23: the regions that would sell this
+--  subscription a 64-core box, so the four producers of the shared R2
+--  tier are four sites, each its own scheduler and one-shard ring — an RE site
+--  does not span regions; the Nix cache is coherent through R2 regardless.
+let Site = < sju1 | az | sk1 | wa1 | va1 | px1 >
 
 let SlowTier = < r2 | azure >
 
@@ -50,6 +55,8 @@ let SlowTier = < r2 | azure >
 --  scheduler host registers with its own; one elsewhere with the site's first.
 --  What `ha` does not give is a name clients dial that follows a live
 --  scheduler — that is the DNS/tailnet's job, not this file's.
+let allSites = [ Site.sju1, Site.az, Site.sk1, Site.wa1, Site.va1, Site.px1 ]
+
 let SchedulerTrim = < single | ha >
 
 let SiteScheduling =
@@ -73,6 +80,9 @@ let siteScheduling =
           { sju1 = SiteScheduling.default
           , az = SiteScheduling.default
           , sk1 = SiteScheduling.default
+          , wa1 = SiteScheduling.default
+          , va1 = SiteScheduling.default
+          , px1 = SiteScheduling.default
           }
           s
 
@@ -93,7 +103,7 @@ let _ =
       :     Prelude.List.all
               Site
               (\(s : Site) -> haHasRedis (siteScheduling s))
-              [ Site.sju1, Site.az, Site.sk1 ]
+              allSites
         ===  True
 
 --  How a host's roles map onto processes. `monolithic`: one nativelink runs
@@ -183,21 +193,29 @@ let azHost =
         , maxInflightTasks = Some 8
         }
 
---  An sk1 host: the railgun shape (Standard_D64s_v5, SwedenCentral), a CAS
---  shard of weight 1 and three split workers, writing to the site's R2 tier.
-let sk1Host =
+--  A producer node: the railgun shape — a CAS shard of weight 1, three split
+--  workers of `slots` actions each, writing to the site's R2 tier — at a site
+--  whose zone names it (`<host>.<zone>.s4.gl`; the host pins its own fqdn to
+--  loopback). `slots` follows the box: 16 on a D64 (3 × 16 = 48 of 64 vCPU),
+--  10 on a D32, 5 on a D16 — leaving the CAS, the nix cache and the OS room.
+let producerHost =
+      \(s : Site) ->
+      \(zone : Text) ->
+      \(slots : Natural) ->
       \(n : Text) ->
         HostDef::{
         , name = n
-        , fqdn = "${n}.sk1.s4.gl"
+        , fqdn = "${n}.${zone}.s4.gl"
         , arch = Arch.x86_64
-        , site = Site.sk1
+        , site = s
         , casWeight = 1
         , casFastBytes = 214748364800
         , pushToSlow = True
-        , maxInflightTasks = Some 48
-        , layout = Layout.split { workers = 3, slots = 16, fastBytes = 68719476736 }
+        , maxInflightTasks = Some (slots * 3)
+        , layout = Layout.split { workers = 3, slots, fastBytes = 68719476736 }
         }
+
+let sk1Host = producerHost Site.sk1 "sk1" 16
 
 let hosts =
       [ HostDef::{
@@ -222,23 +240,24 @@ let hosts =
         -- the site's R2 producer — a datacenter uplink, and three more hosts
         -- of the same size are about to share the tier (below).
         sk1Host "railgun" // { isScheduler = True }
-      , -- The three sk1 hosts that join railgun (2026-10-23): same size, same
-        -- shape, same R2 tier, no scheduler (sk1 stays `single` until it has
-        -- Redis for `ha`). `enabled = False` until each VM exists, is on the
-        -- tailnet and in the registry — an enabled host enters the site's CAS
-        -- shard ring, and a ring member that does not answer is a miss on
-        -- every digest hashed to it. Flip one at a time, after `nativelink
-        -- --check` on the rendered config and a reachable :50052.
-        (sk1Host "nl-sk1-b") // { enabled = False }
-      , (sk1Host "nl-sk1-c") // { enabled = False }
-      , (sk1Host "nl-sk1-d") // { enabled = False }
+      , -- The three producers that join railgun on the R2 tier (2026-10-23),
+        -- one per region: each region's DSv5 quota is 65 vCPU and D64 capacity
+        -- was nowhere to be had that night, so they are the size the region
+        -- would sell. Each is a one-host site — its own scheduler, a ring of
+        -- one — so no CAS ring spans regions and enabling one touches no other
+        -- host's config. Same shape, same R2 tier, same signing key.
+        producerHost Site.wa1 "wa1" 16 "nl-wa1-a" // { isScheduler = True }
+      , producerHost Site.va1 "va1" 16 "nl-va1-a" // { isScheduler = True }
+      , producerHost Site.px1 "px1" 16 "nl-px1-a" // { isScheduler = True }
       ]
 
 let archCpu = \(a : Arch) -> merge { x86_64 = "x86_64", aarch64 = "aarch64" } a
 
 let archISA = \(a : Arch) -> merge { x86_64 = "x86-64", aarch64 = "aarch64" } a
 
-let siteId = \(s : Site) -> merge { sju1 = 0, az = 1, sk1 = 2 } s
+let siteId =
+      \(s : Site) ->
+        merge { sju1 = 0, az = 1, sk1 = 2, wa1 = 3, va1 = 4, px1 = 5 } s
 
 let sameSite =
       \(a : HostDef.Type) ->
@@ -294,7 +313,7 @@ let singleHasOneScheduler =
 
 let _ =
         assert
-      :     Prelude.List.all Site singleHasOneScheduler [ Site.sju1, Site.az, Site.sk1 ]
+      :     Prelude.List.all Site singleHasOneScheduler allSites
         ===  True
 
 --  The scheduler's queue: a Redis store beside the CAS rings when the site

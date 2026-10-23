@@ -108,8 +108,11 @@ uplink needs (2026-10-12: 33 parallel PUTs starved every download). The Nix
 cache has the same switch, `nixCache.pushToR2` in NixOS, carried into the render
 as `data/nix-cache-site.dhall`: a producer's NARs write back and its narinfo and
 alias records write through to R2 (`nix-path-info/`, `nix-alias/`), so every
-host of the site serves what any one of them built. sk1 (railgun + the three
-`nl-sk1-*` hosts) is all producers, since 2026-10-23; shannon stays a consumer.
+host of the site serves what any one of them built. Since 2026-10-23 the
+producers are four one-host sites — sk1 (railgun, Sweden Central), wa1 (Poland
+Central), va1 (East US), px1 (West US 3): the regions that would sell this
+subscription a 64-core box — each its own scheduler and ring of one, coherent
+through R2 and nothing else; shannon stays a consumer.
 
 > Open (needs benching): on a single 2.5 Gb switch with R2 as the shared slow
 > tier, does the sharded ring beat the simpler "each worker has a local fast tier

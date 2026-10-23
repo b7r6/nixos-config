@@ -76,6 +76,11 @@ let
     nl-az-rig.bootstrap = false;
     shannon = { };
     railgun = { }; # the Azure dev box (configurations/nixos/railgun)
+    # The three D64s_v5 cache nodes beside railgun (configurations/nixos/nl-node):
+    # one per region, nixos-anywhere installs from railgun, no bootstrap variants.
+    nl-wa1-a.bootstrap = false;
+    nl-va1-a.bootstrap = false;
+    nl-px1-a.bootstrap = false;
     # guccimane, ultraviolence, watchtower, weyl: wiped and sold 2026-10-07
     # (docs/salvage-checklist-2026-10.md). Their configurations/nixos/<name>/
     # trees stay as history. Reviving one also needs its host key back in
