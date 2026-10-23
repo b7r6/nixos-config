@@ -1,0 +1,17 @@
+--  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--                               // hypermodern // nativelink // nix // cache site
+--  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--
+--  The one per-HOST fact nix-cache.dhall cannot learn from its Params: the
+--  fork's module marshals NixOS options into Params, and a host's standing in
+--  the fleet (consumer of the shared R2 tier, or one of its producers) is not
+--  an option it knows. So it lives here, next to the render that reads it.
+--
+--  This file is the DEFAULT: the consumer shape, R2 read-only, what a laptop
+--  wants. A producer host sets `hyper-modern-nixos.nativelink.nixCache.pushToR2`
+--  and shim.nix hands the module a fleetDir whose copy of this file says True.
+--  Nothing else in the directory differs, so the RE fleet renders the same.
+--
+--  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--
+{ pushToR2 = False }

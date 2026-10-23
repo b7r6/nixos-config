@@ -123,6 +123,14 @@ let HostDef =
           , casFastBytes : Natural
           , isScheduler : Bool
           , enabled : Bool
+          , -- Whether this host WRITES to the site's slow tier. False is the
+            -- consumer shape (slow_direction = get: misses fall through and
+            -- fill the fast tier, nothing is pushed) that a laptop uplink
+            -- needs (2026-10-12: 33 parallel PUTs starved every download).
+            -- True makes the host a producer: CAS write-back, AC write-through,
+            -- so what it builds is the site's durable truth and every other
+            -- host of the site sees it. A datacenter box with real uplink.
+            pushToSlow : Bool
           , maxInflightTasks : Optional Natural
           , layout : Layout
           }
@@ -131,6 +139,7 @@ let HostDef =
         , slowTier = SlowTier.r2
         , isScheduler = False
         , enabled = True
+        , pushToSlow = False
         , maxInflightTasks = None Natural
         , layout = Layout.monolithic
         }
@@ -138,19 +147,19 @@ let HostDef =
 
 let casPort = "50052"
 
-let pushToR2 = False
-
 let casBackend =
+      \(push : Bool) ->
       \(fast : r.Backend) ->
       \(slow : r.Backend) ->
-        if    pushToR2
+        if    push
         then  r.fastSlowWriteBack fast slow
         else  r.fastSlowReadSlow fast slow
 
 let acBackend =
+      \(push : Bool) ->
       \(fast : r.Backend) ->
       \(slow : r.Backend) ->
-        if pushToR2 then r.fastSlow fast slow else r.fastSlowReadSlow fast slow
+        if push then r.fastSlow fast slow else r.fastSlowReadSlow fast slow
 
 let workerApiPort = "50061"
 
@@ -174,6 +183,22 @@ let azHost =
         , maxInflightTasks = Some 8
         }
 
+--  An sk1 host: the railgun shape (Standard_D64s_v5, SwedenCentral), a CAS
+--  shard of weight 1 and three split workers, writing to the site's R2 tier.
+let sk1Host =
+      \(n : Text) ->
+        HostDef::{
+        , name = n
+        , fqdn = "${n}.sk1.s4.gl"
+        , arch = Arch.x86_64
+        , site = Site.sk1
+        , casWeight = 1
+        , casFastBytes = 214748364800
+        , pushToSlow = True
+        , maxInflightTasks = Some 48
+        , layout = Layout.split { workers = 3, slots = 16, fastBytes = 68719476736 }
+        }
+
 let hosts =
       [ HostDef::{
         , name = "shannon"
@@ -187,26 +212,26 @@ let hosts =
       , (azHost "nl-az-a") // { isScheduler = True }
       , azHost "nl-az-b"
       , azHost "nl-az-c"
-      , -- sk1: railgun, the Azure (Sweden Central) dev box — a one-host site
-        -- like shannon's: scheduler + the only CAS shard + worker, R2 slow tier.
-        -- 64 vCPU / 256 GiB / 1 TiB: a 200 GiB CAS fast tier beside the nix
-        -- cache's 256 GiB. The fqdn is pinned to loopback on the host itself
-        -- (configurations/nixos/railgun) until the sk1 zone is served. Split:
+      , -- sk1: railgun, the Azure (Sweden Central) D64s_v5 — the site's
+        -- scheduler + a CAS shard + worker, R2 slow tier. 64 vCPU / 256 GiB /
+        -- 1 TiB: a 200 GiB CAS fast tier beside the nix cache's 256 GiB. Split:
         -- the box also runs Forgejo, Kanidm, ClickHouse and Postgres, so a
         -- worker crash must not take the CAS and the queue down with it.
         -- Three workers: 3 × 16 slots is the monolith's 48, 3 × 64 GiB of
-        -- worker fast tier its 200 GiB.
-        HostDef::{
-        , name = "railgun"
-        , fqdn = "railgun.sk1.s4.gl"
-        , arch = Arch.x86_64
-        , site = Site.sk1
-        , casWeight = 1
-        , casFastBytes = 214748364800
-        , isScheduler = True
-        , maxInflightTasks = Some 48
-        , layout = Layout.split { workers = 3, slots = 16, fastBytes = 68719476736 }
-        }
+        -- worker fast tier its 200 GiB. pushToSlow (2026-10-23): this box is
+        -- the site's R2 producer — a datacenter uplink, and three more hosts
+        -- of the same size are about to share the tier (below).
+        sk1Host "railgun" // { isScheduler = True }
+      , -- The three sk1 hosts that join railgun (2026-10-23): same size, same
+        -- shape, same R2 tier, no scheduler (sk1 stays `single` until it has
+        -- Redis for `ha`). `enabled = False` until each VM exists, is on the
+        -- tailnet and in the registry — an enabled host enters the site's CAS
+        -- shard ring, and a ring member that does not answer is a miss on
+        -- every digest hashed to it. Flip one at a time, after `nativelink
+        -- --check` on the rendered config and a reachable :50052.
+        (sk1Host "nl-sk1-b") // { enabled = False }
+      , (sk1Host "nl-sk1-c") // { enabled = False }
+      , (sk1Host "nl-sk1-d") // { enabled = False }
       ]
 
 let archCpu = \(a : Arch) -> merge { x86_64 = "x86_64", aarch64 = "aarch64" } a
@@ -330,9 +355,10 @@ let casServerConfig =
           [ schema.Store::{
             , name = "CAS_LOCAL"
             , backend =
-                -- pushToR2: write-back, so buck2 CAS uploads return at NVMe
+                -- pushToSlow: write-back, so buck2 CAS uploads return at NVMe
                 -- speed and R2 fills in the background (nativelink #35).
                 casBackend
+                  h.pushToSlow
                   ( r.cacheMetrics
                       "cas-fast"
                       ( r.filesystem
@@ -347,6 +373,7 @@ let casServerConfig =
             , name = "AC_LOCAL"
             , backend =
                 acBackend
+                  h.pushToSlow
                   (r.cacheMetrics "ac-fast" (r.memory 67108864))
                   (r.cacheMetrics "ac-slow" (slowStore h "ac/"))
             }

@@ -45,6 +45,13 @@ in
   # output the laptop wants. Same shape as shannon: local fast tier capped,
   # R2 as the slow tier, read-through of the public caches. mkOverride 40 beats
   # the module's mkForce (50).
+  #
+  # pushToR2 (2026-10-23): railgun is the site's R2 PRODUCER. Until now R2 was
+  # read-only for it (the laptop-uplink setting of 2026-10-12 never flipped
+  # back), so eleven days of builds lived only on this disk. With it, NARs
+  # write back and narinfo/alias records write through, and the three sk1
+  # hosts joining it (fleet.dhall) serve the same cache from the same tier.
+  # Backfill of what was already local: nl-nix-backfill (one-shot, 2026-10-23).
   age.secrets.nativelink-r2-env.file = ../../../secrets/agenix/machines/nativelink-r2-env.age;
   hyper-modern-nixos.nativelink.r2 = {
     enable = true;
@@ -55,6 +62,7 @@ in
   hyper-modern-nixos.nativelink.nixCache = {
     enable = lib.mkOverride 40 true;
     watchStore = lib.mkOverride 40 true;
+    pushToR2 = true;
     fastCacheBytes = 274877906944; # 256 GiB of the 1 TiB disk
     upstreamCaches = [
       {

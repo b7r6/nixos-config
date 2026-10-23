@@ -100,6 +100,17 @@ Each shard is a per-host store: a local NVMe **fast tier** fronting the shared R
 Because blobs are content-addressed, a blob is identical on every shard/host —
 **no consistency problem**, R2 is the shared truth, local tiers are caches.
 
+Which way a host's tier faces is per host. `pushToSlow` in `fleet.dhall` makes a
+host a **producer**: CAS writes back to R2 (the upload returns at NVMe speed, R2
+fills behind it) and AC writes through. Off, the host is a **consumer**: misses
+fall through to R2 and fill the fast tier, nothing is pushed — the shape a laptop
+uplink needs (2026-10-12: 33 parallel PUTs starved every download). The Nix
+cache has the same switch, `nixCache.pushToR2` in NixOS, carried into the render
+as `data/nix-cache-site.dhall`: a producer's NARs write back and its narinfo and
+alias records write through to R2 (`nix-path-info/`, `nix-alias/`), so every
+host of the site serves what any one of them built. sk1 (railgun + the three
+`nl-sk1-*` hosts) is all producers, since 2026-10-23; shannon stays a consumer.
+
 > Open (needs benching): on a single 2.5 Gb switch with R2 as the shared slow
 > tier, does the sharded ring beat the simpler "each worker has a local fast tier
 > over shared R2, scheduler keeps one logical CAS"? The shard ring earns its keep

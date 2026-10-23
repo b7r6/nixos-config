@@ -1,9 +1,29 @@
 # The consumer-side couplings the fork's module deliberately does not know
 # about: OUR fleet topology, OUR telemetry pipeline, OUR state registry.
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.hyper-modern-nixos.nativelink;
   otelAgent = config.hyper-modern-nixos.observability.otel.agent;
+
+  # ./data with one file overlaid: nix-cache-site.dhall saying this host pushes
+  # to R2. The fork's module renders nix-cache.dhall from a Params record it
+  # builds from its own options, and a host's standing in the fleet (consumer
+  # of the shared tier or one of its producers) is not among them — so the
+  # fact rides in the fleetDir, typed, next to the render that reads it. Every
+  # other file is a byte-for-byte copy, so the RE fleet renders identically
+  # from either directory.
+  producerFleetDir =
+    pkgs.buildPackages.runCommand "nativelink-fleet-data-producer" { } ''
+      cp -r ${./data} "$out"
+      chmod -R u+w "$out"
+      cp ${pkgs.writeText "nix-cache-site.dhall" "{ pushToR2 = True }\n"} \
+        "$out"/nix-cache-site.dhall
+    '';
 in
 {
   options.hyper-modern-nixos.nativelink.extraEnvironmentFiles = lib.mkOption {
@@ -18,11 +38,34 @@ in
     '';
   };
 
+  options.hyper-modern-nixos.nativelink.nixCache.pushToR2 = lib.mkOption {
+    type = lib.types.bool;
+    default = false;
+    description = ''
+      Make this host a PRODUCER of the shared R2 Nix cache: NARs write back to
+      R2 and narinfo + alias records write through, so every other host of the
+      fleet serves what this one builds. Off, R2 is read-only for the nix cache
+      (misses fill the local tier, nothing is pushed) — the shape a laptop
+      uplink needs. Requires `r2.enable`. Implemented by overlaying
+      data/nix-cache-site.dhall in the fleetDir (see shim.nix); the RE fleet's
+      own write direction is per host in fleet.dhall (`pushToSlow`).
+    '';
+  };
+
   config = lib.mkMerge [
     {
       # The typed Dhall fleet definition is this repo's — the module renders
-      # whatever fleet it is pointed at.
-      hyper-modern-nixos.nativelink.fleetDir = lib.mkDefault ./data;
+      # whatever fleet it is pointed at. A nix-cache producer gets the same
+      # directory with its one per-host fact flipped.
+      hyper-modern-nixos.nativelink.fleetDir =
+        if cfg.nixCache.pushToR2 then producerFleetDir else lib.mkDefault ./data;
+
+      assertions = [
+        {
+          assertion = cfg.nixCache.pushToR2 -> cfg.r2.enable;
+          message = "hyper-modern-nixos.nativelink.nixCache.pushToR2 needs r2.enable: there is no R2 tier to push to.";
+        }
+      ];
 
       # Point nativelink's OTLP push at the host-local otel agent, like every
       # other fleet service (the fork module defaults this to null).

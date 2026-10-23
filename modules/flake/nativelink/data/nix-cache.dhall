@@ -18,6 +18,8 @@ let schema = ./schema.dhall
 
 let r = ./render.dhall
 
+let site = ./nix-cache-site.dhall
+
 let R2 = { account : Text, bucket : Text }
 
 let FetchProxy =
@@ -48,31 +50,66 @@ let render =
                   "${p.stateDir}/${sub}/tmp"
                   cap
 
+        --  Whether this host PUSHES to R2 (./nix-cache-site.dhall: the one
+        --  per-host fact Params cannot carry, overlaid per host by shim.nix).
+        --
+        --  Consumer (False): R2 is read-only — misses still pull from it and
+        --  fill the fast tier, nothing is pushed, and narinfo + alias records
+        --  stay local. Every path that lands in /nix/store (substituted from
+        --  cache.nixos.org or not) reaches the NAR store via the watcher or
+        --  read-through, and mirroring that saturated a laptop uplink: 33
+        --  parallel PUTs, RTT 20 → 900 ms, downloads starved to 300 KiB/s
+        --  (2026-10-12).
+        --
+        --  Producer (True, railgun 2026-10-23): R2 is the truth the SITE
+        --  shares. NARs write back (the upload returns at local speed, R2
+        --  fills behind it); narinfo and alias records write THROUGH, so the
+        --  moment a producer answers a PUT the record is in R2 for every other
+        --  host — their completeness check against the NAR store (an R2 HEAD
+        --  on a cold fast tier) hides the write-back window as a 404, never a
+        --  NAR that cannot be served. Both string-keyed stores work on R2
+        --  because the fork's object store keys by `key.as_str()`: the records
+        --  land under nix-path-info/<nixbase32> and nix-alias/nar-alias:<name>.
+        let push = site.pushToR2
+
+        let tiered =
+              \(sub : Text) ->
+              \(cap : Natural) ->
+              \(prefix : Text) ->
+              \(writeBack : Bool) ->
+                merge
+                  { None = fsStore sub cap
+                  , Some =
+                      \(x : R2) ->
+                        let fast = fsStore sub cap
+
+                        let slow = r.r2 x.account x.bucket prefix
+
+                        in  if    push
+                            then  ( if    writeBack
+                                    then  r.fastSlowWriteBack fast slow
+                                    else  r.fastSlow fast slow
+                                  )
+                            else  r.fastSlowReadSlow fast slow
+                  }
+                  p.r2
+
         let narBackend =
               merge
                 { None = fsStore "nar" p.maxNarBytes
                 , Some =
-                    \(x : R2) ->
-                      -- R2 is READ-ONLY for the nix cache: misses still pull
-                      -- from it, nothing is pushed. Every path that lands in
-                      -- /nix/store (substituted from cache.nixos.org or not)
-                      -- reaches this store via the watcher or read-through,
-                      -- and mirroring that to R2 saturated a laptop uplink:
-                      -- 33 parallel PUTs, RTT 20 → 900 ms, downloads starved
-                      -- to 300 KiB/s (2026-10-12). Flip `pushToR2` when a
-                      -- fleet host with real uplink is the R2 producer again;
-                      -- write-back then keeps narinfo latency off the upload.
-                      let pushToR2 = False
-
-                      let nar = fsStore "nar" p.fastBytes
-
-                      let slow = r.r2 x.account x.bucket "nix-nar/"
-
-                      in  if    pushToR2
-                          then  r.fastSlowWriteBack nar slow
-                          else  r.fastSlowReadSlow nar slow
+                    \(_ : R2) -> tiered "nar" p.fastBytes "nix-nar/" True
                 }
                 p.r2
+
+        --  A consumer keeps its records local (byte-identical to before
+        --  2026-10-23); a producer tiers them over R2, write-through.
+        let recordBackend =
+              \(sub : Text) ->
+              \(prefix : Text) ->
+                if    push
+                then  tiered sub 1073741824 prefix False
+                else  fsStore sub 1073741824
 
         let baseStores =
               [ schema.Store::{
@@ -83,12 +120,12 @@ let render =
                 , name = "NIX_PATH_INFO_STORE"
                 , backend =
                     r.completeness
-                      (fsStore "path-info" 1073741824)
+                      (recordBackend "path-info" "nix-path-info/")
                       "NIX_NAR_STORE"
                 }
               , schema.Store::{
                 , name = "NIX_ALIAS_STORE"
-                , backend = fsStore "alias" 1073741824
+                , backend = recordBackend "alias" "nix-alias/"
                 }
               ]
 
