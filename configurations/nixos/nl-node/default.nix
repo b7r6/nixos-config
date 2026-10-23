@@ -27,6 +27,9 @@ in
   # Azure platform (Hyper-V guest, serial console, headless). The module forces
   # the home config off, which is what a cache node wants.
   hyper-modern-nixos.azure.enable = true;
+  # Declarative tailnet enrolment: the network module only points at the key
+  # file; each host declares the secret itself (as shannon and weyl do).
+  age.secrets.tailscale-auth-key.file = ../../../secrets/agenix/machines/tailscale-auth-key.age;
   hyper-modern-nixos.network.tailscale.authKeyFile = "/run/agenix/tailscale-auth-key";
 
   # ── The Nix cache, as a producer (same R2 tier and signing key as railgun) ─
